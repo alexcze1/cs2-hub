@@ -57,8 +57,28 @@ function updateNav() {
     else nav.classList.remove('nav--scrolled');
   }
 }
-window.addEventListener('scroll', updateNav, { passive:true });
+/* ── Active nav link ── */
+function updateActiveLink() {
+  const links = nav.querySelectorAll('.nav__links a:not(.nav__mobile-cta)');
+  const sectionIds = ['tjanster', 'process', 'om', 'kontakt'];
+  let activeId = null;
+
+  sectionIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    if (r.top <= 80 && r.bottom > 80) activeId = id;
+  });
+
+  links.forEach(a => {
+    const matches = activeId !== null && a.getAttribute('href') === '#' + activeId;
+    a.classList.toggle('active', matches);
+  });
+}
+
+window.addEventListener('scroll', () => { updateNav(); updateActiveLink(); }, { passive: true });
 updateNav();
+updateActiveLink();
 
 burger.addEventListener('click', () => {
   const open = nav.classList.toggle('nav--open');
