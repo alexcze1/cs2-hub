@@ -332,7 +332,7 @@ section[id] { scroll-margin-top: 60px; }
 }
 .intro__inner {
   max-width: var(--mw); margin: 0 auto;
-  padding: clamp(5rem, 9vw, 8.5rem) var(--px);
+  padding: clamp(6rem, 10vw, 9.5rem) var(--px);
   display: grid; grid-template-columns: 1fr 1.7fr;
   gap: clamp(3rem, 8vw, 8rem); align-items: start;
 }
@@ -385,7 +385,7 @@ section[id] { scroll-margin-top: 60px; }
 
 .svc__inner {
   max-width: var(--mw); margin: 0 auto;
-  padding: clamp(5rem, 8vw, 8rem) var(--px);
+  padding: clamp(6rem, 10vw, 10rem) var(--px);
   display: grid; grid-template-columns: 1.1fr .9fr;
   gap: clamp(3rem, 6vw, 6rem); align-items: center;
 }
@@ -561,7 +561,7 @@ section[id] { scroll-margin-top: 60px; }
 
 .manifesto__inner {
   max-width: var(--mw); margin: 0 auto;
-  padding: clamp(5rem, 10vw, 9rem) var(--px);
+  padding: clamp(7rem, 11vw, 10rem) var(--px);
   display: grid; grid-template-columns: 1fr 1fr;
   gap: clamp(3rem, 8vw, 8rem); align-items: start;
   position: relative;
@@ -610,7 +610,7 @@ section[id] { scroll-margin-top: 60px; }
 }
 .process__inner {
   max-width: var(--mw); margin: 0 auto;
-  padding: clamp(5rem, 9vw, 8rem) var(--px);
+  padding: clamp(6rem, 10vw, 9rem) var(--px);
 }
 .process__header { margin-bottom: clamp(3.5rem, 6vw, 5.5rem); }
 
@@ -629,9 +629,12 @@ section[id] { scroll-margin-top: 60px; }
 .process__step {
   padding: 2.5rem 2rem 2.5rem 0;
   border-right: 1px solid var(--lt-border);
+  transition: background .25s var(--ease);
 }
 .process__step:last-child { border-right: none; }
 .process__step:not(:first-child) { padding-left: 2rem; }
+.process__step:hover { background: rgba(0,0,0,.022); }
+.process__step:hover .process__n { color: var(--lt-text); }
 
 .process__step-top {
   display: flex; align-items: center; gap: 1rem;
@@ -666,7 +669,7 @@ section[id] { scroll-margin-top: 60px; }
 }
 .about__inner {
   max-width: var(--mw); margin: 0 auto;
-  padding: clamp(5rem, 10vw, 9rem) var(--px);
+  padding: clamp(7rem, 11vw, 10rem) var(--px);
   display: grid; grid-template-columns: 1fr 1.4fr;
   gap: clamp(3rem, 8vw, 8rem); align-items: start;
 }
