@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Forma Studio – Digitalbyrå i Sverige. Webb, varumärke, marknadsföring och UX-design.">
+  <title>Forma Studio — Digitalbyrå</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="cursor" aria-hidden="true"></div>
+
+  <!-- NAV -->
+  <header class="nav" id="nav">
+    <div class="nav__inner">
+      <a href="#" class="nav__logo" aria-label="Forma Studio">Forma<span>.</span></a>
+      <button class="nav__burger" aria-expanded="false" aria-label="Meny">
+        <span></span><span></span>
+      </button>
+      <nav class="nav__links" aria-label="Primär navigation">
+        <a href="#tjanster">Tjänster</a>
+        <a href="#process">Process</a>
+        <a href="#om">Om</a>
+        <a href="#kontakt">Kontakt</a>
+      </nav>
+      <a href="#kontakt" class="nav__cta">Starta ett projekt</a>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero__glow" aria-hidden="true"></div>
+    <div class="hero__sphere" aria-hidden="true"></div>
+    <div class="hero__content">
+      <h1 class="hero__h1" data-reveal>
+        Digitala upplevelser <em>som stannar kvar.</em>
+      </h1>
+      <p class="hero__sub" data-reveal data-reveal-delay="120">
+        Webbutveckling, varumärke, marknadsföring och UX — allt under ett tak, med en person som äger resultatet.
+      </p>
+      <div class="hero__btns" data-reveal data-reveal-delay="220">
+        <a href="#kontakt" class="btn btn--fill">Starta ett projekt</a>
+        <a href="#tjanster" class="btn btn--outline">Utforska tjänster</a>
+      </div>
+    </div>
+    <div class="hero__scroll" aria-hidden="true"><span></span></div>
+  </section>
+
+  <!-- MARQUEE -->
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee__track">
+      <!-- set A -->
+      <span>Webbutveckling</span><span class="marquee__dot"></span>
+      <span>Varumärkesbyggande</span><span class="marquee__dot"></span>
+      <span>Digital Marknadsföring</span><span class="marquee__dot"></span>
+      <span>UX &amp; Produktdesign</span><span class="marquee__dot"></span>
+      <span>Forma Studio</span><span class="marquee__dot"></span>
+      <span>Sverige</span><span class="marquee__dot"></span>
+      <!-- set B (duplicate for seamless loop) -->
+      <span>Webbutveckling</span><span class="marquee__dot"></span>
+      <span>Varumärkesbyggande</span><span class="marquee__dot"></span>
+      <span>Digital Marknadsföring</span><span class="marquee__dot"></span>
+      <span>UX &amp; Produktdesign</span><span class="marquee__dot"></span>
+      <span>Forma Studio</span><span class="marquee__dot"></span>
+      <span>Sverige</span><span class="marquee__dot"></span>
+    </div>
+  </div>
+
+  <!-- INTRO -->
+  <section class="intro">
+    <div class="intro__inner">
+      <p class="intro__kicker" data-reveal>Ny byrå. Tydliga leveranser.</p>
+      <p class="intro__statement" data-reveal data-reveal-delay="100">
+        De flesta digitala byråer är för stora, för långsamma och för dyra. Vi är byggda <em>annorlunda</em> — en person, fullt fokus, direkt kommunikation.
+      </p>
+    </div>
+  </section>
+
+  <!-- SERVICES -->
+  <div id="tjanster">
+
+    <section class="svc svc--1">
+      <div class="svc__inner">
+        <div class="svc__text" data-reveal>
+          <span class="svc__num">01</span>
+          <h2 class="svc__title">Webb&shy;utveckling</h2>
+          <p class="svc__desc">Sajter och applikationer byggda för att konvertera och imponera. Från wireframe till lansering, utan mellanhänder.</p>
+          <ul class="svc__tags">
+            <li>Responsiv design</li><li>CMS</li><li>Performance</li><li>SEO-grund</li>
+          </ul>
+          <div class="svc__btns">
+            <a href="#kontakt" class="btn btn--dark">Kom igång</a>
+            <a href="#process" class="btn btn--ghost-dark">Hur vi arbetar</a>
+          </div>
+        </div>
+        <div class="svc__art" aria-hidden="true">
+          <span class="svc__letter">W</span>
+          <div class="svc__blob"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="svc svc--2">
+      <div class="svc__inner svc__inner--flip">
+        <div class="svc__art" aria-hidden="true">
+          <span class="svc__letter">V</span>
+          <div class="svc__blob"></div>
+        </div>
+        <div class="svc__text" data-reveal>
+          <span class="svc__num">02</span>
+          <h2 class="svc__title">Varumärkes&shy;byggande</h2>
+          <p class="svc__desc">Identiteter som syns och sticker ut. Logotyp, färgsystem, typografi och en tydlig grafisk profil som håller.</p>
+          <ul class="svc__tags">
+            <li>Logotyp</li><li>Färgsystem</li><li>Typografi</li><li>Grafisk profil</li>
+          </ul>
+          <div class="svc__btns">
+            <a href="#kontakt" class="btn btn--dark">Kom igång</a>
+            <a href="#process" class="btn btn--ghost-dark">Hur vi arbetar</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="svc svc--3">
+      <div class="svc__inner">
+        <div class="svc__text" data-reveal>
+          <span class="svc__num">03</span>
+          <h2 class="svc__title">Digital Marknads&shy;föring</h2>
+          <p class="svc__desc">SEO, Google Ads och Meta-annonsering som ger mätbar tillväxt. Ingen fluff — bara strategier som faktiskt fungerar.</p>
+          <ul class="svc__tags">
+            <li>SEO</li><li>Google Ads</li><li>Meta-annonsering</li><li>Analys</li>
+          </ul>
+          <div class="svc__btns">
+            <a href="#kontakt" class="btn btn--dark">Kom igång</a>
+            <a href="#process" class="btn btn--ghost-dark">Hur vi arbetar</a>
+          </div>
+        </div>
+        <div class="svc__art" aria-hidden="true">
+          <span class="svc__letter">D</span>
+          <div class="svc__blob"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="svc svc--4">
+      <div class="svc__inner svc__inner--flip">
+        <div class="svc__art" aria-hidden="true">
+          <span class="svc__letter">U</span>
+          <div class="svc__blob"></div>
+        </div>
+        <div class="svc__text" data-reveal>
+          <span class="svc__num">04</span>
+          <h2 class="svc__title">UX &amp; Produktdesign</h2>
+          <p class="svc__desc">Gränssnitt som känns självklara. Användarflöden, prototyper och designsystem för webb och mobil.</p>
+          <ul class="svc__tags">
+            <li>Wireframes</li><li>Prototyper</li><li>Designsystem</li><li>Användartester</li>
+          </ul>
+          <div class="svc__btns">
+            <a href="#kontakt" class="btn btn--dark">Kom igång</a>
+            <a href="#process" class="btn btn--ghost-dark">Hur vi arbetar</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- MANIFESTO -->
+  <section class="manifesto">
+    <div class="manifesto__inner">
+      <div class="manifesto__left" data-reveal>
+        <span class="manifesto__kicker">Varför Forma</span>
+        <h2 class="manifesto__h2">
+          Inga gamla case.<br>
+          <em>Inga dåliga vanor.</em>
+        </h2>
+      </div>
+      <div class="manifesto__right" data-reveal data-reveal-delay="120">
+        <p class="manifesto__body">Vi börjar från noll. Det betyder att vi inte bär på föråldrade metoder, gamla relationer eller halvdana lösningar. Varje uppdrag behandlas som det viktigaste vi tagit in — för det är det.</p>
+        <ul class="manifesto__list">
+          <li>
+            <strong>Tydlighet</strong>
+            <span>Du vet alltid vad som händer, varför, och vad det kostar.</span>
+          </li>
+          <li>
+            <strong>Ägandeskap</strong>
+            <span>Vi engagerar oss som om projektet vore vårt eget bolag.</span>
+          </li>
+          <li>
+            <strong>Resultat</strong>
+            <span>Inga PowerPoints. Leveranser som faktiskt fungerar.</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROCESS -->
+  <section class="process" id="process">
+    <div class="process__inner">
+      <header class="process__header" data-reveal>
+        <span class="section-label">Process</span>
+        <h2 class="process__h2">Hur vi arbetar</h2>
+      </header>
+      <div class="process__steps">
+        <div class="process__step" data-reveal data-reveal-delay="0">
+          <div class="process__step-top">
+            <span class="process__n">01</span>
+            <div class="process__line"></div>
+          </div>
+          <h3>Lyssna</h3>
+          <p>Vi förstår ditt mål, din marknad och din utmaning. Ingen kod skrivs innan vi har en gemensam bild.</p>
+        </div>
+        <div class="process__step" data-reveal data-reveal-delay="80">
+          <div class="process__step-top">
+            <span class="process__n">02</span>
+            <div class="process__line"></div>
+          </div>
+          <h3>Strategi</h3>
+          <p>En tydlig plan med scope, tidslinje och budget. Inga gissningar, inga vaga löften.</p>
+        </div>
+        <div class="process__step" data-reveal data-reveal-delay="160">
+          <div class="process__step-top">
+            <span class="process__n">03</span>
+            <div class="process__line"></div>
+          </div>
+          <h3>Skapa</h3>
+          <p>Vi bygger, designar och testar iterativt med dig längs hela vägen.</p>
+        </div>
+        <div class="process__step" data-reveal data-reveal-delay="240">
+          <div class="process__step-top">
+            <span class="process__n">04</span>
+          </div>
+          <h3>Leverera</h3>
+          <p>Vi lanserar, mäter och justerar tills resultatet är exakt där det ska vara.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section class="about" id="om">
+    <div class="about__inner">
+      <div class="about__left" data-reveal>
+        <span class="section-label">Om</span>
+        <h2 class="about__h2">En person.<br><em>Fullt fokus.</em></h2>
+        <a href="#kontakt" class="about__link">Kontakta oss direkt <span aria-hidden="true">→</span></a>
+      </div>
+      <div class="about__right" data-reveal data-reveal-delay="120">
+        <blockquote class="about__quote">"Forma är byggt på övertygelsen att bra digital design inte ska kräva ett stort bolag."</blockquote>
+        <p>Forma Studio är en solobyrå baserad i Sverige. Det betyder direktkommunikation, snabba beslut och att den som pratar med dig också är den som bygger det du beställer.</p>
+        <p>Ingen mellannivå. Ingen utsourcad produktion. Du får exakt vad vi kommer överens om — och ingenting annat.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="contact" id="kontakt">
+    <div class="contact__glow" aria-hidden="true"></div>
+    <div class="contact__inner">
+      <span class="contact__label" data-reveal>Kontakt</span>
+      <h2 class="contact__h2" data-reveal data-reveal-delay="80">
+        Redo att <em>börja?</em>
+      </h2>
+      <a href="mailto:hej@formastudio.se" class="contact__email" data-reveal data-reveal-delay="160">
+        hej@formastudio.se
+      </a>
+      <div class="contact__btns" data-reveal data-reveal-delay="220">
+        <a href="mailto:hej@formastudio.se" class="btn btn--fill">Skicka ett meddelande</a>
+      </div>
+      <p class="contact__note" data-reveal data-reveal-delay="280">Svarar inom 24 timmar.</p>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer__inner">
+      <div class="footer__col footer__col--brand">
+        <a href="#" class="footer__logo">Forma<span>.</span></a>
+        <p>Digital byrå för det som ska synas.</p>
+      </div>
+      <nav class="footer__col footer__col--nav" aria-label="Sidlänkar">
+        <strong>Studio</strong>
+        <a href="#tjanster">Tjänster</a>
+        <a href="#process">Process</a>
+        <a href="#om">Om</a>
+        <a href="#kontakt">Kontakt</a>
+      </nav>
+      <div class="footer__col footer__col--social">
+        <strong>Hitta oss</strong>
+        <a href="#" aria-label="LinkedIn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+          LinkedIn
+        </a>
+        <a href="#" aria-label="Instagram">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+          Instagram
+        </a>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <p>© 2026 Forma Studio — Digitalbyrå, Sverige</p>
+      <span class="footer__bottom-tagline">Digital. Direkt. Distinkt.</span>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
