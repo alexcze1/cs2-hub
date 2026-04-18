@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Schedule — CS2 Hub</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Schedule</div>
+        <div class="page-sub">Scrims, tournaments, meetings &amp; VOD sessions</div>
+      </div>
+      <button class="btn btn-primary" id="add-btn">+ Add Event</button>
+    </div>
+
+    <div class="tabs" id="filter-tabs">
+      <button class="tab active" data-filter="all">All</button>
+      <button class="tab" data-filter="scrim">Scrims</button>
+      <button class="tab" data-filter="tournament">Tournaments</button>
+      <button class="tab" data-filter="meeting">Meetings</button>
+      <button class="tab" data-filter="vod_review">VOD Review</button>
+    </div>
+
+    <div id="events-list"><div class="loading">Loading…</div></div>
+  </main>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-backdrop" id="modal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Add Event</div>
+      <button class="modal-close" id="modal-close">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Title</label>
+      <input class="form-input" id="f-title" placeholder="e.g. Scrim vs NaVi"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <select class="form-select" id="f-type">
+          <option value="scrim">Scrim</option>
+          <option value="tournament">Tournament</option>
+          <option value="meeting">Meeting</option>
+          <option value="vod_review">VOD Review</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Date &amp; Time</label>
+        <input class="form-input" type="datetime-local" id="f-date"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Opponent (optional)</label>
+      <input class="form-input" id="f-opponent" placeholder="Team name"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes (optional)</label>
+      <textarea class="form-textarea" id="f-notes" placeholder="Any notes…"></textarea>
+    </div>
+    <div id="modal-error" class="error-msg" style="display:none"></div>
+    <div class="modal-actions">
+      <button class="btn btn-danger btn-sm" id="delete-btn" style="display:none;margin-right:auto">Delete</button>
+      <button class="btn btn-ghost" id="cancel-btn">Cancel</button>
+      <button class="btn btn-primary" id="save-btn">Save</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="schedule.js"></script>
+</body>
+</html>
