@@ -46,21 +46,20 @@ A private, internal web application for a 5-player CS2 esports team. All content
 
 ## Pages & Routes
 
-| Route | Page | Description |
+No client-side router — vanilla HTML files with query string navigation. "New" and "edit" modes share the same detail page; the page checks for `?id=` in the URL to determine mode (absent = new, present = edit).
+
+| File | Query Params | Description |
 |---|---|---|
-| `/` | Login | Email/password login via Supabase auth |
-| `/dashboard` | Dashboard | Overview: next event, strat count, VOD count, upcoming events list |
-| `/schedule` | Schedule | Full event calendar — scrims, tournaments, meetings, VOD sessions |
-| `/stratbook` | Stratbook | List of all strats, filterable by map and side |
-| `/stratbook/new` | New Strat | Form to add a strat |
-| `/stratbook/:id` | Strat Detail | View/edit a single strat |
-| `/vods` | VOD Review | List of reviewed demos with timestamped notes |
-| `/vods/new` | New VOD | Form to add a demo review |
-| `/vods/:id` | VOD Detail | View/edit VOD notes |
-| `/opponents` | Opponents | List of opponent teams |
-| `/opponents/new` | New Opponent | Form to add an opponent |
-| `/opponents/:id` | Opponent Detail | View/edit opponent research |
-| `/roster` | Roster | Team member list with in-game roles |
+| `index.html` | — | Login page |
+| `dashboard.html` | — | Overview |
+| `schedule.html` | — | Events list + add/edit inline |
+| `stratbook.html` | — | Strat list with map/side filters |
+| `stratbook-detail.html` | `?id=<uuid>` (optional) | Add (no id) or view/edit strat |
+| `vods.html` | — | VOD list |
+| `vod-detail.html` | `?id=<uuid>` (optional) | Add (no id) or view/edit VOD |
+| `opponents.html` | — | Opponent list |
+| `opponent-detail.html` | `?id=<uuid>` (optional) | Add (no id) or view/edit opponent |
+| `roster.html` | — | Team roster grid |
 
 ---
 
@@ -200,7 +199,7 @@ A private, internal web application for a 5-player CS2 esports team. All content
 ├── stratbook.js
 ├── vods.js
 ├── opponents.js
-└── .env                # SUPABASE_URL + SUPABASE_ANON_KEY (not committed)
+└── supabase.js         # Supabase client init with hardcoded URL + anon key (anon key is intentionally public; RLS enforces security)
 ```
 
 ---
@@ -211,7 +210,7 @@ A private, internal web application for a 5-player CS2 esports team. All content
 2. Run SQL to create the 5 tables above
 3. Enable Row Level Security — policy: authenticated users can read/write all rows
 4. Create 5 user accounts (one per player) via Supabase Auth dashboard
-5. Copy project URL and anon key into `.env`
+5. Copy project URL and anon key into `supabase.js` (anon key is safe to commit — it's designed to be public; RLS policies enforce access control)
 
 ---
 
