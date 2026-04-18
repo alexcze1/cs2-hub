@@ -58,7 +58,10 @@ window.deleteNote = async (index) => {
 
 async function saveNotes() {
   const { error } = await supabase.from('vods').update({ notes }).eq('id', id)
-  if (error) console.error('Failed to save notes:', error.message)
+  if (error) {
+    document.getElementById('save-error').textContent = `Failed to save note: ${error.message}`
+    document.getElementById('save-error').style.display = 'block'
+  }
 }
 
 document.getElementById('add-note-btn').addEventListener('click', async () => {

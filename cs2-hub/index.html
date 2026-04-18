@@ -30,32 +30,34 @@
 
   // Redirect if already logged in
   const { data: { session } } = await supabase.auth.getSession()
-  if (session) window.location.href = 'dashboard.html'
+  if (session) {
+    window.location.href = 'dashboard.html'
+  } else {
+    const btn = document.getElementById('login-btn')
+    const errEl = document.getElementById('error-msg')
 
-  const btn = document.getElementById('login-btn')
-  const errEl = document.getElementById('error-msg')
+    btn.addEventListener('click', async () => {
+      const email = document.getElementById('email').value.trim()
+      const password = document.getElementById('password').value
+      errEl.style.display = 'none'
+      btn.textContent = 'Signing in…'
+      btn.disabled = true
+      try {
+        await signIn(email, password)
+        window.location.href = 'dashboard.html'
+      } catch (e) {
+        errEl.textContent = e.message || 'Invalid email or password'
+        errEl.style.display = 'block'
+        btn.textContent = 'Sign In'
+        btn.disabled = false
+      }
+    })
 
-  btn.addEventListener('click', async () => {
-    const email = document.getElementById('email').value.trim()
-    const password = document.getElementById('password').value
-    errEl.style.display = 'none'
-    btn.textContent = 'Signing in…'
-    btn.disabled = true
-    try {
-      await signIn(email, password)
-      window.location.href = 'dashboard.html'
-    } catch (e) {
-      errEl.textContent = e.message || 'Invalid email or password'
-      errEl.style.display = 'block'
-      btn.textContent = 'Sign In'
-      btn.disabled = false
-    }
-  })
-
-  // Allow Enter key
-  document.getElementById('password').addEventListener('keydown', e => {
-    if (e.key === 'Enter') btn.click()
-  })
+    // Allow Enter key
+    document.getElementById('password').addEventListener('keydown', e => {
+      if (e.key === 'Enter') btn.click()
+    })
+  }
 </script>
 </body>
 </html>

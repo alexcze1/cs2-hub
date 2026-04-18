@@ -3,6 +3,12 @@ import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase } from './supabase.js'
 
+function esc(text) {
+  const d = document.createElement('div')
+  d.textContent = text ?? ''
+  return d.innerHTML
+}
+
 await requireAuth()
 renderSidebar('dashboard')
 
@@ -39,8 +45,8 @@ if (!events?.length) {
     <a class="list-row" href="schedule.html">
       ${eventBadge(e.type)}
       <div class="flex-1">
-        <div class="row-name">${e.title}</div>
-        ${e.opponent ? `<div class="row-meta">vs ${e.opponent}</div>` : ''}
+        <div class="row-name">${esc(e.title)}</div>
+        ${e.opponent ? `<div class="row-meta">vs ${esc(e.opponent)}</div>` : ''}
       </div>
       <div class="row-meta">${formatDate(e.date)}</div>
     </a>
@@ -77,12 +83,12 @@ if (!recentStrats?.length) {
 } else {
   recentEl.innerHTML = recentStrats.map(s => `
     <a class="list-row" href="stratbook-detail.html?id=${s.id}">
-      <div class="map-badge">${s.map.slice(0,3)}</div>
+      <div class="map-badge">${esc(s.map.slice(0,3))}</div>
       <div class="flex-1">
-        <div class="row-name">${s.name}</div>
-        <div class="row-meta">${s.map} · ${s.side === 't' ? 'T-Side' : 'CT-Side'} · ${s.type}</div>
+        <div class="row-name">${esc(s.name)}</div>
+        <div class="row-meta">${esc(s.map)} · ${s.side === 't' ? 'T-Side' : 'CT-Side'} · ${esc(s.type)}</div>
       </div>
-      ${(s.tags ?? []).slice(0,2).map(t => `<span class="tag">${t}</span>`).join('')}
+      ${(s.tags ?? []).slice(0,2).map(t => `<span class="tag">${esc(t)}</span>`).join('')}
     </a>
   `).join('')
 }
