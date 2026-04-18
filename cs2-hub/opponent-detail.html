@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Opponent — CS2 Hub</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <a href="opponents.html" style="color:var(--muted);font-size:13px;text-decoration:none">← Opponents</a>
+        <div class="page-title" id="page-title" style="margin-top:6px">New Opponent</div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-danger" id="delete-btn" style="display:none">Delete</button>
+        <button class="btn btn-primary" id="save-btn">Save</button>
+      </div>
+    </div>
+
+    <div style="max-width:680px">
+      <div class="form-group">
+        <label class="form-label">Team Name</label>
+        <input class="form-input" id="f-name" placeholder="e.g. Natus Vincere"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Favored Maps (comma-separated)</label>
+        <input class="form-input" id="f-maps" placeholder="e.g. Mirage, Inferno"/>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Strengths</label>
+        <div id="strengths-list"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <input class="form-input" id="new-strength" placeholder="Add a strength…"/>
+          <button class="btn btn-ghost btn-sm" id="add-strength-btn">Add</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Weaknesses</label>
+        <div id="weaknesses-list"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <input class="form-input" id="new-weakness" placeholder="Add a weakness…"/>
+          <button class="btn btn-ghost btn-sm" id="add-weakness-btn">Add</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Anti-Strat Summary</label>
+        <textarea class="form-textarea" id="f-anti-strat" placeholder="How to play against them — key adjustments, map-specific plans…" style="min-height:120px"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">General Notes</label>
+        <textarea class="form-textarea" id="f-notes" placeholder="Any other observations…"></textarea>
+      </div>
+      <div id="save-error" class="error-msg" style="display:none"></div>
+    </div>
+  </main>
+</div>
+<script type="module" src="opponent-detail.js"></script>
+</body>
+</html>
