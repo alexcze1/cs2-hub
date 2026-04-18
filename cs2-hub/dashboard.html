@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — CS2 Hub</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Dashboard</div>
+        <div class="page-sub" id="date-sub"></div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Next Event</div>
+        <div class="stat-value" id="stat-next-event" style="font-size:15px;margin-top:4px">—</div>
+        <div class="stat-sub" id="stat-next-date">No upcoming events</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Strats Saved</div>
+        <div class="stat-value" id="stat-strats">—</div>
+        <div class="stat-sub" id="stat-strats-sub">Loading…</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">VODs Reviewed</div>
+        <div class="stat-value" id="stat-vods">—</div>
+        <div class="stat-sub">Total demos analysed</div>
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-top:0">Upcoming This Week</div>
+    <div id="upcoming-events"><div class="loading">Loading…</div></div>
+
+    <div class="section-label">Recently Added Strats</div>
+    <div id="recent-strats"><div class="loading">Loading…</div></div>
+  </main>
+</div>
+<script type="module" src="dashboard.js"></script>
+</body>
+</html>
