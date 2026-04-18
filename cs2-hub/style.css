@@ -1,0 +1,405 @@
+/* cs2-hub/style.css */
+:root {
+  --bg: #080c14;
+  --surface: #0d1526;
+  --border: #1a2744;
+  --accent: #3b82f6;
+  --text: #ffffff;
+  --muted: #6b7280;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --warning: #f97316;
+  --special: #a78bfa;
+  --sidebar-w: 200px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  min-height: 100vh;
+}
+
+/* ── App Shell ── */
+.app-shell { display: flex; min-height: 100vh; }
+
+/* ── Sidebar ── */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: fixed;
+  top: 0; left: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.team-name {
+  color: var(--accent);
+  font-weight: 800;
+  letter-spacing: 1px;
+  font-size: 13px;
+  padding: 0 16px 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+
+.nav-section {
+  color: #374151;
+  font-size: 9px;
+  letter-spacing: 2px;
+  padding: 12px 16px 4px;
+}
+
+.nav-item {
+  display: block;
+  padding: 9px 16px;
+  color: var(--muted);
+  border-left: 3px solid transparent;
+  font-size: 13px;
+  text-decoration: none;
+  transition: all 0.12s;
+  background: none;
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.nav-item:hover { color: var(--text); background: rgba(59,130,246,0.08); }
+.nav-item.active { color: var(--text); background: rgba(59,130,246,0.14); border-left-color: var(--accent); }
+
+/* ── Main Content ── */
+.main-content {
+  margin-left: var(--sidebar-w);
+  flex: 1;
+  padding: 32px 36px;
+}
+
+/* ── Page Header ── */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.page-title {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.page-sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+/* ── Buttons ── */
+.btn {
+  padding: 9px 18px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: opacity 0.12s;
+}
+.btn:hover { opacity: 0.85; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-danger  { background: var(--danger);  color: #fff; }
+.btn-ghost   { background: var(--border);  color: var(--muted); }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+
+/* ── Stat Cards ── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.stat-label {
+  color: var(--accent);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.stat-value { font-size: 26px; font-weight: 700; }
+.stat-sub   { color: var(--muted); font-size: 12px; margin-top: 3px; }
+
+/* ── Section Label ── */
+.section-label {
+  color: var(--accent);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  margin-top: 28px;
+}
+
+/* ── List Rows ── */
+.list-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 13px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color 0.12s;
+  text-decoration: none;
+  color: inherit;
+}
+.list-row:hover { border-color: var(--accent); }
+
+/* ── Badges ── */
+.badge {
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-weight: 700;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.badge-scrim       { background: rgba(59,130,246,0.15); color: var(--accent); }
+.badge-tournament  { background: rgba(34,197,94,0.15);  color: var(--success); }
+.badge-meeting     { background: rgba(167,139,250,0.15); color: var(--special); }
+.badge-vod_review  { background: rgba(249,115,22,0.15); color: var(--warning); }
+.badge-win         { background: rgba(34,197,94,0.15);  color: var(--success); }
+.badge-loss        { background: rgba(239,68,68,0.15);  color: var(--danger); }
+.badge-draw        { background: rgba(107,114,128,0.15);color: var(--muted); }
+
+/* ── Tags ── */
+.tag {
+  display: inline-block;
+  background: rgba(59,130,246,0.12);
+  color: var(--accent);
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  margin: 2px 4px 2px 0;
+}
+
+/* ── Map Badge ── */
+.map-badge {
+  width: 40px; height: 40px;
+  background: var(--border);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+/* ── Tabs ── */
+.tabs { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; }
+.tab {
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--muted);
+  background: none;
+  border: none;
+  transition: all 0.12s;
+  font-family: inherit;
+}
+.tab:hover { color: var(--text); }
+.tab.active { background: rgba(59,130,246,0.15); color: var(--text); }
+
+/* ── Forms ── */
+.form-group { margin-bottom: 18px; }
+
+.form-label {
+  display: block;
+  color: var(--accent);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 12px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.12s;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.form-textarea { resize: vertical; min-height: 90px; }
+.form-select option { background: var(--surface); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* ── Modal ── */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px;
+  width: 540px;
+  max-width: 95vw;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.modal-title { font-size: 16px; font-weight: 700; }
+.modal-close { background: none; border: none; color: var(--muted); font-size: 22px; cursor: pointer; line-height: 1; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+/* ── VOD Notes ── */
+.note-line {
+  display: flex;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  align-items: flex-start;
+}
+.ts-badge {
+  background: var(--border);
+  color: var(--accent);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: monospace;
+  flex-shrink: 0;
+}
+
+/* ── Player Roles ── */
+.role-row {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.role-player-label { color: var(--accent); font-size: 12px; }
+
+/* ── Roster ── */
+.roster-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 16px;
+}
+.player-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 22px;
+  text-align: center;
+}
+.player-avatar {
+  width: 54px; height: 54px;
+  border-radius: 50%;
+  background: var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent);
+  font-size: 20px; font-weight: 700;
+  margin: 0 auto 12px;
+}
+.player-ign { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+.player-name { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+.role-badge {
+  display: inline-block;
+  background: rgba(59,130,246,0.12);
+  color: var(--accent);
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ── Bullet lists (opponents) ── */
+.bullet-list { list-style: none; }
+.bullet-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 13px;
+}
+.bullet-list li .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.dot-green { background: var(--success); }
+.dot-red   { background: var(--danger); }
+.bullet-list li button { margin-left: auto; background: none; border: none; color: var(--danger); cursor: pointer; font-size: 16px; }
+
+/* ── Login Page ── */
+.login-page {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+}
+.login-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 40px;
+  width: 400px;
+  max-width: 95vw;
+}
+.login-logo { color: var(--accent); font-size: 22px; font-weight: 800; letter-spacing: 2px; text-align: center; margin-bottom: 6px; }
+.login-tagline { color: var(--muted); font-size: 13px; text-align: center; margin-bottom: 32px; }
+
+/* ── Utilities ── */
+.empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+.empty-state h3 { font-size: 16px; color: var(--text); margin-bottom: 8px; }
+.loading { text-align: center; padding: 40px; color: var(--muted); }
+.error-msg { color: var(--danger); font-size: 13px; margin-top: 8px; }
+.flex-1 { flex: 1; }
+.row-name { font-weight: 600; font-size: 14px; }
+.row-meta { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.row-actions { display: flex; gap: 8px; margin-left: auto; }
+.detail-section { margin-bottom: 32px; }
+.detail-section .section-label { margin-top: 0; }
