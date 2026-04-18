@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Stratbook — CS2 Hub</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Stratbook</div>
+        <div class="page-sub" id="strat-count-sub">Loading…</div>
+      </div>
+      <a class="btn btn-primary" href="stratbook-detail.html">+ New Strat</a>
+    </div>
+
+    <div class="tabs" id="map-tabs">
+      <button class="tab active" data-map="all">All Maps</button>
+      <button class="tab" data-map="mirage">Mirage</button>
+      <button class="tab" data-map="inferno">Inferno</button>
+      <button class="tab" data-map="nuke">Nuke</button>
+      <button class="tab" data-map="anubis">Anubis</button>
+      <button class="tab" data-map="dust2">Dust2</button>
+      <button class="tab" data-map="vertigo">Vertigo</button>
+      <button class="tab" data-map="ancient">Ancient</button>
+    </div>
+
+    <div class="tabs" id="side-tabs" style="margin-top:-10px">
+      <button class="tab active" data-side="all">All Sides</button>
+      <button class="tab" data-side="t">T-Side</button>
+      <button class="tab" data-side="ct">CT-Side</button>
+    </div>
+
+    <div id="strats-list"><div class="loading">Loading…</div></div>
+  </main>
+</div>
+<script type="module" src="stratbook.js"></script>
+</body>
+</html>
