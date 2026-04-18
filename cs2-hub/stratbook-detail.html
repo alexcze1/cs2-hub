@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Strat — CS2 Hub</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <a href="stratbook.html" style="color:var(--muted);font-size:13px;text-decoration:none">← Stratbook</a>
+        <div class="page-title" id="page-title" style="margin-top:6px">New Strat</div>
+      </div>
+      <div style="display:flex;gap:10px" id="action-btns">
+        <button class="btn btn-danger" id="delete-btn" style="display:none">Delete</button>
+        <button class="btn btn-primary" id="save-btn">Save Strat</button>
+      </div>
+    </div>
+
+    <div style="max-width:680px">
+      <div class="form-group">
+        <label class="form-label">Strat Name</label>
+        <input class="form-input" id="f-name" placeholder="e.g. B Full Execute"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Map</label>
+          <select class="form-select" id="f-map">
+            <option value="mirage">Mirage</option>
+            <option value="inferno">Inferno</option>
+            <option value="nuke">Nuke</option>
+            <option value="anubis">Anubis</option>
+            <option value="dust2">Dust2</option>
+            <option value="vertigo">Vertigo</option>
+            <option value="ancient">Ancient</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Side</label>
+          <select class="form-select" id="f-side">
+            <option value="t">T-Side</option>
+            <option value="ct">CT-Side</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <select class="form-select" id="f-type">
+          <option value="execute">Execute</option>
+          <option value="default">Default</option>
+          <option value="setup">Setup</option>
+          <option value="fake">Fake</option>
+          <option value="eco">Eco</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Player Roles</label>
+        <div id="player-roles">
+          <!-- 5 rows rendered by JS -->
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Notes &amp; Triggers</label>
+        <textarea class="form-textarea" id="f-notes" placeholder="When to call this, trigger conditions, adjustments…" style="min-height:120px"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tags (comma-separated)</label>
+        <input class="form-input" id="f-tags" placeholder="e.g. B SITE, EXECUTE, ROUND 5+"/>
+      </div>
+
+      <div id="error-msg" class="error-msg" style="display:none"></div>
+    </div>
+  </main>
+</div>
+<script type="module" src="stratbook-detail.js"></script>
+</body>
+</html>

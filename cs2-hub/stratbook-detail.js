@@ -1,0 +1,81 @@
+// cs2-hub/stratbook-detail.js
+import { requireAuth } from './auth.js'
+import { renderSidebar } from './layout.js'
+import { supabase } from './supabase.js'
+
+await requireAuth()
+renderSidebar('stratbook')
+
+const id = new URLSearchParams(location.search).get('id')
+const isEdit = !!id
+
+// Render 5 player role input rows
+const PLAYERS = ['Player 1', 'Player 2', 'Player 3', 'Player 4', 'Player 5']
+document.getElementById('player-roles').innerHTML = PLAYERS.map((p, i) => `
+  <div class="role-row">
+    <span class="role-player-label">${p}</span>
+    <input class="form-input" id="role-${i}" placeholder="e.g. Smoke CT, entry short"/>
+  </div>
+`).join('')
+
+// Load existing strat if editing
+if (isEdit) {
+  document.getElementById('page-title').textContent = 'Edit Strat'
+  document.getElementById('delete-btn').style.display = 'block'
+
+  const { data: strat, error } = await supabase.from('strats').select('*').eq('id', id).single()
+  if (error || !strat) { alert('Strat not found.'); location.href = 'stratbook.html'; }
+
+  document.getElementById('f-name').value  = strat.name
+  document.getElementById('f-map').value   = strat.map
+  document.getElementById('f-side').value  = strat.side
+  document.getElementById('f-type').value  = strat.type
+  document.getElementById('f-notes').value = strat.notes ?? ''
+  document.getElementById('f-tags').value  = (strat.tags ?? []).join(', ')
+
+  const roles = strat.player_roles ?? []
+  PLAYERS.forEach((_, i) => {
+    document.getElementById(`role-${i}`).value = roles[i]?.role ?? ''
+  })
+}
+
+// Save
+document.getElementById('save-btn').addEventListener('click', async () => {
+  const name  = document.getElementById('f-name').value.trim()
+  const map   = document.getElementById('f-map').value
+  const side  = document.getElementById('f-side').value
+  const type  = document.getElementById('f-type').value
+  const notes = document.getElementById('f-notes').value.trim() || null
+  const tags  = document.getElementById('f-tags').value.split(',').map(t => t.trim()).filter(Boolean)
+  const errEl = document.getElementById('error-msg')
+
+  if (!name) {
+    errEl.textContent = 'Strat name is required.'
+    errEl.style.display = 'block'
+    return
+  }
+
+  const player_roles = PLAYERS.map((p, i) => ({
+    player: p,
+    role: document.getElementById(`role-${i}`).value.trim()
+  }))
+
+  const payload = { name, map, side, type, player_roles, notes, tags, updated_at: new Date().toISOString() }
+
+  let error
+  if (isEdit) {
+    ({ error } = await supabase.from('strats').update(payload).eq('id', id))
+  } else {
+    ({ error } = await supabase.from('strats').insert(payload))
+  }
+
+  if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return }
+  location.href = 'stratbook.html'
+})
+
+// Delete
+document.getElementById('delete-btn').addEventListener('click', async () => {
+  if (!confirm('Delete this strat?')) return
+  await supabase.from('strats').delete().eq('id', id)
+  location.href = 'stratbook.html'
+})
