@@ -3,6 +3,12 @@ import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase } from './supabase.js'
 
+function esc(text) {
+  const d = document.createElement('div')
+  d.textContent = text ?? ''
+  return d.innerHTML
+}
+
 await requireAuth()
 renderSidebar('stratbook')
 
@@ -11,7 +17,11 @@ let activeMap  = 'all'
 let activeSide = 'all'
 
 async function loadStrats() {
-  const { data } = await supabase.from('strats').select('*').order('created_at', { ascending: false })
+  const { data, error } = await supabase.from('strats').select('*').order('created_at', { ascending: false })
+  if (error) {
+    document.getElementById('strats-list').innerHTML = `<div class="empty-state"><h3>Failed to load strats</h3><p>${esc(error.message)}</p></div>`
+    return
+  }
   allStrats = data ?? []
   updateCountSub()
   renderList()
@@ -39,12 +49,12 @@ function renderList() {
   }
   el.innerHTML = filtered.map(s => `
     <a class="list-row" href="stratbook-detail.html?id=${s.id}">
-      <div class="map-badge">${s.map.slice(0,3)}</div>
+      <div class="map-badge">${esc(s.map.slice(0,3))}</div>
       <div class="flex-1">
-        <div class="row-name">${s.name}</div>
-        <div class="row-meta">${s.map} · ${s.side === 't' ? 'T-Side' : 'CT-Side'} · ${s.type}</div>
+        <div class="row-name">${esc(s.name)}</div>
+        <div class="row-meta">${esc(s.map)} · ${s.side === 't' ? 'T-Side' : 'CT-Side'} · ${esc(s.type)}</div>
       </div>
-      <div>${(s.tags ?? []).map(t => `<span class="tag">${t}</span>`).join('')}</div>
+      <div>${(s.tags ?? []).map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>
     </a>
   `).join('')
 }

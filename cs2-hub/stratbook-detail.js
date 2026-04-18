@@ -24,7 +24,7 @@ if (isEdit) {
   document.getElementById('delete-btn').style.display = 'block'
 
   const { data: strat, error } = await supabase.from('strats').select('*').eq('id', id).single()
-  if (error || !strat) { alert('Strat not found.'); location.href = 'stratbook.html'; }
+  if (error || !strat) { alert('Strat not found.'); location.href = 'stratbook.html'; return; }
 
   document.getElementById('f-name').value  = strat.name
   document.getElementById('f-map').value   = strat.map
@@ -76,6 +76,12 @@ document.getElementById('save-btn').addEventListener('click', async () => {
 // Delete
 document.getElementById('delete-btn').addEventListener('click', async () => {
   if (!confirm('Delete this strat?')) return
-  await supabase.from('strats').delete().eq('id', id)
+  const { error } = await supabase.from('strats').delete().eq('id', id)
+  if (error) {
+    const errEl = document.getElementById('error-msg')
+    errEl.textContent = `Delete failed: ${error.message}`
+    errEl.style.display = 'block'
+    return
+  }
   location.href = 'stratbook.html'
 })

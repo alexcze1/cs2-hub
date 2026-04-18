@@ -3,6 +3,12 @@ import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase } from './supabase.js'
 
+function esc(text) {
+  const d = document.createElement('div')
+  d.textContent = text ?? ''
+  return d.innerHTML
+}
+
 await requireAuth()
 renderSidebar('schedule')
 
@@ -19,8 +25,12 @@ let editingId = null
 
 // ── Load & Render ──────────────────────────────────────────
 async function loadEvents() {
+  const listEl = document.getElementById('events-list')
   const { data, error } = await supabase.from('events').select('*').order('date', { ascending: true })
-  if (error) return
+  if (error) {
+    listEl.innerHTML = `<div class="empty-state"><h3>Failed to load events</h3><p>${esc(error.message)}</p></div>`
+    return
+  }
   allEvents = data
   renderList()
 }
@@ -38,9 +48,9 @@ function renderList() {
     <div class="list-row" data-id="${e.id}">
       <span class="badge badge-${e.type}">${TYPE_LABELS[e.type]}</span>
       <div class="flex-1">
-        <div class="row-name">${e.title}</div>
-        ${e.opponent ? `<div class="row-meta">vs ${e.opponent}</div>` : ''}
-        ${e.notes ? `<div class="row-meta">${e.notes}</div>` : ''}
+        <div class="row-name">${esc(e.title)}</div>
+        ${e.opponent ? `<div class="row-meta">vs ${esc(e.opponent)}</div>` : ''}
+        ${e.notes ? `<div class="row-meta">${esc(e.notes)}</div>` : ''}
       </div>
       <div class="row-meta">${formatDate(e.date)}</div>
     </div>
@@ -68,7 +78,7 @@ function openModal(id = null) {
   document.getElementById('modal-title').textContent = id ? 'Edit Event' : 'Add Event'
   document.getElementById('f-title').value    = event?.title    ?? ''
   document.getElementById('f-type').value     = event?.type     ?? 'scrim'
-  document.getElementById('f-date').value     = event ? event.date.slice(0,16) : ''
+  document.getElementById('f-date').value     = event?.date?.slice(0,16) ?? ''
   document.getElementById('f-opponent').value = event?.opponent ?? ''
   document.getElementById('f-notes').value    = event?.notes    ?? ''
   document.getElementById('delete-btn').style.display = id ? 'block' : 'none'
@@ -118,7 +128,12 @@ document.getElementById('save-btn').addEventListener('click', async () => {
 
 document.getElementById('delete-btn').addEventListener('click', async () => {
   if (!confirm('Delete this event?')) return
-  await supabase.from('events').delete().eq('id', editingId)
+  const { error } = await supabase.from('events').delete().eq('id', editingId)
+  if (error) {
+    document.getElementById('modal-error').textContent = `Delete failed: ${error.message}`
+    document.getElementById('modal-error').style.display = 'block'
+    return
+  }
   closeModal()
   loadEvents()
 })
