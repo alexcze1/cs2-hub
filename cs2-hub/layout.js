@@ -14,7 +14,7 @@ export function renderSidebar(activePage) {
     { id: 'roster',     label: 'Roster',      href: 'roster.html',     section: 'TEAM' },
   ]
 
-  let html = `<div class="team-name">⚡ YOUR TEAM</div>`
+  let html = `<div class="team-name">⚡ CS2 HUB</div>`
 
   for (const link of links) {
     if (link.section) html += `<div class="nav-section">${link.section}</div>`
