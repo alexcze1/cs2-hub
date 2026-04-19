@@ -26,8 +26,7 @@ function computeMatchResult() {
   let w = 0, l = 0
   for (const m of maps) {
     const r = mapResult(m)
-    if (r === 'win') w++
-    else if (r === 'loss') l++
+    if (r === 'win') w++; else if (r === 'loss') l++
   }
   if (w === 0 && l === 0) return null
   return w > l ? 'win' : l > w ? 'loss' : 'draw'
@@ -35,26 +34,26 @@ function computeMatchResult() {
 
 function autoResize(el) {
   el.style.height = 'auto'
-  el.style.height = Math.max(el.scrollHeight, 90) + 'px'
+  el.style.height = Math.max(el.scrollHeight, 120) + 'px'
 }
 
-function getNotes() {
-  return {
-    overview:     document.getElementById('n-overview').value.trim()     || null,
-    t_side:       document.getElementById('n-t-side').value.trim()       || null,
-    ct_side:      document.getElementById('n-ct-side').value.trim()      || null,
-    economy:      document.getElementById('n-economy').value.trim()      || null,
-    action_items: document.getElementById('n-action-items').value.trim() || null,
-  }
+// ── Notes read/write for active map ───────────────────────
+function saveActiveNotes() {
+  if (!maps.length) return
+  const m = maps[activeMapTab]
+  if (!m) return
+  if (!m.notes || typeof m.notes !== 'object') m.notes = {}
+  m.notes.overview = document.getElementById('n-overview').value
+  m.notes.t_side   = document.getElementById('n-t-side').value
+  m.notes.ct_side  = document.getElementById('n-ct-side').value
 }
 
-function setNotes(n) {
-  if (!n || typeof n !== 'object') return
-  document.getElementById('n-overview').value     = n.overview     ?? ''
-  document.getElementById('n-t-side').value       = n.t_side       ?? ''
-  document.getElementById('n-ct-side').value      = n.ct_side      ?? ''
-  document.getElementById('n-economy').value      = n.economy      ?? ''
-  document.getElementById('n-action-items').value = n.action_items ?? ''
+function loadActiveNotes() {
+  const m = maps[activeMapTab]
+  const n = (m?.notes && typeof m.notes === 'object') ? m.notes : {}
+  document.getElementById('n-overview').value = n.overview ?? ''
+  document.getElementById('n-t-side').value   = n.t_side   ?? ''
+  document.getElementById('n-ct-side').value  = n.ct_side  ?? ''
   document.querySelectorAll('.review-textarea').forEach(autoResize)
 }
 
@@ -63,9 +62,10 @@ function renderMaps() {
   const el = document.getElementById('maps-list')
   if (!maps.length) {
     el.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:8px 0">No maps added yet.</div>`
-    renderMapNotes()
+    document.getElementById('review-section').style.display = 'none'
     return
   }
+
   el.innerHTML = maps.map((m, i) => {
     const opts = MAPS.map(n => `<option value="${n}" ${m.map === n ? 'selected' : ''}>${n.charAt(0).toUpperCase()+n.slice(1)}</option>`).join('')
     const r    = mapResult(m)
@@ -83,7 +83,9 @@ function renderMaps() {
     `
   }).join('')
 
-  el.querySelectorAll('.map-row-map').forEach(s => s.addEventListener('change', e => { maps[+e.target.dataset.i].map = e.target.value; renderMaps() }))
+  el.querySelectorAll('.map-row-map').forEach(s => s.addEventListener('change', e => {
+    maps[+e.target.dataset.i].map = e.target.value; renderMaps()
+  }))
   el.querySelectorAll('.map-row-us').forEach(inp => inp.addEventListener('input', e => {
     maps[+e.target.dataset.i].score_us = e.target.value !== '' ? +e.target.value : null; renderMaps()
   }))
@@ -91,77 +93,57 @@ function renderMaps() {
     maps[+e.target.dataset.i].score_them = e.target.value !== '' ? +e.target.value : null; renderMaps()
   }))
   el.querySelectorAll('.map-row-remove').forEach(btn => btn.addEventListener('click', e => {
+    saveActiveNotes()
     maps.splice(+e.target.dataset.i, 1)
-    if (activeMapTab >= maps.length) activeMapTab = Math.max(0, maps.length - 1)
+    activeMapTab = Math.min(activeMapTab, Math.max(0, maps.length - 1))
     renderMaps()
   }))
 
-  renderMapNotes()
-}
-
-// ── Per-map notes tabs ─────────────────────────────────────
-function renderMapNotes() {
-  const section = document.getElementById('map-notes-section')
-  const tabsEl  = document.getElementById('map-notes-tabs')
-  const content = document.getElementById('map-notes-content')
-
-  if (!maps.length) { section.style.display = 'none'; return }
-  section.style.display = 'block'
-
-  tabsEl.innerHTML = maps.map((m, i) => `
-    <button class="map-note-tab ${i === activeMapTab ? 'active' : ''}" data-i="${i}">
-      ${m.map.charAt(0).toUpperCase() + m.map.slice(1)}
-    </button>
-  `).join('')
-
-  tabsEl.querySelectorAll('.map-note-tab').forEach(btn => btn.addEventListener('click', e => {
-    // Save current tab's value before switching
-    const cur = document.getElementById('map-note-textarea')
-    if (cur) maps[activeMapTab].notes = cur.value
-    activeMapTab = +e.target.dataset.i
-    renderMapNotes()
-  }))
-
-  const m = maps[activeMapTab]
-  content.innerHTML = `
-    <textarea class="review-textarea map-note-active" id="map-note-textarea"
-      placeholder="Notes specific to ${m.map.charAt(0).toUpperCase() + m.map.slice(1)} — site preferences, T setups, CT reads, individual mistakes…"
-    >${esc(m.notes ?? '')}</textarea>
-  `
-  const ta = document.getElementById('map-note-textarea')
-  autoResize(ta)
-  ta.addEventListener('input', () => { autoResize(ta); scheduleAutosave() })
-}
-
-// ── Review section visibility ──────────────────────────────
-function showReviewSection() {
   document.getElementById('review-section').style.display = 'block'
+  renderMapTabs()
+  loadActiveNotes()
 }
 
-// ── Auto-save (only for existing matches) ─────────────────
-function setAutosaveStatus(msg, color) {
+// ── Map tab strip ──────────────────────────────────────────
+function renderMapTabs() {
+  const el = document.getElementById('review-map-tabs')
+  el.innerHTML = maps.map((m, i) => {
+    const r = mapResult(m)
+    const score = m.score_us != null && m.score_them != null ? ` ${m.score_us}–${m.score_them}` : ''
+    return `<button class="review-map-tab ${i === activeMapTab ? 'active' : ''} ${r ? 'tab-'+r : ''}" data-i="${i}">
+      ${m.map.charAt(0).toUpperCase() + m.map.slice(1)}${score}
+    </button>`
+  }).join('')
+
+  el.querySelectorAll('.review-map-tab').forEach(btn => btn.addEventListener('click', e => {
+    saveActiveNotes()
+    activeMapTab = +e.target.dataset.i
+    renderMapTabs()
+    loadActiveNotes()
+    if (isEdit) scheduleAutosave()
+  }))
+}
+
+// ── Auto-save ──────────────────────────────────────────────
+function setStatus(msg, color) {
   const el = document.getElementById('notes-status')
   el.textContent = msg
-  el.style.color = color ?? 'var(--muted)'
+  el.style.color = color ?? ''
 }
 
 async function doAutosave() {
   if (!isEdit) return
-  // Capture current map-note textarea before saving
-  const cur = document.getElementById('map-note-textarea')
-  if (cur) maps[activeMapTab].notes = cur.value
-
-  setAutosaveStatus('Saving…', 'var(--muted)')
-  const notes = getNotes()
-  const { error } = await supabase.from('vods').update({ notes, maps }).eq('id', id)
-  if (error) { setAutosaveStatus('Failed to save', 'var(--danger)'); return }
-  setAutosaveStatus('Saved ✓', 'var(--success)')
-  setTimeout(() => setAutosaveStatus(''), 3000)
+  saveActiveNotes()
+  setStatus('Saving…', 'var(--muted)')
+  const { error } = await supabase.from('vods').update({ maps }).eq('id', id)
+  if (error) { setStatus('Save failed', 'var(--danger)'); return }
+  setStatus('Saved', 'var(--success)')
+  setTimeout(() => setStatus(''), 2500)
 }
 
 function scheduleAutosave() {
   clearTimeout(autosaveTimer)
-  setAutosaveStatus('Unsaved…', 'var(--muted)')
+  setStatus('Unsaved changes', 'var(--muted)')
   autosaveTimer = setTimeout(doAutosave, 1000)
 }
 
@@ -175,20 +157,22 @@ if (isEdit) {
   document.getElementById('f-match-type').value = vod.match_type ?? 'scrim'
   document.getElementById('f-date').value       = vod.match_date ?? ''
   document.getElementById('f-demo-link').value  = vod.demo_link  ?? ''
-  maps = vod.maps ?? []
-  setNotes(vod.notes)
-  showReviewSection()
+  maps = (vod.maps ?? []).map(m => ({
+    ...m,
+    notes: (m.notes && typeof m.notes === 'object') ? m.notes : {}
+  }))
 }
 
 renderMaps()
 
 document.getElementById('add-map-btn').addEventListener('click', () => {
-  maps.push({ map: 'mirage', score_us: null, score_them: null, notes: '' })
-  showReviewSection()
+  saveActiveNotes()
+  maps.push({ map: 'mirage', score_us: null, score_them: null, notes: {} })
+  activeMapTab = maps.length - 1
   renderMaps()
 })
 
-// Auto-resize + autosave on review textarea input
+// Auto-resize + autosave on textarea input
 document.querySelectorAll('.review-textarea').forEach(ta => {
   ta.addEventListener('input', () => { autoResize(ta); if (isEdit) scheduleAutosave() })
 })
@@ -201,16 +185,13 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   const demo_link  = document.getElementById('f-demo-link').value.trim() || null
   const errEl      = document.getElementById('save-error')
 
-  // Capture current map-note textarea
-  const cur = document.getElementById('map-note-textarea')
-  if (cur) maps[activeMapTab].notes = cur.value
+  saveActiveNotes()
 
   if (!opponent) { errEl.textContent = 'Opponent is required.'; errEl.style.display = 'block'; return }
   if (!maps.length) { errEl.textContent = 'Add at least one map.'; errEl.style.display = 'block'; return }
 
-  const notes   = getNotes()
   const result  = computeMatchResult()
-  const payload = { title: opponent, opponent, result, match_type, match_date, demo_link, notes, maps }
+  const payload = { title: opponent, opponent, result, match_type, match_date, demo_link, notes: null, maps }
 
   let error
   if (isEdit) {
