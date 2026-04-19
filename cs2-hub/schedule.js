@@ -26,12 +26,15 @@ currentMonth.setHours(0,0,0,0)
 
 // ── Load ───────────────────────────────────────────────────
 async function loadEvents() {
-  const { data, error } = await supabase.from('events').select('*').order('date', { ascending: true })
+  const [{ data, error }, pracc] = await Promise.all([
+    supabase.from('events').select('*').order('date', { ascending: true }),
+    fetch('/api/calendar').then(r => r.json()).catch(() => [])
+  ])
   if (error) {
     document.getElementById('cal-grid').innerHTML = `<div class="empty-state" style="grid-column:1/-1"><h3>Failed to load events</h3><p>${esc(error.message)}</p></div>`
     return
   }
-  allEvents = data
+  allEvents = [...data, ...(Array.isArray(pracc) ? pracc : [])]
   renderCalendar()
 }
 
@@ -74,14 +77,19 @@ function renderCalendar() {
       <div class="cal-cell ${!isCurrentMonth ? 'cal-other' : ''} ${isToday ? 'cal-today' : ''}" data-date="${dateStr}">
         <div class="cal-day-num">${d.getDate()}</div>
         ${dayEvents.map(e => `
-          <div class="cal-event cal-event-${e.type}" data-id="${esc(e.id)}"><span class="cal-event-time">${formatTime(e.date)}${e.end_date ? ' – ' + formatTime(e.end_date) : ''}</span> ${esc(e.title)}</div>
+          <div class="cal-event cal-event-${e.type}${e.source === 'pracc' ? ' cal-event-pracc' : ''}" data-id="${esc(e.id)}"><span class="cal-event-time">${formatTime(e.date)}${e.end_date ? ' – ' + formatTime(e.end_date) : ''}</span> ${esc(e.title)}${e.source === 'pracc' ? ' <span class="pracc-badge">PRACC</span>' : ''}</div>
         `).join('')}
       </div>
     `
   }).join('')
 
   grid.querySelectorAll('.cal-event').forEach(el => {
-    el.addEventListener('click', ev => { ev.stopPropagation(); openModal(el.dataset.id) })
+    el.addEventListener('click', ev => {
+      ev.stopPropagation()
+      const event = allEvents.find(e => e.id === el.dataset.id)
+      if (event?.source === 'pracc') openPraccModal(event)
+      else openModal(el.dataset.id)
+    })
   })
 
   grid.querySelectorAll('.cal-cell').forEach(el => {
@@ -172,5 +180,22 @@ document.getElementById('delete-btn').addEventListener('click', async () => {
   closeModal()
   loadEvents()
 })
+
+// ── Pracc read-only modal ──────────────────────────────────
+function openPraccModal(event) {
+  const formatDT = iso => new Date(iso).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  document.getElementById('pracc-modal-body').innerHTML = `
+    <div class="form-group"><label class="form-label">Match</label><div class="form-static">${esc(event.title)}</div></div>
+    ${event.opponent ? `<div class="form-group"><label class="form-label">Opponent</label><div class="form-static">${esc(event.opponent)}</div></div>` : ''}
+    <div class="form-group"><label class="form-label">Start</label><div class="form-static">${formatDT(event.date)}</div></div>
+    ${event.end_date ? `<div class="form-group"><label class="form-label">End</label><div class="form-static">${formatDT(event.end_date)}</div></div>` : ''}
+    ${event.notes ? `<div class="form-group"><label class="form-label">Notes</label><div class="form-static">${esc(event.notes)}</div></div>` : ''}
+  `
+  document.getElementById('pracc-modal').style.display = 'flex'
+}
+
+document.getElementById('pracc-modal-close').addEventListener('click', () => { document.getElementById('pracc-modal').style.display = 'none' })
+document.getElementById('pracc-cancel-btn').addEventListener('click', () => { document.getElementById('pracc-modal').style.display = 'none' })
+document.getElementById('pracc-modal').addEventListener('click', e => { if (e.target === document.getElementById('pracc-modal')) document.getElementById('pracc-modal').style.display = 'none' })
 
 loadEvents()
