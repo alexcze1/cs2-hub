@@ -403,3 +403,130 @@ body {
 .row-actions { display: flex; gap: 8px; margin-left: auto; }
 .detail-section { margin-bottom: 32px; }
 .detail-section .section-label { margin-top: 0; }
+
+/* ── Calendar ── */
+.cal-month-label {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  min-width: 160px;
+  text-align: center;
+}
+
+.cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.cal-weekdays div {
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 6px 0;
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.cal-cell {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  min-height: 90px;
+  padding: 8px;
+  cursor: pointer;
+  transition: border-color 0.12s;
+  overflow: hidden;
+}
+
+.cal-cell:hover { border-color: var(--accent); }
+
+.cal-other { opacity: 0.35; }
+
+.cal-today { border-color: var(--accent); }
+.cal-today .cal-day-num { color: var(--accent); font-weight: 700; }
+
+.cal-day-num {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.cal-event {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.cal-event-scrim      { background: rgba(59,130,246,0.20); color: var(--accent); }
+.cal-event-tournament { background: rgba(34,197,94,0.20);  color: var(--success); }
+.cal-event-meeting    { background: rgba(167,139,250,0.20); color: var(--special); }
+.cal-event-vod_review { background: rgba(249,115,22,0.20); color: var(--warning); }
+
+.cal-event-time { font-weight: 700; opacity: 0.85; margin-right: 3px; }
+
+/* ── Gameplan Sheets ── */
+.gameplan-sheet {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.gameplan-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 10px 16px;
+}
+
+.ct-title { background: rgba(59,130,246,0.15); color: var(--accent); }
+.t-title  { background: rgba(167,139,250,0.15); color: var(--special); }
+
+.gameplan-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid var(--border);
+}
+
+.gameplan-block { padding: 0; }
+.gameplan-block + .gameplan-block { border-left: 1px solid var(--border); }
+
+.gameplan-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 7px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.pistols-label   { background: rgba(20,184,166,0.18); color: #2dd4bf; }
+.style-label     { background: rgba(251,113,133,0.18); color: #fb7185; }
+.antiecos-label  { background: rgba(20,184,166,0.18); color: #2dd4bf; }
+.forces-label    { background: rgba(236,72,153,0.18); color: #f472b6; }
+.tendencies-label { background: rgba(167,139,250,0.18); color: var(--special); }
+.exploits-label  { background: rgba(251,191,36,0.18); color: #fbbf24; }
+.solutions-label { background: rgba(34,197,94,0.18);  color: var(--success); }
+
+.gameplan-textarea {
+  border-radius: 0;
+  border: none;
+  border-top: 1px solid var(--border);
+  resize: vertical;
+  min-height: 70px;
+  font-size: 13px;
+}
+.gameplan-textarea:focus { border-color: var(--accent); }

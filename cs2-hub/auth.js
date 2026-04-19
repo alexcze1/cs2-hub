@@ -1,4 +1,4 @@
-// cs2-hub/auth.js
+// cs2-hub/auth.js — DEMO MODE (replace supabase.js with real credentials for production)
 import { supabase } from './supabase.js'
 
 export async function requireAuth() {

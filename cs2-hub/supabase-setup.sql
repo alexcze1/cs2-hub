@@ -6,6 +6,7 @@ create table events (
   title text not null,
   type text not null check (type in ('scrim','tournament','meeting','vod_review')),
   date timestamptz not null,
+  end_date timestamptz,
   opponent text,
   notes text,
   created_at timestamptz default now(),
@@ -43,10 +44,8 @@ create table opponents (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   favored_maps text[] default '{}',
-  strengths text[] default '{}',
-  weaknesses text[] default '{}',
-  anti_strat text,
-  notes text,
+  ct_gameplan jsonb default '{}',
+  t_gameplan jsonb default '{}',
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );

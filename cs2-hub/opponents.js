@@ -27,11 +27,7 @@ if (error) {
       </div>
       <div class="flex-1">
         <div class="row-name">${esc(o.name)}</div>
-        <div class="row-meta">
-          ${o.favored_maps?.length ? 'Maps: ' + o.favored_maps.map(m => esc(m)).join(', ') : 'No maps noted'}
-          · ${o.strengths?.length ?? 0} strength${(o.strengths?.length ?? 0) !== 1 ? 's' : ''}
-          · ${o.weaknesses?.length ?? 0} weakness${(o.weaknesses?.length ?? 0) !== 1 ? 'es' : ''}
-        </div>
+        <div class="row-meta">${o.favored_maps?.length ? 'Maps: ' + o.favored_maps.map(m => esc(m)).join(', ') : 'No maps noted'}</div>
       </div>
     </a>
   `).join('')

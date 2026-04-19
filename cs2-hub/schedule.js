@@ -14,61 +14,88 @@ renderSidebar('schedule')
 
 const TYPE_LABELS = { scrim: 'SCRIM', tournament: 'TOURNAMENT', meeting: 'MEETING', vod_review: 'VOD REVIEW' }
 
-function formatDate(iso) {
-  return new Date(iso).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+function formatTime(iso) {
+  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 
-// State
 let allEvents = []
-let activeFilter = 'all'
 let editingId = null
+let currentMonth = new Date()
+currentMonth.setDate(1)
+currentMonth.setHours(0,0,0,0)
 
-// ── Load & Render ──────────────────────────────────────────
+// ── Load ───────────────────────────────────────────────────
 async function loadEvents() {
-  const listEl = document.getElementById('events-list')
   const { data, error } = await supabase.from('events').select('*').order('date', { ascending: true })
   if (error) {
-    listEl.innerHTML = `<div class="empty-state"><h3>Failed to load events</h3><p>${esc(error.message)}</p></div>`
+    document.getElementById('cal-grid').innerHTML = `<div class="empty-state" style="grid-column:1/-1"><h3>Failed to load events</h3><p>${esc(error.message)}</p></div>`
     return
   }
   allEvents = data
-  renderList()
+  renderCalendar()
 }
 
-function renderList() {
-  const filtered = activeFilter === 'all' ? allEvents : allEvents.filter(e => e.type === activeFilter)
-  const listEl = document.getElementById('events-list')
+// ── Calendar ───────────────────────────────────────────────
+function renderCalendar() {
+  const year  = currentMonth.getFullYear()
+  const month = currentMonth.getMonth()
 
-  if (!filtered.length) {
-    listEl.innerHTML = `<div class="empty-state"><h3>No events yet</h3><p>Click "Add Event" to get started.</p></div>`
-    return
+  document.getElementById('cal-header').textContent =
+    new Date(year, month, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }).toUpperCase()
+
+  const firstDay = new Date(year, month, 1)
+  const lastDay  = new Date(year, month + 1, 0)
+
+  // Start grid on Monday
+  const startOffset = (firstDay.getDay() + 6) % 7
+  const gridStart = new Date(firstDay)
+  gridStart.setDate(gridStart.getDate() - startOffset)
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const cells = []
+  const cur = new Date(gridStart)
+  while (cells.length < 35 || cur.getMonth() === month) {
+    cells.push(new Date(cur))
+    cur.setDate(cur.getDate() + 1)
+    if (cells.length >= 42) break
   }
 
-  listEl.innerHTML = filtered.map(e => `
-    <div class="list-row" data-id="${e.id}">
-      <span class="badge badge-${e.type}">${TYPE_LABELS[e.type]}</span>
-      <div class="flex-1">
-        <div class="row-name">${esc(e.title)}</div>
-        ${e.opponent ? `<div class="row-meta">vs ${esc(e.opponent)}</div>` : ''}
-        ${e.notes ? `<div class="row-meta">${esc(e.notes)}</div>` : ''}
-      </div>
-      <div class="row-meta">${formatDate(e.date)}</div>
-    </div>
-  `).join('')
+  const grid = document.getElementById('cal-grid')
+  grid.innerHTML = cells.map(d => {
+    const isCurrentMonth = d.getMonth() === month
+    const isToday = d.getTime() === today.getTime()
+    const dateStr = d.toISOString().slice(0, 10)
 
-  listEl.querySelectorAll('.list-row').forEach(row => {
-    row.addEventListener('click', () => openModal(row.dataset.id))
+    const dayEvents = allEvents.filter(e => e.date.slice(0, 10) === dateStr)
+
+    return `
+      <div class="cal-cell ${!isCurrentMonth ? 'cal-other' : ''} ${isToday ? 'cal-today' : ''}" data-date="${dateStr}">
+        <div class="cal-day-num">${d.getDate()}</div>
+        ${dayEvents.map(e => `
+          <div class="cal-event cal-event-${e.type}" data-id="${esc(e.id)}"><span class="cal-event-time">${formatTime(e.date)}${e.end_date ? ' – ' + formatTime(e.end_date) : ''}</span> ${esc(e.title)}</div>
+        `).join('')}
+      </div>
+    `
+  }).join('')
+
+  grid.querySelectorAll('.cal-event').forEach(el => {
+    el.addEventListener('click', ev => { ev.stopPropagation(); openModal(el.dataset.id) })
+  })
+
+  grid.querySelectorAll('.cal-cell').forEach(el => {
+    el.addEventListener('click', () => openModalOnDate(el.dataset.date))
   })
 }
 
-// ── Filter tabs ────────────────────────────────────────────
-document.getElementById('filter-tabs').addEventListener('click', e => {
-  const tab = e.target.closest('.tab')
-  if (!tab) return
-  document.querySelectorAll('#filter-tabs .tab').forEach(t => t.classList.remove('active'))
-  tab.classList.add('active')
-  activeFilter = tab.dataset.filter
-  renderList()
+document.getElementById('cal-prev').addEventListener('click', () => {
+  currentMonth.setMonth(currentMonth.getMonth() - 1)
+  renderCalendar()
+})
+document.getElementById('cal-next').addEventListener('click', () => {
+  currentMonth.setMonth(currentMonth.getMonth() + 1)
+  renderCalendar()
 })
 
 // ── Modal ──────────────────────────────────────────────────
@@ -78,7 +105,8 @@ function openModal(id = null) {
   document.getElementById('modal-title').textContent = id ? 'Edit Event' : 'Add Event'
   document.getElementById('f-title').value    = event?.title    ?? ''
   document.getElementById('f-type').value     = event?.type     ?? 'scrim'
-  document.getElementById('f-date').value     = event?.date?.slice(0,16) ?? ''
+  document.getElementById('f-date').value     = event?.date?.slice(0, 16)     ?? ''
+  document.getElementById('f-end-date').value = event?.end_date?.slice(0, 16) ?? ''
   document.getElementById('f-opponent').value = event?.opponent ?? ''
   document.getElementById('f-notes').value    = event?.notes    ?? ''
   document.getElementById('delete-btn').style.display = id ? 'block' : 'none'
@@ -86,14 +114,20 @@ function openModal(id = null) {
   document.getElementById('modal').style.display = 'flex'
 }
 
+function openModalOnDate(dateStr) {
+  openModal()
+  document.getElementById('f-date').value     = dateStr + 'T12:00'
+  document.getElementById('f-end-date').value = dateStr + 'T13:00'
+}
+
 function closeModal() {
   document.getElementById('modal').style.display = 'none'
   editingId = null
 }
 
-document.getElementById('add-btn').addEventListener('click',    () => openModal())
+document.getElementById('add-btn').addEventListener('click', () => openModal())
 document.getElementById('modal-close').addEventListener('click', closeModal)
-document.getElementById('cancel-btn').addEventListener('click',  closeModal)
+document.getElementById('cancel-btn').addEventListener('click', closeModal)
 document.getElementById('modal').addEventListener('click', e => {
   if (e.target === document.getElementById('modal')) closeModal()
 })
@@ -102,6 +136,7 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   const title    = document.getElementById('f-title').value.trim()
   const type     = document.getElementById('f-type').value
   const date     = document.getElementById('f-date').value
+  const end_date = document.getElementById('f-end-date').value || null
   const opponent = document.getElementById('f-opponent').value.trim() || null
   const notes    = document.getElementById('f-notes').value.trim()    || null
   const errEl    = document.getElementById('modal-error')
@@ -112,7 +147,7 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     return
   }
 
-  const payload = { title, type, date: new Date(date).toISOString(), opponent, notes }
+  const payload = { title, type, date: new Date(date).toISOString(), end_date: end_date ? new Date(end_date).toISOString() : null, opponent, notes }
 
   let error
   if (editingId) {
