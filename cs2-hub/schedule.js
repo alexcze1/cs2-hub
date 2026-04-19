@@ -34,7 +34,17 @@ async function loadEvents() {
     document.getElementById('cal-grid').innerHTML = `<div class="empty-state" style="grid-column:1/-1"><h3>Failed to load events</h3><p>${esc(error.message)}</p></div>`
     return
   }
-  allEvents = [...data, ...(Array.isArray(pracc) ? pracc : [])]
+  const praccEvents = Array.isArray(pracc) ? pracc : []
+  const filtered = data.filter(se => {
+    const seStart = new Date(se.date).getTime()
+    const seEnd   = se.end_date ? new Date(se.end_date).getTime() : seStart + 3600000
+    return !praccEvents.some(pe => {
+      const peStart = new Date(pe.date).getTime()
+      const peEnd   = pe.end_date ? new Date(pe.end_date).getTime() : peStart + 3600000
+      return seStart < peEnd && peStart < seEnd
+    })
+  })
+  allEvents = [...filtered, ...praccEvents]
   renderCalendar()
 }
 
