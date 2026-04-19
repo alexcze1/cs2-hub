@@ -30,12 +30,22 @@ function formatDate(iso) {
 const now = new Date()
 const weekLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
 
-const { data: events } = await supabase
-  .from('events')
-  .select('*')
-  .gte('date', now.toISOString())
-  .lte('date', weekLater.toISOString())
-  .order('date', { ascending: true })
+const [{ data: dbEvents }, pracc] = await Promise.all([
+  supabase.from('events').select('*').gte('date', now.toISOString()).lte('date', weekLater.toISOString()).order('date', { ascending: true }),
+  fetch('/api/calendar').then(r => r.json()).catch(() => [])
+])
+
+const praccEvents = (Array.isArray(pracc) ? pracc : []).filter(e => e.date >= now.toISOString() && e.date <= weekLater.toISOString())
+const filtered = (dbEvents ?? []).filter(se => {
+  const seStart = new Date(se.date).getTime()
+  const seEnd   = se.end_date ? new Date(se.end_date).getTime() : seStart + 3600000
+  return !praccEvents.some(pe => {
+    const peStart = new Date(pe.date).getTime()
+    const peEnd   = pe.end_date ? new Date(pe.end_date).getTime() : peStart + 3600000
+    return seStart < peEnd && peStart < seEnd
+  })
+})
+const events = [...filtered, ...praccEvents].sort((a, b) => new Date(a.date) - new Date(b.date))
 
 const upcomingEl = document.getElementById('upcoming-events')
 if (!events?.length) {
