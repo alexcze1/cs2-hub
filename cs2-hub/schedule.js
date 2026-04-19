@@ -44,7 +44,7 @@ async function loadEvents() {
       return seStart < peEnd && peStart < seEnd
     })
   })
-  allEvents = [...filtered, ...praccEvents]
+  allEvents = [...filtered, ...praccEvents].sort((a, b) => new Date(a.date) - new Date(b.date))
   renderCalendar()
 }
 
