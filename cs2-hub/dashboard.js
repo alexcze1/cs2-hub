@@ -41,21 +41,43 @@ const upcomingEl = document.getElementById('upcoming-events')
 if (!events?.length) {
   upcomingEl.innerHTML = `<div class="empty-state"><h3>No events this week</h3><p>Add one in the Schedule section.</p></div>`
 } else {
-  upcomingEl.innerHTML = events.map(e => `
-    <a class="list-row" href="schedule.html">
-      ${eventBadge(e.type)}
-      <div class="flex-1">
-        <div class="row-name">${esc(e.title)}</div>
-        ${e.opponent ? `<div class="row-meta">vs ${esc(e.opponent)}</div>` : ''}
-      </div>
-      <div class="row-meta">${formatDate(e.date)}</div>
-    </a>
-  `).join('')
-
   // Populate next-event stat card
   const next = events[0]
   document.getElementById('stat-next-event').textContent = next.title
   document.getElementById('stat-next-date').textContent = formatDate(next.date)
+
+  // Build a 7-day column grid starting from today
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(now)
+    d.setDate(d.getDate() + i)
+    d.setHours(0, 0, 0, 0)
+    return d
+  })
+
+  upcomingEl.innerHTML = `<div class="week-grid">${days.map(day => {
+    const dateStr = day.toISOString().slice(0, 10)
+    const dayLabel = day.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase()
+    const dayNum   = day.getDate()
+    const isToday  = dateStr === now.toISOString().slice(0, 10)
+    const dayEvents = events.filter(e => e.date.slice(0, 10) === dateStr)
+
+    return `
+      <div class="week-col ${isToday ? 'week-col-today' : ''}">
+        <div class="week-day-header">
+          <span class="week-day-name">${dayLabel}</span>
+          <span class="week-day-num ${isToday ? 'week-day-num-today' : ''}">${dayNum}</span>
+        </div>
+        <div class="week-day-events">
+          ${dayEvents.length ? dayEvents.map(e => `
+            <a class="week-event week-event-${e.type}" href="schedule.html">
+              <span class="week-event-time">${new Date(e.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
+              <span class="week-event-title">${esc(e.title)}</span>
+            </a>
+          `).join('') : `<div class="week-empty">—</div>`}
+        </div>
+      </div>
+    `
+  }).join('')}</div>`
 }
 
 // Strat count
