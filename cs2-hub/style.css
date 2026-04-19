@@ -522,6 +522,72 @@ body {
 .pracc-badge { font-size: 9px; font-weight: 800; letter-spacing: .06em; background: var(--accent); color: #000; padding: 1px 4px; border-radius: 3px; vertical-align: middle; margin-left: 4px; }
 .form-static { color: var(--text-primary); padding: 6px 0; }
 
+/* ── Match Results / VODs ── */
+.map-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.map-row:last-child { border-bottom: none; }
+.map-score-inputs { display: flex; align-items: center; gap: 6px; }
+.map-score-sep { color: var(--muted); font-weight: 700; }
+.map-row-remove {
+  background: none;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0 4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.map-chip {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.map-chip-win  { background: rgba(34,197,94,0.15);  color: var(--success); }
+.map-chip-loss { background: rgba(239,68,68,0.15);  color: var(--danger); }
+.map-chip-draw { background: rgba(107,114,128,0.15);color: var(--muted); }
+
+.map-breakdown-grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.map-stat-row {
+  display: grid;
+  grid-template-columns: 90px 72px 1fr 44px 64px;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+.map-stat-name   { font-weight: 700; font-size: 13px; }
+.map-stat-record { color: var(--muted); font-size: 12px; }
+.map-stat-bar-wrap { background: var(--border); border-radius: 4px; height: 6px; overflow: hidden; }
+.map-stat-bar    { height: 100%; background: var(--accent); border-radius: 4px; transition: width .4s; }
+.map-stat-pct    { font-weight: 700; font-size: 13px; text-align: right; }
+.map-stat-rounds { color: var(--muted); font-size: 11px; text-align: right; }
+
+.form-dots { display: flex; gap: 5px; align-items: center; }
+.form-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+.form-dot-win  { background: rgba(34,197,94,0.2);  color: var(--success); }
+.form-dot-loss { background: rgba(239,68,68,0.2);  color: var(--danger); }
+.form-dot-draw { background: rgba(107,114,128,0.2);color: var(--muted); }
+
 /* ── Gameplan Sheets ── */
 .gameplan-sheet {
   border: 1px solid var(--border);

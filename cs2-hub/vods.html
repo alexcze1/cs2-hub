@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>VOD Review — CS2 Hub</title>
+  <title>Match Results — CS2 Hub</title>
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
@@ -12,11 +12,19 @@
   <main class="main-content">
     <div class="page-header">
       <div>
-        <div class="page-title">VOD Review</div>
-        <div class="page-sub">Timestamped notes on demos and matches</div>
+        <div class="page-title">Match Results</div>
+        <div class="page-sub">Scores, stats and match notes</div>
       </div>
-      <a class="btn btn-primary" href="vod-detail.html">+ Add VOD</a>
+      <a class="btn btn-primary" href="vod-detail.html">+ Add Match</a>
     </div>
+
+    <div id="stats-section" style="display:none">
+      <div class="stats-grid" style="grid-template-columns:repeat(4,1fr)" id="top-stats"></div>
+      <div class="section-label" style="margin-top:24px">Map Pool Performance</div>
+      <div id="map-breakdown"></div>
+    </div>
+
+    <div class="section-label" style="margin-top:24px" id="history-label">Match History</div>
     <div id="vods-list"><div class="loading">Loading…</div></div>
   </main>
 </div>

@@ -29,16 +29,24 @@ create table strats (
 
 create table vods (
   id uuid primary key default gen_random_uuid(),
-  title text not null,
+  title text,
+  opponent text,
   result text check (result in ('win','loss','draw')),
-  score text,
   match_type text check (match_type in ('scrim','tournament','pug')),
   demo_link text,
   match_date date,
-  notes jsonb default '[]',
+  maps jsonb default '[]',
+  notes text,
   created_at timestamptz default now(),
   created_by uuid references auth.users(id)
 );
+
+-- Migration (run if table already exists):
+-- alter table vods add column if not exists opponent text;
+-- alter table vods add column if not exists maps jsonb default '[]';
+-- alter table vods drop column if exists score;
+-- alter table vods drop column if exists notes;
+-- alter table vods add column if not exists notes text;
 
 create table opponents (
   id uuid primary key default gen_random_uuid(),

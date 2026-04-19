@@ -98,9 +98,30 @@ const { data: stratMaps } = await supabase.from('strats').select('map')
 const uniqueMaps = new Set(stratMaps?.map(s => s.map) ?? [])
 document.getElementById('stat-strats-sub').textContent = `Across ${uniqueMaps.size} map${uniqueMaps.size !== 1 ? 's' : ''}`
 
-// VOD count
-const { count: vodCount } = await supabase.from('vods').select('*', { count: 'exact', head: true })
-document.getElementById('stat-vods').textContent = vodCount ?? 0
+// Match record
+const { data: vodData } = await supabase.from('vods').select('maps')
+let mw = 0, ml = 0, md = 0
+for (const v of vodData ?? []) {
+  const maps = v.maps ?? []
+  let w = 0, l = 0
+  for (const m of maps) {
+    if ((m.score_us ?? 0) > (m.score_them ?? 0)) w++
+    else if ((m.score_them ?? 0) > (m.score_us ?? 0)) l++
+  }
+  if (w > l) mw++; else if (l > w) ml++; else if (maps.length) md++
+}
+const recentForm = (vodData ?? []).slice(0, 5).map(v => {
+  let w = 0, l = 0
+  for (const m of v.maps ?? []) {
+    if ((m.score_us ?? 0) > (m.score_them ?? 0)) w++
+    else if ((m.score_them ?? 0) > (m.score_us ?? 0)) l++
+  }
+  return w > l ? 'W' : l > w ? 'L' : 'D'
+})
+document.getElementById('stat-vods').innerHTML = `${mw}W — ${ml}L`
+document.getElementById('stat-vods-form').innerHTML = recentForm.map(r =>
+  `<span class="form-dot form-dot-${r === 'W' ? 'win' : r === 'L' ? 'loss' : 'draw'}">${r}</span>`
+).join('')
 
 // Recent strats (last 3)
 const { data: recentStrats } = await supabase

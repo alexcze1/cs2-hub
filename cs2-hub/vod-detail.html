@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>VOD — CS2 Hub</title>
+  <title>Match Result — CS2 Hub</title>
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
@@ -12,8 +12,8 @@
   <main class="main-content">
     <div class="page-header">
       <div>
-        <a href="vods.html" style="color:var(--muted);font-size:13px;text-decoration:none">← VOD Review</a>
-        <div class="page-title" id="page-title" style="margin-top:6px">New VOD</div>
+        <a href="vods.html" style="color:var(--muted);font-size:13px;text-decoration:none">← Match Results</a>
+        <div class="page-title" id="page-title" style="margin-top:6px">New Match</div>
       </div>
       <div style="display:flex;gap:10px">
         <button class="btn btn-danger" id="delete-btn" style="display:none">Delete</button>
@@ -21,27 +21,12 @@
       </div>
     </div>
 
-    <div style="max-width:680px">
-      <div class="form-group">
-        <label class="form-label">Title</label>
-        <input class="form-input" id="f-title" placeholder="e.g. vs NaVi — Mirage"/>
-      </div>
-      <div class="form-row">
+    <div style="max-width:700px">
+      <div class="form-row" style="grid-template-columns:2fr 1fr 1fr">
         <div class="form-group">
-          <label class="form-label">Result</label>
-          <select class="form-select" id="f-result">
-            <option value="">— Select —</option>
-            <option value="win">Win</option>
-            <option value="loss">Loss</option>
-            <option value="draw">Draw</option>
-          </select>
+          <label class="form-label">Opponent</label>
+          <input class="form-input" id="f-opponent" placeholder="e.g. NaVi, Team Vitality"/>
         </div>
-        <div class="form-group">
-          <label class="form-label">Score</label>
-          <input class="form-input" id="f-score" placeholder="e.g. 16-12"/>
-        </div>
-      </div>
-      <div class="form-row">
         <div class="form-group">
           <label class="form-label">Match Type</label>
           <select class="form-select" id="f-match-type">
@@ -51,7 +36,7 @@
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Match Date</label>
+          <label class="form-label">Date</label>
           <input class="form-input" type="date" id="f-date"/>
         </div>
       </div>
@@ -59,23 +44,17 @@
         <label class="form-label">Demo Link (optional)</label>
         <input class="form-input" id="f-demo-link" placeholder="https://…"/>
       </div>
-      <div id="save-error" class="error-msg" style="display:none"></div>
 
-      <div id="notes-section" style="display:none">
-        <div class="section-label" style="margin-top:32px">Timestamped Notes</div>
-        <div id="notes-list"></div>
-        <div style="display:flex;gap:10px;margin-top:16px;align-items:flex-end">
-          <div class="form-group" style="width:110px;margin-bottom:0">
-            <label class="form-label">Timestamp</label>
-            <input class="form-input" id="n-timestamp" placeholder="02:14"/>
-          </div>
-          <div class="form-group" style="flex:1;margin-bottom:0">
-            <label class="form-label">Note</label>
-            <input class="form-input" id="n-text" placeholder="What happened at this moment…"/>
-          </div>
-          <button class="btn btn-primary btn-sm" id="add-note-btn" style="flex-shrink:0;margin-bottom:1px">Add</button>
-        </div>
+      <div class="section-label" style="margin-top:28px">Maps Played</div>
+      <div id="maps-list"></div>
+      <button class="btn btn-ghost btn-sm" id="add-map-btn" style="margin-top:10px">+ Add Map</button>
+
+      <div class="section-label" style="margin-top:28px">Match Notes</div>
+      <div class="form-group">
+        <textarea class="form-textarea" id="f-notes" rows="4" placeholder="Key observations, what worked, what to improve…"></textarea>
       </div>
+
+      <div id="save-error" class="error-msg" style="display:none;margin-top:8px"></div>
     </div>
   </main>
 </div>
