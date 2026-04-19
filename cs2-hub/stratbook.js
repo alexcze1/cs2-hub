@@ -10,7 +10,7 @@ function esc(text) {
 }
 
 function mapIcon(map) {
-  const url = `https://cdn.akamai.steamstatic.com/apps/csgo/maps/de_${map}_preview.png`
+  const url = `https://raw.githubusercontent.com/MurkyYT/cs2-map-icons/main/images/de_${map}.png`
   return `<div class="map-badge"><img src="${url}" alt="${esc(map)}" onerror="this.parentElement.innerHTML='<span>${esc(map.slice(0,3).toUpperCase())}</span>'"/></div>`
 }
 

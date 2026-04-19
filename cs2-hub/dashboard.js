@@ -136,7 +136,7 @@ if (!recentStrats?.length) {
 } else {
   recentEl.innerHTML = recentStrats.map(s => `
     <a class="list-row" href="stratbook-detail.html?id=${s.id}">
-      <div class="map-badge"><img src="https://cdn.akamai.steamstatic.com/apps/csgo/maps/de_${s.map}_preview.png" alt="${esc(s.map)}" onerror="this.parentElement.innerHTML='<span>${s.map.slice(0,3).toUpperCase()}</span>'"/></div>
+      <div class="map-badge"><img src="https://raw.githubusercontent.com/MurkyYT/cs2-map-icons/main/images/de_${s.map}.png" alt="${esc(s.map)}" onerror="this.parentElement.innerHTML='<span>${s.map.slice(0,3).toUpperCase()}</span>'"/></div>
       <div class="flex-1">
         <div class="row-name">${esc(s.name)}</div>
         <div class="row-meta">${esc(s.map)} · ${s.side === 't' ? 'T-Side' : 'CT-Side'} · ${esc(s.type)}</div>
