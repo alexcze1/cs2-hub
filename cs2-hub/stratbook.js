@@ -9,6 +9,11 @@ function esc(text) {
   return d.innerHTML
 }
 
+function mapIcon(map) {
+  const url = `https://cdn.akamai.steamstatic.com/apps/csgo/maps/de_${map}_preview.png`
+  return `<div class="map-badge"><img src="${url}" alt="${esc(map)}" onerror="this.parentElement.innerHTML='<span>${esc(map.slice(0,3).toUpperCase())}</span>'"/></div>`
+}
+
 await requireAuth()
 renderSidebar('stratbook')
 
@@ -49,7 +54,7 @@ function renderList() {
   }
   el.innerHTML = filtered.map(s => `
     <a class="list-row" href="stratbook-detail.html?id=${s.id}">
-      <div class="map-badge">${esc(s.map.slice(0,3))}</div>
+      ${mapIcon(s.map)}
       <div class="flex-1">
         <div class="row-name">${esc(s.name)}</div>
         <div class="row-meta">${esc(s.map)} · ${s.side === 't' ? 'T-Side' : 'CT-Side'} · ${esc(s.type)}</div>
