@@ -26,7 +26,7 @@ if (isEdit) {
   document.getElementById('delete-btn').style.display = 'block'
 
   const { data: opp, error } = await supabase.from('opponents').select('*').eq('id', id).single()
-  if (error || !opp) { alert('Opponent not found.'); location.href = 'opponents.html'; return; }
+  if (error || !opp) { alert('Opponent not found.'); location.href = 'opponents.html'; throw 0; }
 
   document.getElementById('f-name').value = opp.name
   document.getElementById('f-maps').value = (opp.favored_maps ?? []).join(', ')

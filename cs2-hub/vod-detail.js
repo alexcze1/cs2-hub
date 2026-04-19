@@ -22,7 +22,7 @@ if (isEdit) {
   document.getElementById('notes-section').style.display = 'block'
 
   const { data: vod, error } = await supabase.from('vods').select('*').eq('id', id).single()
-  if (error || !vod) { alert('VOD not found.'); location.href = 'vods.html'; return; }
+  if (error || !vod) { alert('VOD not found.'); location.href = 'vods.html'; throw 0; }
 
   document.getElementById('f-title').value      = vod.title
   document.getElementById('f-result').value     = vod.result      ?? ''

@@ -24,7 +24,7 @@ if (isEdit) {
   document.getElementById('delete-btn').style.display = 'block'
 
   const { data: strat, error } = await supabase.from('strats').select('*').eq('id', id).single()
-  if (error || !strat) { alert('Strat not found.'); location.href = 'stratbook.html'; return; }
+  if (error || !strat) { alert('Strat not found.'); location.href = 'stratbook.html'; throw 0; }
 
   document.getElementById('f-name').value  = strat.name
   document.getElementById('f-map').value   = strat.map
