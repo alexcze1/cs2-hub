@@ -21,76 +21,24 @@
       </div>
     </div>
 
-    <div style="max-width:780px">
-      <div class="form-group">
-        <label class="form-label">Team Name</label>
-        <input class="form-input" id="f-name" placeholder="e.g. Natus Vincere"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Favored Maps (comma-separated)</label>
-        <input class="form-input" id="f-maps" placeholder="e.g. Mirage, Inferno"/>
+    <div style="max-width:820px">
+      <div class="info-panel">
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Team Name</label>
+          <input class="form-input" id="f-name" placeholder="e.g. Natus Vincere"/>
+        </div>
       </div>
 
-      <!-- CT Gameplan Sheet -->
-      <div class="gameplan-sheet" style="margin-top:28px">
-        <div class="gameplan-title ct-title">CT GAMEPLAN <span style="font-weight:400;opacity:0.7">— vs their T side</span></div>
-        <div class="gameplan-split">
-          <div class="gameplan-block">
-            <div class="gameplan-section-label pistols-label">PISTOLS</div>
-            <textarea class="form-textarea gameplan-textarea" id="ct-pistols" placeholder="How they play pistol on T side…"></textarea>
-          </div>
-          <div class="gameplan-block">
-            <div class="gameplan-section-label style-label">STYLE</div>
-            <textarea class="form-textarea gameplan-textarea" id="ct-style" placeholder="AWP player positioning, special roles…"></textarea>
-          </div>
-        </div>
-        <div class="gameplan-split">
-          <div class="gameplan-block">
-            <div class="gameplan-section-label antiecos-label">ANTIECOS</div>
-            <textarea class="form-textarea gameplan-textarea" id="ct-antiecos" placeholder="How they play anti-eco rounds…"></textarea>
-          </div>
-          <div class="gameplan-block">
-            <div class="gameplan-section-label forces-label">FORCES</div>
-            <textarea class="form-textarea gameplan-textarea" id="ct-forces" placeholder="How they force buy…"></textarea>
-          </div>
-        </div>
-        <div class="gameplan-section-label tendencies-label">TENDENCIES AND TELLS</div>
-        <textarea class="form-textarea gameplan-textarea" id="ct-tendencies" placeholder="Recurring patterns, giveaways, habits…" style="min-height:80px"></textarea>
-        <div class="gameplan-section-label exploits-label">EXPLOITS</div>
-        <textarea class="form-textarea gameplan-textarea" id="ct-exploits" placeholder="Gaps and weaknesses we can abuse…" style="min-height:80px"></textarea>
-        <div class="gameplan-section-label solutions-label">SOLUTIONS</div>
-        <textarea class="form-textarea gameplan-textarea" id="ct-solutions" placeholder="Our adjustments and counters…" style="min-height:80px"></textarea>
-      </div>
+      <div class="section-label" style="margin-top:24px">Maps</div>
+      <div class="map-selector" id="map-selector"></div>
 
-      <!-- T Gameplan Sheet -->
-      <div class="gameplan-sheet" style="margin-top:28px">
-        <div class="gameplan-title t-title">T GAMEPLAN <span style="font-weight:400;opacity:0.7">— vs their CT side</span></div>
-        <div class="gameplan-split">
-          <div class="gameplan-block">
-            <div class="gameplan-section-label pistols-label">PISTOLS</div>
-            <textarea class="form-textarea gameplan-textarea" id="t-pistols" placeholder="How they play pistol on CT side…"></textarea>
-          </div>
-          <div class="gameplan-block">
-            <div class="gameplan-section-label style-label">STYLE</div>
-            <textarea class="form-textarea gameplan-textarea" id="t-style" placeholder="AWP setup, anchor positions…"></textarea>
-          </div>
+      <div id="antistrat-section" style="display:none;margin-top:28px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div class="section-label" style="margin:0">Antistrat</div>
         </div>
-        <div class="gameplan-split">
-          <div class="gameplan-block">
-            <div class="gameplan-section-label antiecos-label">ANTIECOS</div>
-            <textarea class="form-textarea gameplan-textarea" id="t-antiecos" placeholder="Their anti-eco approach…"></textarea>
-          </div>
-          <div class="gameplan-block">
-            <div class="gameplan-section-label forces-label">FORCES</div>
-            <textarea class="form-textarea gameplan-textarea" id="t-forces" placeholder="Their force buy patterns…"></textarea>
-          </div>
-        </div>
-        <div class="gameplan-section-label tendencies-label">TENDENCIES AND TELLS</div>
-        <textarea class="form-textarea gameplan-textarea" id="t-tendencies" placeholder="Recurring patterns, giveaways, habits…" style="min-height:80px"></textarea>
-        <div class="gameplan-section-label exploits-label">EXPLOITS</div>
-        <textarea class="form-textarea gameplan-textarea" id="t-exploits" placeholder="Gaps and weaknesses we can abuse…" style="min-height:80px"></textarea>
-        <div class="gameplan-section-label solutions-label">SOLUTIONS</div>
-        <textarea class="form-textarea gameplan-textarea" id="t-solutions" placeholder="Our adjustments and counters…" style="min-height:80px"></textarea>
+        <div class="review-map-tabs" id="antistrat-map-tabs"></div>
+        <div class="review-panel" id="positions-panel"></div>
+        <div id="gameplan-panels"></div>
       </div>
 
       <div id="save-error" class="error-msg" style="display:none;margin-top:16px"></div>

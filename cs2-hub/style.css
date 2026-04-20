@@ -783,6 +783,38 @@ body {
 .strat-tags { display: flex; gap: 4px; flex-wrap: wrap; }
 .strat-tags .tag { font-size: 10px; padding: 1px 6px; }
 
+/* ── Map Selector (opponent antistrat) ── */
+.map-selector { display: flex; gap: 6px; flex-wrap: wrap; }
+.map-toggle {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--border);
+  transition: all .12s;
+  font-family: inherit;
+}
+.map-toggle:hover { color: var(--text); border-color: var(--muted); }
+.map-toggle.active { background: rgba(59,130,246,0.15); color: var(--text); border-color: var(--accent); }
+
+/* ── Position Grid (5 positions per side) ── */
+.pos-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+.pos-cell { display: flex; flex-direction: column; gap: 4px; }
+.pos-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 /* ── Gameplan Sheets ── */
 .gameplan-sheet {
   border: 1px solid var(--border);

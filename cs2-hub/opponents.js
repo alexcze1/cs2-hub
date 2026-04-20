@@ -27,7 +27,7 @@ if (error) {
       </div>
       <div class="flex-1">
         <div class="row-name">${esc(o.name)}</div>
-        <div class="row-meta">${o.favored_maps?.length ? 'Maps: ' + o.favored_maps.map(m => esc(m)).join(', ') : 'No maps noted'}</div>
+        <div class="row-meta">${o.favored_maps?.length ? 'Maps: ' + o.favored_maps.map(m => esc(m.charAt(0).toUpperCase()+m.slice(1))).join(', ') : 'No maps noted'}</div>
       </div>
     </a>
   `).join('')
