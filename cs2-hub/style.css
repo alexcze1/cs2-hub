@@ -851,6 +851,8 @@ body {
   border-top: 1px solid var(--border);
 }
 
+.t-positions-label  { background: rgba(248,113,113,0.12); color: #f87171; }
+.ct-positions-label { background: rgba(59,130,246,0.12);  color: #3b82f6; }
 .pistols-label   { background: rgba(20,184,166,0.18); color: #2dd4bf; }
 .style-label     { background: rgba(251,113,133,0.18); color: #fb7185; }
 .antiecos-label  { background: rgba(20,184,166,0.18); color: #2dd4bf; }

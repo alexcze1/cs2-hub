@@ -80,7 +80,6 @@ function renderAntistratSection() {
   if (!selectedMaps.length) { section.style.display = 'none'; return }
   section.style.display = 'block'
   renderMapTabs()
-  renderPositions()
   renderGameplans()
 }
 
@@ -96,7 +95,6 @@ function renderMapTabs() {
     saveActivePlan()
     activeMapIdx = +e.currentTarget.dataset.i
     renderMapTabs()
-    renderPositions()
     renderGameplans()
   }))
 }
@@ -116,37 +114,19 @@ function posGridHTML(map, side) {
   </div>`
 }
 
-function renderPositions() {
-  const panel = document.getElementById('positions-panel')
-  const map = selectedMaps[activeMapIdx]
-  if (!map) { panel.innerHTML = ''; return }
-  ensureMapData(map)
-
-  panel.innerHTML = `
-    <div style="padding:16px 20px 12px">
-      <div class="review-pane-label review-pane-label-t" style="margin-bottom:12px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase">THEIR T-SIDE</div>
-      ${posGridHTML(map, 't')}
-    </div>
-    <div class="review-divider"></div>
-    <div style="padding:16px 20px 12px">
-      <div class="review-pane-label review-pane-label-ct" style="margin-bottom:12px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase">THEIR CT-SIDE</div>
-      ${posGridHTML(map, 'ct')}
-    </div>
-  `
-
-  panel.querySelectorAll('.pos-input').forEach(inp => inp.addEventListener('input', e => {
-    const { map: m, side, pos } = e.target.dataset
-    if (antistrat[m]) antistrat[m][`${side}_positions`][pos] = e.target.value
-  }))
-}
-
 function gpSheetHTML(map, prefix, title, subtitle, titleClass) {
   const d = antistrat[map]?.[`${prefix}_plan`] ?? {}
   const pairs = [['pistols','style'], ['antiecos','forces']]
   const singles = ['tendencies','exploits','solutions']
 
+  const posSide = prefix === 'ct' ? 't' : 'ct'
+  const posLabelClass = prefix === 'ct' ? 't-positions-label' : 'ct-positions-label'
+  const posHeading = prefix === 'ct' ? 'THEIR T-SIDE LINEUP' : 'THEIR CT-SIDE LINEUP'
+
   return `<div class="gameplan-sheet" style="margin-top:16px">
     <div class="gameplan-title ${titleClass}">${esc(title)} <span style="font-weight:400;opacity:0.7">— ${esc(subtitle)}</span></div>
+    <div class="gameplan-section-label ${posLabelClass}">${posHeading}</div>
+    <div style="padding:10px 14px 14px">${posGridHTML(map, posSide)}</div>
     ${pairs.map(([a, b]) => `
       <div class="gameplan-split">
         <div class="gameplan-block">
@@ -173,6 +153,11 @@ function renderGameplans() {
   ensureMapData(map)
   el.innerHTML = gpSheetHTML(map, 'ct', 'CT GAMEPLAN', 'vs their T side', 'ct-title')
                + gpSheetHTML(map, 't',  'T GAMEPLAN',  'vs their CT side', 't-title')
+
+  el.querySelectorAll('.pos-input').forEach(inp => inp.addEventListener('input', e => {
+    const { map: m, side, pos } = e.target.dataset
+    if (antistrat[m]) antistrat[m][`${side}_positions`][pos] = e.target.value
+  }))
 }
 
 function saveActivePlan() {
