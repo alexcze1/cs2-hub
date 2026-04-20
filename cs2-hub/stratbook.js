@@ -73,6 +73,7 @@ function renderList() {
     return `
       <a class="strat-card strat-card-${s.side}" href="stratbook-detail.html?id=${esc(s.id)}">
         <div class="strat-card-header">
+          ${mapIcon(s.map)}
           <span class="strat-type-badge" style="color:${t.color};background:${t.color}22">${t.label}</span>
           <div class="strat-name">${esc(s.name)}</div>
           <span class="strat-map-chip">${esc(mapLabel)}</span>
