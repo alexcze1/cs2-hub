@@ -11,6 +11,10 @@ export function renderSidebar(activePage) {
     { id: 'stratbook',  label: 'Stratbook',   href: 'stratbook.html',  section: 'TOOLS' },
     { id: 'vods',       label: 'VOD Review',  href: 'vods.html' },
     { id: 'opponents',  label: 'Opponents',   href: 'opponents.html' },
+    { id: 'veto',       label: 'Map Veto',    href: 'veto.html' },
+    { id: 'keywords',   label: 'Keywords',    href: 'keywords.html' },
+    { id: 'goals',      label: 'Team Goals',  href: 'goals.html' },
+    { id: 'issues',     label: 'Issues',      href: 'issues.html' },
     { id: 'roster',     label: 'Roster',      href: 'roster.html',     section: 'TEAM' },
   ]
 

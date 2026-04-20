@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Map Veto — CS2 Hub</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">MAP VETO</div>
+        <div class="page-subtitle" id="veto-sub">Predict and store map veto outcomes</div>
+      </div>
+      <button class="btn btn-primary" id="new-veto-btn">+ New Veto</button>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modal" style="display:none">
+      <div class="modal" style="max-width:560px;width:100%">
+        <div class="modal-header">
+          <div class="modal-title" id="modal-title">New Veto</div>
+          <button class="modal-close" id="modal-close">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Title</label>
+            <input class="form-input" id="f-title" placeholder="e.g. vs TEAM NAME"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Opponent</label>
+            <input class="form-input" id="f-opponent" placeholder="Opponent team name"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Format</label>
+            <select class="form-select" id="f-format">
+              <option value="bo1">BO1</option>
+              <option value="bo3">BO3</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Home Team Label</label>
+              <input class="form-input" id="f-home" placeholder="Us" value="Us"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Away Team Label</label>
+              <input class="form-input" id="f-away" placeholder="Them" value="Them"/>
+            </div>
+          </div>
+          <div id="veto-builder" style="margin-top:16px"></div>
+          <div class="form-group" style="margin-top:16px">
+            <label class="form-label">Notes</label>
+            <textarea class="form-textarea" id="f-notes" placeholder="Reasoning, tendencies…" style="min-height:60px"></textarea>
+          </div>
+          <div class="error-msg" id="modal-error" style="display:none"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" id="cancel-btn">Cancel</button>
+          <button class="btn btn-danger" id="delete-btn" style="display:none">Delete</button>
+          <button class="btn btn-primary" id="save-btn">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="veto-list"></div>
+  </main>
+</div>
+<script type="module" src="veto.js"></script>
+</body>
+</html>

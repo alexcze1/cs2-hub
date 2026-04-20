@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Keywords — CS2 Hub</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">KEYWORDS</div>
+        <div class="page-subtitle" id="kw-sub">Team terminology and callout definitions</div>
+      </div>
+      <button class="btn btn-primary" id="add-btn">+ Add Keyword</button>
+    </div>
+
+    <div class="form-group" style="max-width:320px;margin-bottom:20px">
+      <input class="form-input" id="kw-search" placeholder="Search keywords…"/>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modal" style="display:none">
+      <div class="modal" style="max-width:440px;width:100%">
+        <div class="modal-header">
+          <div class="modal-title" id="modal-title">Add Keyword</div>
+          <button class="modal-close" id="modal-close">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Keyword / Term</label>
+            <input class="form-input" id="f-name" placeholder="e.g. Retake B, Triple Stack, Force Buy"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category (optional)</label>
+            <input class="form-input" id="f-category" placeholder="e.g. Callout, Economy, Strat"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea class="form-textarea" id="f-description" placeholder="What does this term mean for our team?" style="min-height:80px"></textarea>
+          </div>
+          <div class="error-msg" id="modal-error" style="display:none"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" id="cancel-btn">Cancel</button>
+          <button class="btn btn-danger" id="delete-btn" style="display:none">Delete</button>
+          <button class="btn btn-primary" id="save-btn">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="keywords-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px"></div>
+  </main>
+</div>
+<script type="module" src="keywords.js"></script>
+</body>
+</html>
