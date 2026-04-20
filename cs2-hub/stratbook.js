@@ -112,7 +112,7 @@ function bindTabs(id, key, setter) {
   })
 }
 
-bindTabs('map-tabs',  'map',  v => activeMap  = v)
+bindTabs('map-tabs',  'map',  v => { activeMap = v; document.getElementById('match-view-btn').href = `stratbook-fullscreen.html?map=${v}` })
 bindTabs('side-tabs', 'side', v => activeSide = v)
 bindTabs('type-tabs', 'type', v => activeType = v)
 
