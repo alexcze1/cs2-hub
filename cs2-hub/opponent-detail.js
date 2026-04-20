@@ -169,6 +169,34 @@ function saveActivePlan() {
   })
 }
 
+// ── Print ────────────────────────────────────────────────────
+window.printAntistrat = function() {
+  saveActivePlan()
+  const name = document.getElementById('f-name').value.trim() || 'Opponent'
+
+  let printArea = document.getElementById('print-all-maps')
+  if (!printArea) {
+    printArea = document.createElement('div')
+    printArea.id = 'print-all-maps'
+    document.getElementById('antistrat-section').appendChild(printArea)
+  }
+
+  printArea.innerHTML = `<div class="print-opponent-name">${esc(name)}</div>`
+    + selectedMaps.map(map => {
+        ensureMapData(map)
+        return `<div class="print-map-heading">${esc(MAP_LABELS[map])}</div>`
+             + gpSheetHTML(map, 'ct', 'CT GAMEPLAN', 'vs their T side', 'ct-title')
+             + gpSheetHTML(map, 't',  'T GAMEPLAN',  'vs their CT side', 't-title')
+      }).join('')
+
+  document.getElementById('gameplan-panels').style.display = 'none'
+  printArea.style.display = 'block'
+  window.print()
+  document.getElementById('gameplan-panels').style.display = ''
+  printArea.style.display = 'none'
+  renderGameplans()
+}
+
 // ── Load existing ───────────────────────────────────────────
 if (isEdit) {
   document.getElementById('page-title').textContent = 'Edit Opponent'
@@ -194,7 +222,7 @@ document.getElementById('save-btn').addEventListener('click', async () => {
 
   if (!name) { errEl.textContent = 'Team name is required.'; errEl.style.display = 'block'; return }
 
-  const payload = { name, favored_maps: selectedMaps, antistrat, updated_at: new Date().toISOString() }
+  const payload = { name, favored_maps: selectedMaps, antistrat }
 
   let error
   if (isEdit) {
@@ -203,7 +231,7 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     ;({ error } = await supabase.from('opponents').insert(payload))
   }
 
-  if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return }
+  if (error) { alert('Save failed: ' + error.message); errEl.textContent = error.message; errEl.style.display = 'block'; return }
   location.href = 'opponents.html'
 })
 
