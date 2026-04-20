@@ -19,6 +19,7 @@
         <button class="btn btn-ghost btn-sm" id="cal-prev">&#8249;</button>
         <div class="cal-month-label" id="cal-header"></div>
         <button class="btn btn-ghost btn-sm" id="cal-next">&#8250;</button>
+        <button class="btn btn-ghost btn-sm" id="gcal-btn" style="margin-left:8px">Google Calendar</button>
         <button class="btn btn-ghost btn-sm" id="pracc-settings-btn" style="margin-left:8px">Pracc Calendar</button>
         <button class="btn btn-primary" id="add-btn" style="margin-left:8px">+ Add Event</button>
       </div>
@@ -88,6 +89,35 @@
     <div id="pracc-modal-body"></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" id="pracc-cancel-btn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Google Calendar Modal -->
+<div class="modal-backdrop" id="gcal-modal" style="display:none">
+  <div class="modal" style="max-width:500px;width:100%">
+    <div class="modal-header">
+      <div class="modal-title">Google Calendar</div>
+      <button class="modal-close" id="gcal-close">×</button>
+    </div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:14px">Subscribe to your team's schedule in Google Calendar. Events you add here will automatically appear there.</div>
+    <div class="form-group">
+      <label class="form-label">Your Calendar Feed URL</label>
+      <div style="display:flex;gap:8px">
+        <input class="form-input" id="gcal-url" readonly style="font-size:11px;font-family:monospace"/>
+        <button class="btn btn-primary" id="gcal-copy" style="white-space:nowrap">Copy</button>
+      </div>
+    </div>
+    <div style="background:var(--bg);border-radius:6px;padding:12px 14px;font-size:12px;color:var(--muted);line-height:1.7">
+      <div style="font-weight:700;color:var(--text);margin-bottom:6px">How to add to Google Calendar</div>
+      <div>1. Copy the URL above</div>
+      <div>2. Open <strong style="color:var(--text)">calendar.google.com</strong></div>
+      <div>3. Click <strong style="color:var(--text)">+ Other calendars → From URL</strong></div>
+      <div>4. Paste the URL and click <strong style="color:var(--text)">Add calendar</strong></div>
+      <div style="margin-top:8px;color:var(--muted)">Google refreshes subscribed calendars every few hours. Share this URL with teammates so they can subscribe too.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="gcal-cancel">Close</button>
     </div>
   </div>
 </div>

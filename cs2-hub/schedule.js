@@ -187,6 +187,22 @@ document.getElementById('pracc-modal-close').addEventListener('click', () => { d
 document.getElementById('pracc-cancel-btn').addEventListener('click', () => { document.getElementById('pracc-modal').style.display = 'none' })
 document.getElementById('pracc-modal').addEventListener('click', e => { if (e.target === document.getElementById('pracc-modal')) document.getElementById('pracc-modal').style.display = 'none' })
 
+// ── Google Calendar ────────────────────────────────────────
+document.getElementById('gcal-btn').addEventListener('click', async () => {
+  const { data: team } = await supabase.from('teams').select('join_code').eq('id', getTeamId()).single()
+  const base = window.location.origin
+  const url = `${base}/api/export-calendar?team_id=${getTeamId()}&token=${team?.join_code ?? ''}`
+  document.getElementById('gcal-url').value = url
+  document.getElementById('gcal-modal').style.display = 'flex'
+})
+document.getElementById('gcal-close').addEventListener('click', () => { document.getElementById('gcal-modal').style.display = 'none' })
+document.getElementById('gcal-cancel').addEventListener('click', () => { document.getElementById('gcal-modal').style.display = 'none' })
+document.getElementById('gcal-copy').addEventListener('click', () => {
+  navigator.clipboard.writeText(document.getElementById('gcal-url').value)
+  document.getElementById('gcal-copy').textContent = 'Copied!'
+  setTimeout(() => { document.getElementById('gcal-copy').textContent = 'Copy' }, 2000)
+})
+
 // ── Pracc Settings ─────────────────────────────────────────
 document.getElementById('pracc-settings-btn').addEventListener('click', async () => {
   const { data: team } = await supabase.from('teams').select('pracc_url').eq('id', getTeamId()).single()
