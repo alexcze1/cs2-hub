@@ -41,14 +41,24 @@ body {
   overflow-y: auto;
 }
 
+.sidebar-brand {
+  padding: 0 16px 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+.sidebar-logo-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  filter: invert(1);
+  margin-bottom: 8px;
+  display: block;
+}
 .team-name {
   color: var(--accent);
   font-weight: 800;
   letter-spacing: 1px;
   font-size: 13px;
-  padding: 0 16px 20px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 8px;
 }
 
 .nav-section {

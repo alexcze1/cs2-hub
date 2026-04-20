@@ -5,7 +5,7 @@ export async function renderSidebar(activePage) {
   const sidebar = document.getElementById('sidebar')
   if (!sidebar) return
 
-  let teamName = 'CS2 HUB'
+  let teamName = 'MIDROUND'
   const teamId = getTeamId()
   if (teamId) {
     const { data: team } = await supabase.from('teams').select('name').eq('id', teamId).single()
@@ -25,7 +25,11 @@ export async function renderSidebar(activePage) {
     { id: 'roster',     label: 'Roster',      href: 'roster.html',     section: 'TEAM' },
   ]
 
-  let html = `<div class="team-name">⚡ ${esc(teamName)}</div>`
+  let html = `
+    <div class="sidebar-brand">
+      <img src="images/logo-icon.png" alt="MIDROUND" class="sidebar-logo-img"/>
+      <div class="team-name">${esc(teamName)}</div>
+    </div>`
 
   for (const link of links) {
     if (link.section) html += `<div class="nav-section">${link.section}</div>`
