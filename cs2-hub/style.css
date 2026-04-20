@@ -863,64 +863,87 @@ body {
 
 /* ── Print Styles ── */
 @media print {
-  @page { size: A4 portrait; margin: 14mm 12mm; }
+  @page { size: A4 portrait; margin: 10mm 10mm; }
 
-  /* Hide all chrome */
+  /* Hide chrome */
   .sidebar, .page-header .btn, #save-btn, #delete-btn, #print-btn,
-  .map-toggle, #antistrat-map-tabs, .nav-item, .form-actions { display: none !important; }
+  .map-toggle, #antistrat-map-tabs, .nav-item, .form-actions,
+  .fs-header, .fs-antistrat-panel, .vod-split-right { display: none !important; }
 
-  body { background: #fff !important; color: #000 !important; font-size: 11pt; }
+  body { background: #fff !important; color: #111 !important; font-size: 10pt; overflow: visible !important; height: auto !important; }
   .main-content { margin-left: 0 !important; padding: 0 !important; }
   .app-shell { display: block !important; }
 
-  /* Antistrat print */
+  /* ── Antistrat print ── */
   .print-opponent-name {
-    font-size: 18pt; font-weight: 800; letter-spacing: 1px;
-    margin-bottom: 4mm; border-bottom: 2px solid #000; padding-bottom: 2mm;
+    font-size: 15pt; font-weight: 800; letter-spacing: 1px;
+    margin-bottom: 3mm; border-bottom: 2px solid #111; padding-bottom: 1.5mm;
   }
   .print-map-heading {
-    font-size: 13pt; font-weight: 700; margin: 6mm 0 3mm;
-    background: #111 !important; color: #fff !important;
-    padding: 2mm 4mm; border-radius: 2mm;
+    font-size: 11pt; font-weight: 700; margin: 4mm 0 2mm;
+    background: #1e3a5f !important; color: #fff !important;
+    padding: 1.5mm 4mm; border-radius: 1.5mm;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
-  .gameplan-sheet { border: 1px solid #ccc !important; margin-bottom: 5mm; page-break-inside: avoid; }
-  .gameplan-title { font-size: 11pt !important; padding: 2mm 3mm !important; }
-  .gameplan-split { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm; }
-  .gameplan-section-label { font-size: 8pt !important; padding: 1mm 3mm !important; }
+  .gameplan-sheet {
+    border: 1px solid #ccc !important; border-radius: 3px !important;
+    margin-bottom: 3mm; page-break-inside: avoid;
+  }
+  .gameplan-title { font-size: 9.5pt !important; padding: 1.5mm 3mm !important; }
+  .ct-title { background: rgba(37,99,235,0.1) !important; color: #1d4ed8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .t-title  { background: rgba(109,40,217,0.1) !important; color: #5b21b6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .gameplan-split { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #ccc !important; }
+  .gameplan-block + .gameplan-block { border-left: 1px solid #ccc !important; }
+  .gameplan-section-label {
+    font-size: 7pt !important; padding: 1mm 3mm !important;
+    border-top: 1px solid #ccc !important;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .t-positions-label  { background: rgba(220,38,38,0.1)  !important; color: #b91c1c !important; }
+  .ct-positions-label { background: rgba(37,99,235,0.1)  !important; color: #1d4ed8 !important; }
+  .pistols-label      { background: rgba(13,148,136,0.1) !important; color: #0f766e !important; }
+  .style-label        { background: rgba(225,29,72,0.1)  !important; color: #be123c !important; }
+  .antiecos-label     { background: rgba(13,148,136,0.1) !important; color: #0f766e !important; }
+  .forces-label       { background: rgba(219,39,119,0.1) !important; color: #9d174d !important; }
+  .tendencies-label   { background: rgba(109,40,217,0.1) !important; color: #5b21b6 !important; }
+  .exploits-label     { background: rgba(180,83,9,0.1)   !important; color: #92400e !important; }
+  .solutions-label    { background: rgba(21,128,61,0.1)  !important; color: #166534 !important; }
   .gameplan-textarea, .form-textarea {
     border: none !important; background: transparent !important;
-    color: #000 !important; font-size: 9.5pt !important;
+    color: #111 !important; font-size: 8.5pt !important;
     min-height: unset !important; height: auto !important;
     overflow: visible !important; white-space: pre-wrap !important;
     resize: none !important; padding: 1mm 3mm !important;
   }
-  .pos-grid { display: flex; flex-wrap: wrap; gap: 2mm; padding: 2mm 3mm !important; }
+  .pos-grid { display: flex; flex-wrap: wrap; gap: 1.5mm; padding: 1.5mm 3mm !important; }
   .pos-cell { display: flex; align-items: center; gap: 1mm; }
-  .pos-label { font-size: 8pt; font-weight: 700; }
+  .pos-label { font-size: 7pt; font-weight: 700; }
   .pos-input {
-    border: none !important; border-bottom: 1px solid #999 !important;
-    background: transparent !important; color: #000 !important;
-    font-size: 9pt !important; width: 60px !important; padding: 0 !important;
+    border: none !important; border-bottom: 1px solid #aaa !important;
+    background: transparent !important; color: #111 !important;
+    font-size: 8pt !important; width: 55px !important; padding: 0 !important;
   }
 
-  /* Strat print */
-  .print-strat-header { display: flex; align-items: baseline; gap: 8mm; margin-bottom: 4mm; }
-  .print-strat-title { font-size: 17pt; font-weight: 800; }
-  .print-strat-meta { font-size: 10pt; color: #444; }
-  .print-strat-section { margin-top: 4mm; }
-  .print-strat-section-label {
-    font-size: 8pt; font-weight: 700; letter-spacing: 1px;
-    text-transform: uppercase; color: #555; border-bottom: 1px solid #ccc;
-    padding-bottom: 1mm; margin-bottom: 1mm;
+  /* ── Match view (stratbook-fullscreen) print ── */
+  .fs-print-header { display: block !important; }
+  .fs-body {
+    column-count: 3 !important; overflow: visible !important; padding: 0 !important;
   }
-  .role-row { display: flex; gap: 4mm; align-items: center; }
-  .role-player-label { font-weight: 700; font-size: 9pt; min-width: 60px; }
-  #f-notes { white-space: pre-wrap; font-size: 10pt; }
+  .fs-card {
+    background: #f5f5f5 !important; border: 1px solid #ccc !important; border-left-width: 3px !important;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .fs-card-t  { border-left-color: #dc2626 !important; }
+  .fs-card-ct { border-left-color: #2563eb !important; }
+  .fs-strat-name { color: #111 !important; }
+  .fs-badge-t    { background: rgba(220,38,38,0.12) !important; color: #991b1b !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .fs-badge-ct   { background: rgba(37,99,235,0.12) !important; color: #1e40af !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .fs-badge-type { background: #e5e7eb !important; color: #374151 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .fs-role-player { color: #555 !important; }
+  .fs-role-name   { color: #111 !important; }
 
-  /* VOD split layout: collapse to single column for print */
+  /* VOD: collapse split layout */
   .vod-split-layout { display: block !important; }
-  .vod-split-right { display: none !important; }
 }
 
 /* ── VOD split layout ── */

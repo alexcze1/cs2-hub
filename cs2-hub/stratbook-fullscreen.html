@@ -152,8 +152,50 @@
       column-span: all;
     }
 
-    @media (max-width: 1400px) { .fs-body { column-count: 3; } }
-    @media (max-width: 1000px) { .fs-body { column-count: 2; } }
+    /* Split layout for antistrat panel */
+    .fs-main-split {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+    .fs-strats-col {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 10px;
+      column-count: 3;
+      column-gap: 8px;
+    }
+    .fs-antistrat-panel {
+      width: 340px;
+      flex-shrink: 0;
+      border-left: 1px solid var(--border);
+      background: var(--surface);
+      overflow-y: auto;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .fs-panel-title {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+    .fs-panel-gameplan { font-size: 11px; }
+    .fs-panel-gameplan .gameplan-sheet { margin-top: 8px; }
+    .fs-panel-gameplan .gameplan-textarea {
+      overflow: visible !important; height: auto !important;
+      white-space: pre-wrap; word-break: break-word; min-height: 24px;
+    }
+
+    /* Print header (hidden on screen) */
+    .fs-print-header { display: none; font-size: 14pt; font-weight: 800; margin-bottom: 4mm; border-bottom: 2px solid #111; padding-bottom: 2mm; }
+
+    @media (max-width: 1400px) { .fs-strats-col { column-count: 2; } }
+    @media (max-width: 900px)  { .fs-strats-col { column-count: 1; } }
   </style>
 </head>
 <body>
@@ -181,12 +223,28 @@
 
     <div class="fs-right">
       <span class="fs-count" id="strat-count"></span>
+      <button class="fs-fullscreen-btn" id="print-btn">⎙ Print</button>
       <button class="fs-fullscreen-btn" id="fs-btn">⤢ Fullscreen</button>
       <a href="stratbook.html" style="font-size:11px;color:var(--muted);text-decoration:none;">✕ Close</a>
     </div>
   </div>
 
-  <div class="fs-body" id="strat-body"></div>
+  <div class="fs-main-split">
+    <div class="fs-strats-col" id="strat-body">
+      <div class="fs-print-header" id="print-header"></div>
+    </div>
+
+    <!-- Antistrat panel -->
+    <div class="fs-antistrat-panel">
+      <div class="fs-panel-title">Antistrat</div>
+      <select class="form-select" id="as-opponent-select" style="font-size:12px;padding:5px 8px">
+        <option value="">— Select opponent —</option>
+      </select>
+      <div id="as-map-tabs" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+      <div id="as-panel-content" style="display:none" class="fs-panel-gameplan"></div>
+      <div id="as-panel-empty" style="color:var(--muted);font-size:12px">Select an opponent to view their antistrat.</div>
+    </div>
+  </div>
 
 <script type="module">
 import { requireAuth } from './auth.js'
@@ -270,6 +328,118 @@ document.getElementById('fs-btn').addEventListener('click', () => {
     document.exitFullscreen()
     document.getElementById('fs-btn').textContent = '⤢ Fullscreen'
   }
+})
+
+// ── Print ─────────────────────────────────────────────────
+document.getElementById('print-btn').addEventListener('click', () => {
+  const mapLabel  = activeMap  === 'all' ? 'All Maps' : activeMap.charAt(0).toUpperCase() + activeMap.slice(1)
+  const sideLabel = activeSide === 'all' ? 'Both Sides' : activeSide === 't' ? 'T-Side' : 'CT-Side'
+  document.getElementById('print-header').textContent = `${mapLabel} — ${sideLabel}`
+  window.print()
+})
+
+// ── Antistrat Panel ───────────────────────────────────────
+const AS_MAPS = ['ancient','mirage','nuke','anubis','inferno','overpass','dust2']
+const AS_MAP_LABELS = { ancient:'Ancient', mirage:'Mirage', nuke:'Nuke', anubis:'Anubis', inferno:'Inferno', overpass:'Overpass', dust2:'Dust2' }
+const AS_GP_LABELS = { pistols:'PISTOLS', style:'STYLE', antiecos:'ANTIECOS', forces:'FORCES', tendencies:'TENDENCIES', exploits:'EXPLOITS', solutions:'SOLUTIONS' }
+const AS_GP_CLASSES = { pistols:'pistols-label', style:'style-label', antiecos:'antiecos-label', forces:'forces-label', tendencies:'tendencies-label', exploits:'exploits-label', solutions:'solutions-label' }
+
+let panelOpponents = []
+let panelAntistrat = {}
+let panelMaps = []
+let panelMapIdx = 0
+
+;(async () => {
+  const { data } = await supabase.from('opponents').select('id,name,antistrat').order('name')
+  panelOpponents = data ?? []
+  const sel = document.getElementById('as-opponent-select')
+  sel.innerHTML = '<option value="">— Select opponent —</option>'
+    + panelOpponents.map(o => `<option value="${o.id}">${esc(o.name)}</option>`).join('')
+})()
+
+function renderAsPanel(opp) {
+  const content = document.getElementById('as-panel-content')
+  const empty   = document.getElementById('as-panel-empty')
+  const tabsEl  = document.getElementById('as-map-tabs')
+
+  if (!opp?.antistrat || !Object.keys(opp.antistrat).length) {
+    content.style.display = 'none'; empty.style.display = 'block'
+    empty.textContent = 'No antistrat data for this opponent.'; return
+  }
+  panelAntistrat = opp.antistrat
+  panelMaps = Object.keys(panelAntistrat).filter(m => AS_MAPS.includes(m))
+  if (!panelMaps.length) {
+    content.style.display = 'none'; empty.style.display = 'block'
+    empty.textContent = 'No maps in antistrat.'; return
+  }
+  empty.style.display = 'none'; content.style.display = 'block'
+  panelMapIdx = 0
+
+  tabsEl.innerHTML = panelMaps.map((m, i) => `
+    <button class="review-map-tab ${i === 0 ? 'active' : ''}" data-i="${i}" style="font-size:10px;padding:3px 8px">
+      ${esc(AS_MAP_LABELS[m] ?? m)}
+    </button>
+  `).join('')
+  tabsEl.querySelectorAll('.review-map-tab').forEach(btn => btn.addEventListener('click', () => {
+    tabsEl.querySelectorAll('.review-map-tab').forEach(b => b.classList.remove('active'))
+    btn.classList.add('active')
+    panelMapIdx = +btn.dataset.i
+    renderAsMap(panelMaps[panelMapIdx])
+  }))
+  renderAsMap(panelMaps[0])
+}
+
+function asBlock(d, prefix, title, subtitle, titleClass) {
+  const pairs = [['pistols','style'],['antiecos','forces']]
+  const singles = ['tendencies','exploits','solutions']
+  const plan = d?.[`${prefix}_plan`] ?? {}
+  const posSide = prefix === 'ct' ? 't' : 'ct'
+  const positions = d?.[`${posSide}_positions`] ?? {}
+  const lineupStr = Object.entries(positions)
+    .filter(([,v]) => v).map(([pos,val]) => `<span><b>${esc(pos)}</b>: ${esc(val)}</span>`).join(' · ')
+    || '<span style="opacity:0.4">—</span>'
+
+  return `<div class="gameplan-sheet">
+    <div class="gameplan-title ${titleClass}" style="font-size:10px;padding:6px 10px">${esc(title)} <span style="opacity:0.6;font-weight:400">— ${esc(subtitle)}</span></div>
+    <div style="padding:4px 10px 6px;font-size:10px">
+      <div style="font-size:8px;font-weight:700;letter-spacing:1px;opacity:0.5;margin-bottom:3px">LINEUP</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">${lineupStr}</div>
+    </div>
+    ${pairs.map(([a,b]) => `
+      <div class="gameplan-split">
+        <div class="gameplan-block">
+          <div class="gameplan-section-label ${AS_GP_CLASSES[a]}" style="font-size:8px;padding:3px 8px">${AS_GP_LABELS[a]}</div>
+          <div style="padding:4px 8px;font-size:10px;white-space:pre-wrap;word-break:break-word;min-height:20px">${esc(plan[a] ?? '') || '<span style="opacity:0.3">—</span>'}</div>
+        </div>
+        <div class="gameplan-block">
+          <div class="gameplan-section-label ${AS_GP_CLASSES[b]}" style="font-size:8px;padding:3px 8px">${AS_GP_LABELS[b]}</div>
+          <div style="padding:4px 8px;font-size:10px;white-space:pre-wrap;word-break:break-word;min-height:20px">${esc(plan[b] ?? '') || '<span style="opacity:0.3">—</span>'}</div>
+        </div>
+      </div>`).join('')}
+    ${singles.map(f => `
+      <div class="gameplan-section-label ${AS_GP_CLASSES[f]}" style="font-size:8px;padding:3px 8px">${AS_GP_LABELS[f]}</div>
+      <div style="padding:4px 8px;font-size:10px;white-space:pre-wrap;word-break:break-word;min-height:20px">${esc(plan[f] ?? '') || '<span style="opacity:0.3">—</span>'}</div>`).join('')}
+  </div>`
+}
+
+function renderAsMap(map) {
+  const d = panelAntistrat[map]
+  const el = document.getElementById('as-panel-content')
+  if (!d) { el.innerHTML = '<div style="color:var(--muted);font-size:11px">No data for this map.</div>'; return }
+  el.innerHTML = asBlock(d, 'ct', 'CT GAMEPLAN', 'vs their T side', 'ct-title')
+               + asBlock(d, 't',  'T GAMEPLAN',  'vs their CT side', 't-title')
+}
+
+document.getElementById('as-opponent-select').addEventListener('change', e => {
+  const opp = panelOpponents.find(o => o.id === e.target.value)
+  if (!opp) {
+    document.getElementById('as-panel-content').style.display = 'none'
+    document.getElementById('as-panel-empty').style.display = 'block'
+    document.getElementById('as-panel-empty').textContent = 'Select an opponent to view their antistrat.'
+    document.getElementById('as-map-tabs').innerHTML = ''
+    return
+  }
+  renderAsPanel(opp)
 })
 </script>
 </body>
