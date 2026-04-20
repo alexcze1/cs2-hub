@@ -11,15 +11,18 @@ renderSidebar('stratbook')
 const id = new URLSearchParams(location.search).get('id')
 const isEdit = !!id
 
-// Load roster players (fall back to generic labels)
-const { data: rosterData } = await supabase.from('roster').select('username, nickname').eq('team_id', getTeamId()).order('username', { ascending: true })
-const PLAYERS = rosterData?.length
-  ? rosterData.slice(0, 5).map(p => p.nickname || p.username)
-  : ['Player 1', 'Player 2', 'Player 3', 'Player 4', 'Player 5']
+// 5 fixed role slots — label shows assigned player name, falls back to role name
+const ROLE_SLOTS = ['IGL', 'AWPer', 'Entry', 'Support', 'Lurker']
+const { data: rosterData } = await supabase.from('roster').select('username, nickname, role').eq('team_id', getTeamId())
+const PLAYERS = ROLE_SLOTS.map(slot => {
+  const match = rosterData?.find(p => p.role === slot)
+  return { slot, label: match ? (match.nickname || match.username) : slot }
+})
 
 document.getElementById('player-roles').innerHTML = PLAYERS.map((p, i) => `
   <div class="role-row">
-    <span class="role-player-label">${esc(p)}</span>
+    <span class="role-player-label">${esc(p.label)}</span>
+    ${p.label !== p.slot ? `<span style="font-size:10px;color:var(--muted);margin-right:4px">${esc(p.slot)}</span>` : ''}
     <input class="form-input" id="role-${i}" placeholder="e.g. Smoke CT, entry short"/>
   </div>
 `).join('')
@@ -40,8 +43,9 @@ if (isEdit) {
   document.getElementById('f-tags').value  = (strat.tags ?? []).join(', ')
 
   const roles = strat.player_roles ?? []
-  PLAYERS.forEach((_, i) => {
-    document.getElementById(`role-${i}`).value = roles[i]?.role ?? ''
+  PLAYERS.forEach((p, i) => {
+    const saved = roles.find(r => r.player === p.label || r.player === p.slot)
+    document.getElementById(`role-${i}`).value = saved?.role ?? roles[i]?.role ?? ''
   })
 }
 
@@ -62,7 +66,7 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   }
 
   const player_roles = PLAYERS.map((p, i) => ({
-    player: p,
+    player: p.label,
     role: document.getElementById(`role-${i}`).value.trim()
   }))
 
