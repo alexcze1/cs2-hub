@@ -7,8 +7,8 @@ function esc(s) { const d = document.createElement('div'); d.textContent = s ?? 
 await requireAuth()
 renderSidebar('veto')
 
-const MAPS = ['ancient','mirage','nuke','vertigo','inferno','overpass','dust2']
-const MAP_LABELS = { ancient:'Ancient', mirage:'Mirage', nuke:'Nuke', vertigo:'Vertigo', inferno:'Inferno', overpass:'Overpass', dust2:'Dust2' }
+const MAPS = ['ancient','mirage','nuke','anubis','inferno','overpass','dust2']
+const MAP_LABELS = { ancient:'Ancient', mirage:'Mirage', nuke:'Nuke', anubis:'Anubis', inferno:'Inferno', overpass:'Overpass', dust2:'Dust2' }
 
 const BO1_SEQUENCE = [
   { type:'ban',     team:'away' },
