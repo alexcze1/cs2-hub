@@ -7,8 +7,20 @@ export async function requireAuth() {
     throw 0
   }
   if (!window.location.pathname.endsWith('team-select.html')) {
-    const { getTeamId } = await import('./supabase.js')
-    if (!getTeamId()) {
+    const { getTeamId, clearTeamId } = await import('./supabase.js')
+    const teamId = getTeamId()
+    if (!teamId) {
+      window.location.href = 'team-select.html'
+      throw 0
+    }
+    const { data: membership } = await supabase
+      .from('team_members')
+      .select('id')
+      .eq('team_id', teamId)
+      .eq('user_id', session.user.id)
+      .maybeSingle()
+    if (!membership) {
+      clearTeamId()
       window.location.href = 'team-select.html'
       throw 0
     }
