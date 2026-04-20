@@ -926,7 +926,7 @@ body {
 
   /* ── Match view (stratbook-fullscreen) print ── */
   .fs-print-header { display: block !important; }
-  .fs-main-split { display: block !important; }
+  .fs-main-split { display: block !important; overflow: visible !important; height: auto !important; }
   .fs-strats-col {
     column-count: 3 !important; overflow: visible !important; padding: 0 !important;
   }
