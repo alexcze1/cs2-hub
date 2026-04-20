@@ -215,3 +215,124 @@ document.getElementById('delete-btn').addEventListener('click', async () => {
   }
   location.href = 'vods.html'
 })
+
+// ── Antistrat Panel ────────────────────────────────────────
+const ANTISTRAT_MAPS = ['ancient','mirage','nuke','anubis','inferno','overpass','dust2']
+const ANTISTRAT_MAP_LABELS = { ancient:'Ancient', mirage:'Mirage', nuke:'Nuke', anubis:'Anubis', inferno:'Inferno', overpass:'Overpass', dust2:'Dust2' }
+const AS_GP_LABELS = { pistols:'PISTOLS', style:'STYLE', antiecos:'ANTIECOS', forces:'FORCES', tendencies:'TENDENCIES AND TELLS', exploits:'EXPLOITS', solutions:'SOLUTIONS' }
+
+let panelOpponents = []
+let panelAntistrat = {}
+let panelMapIdx = 0
+
+async function loadOpponentsForPanel() {
+  const { data } = await supabase.from('opponents').select('id,name,favored_maps,antistrat').order('name')
+  panelOpponents = data ?? []
+  const sel = document.getElementById('antistrat-opponent-select')
+  if (!sel) return
+  sel.innerHTML = '<option value="">— None —</option>'
+    + panelOpponents.map(o => `<option value="${o.id}">${esc(o.name)}</option>`).join('')
+
+  // Pre-select if opponent field already has a name that matches
+  const oppName = document.getElementById('f-opponent')?.value?.trim()?.toLowerCase()
+  if (oppName) {
+    const match = panelOpponents.find(o => o.name.toLowerCase() === oppName)
+    if (match) { sel.value = match.id; renderPanel(match) }
+  }
+}
+
+function renderPanel(opp) {
+  const panelContent = document.getElementById('antistrat-panel-content')
+  const panelEmpty   = document.getElementById('antistrat-panel-empty')
+  if (!opp?.antistrat || !Object.keys(opp.antistrat).length) {
+    panelContent.style.display = 'none'
+    panelEmpty.style.display = 'block'
+    panelEmpty.textContent = 'No antistrat data for this opponent.'
+    return
+  }
+  panelAntistrat = opp.antistrat
+  const maps = Object.keys(panelAntistrat).filter(m => ANTISTRAT_MAPS.includes(m))
+  if (!maps.length) {
+    panelContent.style.display = 'none'
+    panelEmpty.style.display = 'block'
+    panelEmpty.textContent = 'No maps in antistrat for this opponent.'
+    return
+  }
+  panelEmpty.style.display = 'none'
+  panelContent.style.display = 'block'
+  panelMapIdx = 0
+
+  const tabsEl = document.getElementById('panel-map-tabs')
+  tabsEl.innerHTML = maps.map((m, i) => `
+    <button class="review-map-tab ${i === 0 ? 'active' : ''}" data-map="${m}" data-i="${i}">
+      ${esc(ANTISTRAT_MAP_LABELS[m] ?? m)}
+    </button>
+  `).join('')
+  tabsEl.querySelectorAll('.review-map-tab').forEach(btn => btn.addEventListener('click', () => {
+    tabsEl.querySelectorAll('.review-map-tab').forEach(b => b.classList.remove('active'))
+    btn.classList.add('active')
+    panelMapIdx = +btn.dataset.i
+    renderPanelMap(maps[panelMapIdx])
+  }))
+
+  renderPanelMap(maps[0])
+}
+
+function gpReadonlyBlock(d, prefix, title, subtitle, titleClass) {
+  const pairs = [['pistols','style'],['antiecos','forces']]
+  const singles = ['tendencies','exploits','solutions']
+  const plan = d?.[`${prefix}_plan`] ?? {}
+  const posSide = prefix === 'ct' ? 't' : 'ct'
+  const positions = d?.[`${posSide}_positions`] ?? {}
+  const lineupStr = Object.entries(positions)
+    .filter(([, val]) => val)
+    .map(([pos, val]) => `<span><b>${esc(pos)}</b>: ${esc(val)}</span>`)
+    .join(' · ') || '<span style="opacity:0.4">—</span>'
+
+  return `<div class="gameplan-sheet" style="margin-top:10px">
+    <div class="gameplan-title ${titleClass}" style="font-size:11px">${esc(title)} <span style="font-weight:400;opacity:0.7">— ${esc(subtitle)}</span></div>
+    <div style="padding:6px 10px 8px;font-size:11px">
+      <div style="font-weight:700;font-size:9px;letter-spacing:1px;opacity:0.6;margin-bottom:4px">LINEUP</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">${lineupStr}</div>
+    </div>
+    ${pairs.map(([a, b]) => `
+      <div class="gameplan-split">
+        <div class="gameplan-block">
+          <div class="gameplan-section-label">${AS_GP_LABELS[a]}</div>
+          <div style="padding:6px 10px;font-size:11px;min-height:30px;white-space:pre-wrap;word-break:break-word">${esc(plan[a] ?? '') || '<span style="opacity:0.3">—</span>'}</div>
+        </div>
+        <div class="gameplan-block">
+          <div class="gameplan-section-label">${AS_GP_LABELS[b]}</div>
+          <div style="padding:6px 10px;font-size:11px;min-height:30px;white-space:pre-wrap;word-break:break-word">${esc(plan[b] ?? '') || '<span style="opacity:0.3">—</span>'}</div>
+        </div>
+      </div>
+    `).join('')}
+    ${singles.map(f => `
+      <div class="gameplan-section-label">${AS_GP_LABELS[f]}</div>
+      <div style="padding:6px 10px;font-size:11px;min-height:30px;white-space:pre-wrap;word-break:break-word">${esc(plan[f] ?? '') || '<span style="opacity:0.3">—</span>'}</div>
+    `).join('')}
+  </div>`
+}
+
+function renderPanelMap(map) {
+  const d = panelAntistrat[map]
+  const el = document.getElementById('panel-gameplan-output')
+  if (!d) { el.innerHTML = '<div style="color:var(--muted);font-size:12px">No data for this map.</div>'; return }
+  el.innerHTML = gpReadonlyBlock(d, 'ct', 'CT GAMEPLAN', 'vs their T side', 'ct-title')
+               + gpReadonlyBlock(d, 't',  'T GAMEPLAN',  'vs their CT side', 't-title')
+}
+
+document.getElementById('antistrat-opponent-select')?.addEventListener('change', e => {
+  const opp = panelOpponents.find(o => o.id === e.target.value)
+  const empty   = document.getElementById('antistrat-panel-empty')
+  const content = document.getElementById('antistrat-panel-content')
+  if (!opp) {
+    content.style.display = 'none'
+    empty.style.display = 'block'
+    empty.textContent = 'Select an opponent to view their antistrat.'
+    return
+  }
+  renderPanel(opp)
+})
+
+loadOpponentsForPanel()
