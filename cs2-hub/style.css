@@ -870,7 +870,7 @@ body {
   .map-toggle, #antistrat-map-tabs, .nav-item, .form-actions,
   .fs-header, .fs-antistrat-panel, .vod-split-right { display: none !important; }
 
-  body { background: #fff !important; color: #111 !important; font-size: 10pt; overflow: visible !important; height: auto !important; }
+  body { background: #fff !important; color: #111 !important; font-size: 10pt; overflow: visible !important; height: auto !important; display: block !important; }
   .main-content { margin-left: 0 !important; padding: 0 !important; }
   .app-shell { display: block !important; }
 
@@ -926,7 +926,8 @@ body {
 
   /* ── Match view (stratbook-fullscreen) print ── */
   .fs-print-header { display: block !important; }
-  .fs-body {
+  .fs-main-split { display: block !important; }
+  .fs-strats-col {
     column-count: 3 !important; overflow: visible !important; padding: 0 !important;
   }
   .fs-card {

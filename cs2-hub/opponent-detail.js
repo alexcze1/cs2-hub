@@ -178,7 +178,7 @@ window.printAntistrat = function() {
   if (!printArea) {
     printArea = document.createElement('div')
     printArea.id = 'print-all-maps'
-    document.getElementById('antistrat-section').appendChild(printArea)
+    document.body.appendChild(printArea)
   }
 
   printArea.innerHTML = `<div class="print-opponent-name">${esc(name)}</div>`
@@ -189,10 +189,10 @@ window.printAntistrat = function() {
              + gpSheetHTML(map, 't',  'T GAMEPLAN',  'vs their CT side', 't-title')
       }).join('')
 
-  document.getElementById('gameplan-panels').style.display = 'none'
   printArea.style.display = 'block'
+  document.querySelector('.app-shell').style.display = 'none'
   window.print()
-  document.getElementById('gameplan-panels').style.display = ''
+  document.querySelector('.app-shell').style.display = ''
   printArea.style.display = 'none'
   renderGameplans()
 }
