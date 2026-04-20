@@ -189,11 +189,9 @@ window.printAntistrat = function() {
              + gpSheetHTML(map, 't',  'T GAMEPLAN',  'vs their CT side', 't-title')
       }).join('')
 
-  printArea.style.display = 'block'
-  document.querySelector('.app-shell').style.display = 'none'
+  document.body.classList.add('print-antistrat')
   window.print()
-  document.querySelector('.app-shell').style.display = ''
-  printArea.style.display = 'none'
+  document.body.classList.remove('print-antistrat')
   renderGameplans()
 }
 

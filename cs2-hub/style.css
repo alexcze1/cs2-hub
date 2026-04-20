@@ -874,6 +874,11 @@ body {
   .main-content { margin-left: 0 !important; padding: 0 !important; }
   .app-shell { display: block !important; }
 
+  /* Antistrat print mode: hide app-shell, show only the print area */
+  body.print-antistrat .app-shell { display: none !important; }
+  body.print-antistrat #print-all-maps { display: block !important; }
+  #print-all-maps { display: none; }
+
   /* ── Antistrat print ── */
   .print-opponent-name {
     font-size: 15pt; font-weight: 800; letter-spacing: 1px;
