@@ -860,3 +860,103 @@ body {
   font-size: 13px;
 }
 .gameplan-textarea:focus { border-color: var(--accent); }
+
+/* ── Print Styles ── */
+@media print {
+  @page { size: A4 portrait; margin: 14mm 12mm; }
+
+  /* Hide all chrome */
+  .sidebar, .page-header .btn, #save-btn, #delete-btn, #print-btn,
+  .map-toggle, #antistrat-map-tabs, .nav-item, .form-actions { display: none !important; }
+
+  body { background: #fff !important; color: #000 !important; font-size: 11pt; }
+  .main-content { margin-left: 0 !important; padding: 0 !important; }
+  .app-shell { display: block !important; }
+
+  /* Antistrat print */
+  .print-opponent-name {
+    font-size: 18pt; font-weight: 800; letter-spacing: 1px;
+    margin-bottom: 4mm; border-bottom: 2px solid #000; padding-bottom: 2mm;
+  }
+  .print-map-heading {
+    font-size: 13pt; font-weight: 700; margin: 6mm 0 3mm;
+    background: #111 !important; color: #fff !important;
+    padding: 2mm 4mm; border-radius: 2mm;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .gameplan-sheet { border: 1px solid #ccc !important; margin-bottom: 5mm; page-break-inside: avoid; }
+  .gameplan-title { font-size: 11pt !important; padding: 2mm 3mm !important; }
+  .gameplan-split { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm; }
+  .gameplan-section-label { font-size: 8pt !important; padding: 1mm 3mm !important; }
+  .gameplan-textarea, .form-textarea {
+    border: none !important; background: transparent !important;
+    color: #000 !important; font-size: 9.5pt !important;
+    min-height: unset !important; height: auto !important;
+    overflow: visible !important; white-space: pre-wrap !important;
+    resize: none !important; padding: 1mm 3mm !important;
+  }
+  .pos-grid { display: flex; flex-wrap: wrap; gap: 2mm; padding: 2mm 3mm !important; }
+  .pos-cell { display: flex; align-items: center; gap: 1mm; }
+  .pos-label { font-size: 8pt; font-weight: 700; }
+  .pos-input {
+    border: none !important; border-bottom: 1px solid #999 !important;
+    background: transparent !important; color: #000 !important;
+    font-size: 9pt !important; width: 60px !important; padding: 0 !important;
+  }
+
+  /* Strat print */
+  .print-strat-header { display: flex; align-items: baseline; gap: 8mm; margin-bottom: 4mm; }
+  .print-strat-title { font-size: 17pt; font-weight: 800; }
+  .print-strat-meta { font-size: 10pt; color: #444; }
+  .print-strat-section { margin-top: 4mm; }
+  .print-strat-section-label {
+    font-size: 8pt; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; color: #555; border-bottom: 1px solid #ccc;
+    padding-bottom: 1mm; margin-bottom: 1mm;
+  }
+  .role-row { display: flex; gap: 4mm; align-items: center; }
+  .role-player-label { font-weight: 700; font-size: 9pt; min-width: 60px; }
+  #f-notes { white-space: pre-wrap; font-size: 10pt; }
+
+  /* VOD split layout: collapse to single column for print */
+  .vod-split-layout { display: block !important; }
+  .vod-split-right { display: none !important; }
+}
+
+/* ── VOD split layout ── */
+.vod-split-layout {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) 380px;
+  gap: 28px;
+  align-items: start;
+}
+.vod-split-right {
+  position: sticky;
+  top: 24px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+}
+/* Antistrat panel: no text cutoff */
+#panel-gameplan-output .gameplan-textarea {
+  overflow: visible !important;
+  height: auto !important;
+  min-height: 40px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+#panel-gameplan-output .gameplan-sheet {
+  margin-top: 12px;
+}
+#panel-gameplan-output {
+  font-size: 12px;
+}
+.antistrat-map-tabs-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
