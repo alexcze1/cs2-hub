@@ -32,9 +32,10 @@ export default async function handler(req, res) {
   if (!SERVICE_KEY) { res.status(500).send('Server misconfigured'); return }
 
   const teams = await query(`teams?id=eq.${team_id}&select=name,join_code`)
+  if (!Array.isArray(teams)) { res.status(500).send(`Supabase error: ${JSON.stringify(teams)}`); return }
   const team  = teams?.[0]
-  if (!team)                   { res.status(404).send('Team not found'); return }
-  if (token !== team.join_code) { res.status(403).send('Invalid token');  return }
+  if (!team)                   { res.status(404).send(`Team not found (id: ${team_id})`); return }
+  if (token !== team.join_code) { res.status(403).send(`Invalid token (expected: ${team.join_code})`);  return }
 
   const events = await query(`events?team_id=eq.${team_id}&order=date.asc&select=*`)
 
