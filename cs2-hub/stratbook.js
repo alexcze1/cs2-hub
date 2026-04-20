@@ -20,13 +20,16 @@ let activeSide = 'all'
 let activeType = 'all'
 let searchQ    = ''
 
-const TYPE_COLORS = {
-  execute: 'badge-scrim',
-  default: 'badge-draw',
-  setup:   'badge-vod_review',
-  fake:    'badge-tournament',
-  eco:     'badge-draw',
-  other:   'badge-draw',
+const TYPE_META = {
+  default:  { label: 'Default',  color: '#94a3b8' },
+  opening:  { label: 'Opening',  color: '#f97316' },
+  script:   { label: 'Script',   color: '#60a5fa' },
+  ender:    { label: 'Ender',    color: '#4ade80' },
+  force:    { label: 'Force',    color: '#f87171' },
+  anti_eco: { label: 'Anti-Eco', color: '#c084fc' },
+  pistol:   { label: 'Pistol',   color: '#facc15' },
+  setup:    { label: 'Setup',    color: '#22d3ee' },
+  other:    { label: 'Other',    color: '#64748b' },
 }
 
 async function loadStrats() {
@@ -61,24 +64,18 @@ function renderList() {
   }
 
   el.innerHTML = filtered.map(s => {
-    const roles   = s.player_roles ?? []
+    const roles    = s.player_roles ?? []
     const hasRoles = roles.some(r => r.role?.trim())
-    const sideLabel = s.side === 't' ? 'T-Side' : 'CT-Side'
-    const sideClass = s.side === 't' ? 'strat-side-t' : 'strat-side-ct'
     const firstNote = s.notes?.split('\n')[0]?.trim() ?? ''
+    const t = TYPE_META[s.type] ?? { label: s.type, color: '#64748b' }
+    const mapLabel = s.map.charAt(0).toUpperCase() + s.map.slice(1)
 
     return `
-      <a class="strat-card" href="stratbook-detail.html?id=${esc(s.id)}">
+      <a class="strat-card strat-card-${s.side}" href="stratbook-detail.html?id=${esc(s.id)}">
         <div class="strat-card-header">
-          ${mapIcon(s.map)}
-          <div class="strat-card-title">
-            <div class="strat-name">${esc(s.name)}</div>
-            <div class="strat-meta">${esc(s.map.charAt(0).toUpperCase()+s.map.slice(1))}</div>
-          </div>
-          <div class="strat-card-badges">
-            <span class="badge ${TYPE_COLORS[s.type] ?? 'badge-draw'}">${esc(s.type.toUpperCase())}</span>
-            <span class="strat-side-badge ${sideClass}">${sideLabel}</span>
-          </div>
+          <span class="strat-type-badge" style="color:${t.color};background:${t.color}22">${t.label}</span>
+          <div class="strat-name">${esc(s.name)}</div>
+          <span class="strat-map-chip">${esc(mapLabel)}</span>
         </div>
 
         ${hasRoles ? `
@@ -95,7 +92,7 @@ function renderList() {
 
         ${(s.tags ?? []).length ? `
         <div class="strat-tags">
-          ${s.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}
+          ${s.tags.map(tag => `<span class="tag">${esc(tag)}</span>`).join('')}
         </div>` : ''}
       </a>
     `

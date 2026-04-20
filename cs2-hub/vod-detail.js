@@ -7,7 +7,7 @@ function esc(s) { const d = document.createElement('div'); d.textContent = s ?? 
 await requireAuth()
 renderSidebar('vods')
 
-const MAPS = ['ancient','mirage','nuke','anubis','inferno','overpass','dust2']
+const MAPS = ['ancient','mirage','nuke','vertigo','inferno','overpass','dust2']
 const id     = new URLSearchParams(location.search).get('id')
 const isEdit = !!id
 let maps = []

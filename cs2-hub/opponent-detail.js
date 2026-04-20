@@ -7,14 +7,14 @@ function esc(s) { const d = document.createElement('div'); d.textContent = s ?? 
 await requireAuth()
 renderSidebar('opponents')
 
-const MAPS = ['ancient','mirage','nuke','anubis','inferno','overpass','dust2']
-const MAP_LABELS = { ancient:'Ancient', mirage:'Mirage', nuke:'Nuke', anubis:'Anubis', inferno:'Inferno', overpass:'Overpass', dust2:'Dust2' }
+const MAPS = ['ancient','mirage','nuke','vertigo','inferno','overpass','dust2']
+const MAP_LABELS = { ancient:'Ancient', mirage:'Mirage', nuke:'Nuke', vertigo:'Vertigo', inferno:'Inferno', overpass:'Overpass', dust2:'Dust2' }
 
 const MAP_POSITIONS = {
   ancient:  { t: ['A','MID','AWP','CAVE','B'],                    ct: ['A','MID','AWP','CAVE','B'] },
   mirage:   { t: ['A','MID','FLOAT','AWP','B'],                   ct: ['A','CON','AWP','SHORT','B'] },
   nuke:     { t: ['OUTSIDE','FLOAT','AWP','2ND LBY','LOBBY'],     ct: ['OUTSIDE','AWP','DOOR','A','RAMP'] },
-  anubis:   { t: ['A','FLOAT','AWP','MID','B'],                   ct: ['B','CON','AWP','MID','A'] },
+  vertigo:  { t: ['A','A-RAMP','B','MID','VENT'],                 ct: ['A','B','RAMP','CT','MID'] },
   inferno:  { t: ['BANANA','B SUP','AWP','MID','APPS'],           ct: ['B','B SUP','AWP','SHORT','APPS'] },
   overpass: { t: ['A','FLOAT','AWP','CON','B'],                   ct: ['A','AWP','ROT','SHORT','B'] },
   dust2:    { t: ['B','MID','FLOAT','AWP','LONG'],                ct: ['B','MID','AWP','LONG','ROT'] },

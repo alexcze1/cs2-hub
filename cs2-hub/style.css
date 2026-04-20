@@ -720,42 +720,59 @@ body {
   text-decoration: none;
   background: var(--surface);
   border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
   border-radius: 8px;
-  padding: 10px 12px;
-  margin-bottom: 6px;
-  transition: border-color .15s;
+  padding: 11px 14px;
+  margin-bottom: 7px;
+  transition: border-color .15s, transform .1s;
 }
-.strat-card:hover { border-color: var(--accent); }
+.strat-card:hover { border-color: var(--accent); transform: translateX(2px); }
+.strat-card-t  { border-left-color: #f87171; }
+.strat-card-ct { border-left-color: var(--accent); }
 
 .strat-card-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 7px;
+  margin-bottom: 8px;
 }
-.strat-card-title { flex: 1; min-width: 0; }
-.strat-name  { font-weight: 700; font-size: 13px; color: var(--text); }
-.strat-meta  { font-size: 11px; color: var(--muted); margin-top: 1px; }
-.strat-card-badges { display: flex; gap: 5px; align-items: center; flex-shrink: 0; }
-
-.strat-side-badge {
+.strat-type-badge {
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: .06em;
-  padding: 2px 6px;
+  letter-spacing: .04em;
+  padding: 2px 7px;
   border-radius: 4px;
+  flex-shrink: 0;
+  text-transform: uppercase;
 }
-.strat-side-t  { background: rgba(239,68,68,0.12);  color: #f87171; }
-.strat-side-ct { background: rgba(59,130,246,0.12); color: var(--accent); }
-
+.strat-name {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.strat-map-chip {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 7px;
+  flex-shrink: 0;
+}
 .strat-roles {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2px 12px;
+  gap: 3px 16px;
   background: var(--bg);
   border-radius: 5px;
-  padding: 6px 10px;
-  margin-bottom: 6px;
+  padding: 7px 10px;
+  margin-bottom: 7px;
 }
 .strat-role-row   { display: flex; gap: 8px; align-items: baseline; min-width: 0; }
 .strat-role-player {
@@ -763,7 +780,7 @@ body {
   color: var(--muted);
   font-weight: 600;
   flex-shrink: 0;
-  width: 50px;
+  width: 54px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -779,7 +796,7 @@ body {
 .strat-note-preview {
   font-size: 11px;
   color: var(--muted);
-  margin-bottom: 5px;
+  margin-bottom: 6px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
