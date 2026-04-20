@@ -220,6 +220,12 @@
       <button class="fs-tab fs-tab-ct" data-side="ct">CT-Side</button>
     </div>
 
+    <div class="fs-sep"></div>
+
+    <select class="form-select" id="player-filter" style="font-size:11px;padding:3px 8px;height:28px;width:130px">
+      <option value="all">All Players</option>
+    </select>
+
     <div class="fs-right">
       <span class="fs-count" id="strat-count"></span>
       <button class="fs-fullscreen-btn" id="print-btn">⎙ Print</button>
@@ -251,8 +257,9 @@ import { supabase, getTeamId } from './supabase.js'
 await requireAuth()
 
 let allStrats = []
-let activeMap  = new URLSearchParams(location.search).get('map') || 'all'
-let activeSide = 'all'
+let activeMap    = new URLSearchParams(location.search).get('map') || 'all'
+let activeSide   = 'all'
+let activePlayer = 'all'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -261,8 +268,23 @@ document.querySelectorAll('#map-tabs .fs-tab').forEach(t => {
   t.classList.toggle('active', t.dataset.map === activeMap)
 })
 
-const { data } = await supabase.from('strats').select('*').eq('team_id', getTeamId()).order('side').order('type').order('name')
+const [{ data }, { data: roster }] = await Promise.all([
+  supabase.from('strats').select('*').eq('team_id', getTeamId()).order('side').order('type').order('name'),
+  supabase.from('roster').select('username, nickname, role').eq('team_id', getTeamId()).order('username')
+])
 allStrats = data ?? []
+
+// Populate player filter from roster
+const playerSel = document.getElementById('player-filter')
+;(roster ?? []).forEach(p => {
+  const name = p.nickname || p.username
+  const opt = document.createElement('option')
+  opt.value = name
+  opt.textContent = name + (p.role ? ` (${p.role})` : '')
+  playerSel.appendChild(opt)
+})
+playerSel.addEventListener('change', e => { activePlayer = e.target.value; render() })
+
 render()
 
 function render() {
@@ -280,7 +302,10 @@ function render() {
   }
 
   body.innerHTML = filtered.map(s => {
-    const roles   = (s.player_roles ?? []).filter(r => r.role?.trim())
+    const allRoles = (s.player_roles ?? []).filter(r => r.role?.trim())
+    const roles = activePlayer === 'all'
+      ? allRoles
+      : allRoles.filter(r => r.player === activePlayer)
     const sideKey = s.side === 't' ? 't' : 'ct'
     const p = name => name.replace('Player ', 'P').replace('player ', 'P')
 
@@ -297,11 +322,11 @@ function render() {
         <div class="fs-roles">
           ${roles.map(r => `
             <div class="fs-role-row">
-              <span class="fs-role-player">${esc(p(r.player).slice(0,3).toUpperCase())}</span>
-              <span class="fs-role-name">${esc(r.role)}</span>
+              ${activePlayer === 'all' ? `<span class="fs-role-player">${esc(p(r.player).slice(0,3).toUpperCase())}</span>` : ''}
+              <span class="fs-role-name" style="${activePlayer !== 'all' ? 'font-size:12px' : ''}">${esc(r.role)}</span>
             </div>
           `).join('')}
-        </div>` : ''}
+        </div>` : `${activePlayer !== 'all' ? '<div class="fs-role-name" style="font-size:11px;color:var(--muted);padding:2px 0">No role assigned</div>' : ''}`}
       </div>
     `
   }).join('')
