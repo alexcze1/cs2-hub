@@ -1,6 +1,6 @@
 import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
-import { supabase } from './supabase.js'
+import { supabase, getTeamId } from './supabase.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -30,7 +30,7 @@ const TYPE_COLORS = {
 }
 
 async function loadStrats() {
-  const { data, error } = await supabase.from('strats').select('*').order('map').order('side').order('created_at', { ascending: false })
+  const { data, error } = await supabase.from('strats').select('*').eq('team_id', getTeamId()).order('map').order('side').order('created_at', { ascending: false })
   if (error) {
     document.getElementById('strats-list').innerHTML = `<div class="empty-state"><h3>Failed to load strats</h3><p>${esc(error.message)}</p></div>`
     return

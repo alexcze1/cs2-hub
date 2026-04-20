@@ -1,6 +1,6 @@
 import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
-import { supabase } from './supabase.js'
+import { supabase, getTeamId } from './supabase.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -16,7 +16,7 @@ let editingId = null
 let activeStatus = 'all'
 
 async function loadIssues() {
-  const { data, error } = await supabase.from('issues').select('*').order('priority').order('created_at', { ascending: false })
+  const { data, error } = await supabase.from('issues').select('*').eq('team_id', getTeamId()).order('priority').order('created_at', { ascending: false })
   const el = document.getElementById('issues-list')
   if (error) { el.innerHTML = `<div class="empty-state"><h3>Failed to load</h3><p>${esc(error.message)}</p></div>`; return }
   allIssues = data ?? []
@@ -101,7 +101,7 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   const errEl       = document.getElementById('modal-error')
   if (!title) { errEl.textContent = 'Issue title is required.'; errEl.style.display = 'block'; return }
 
-  const payload = { title, category, priority, status, description, actions, updated_at: new Date().toISOString() }
+  const payload = { title, category, priority, status, description, actions, team_id: getTeamId(), updated_at: new Date().toISOString() }
   let error
   if (editingId) {
     ;({ error } = await supabase.from('issues').update(payload).eq('id', editingId))

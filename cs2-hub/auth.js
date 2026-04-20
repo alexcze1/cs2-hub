@@ -1,11 +1,17 @@
-// cs2-hub/auth.js — DEMO MODE (replace supabase.js with real credentials for production)
 import { supabase } from './supabase.js'
 
 export async function requireAuth() {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) {
     window.location.href = 'index.html'
-    return null
+    throw 0
+  }
+  if (!window.location.pathname.endsWith('team-select.html')) {
+    const { getTeamId } = await import('./supabase.js')
+    if (!getTeamId()) {
+      window.location.href = 'team-select.html'
+      throw 0
+    }
   }
   return session
 }

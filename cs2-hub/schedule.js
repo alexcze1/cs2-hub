@@ -1,7 +1,6 @@
-// cs2-hub/schedule.js
 import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
-import { supabase } from './supabase.js'
+import { supabase, getTeamId } from './supabase.js'
 
 function esc(text) {
   const d = document.createElement('div')
@@ -26,10 +25,16 @@ currentMonth.setHours(0,0,0,0)
 
 // ── Load ───────────────────────────────────────────────────
 async function loadEvents() {
+  const teamId = getTeamId()
+  const { data: teamRow } = await supabase.from('teams').select('pracc_url').eq('id', teamId).single()
+
   const [{ data, error }, pracc] = await Promise.all([
-    supabase.from('events').select('*').order('date', { ascending: true }),
-    fetch('/api/calendar').then(r => r.json()).catch(() => [])
+    supabase.from('events').select('*').eq('team_id', teamId).order('date', { ascending: true }),
+    teamRow?.pracc_url
+      ? fetch(`/api/calendar?url=${encodeURIComponent(teamRow.pracc_url)}`).then(r => r.json()).catch(() => [])
+      : Promise.resolve([])
   ])
+
   if (error) {
     document.getElementById('cal-grid').innerHTML = `<div class="empty-state" style="grid-column:1/-1"><h3>Failed to load events</h3><p>${esc(error.message)}</p></div>`
     return
@@ -57,9 +62,6 @@ function renderCalendar() {
     new Date(year, month, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }).toUpperCase()
 
   const firstDay = new Date(year, month, 1)
-  const lastDay  = new Date(year, month + 1, 0)
-
-  // Start grid on Monday
   const startOffset = (firstDay.getDay() + 6) % 7
   const gridStart = new Date(firstDay)
   gridStart.setDate(gridStart.getDate() - startOffset)
@@ -80,7 +82,6 @@ function renderCalendar() {
     const isCurrentMonth = d.getMonth() === month
     const isToday = d.getTime() === today.getTime()
     const dateStr = d.toISOString().slice(0, 10)
-
     const dayEvents = allEvents.filter(e => e.date.slice(0, 10) === dateStr)
 
     return `
@@ -107,16 +108,10 @@ function renderCalendar() {
   })
 }
 
-document.getElementById('cal-prev').addEventListener('click', () => {
-  currentMonth.setMonth(currentMonth.getMonth() - 1)
-  renderCalendar()
-})
-document.getElementById('cal-next').addEventListener('click', () => {
-  currentMonth.setMonth(currentMonth.getMonth() + 1)
-  renderCalendar()
-})
+document.getElementById('cal-prev').addEventListener('click', () => { currentMonth.setMonth(currentMonth.getMonth() - 1); renderCalendar() })
+document.getElementById('cal-next').addEventListener('click', () => { currentMonth.setMonth(currentMonth.getMonth() + 1); renderCalendar() })
 
-// ── Modal ──────────────────────────────────────────────────
+// ── Add/Edit Modal ─────────────────────────────────────────
 function openModal(id = null) {
   editingId = id
   const event = id ? allEvents.find(e => e.id === id) : null
@@ -138,17 +133,12 @@ function openModalOnDate(dateStr) {
   document.getElementById('f-end-date').value = dateStr + 'T13:00'
 }
 
-function closeModal() {
-  document.getElementById('modal').style.display = 'none'
-  editingId = null
-}
+function closeModal() { document.getElementById('modal').style.display = 'none'; editingId = null }
 
 document.getElementById('add-btn').addEventListener('click', () => openModal())
 document.getElementById('modal-close').addEventListener('click', closeModal)
 document.getElementById('cancel-btn').addEventListener('click', closeModal)
-document.getElementById('modal').addEventListener('click', e => {
-  if (e.target === document.getElementById('modal')) closeModal()
-})
+document.getElementById('modal').addEventListener('click', e => { if (e.target === document.getElementById('modal')) closeModal() })
 
 document.getElementById('save-btn').addEventListener('click', async () => {
   const title    = document.getElementById('f-title').value.trim()
@@ -159,36 +149,25 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   const notes    = document.getElementById('f-notes').value.trim()    || null
   const errEl    = document.getElementById('modal-error')
 
-  if (!title || !date) {
-    errEl.textContent = 'Title and date are required.'
-    errEl.style.display = 'block'
-    return
-  }
+  if (!title || !date) { errEl.textContent = 'Title and date are required.'; errEl.style.display = 'block'; return }
 
-  const payload = { title, type, date: new Date(date).toISOString(), end_date: end_date ? new Date(end_date).toISOString() : null, opponent, notes }
+  const payload = { title, type, date: new Date(date).toISOString(), end_date: end_date ? new Date(end_date).toISOString() : null, opponent, notes, team_id: getTeamId() }
 
   let error
   if (editingId) {
-    ({ error } = await supabase.from('events').update(payload).eq('id', editingId))
+    ;({ error } = await supabase.from('events').update(payload).eq('id', editingId))
   } else {
-    ({ error } = await supabase.from('events').insert(payload))
+    ;({ error } = await supabase.from('events').insert(payload))
   }
-
   if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return }
-  closeModal()
-  loadEvents()
+  closeModal(); loadEvents()
 })
 
 document.getElementById('delete-btn').addEventListener('click', async () => {
   if (!confirm('Delete this event?')) return
   const { error } = await supabase.from('events').delete().eq('id', editingId)
-  if (error) {
-    document.getElementById('modal-error').textContent = `Delete failed: ${error.message}`
-    document.getElementById('modal-error').style.display = 'block'
-    return
-  }
-  closeModal()
-  loadEvents()
+  if (error) { document.getElementById('modal-error').textContent = `Delete failed: ${error.message}`; document.getElementById('modal-error').style.display = 'block'; return }
+  closeModal(); loadEvents()
 })
 
 // ── Pracc read-only modal ──────────────────────────────────
@@ -207,5 +186,31 @@ function openPraccModal(event) {
 document.getElementById('pracc-modal-close').addEventListener('click', () => { document.getElementById('pracc-modal').style.display = 'none' })
 document.getElementById('pracc-cancel-btn').addEventListener('click', () => { document.getElementById('pracc-modal').style.display = 'none' })
 document.getElementById('pracc-modal').addEventListener('click', e => { if (e.target === document.getElementById('pracc-modal')) document.getElementById('pracc-modal').style.display = 'none' })
+
+// ── Pracc Settings ─────────────────────────────────────────
+document.getElementById('pracc-settings-btn').addEventListener('click', async () => {
+  const { data: team } = await supabase.from('teams').select('pracc_url').eq('id', getTeamId()).single()
+  document.getElementById('f-pracc-url').value = team?.pracc_url ?? ''
+  document.getElementById('pracc-settings-error').style.display = 'none'
+  document.getElementById('pracc-settings-modal').style.display = 'flex'
+})
+
+document.getElementById('pracc-settings-close').addEventListener('click', () => { document.getElementById('pracc-settings-modal').style.display = 'none' })
+document.getElementById('pracc-settings-cancel').addEventListener('click', () => { document.getElementById('pracc-settings-modal').style.display = 'none' })
+
+document.getElementById('pracc-settings-save').addEventListener('click', async () => {
+  const pracc_url = document.getElementById('f-pracc-url').value.trim() || null
+  const errEl = document.getElementById('pracc-settings-error')
+  const { error } = await supabase.from('teams').update({ pracc_url }).eq('id', getTeamId())
+  if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return }
+  document.getElementById('pracc-settings-modal').style.display = 'none'
+  loadEvents()
+})
+
+document.getElementById('pracc-settings-clear').addEventListener('click', async () => {
+  await supabase.from('teams').update({ pracc_url: null }).eq('id', getTeamId())
+  document.getElementById('pracc-settings-modal').style.display = 'none'
+  loadEvents()
+})
 
 loadEvents()

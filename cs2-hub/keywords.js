@@ -1,6 +1,6 @@
 import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
-import { supabase } from './supabase.js'
+import { supabase, getTeamId } from './supabase.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -12,7 +12,7 @@ let editingId = null
 let searchQ = ''
 
 async function loadKeywords() {
-  const { data, error } = await supabase.from('keywords').select('*').order('name', { ascending: true })
+  const { data, error } = await supabase.from('keywords').select('*').eq('team_id', getTeamId()).order('name', { ascending: true })
   const el = document.getElementById('keywords-grid')
   if (error) { el.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><h3>Failed to load</h3><p>${esc(error.message)}</p></div>`; return }
   allKeywords = data ?? []
@@ -75,7 +75,7 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   if (!name)        { errEl.textContent = 'Keyword name is required.'; errEl.style.display = 'block'; return }
   if (!description) { errEl.textContent = 'Description is required.';  errEl.style.display = 'block'; return }
 
-  const payload = { name, category, description }
+  const payload = { name, category, description, team_id: getTeamId() }
   let error
   if (editingId) {
     ;({ error } = await supabase.from('keywords').update(payload).eq('id', editingId))

@@ -1,7 +1,6 @@
-// cs2-hub/dashboard.js
 import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
-import { supabase } from './supabase.js'
+import { supabase, getTeamId } from './supabase.js'
 
 function esc(text) {
   const d = document.createElement('div')
@@ -18,21 +17,21 @@ document.getElementById('date-sub').textContent = new Date().toLocaleDateString(
 
 const TYPE_LABELS = { scrim: 'SCRIM', tournament: 'TOURNAMENT', meeting: 'MEETING', vod_review: 'VOD REVIEW' }
 
-function eventBadge(type) {
-  return `<span class="badge badge-${type}">${TYPE_LABELS[type] ?? type}</span>`
-}
-
 function formatDate(iso) {
   return new Date(iso).toLocaleString('en-GB', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
-// Upcoming events (next 7 days)
+const teamId = getTeamId()
 const now = new Date()
 const weekLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
 
+const { data: teamRow } = await supabase.from('teams').select('pracc_url').eq('id', teamId).single()
+
 const [{ data: dbEvents }, pracc] = await Promise.all([
-  supabase.from('events').select('*').gte('date', now.toISOString()).lte('date', weekLater.toISOString()).order('date', { ascending: true }),
-  fetch('/api/calendar').then(r => r.json()).catch(() => [])
+  supabase.from('events').select('*').eq('team_id', teamId).gte('date', now.toISOString()).lte('date', weekLater.toISOString()).order('date', { ascending: true }),
+  teamRow?.pracc_url
+    ? fetch(`/api/calendar?url=${encodeURIComponent(teamRow.pracc_url)}`).then(r => r.json()).catch(() => [])
+    : Promise.resolve([])
 ])
 
 const praccEvents = (Array.isArray(pracc) ? pracc : []).filter(e => e.date >= now.toISOString() && e.date <= weekLater.toISOString())
@@ -51,12 +50,10 @@ const upcomingEl = document.getElementById('upcoming-events')
 if (!events?.length) {
   upcomingEl.innerHTML = `<div class="empty-state"><h3>No events this week</h3><p>Add one in the Schedule section.</p></div>`
 } else {
-  // Populate next-event stat card
   const next = events[0]
   document.getElementById('stat-next-event').textContent = next.title
   document.getElementById('stat-next-date').textContent = formatDate(next.date)
 
-  // Build a 7-day column grid starting from today
   function localDateStr(d) {
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
   }
@@ -94,16 +91,14 @@ if (!events?.length) {
   }).join('')}</div>`
 }
 
-// Strat count
-const { count: stratCount } = await supabase.from('strats').select('*', { count: 'exact', head: true })
+const { count: stratCount } = await supabase.from('strats').select('*', { count: 'exact', head: true }).eq('team_id', teamId)
 document.getElementById('stat-strats').textContent = stratCount ?? 0
 
-const { data: stratMaps } = await supabase.from('strats').select('map')
+const { data: stratMaps } = await supabase.from('strats').select('map').eq('team_id', teamId)
 const uniqueMaps = new Set(stratMaps?.map(s => s.map) ?? [])
 document.getElementById('stat-strats-sub').textContent = `Across ${uniqueMaps.size} map${uniqueMaps.size !== 1 ? 's' : ''}`
 
-// Match record
-const { data: vodData } = await supabase.from('vods').select('maps')
+const { data: vodData } = await supabase.from('vods').select('maps').eq('team_id', teamId)
 let mw = 0, ml = 0, md = 0
 for (const v of vodData ?? []) {
   const maps = v.maps ?? []
@@ -127,10 +122,10 @@ document.getElementById('stat-vods-form').innerHTML = recentForm.map(r =>
   `<span class="form-dot form-dot-${r === 'W' ? 'win' : r === 'L' ? 'loss' : 'draw'}">${r}</span>`
 ).join('')
 
-// Recent strats (last 3)
 const { data: recentStrats } = await supabase
   .from('strats')
   .select('id, name, map, side, type, tags')
+  .eq('team_id', teamId)
   .order('created_at', { ascending: false })
   .limit(3)
 

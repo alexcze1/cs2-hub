@@ -1,7 +1,7 @@
 // cs2-hub/stratbook-detail.js
 import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
-import { supabase } from './supabase.js'
+import { supabase, getTeamId } from './supabase.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -11,11 +11,15 @@ renderSidebar('stratbook')
 const id = new URLSearchParams(location.search).get('id')
 const isEdit = !!id
 
-// Render 5 player role input rows
-const PLAYERS = ['Player 1', 'Player 2', 'Player 3', 'Player 4', 'Player 5']
+// Load roster players (fall back to generic labels)
+const { data: rosterData } = await supabase.from('roster').select('username, nickname').eq('team_id', getTeamId()).order('username', { ascending: true })
+const PLAYERS = rosterData?.length
+  ? rosterData.slice(0, 5).map(p => p.nickname || p.username)
+  : ['Player 1', 'Player 2', 'Player 3', 'Player 4', 'Player 5']
+
 document.getElementById('player-roles').innerHTML = PLAYERS.map((p, i) => `
   <div class="role-row">
-    <span class="role-player-label">${p}</span>
+    <span class="role-player-label">${esc(p)}</span>
     <input class="form-input" id="role-${i}" placeholder="e.g. Smoke CT, entry short"/>
   </div>
 `).join('')
@@ -62,7 +66,7 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     role: document.getElementById(`role-${i}`).value.trim()
   }))
 
-  const payload = { name, map, side, type, player_roles, notes, tags, updated_at: new Date().toISOString() }
+  const payload = { name, map, side, type, player_roles, notes, tags, team_id: getTeamId(), updated_at: new Date().toISOString() }
 
   let error
   if (isEdit) {

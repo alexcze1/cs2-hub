@@ -1,6 +1,6 @@
 import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
-import { supabase } from './supabase.js'
+import { supabase, getTeamId } from './supabase.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -83,7 +83,7 @@ function renderVetoBuilder() {
 }
 
 async function loadVetos() {
-  const { data, error } = await supabase.from('veto_predictions').select('*').order('created_at', { ascending: false })
+  const { data, error } = await supabase.from('veto_predictions').select('*').eq('team_id', getTeamId()).order('created_at', { ascending: false })
   const el = document.getElementById('veto-list')
   if (error) { el.innerHTML = `<div class="empty-state"><h3>Failed to load</h3><p>${esc(error.message)}</p></div>`; return }
   allVetos = data ?? []
@@ -145,7 +145,7 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   const errEl    = document.getElementById('modal-error')
   if (!title) { errEl.textContent = 'Title is required.'; errEl.style.display = 'block'; return }
 
-  const payload = { title, opponent, format, steps: vetoSteps, notes, updated_at: new Date().toISOString() }
+  const payload = { title, opponent, format, steps: vetoSteps, notes, team_id: getTeamId(), updated_at: new Date().toISOString() }
   let error
   if (editingId) {
     ;({ error } = await supabase.from('veto_predictions').update(payload).eq('id', editingId))

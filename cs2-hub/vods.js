@@ -1,6 +1,6 @@
 import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
-import { supabase } from './supabase.js'
+import { supabase, getTeamId } from './supabase.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -14,7 +14,7 @@ function formatDate(d) {
 function pct(n, d) { return d === 0 ? 0 : Math.round((n / d) * 100) }
 
 const el = document.getElementById('vods-list')
-const { data: vods, error } = await supabase.from('vods').select('*').order('match_date', { ascending: false })
+const { data: vods, error } = await supabase.from('vods').select('*').eq('team_id', getTeamId()).order('match_date', { ascending: false })
 
 if (error) {
   el.innerHTML = `<div class="empty-state"><h3>Failed to load matches</h3><p>${esc(error.message)}</p></div>`

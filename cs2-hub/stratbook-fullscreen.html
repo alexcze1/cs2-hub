@@ -246,7 +246,7 @@
 
 <script type="module">
 import { requireAuth } from './auth.js'
-import { supabase } from './supabase.js'
+import { supabase, getTeamId } from './supabase.js'
 
 await requireAuth()
 
@@ -261,7 +261,7 @@ document.querySelectorAll('#map-tabs .fs-tab').forEach(t => {
   t.classList.toggle('active', t.dataset.map === activeMap)
 })
 
-const { data } = await supabase.from('strats').select('*').order('side').order('type').order('name')
+const { data } = await supabase.from('strats').select('*').eq('team_id', getTeamId()).order('side').order('type').order('name')
 allStrats = data ?? []
 render()
 
@@ -348,7 +348,7 @@ let panelMaps = []
 let panelMapIdx = 0
 
 ;(async () => {
-  const { data } = await supabase.from('opponents').select('id,name,antistrat').order('name')
+  const { data } = await supabase.from('opponents').select('id,name,antistrat').eq('team_id', getTeamId()).order('name')
   panelOpponents = data ?? []
   const sel = document.getElementById('as-opponent-select')
   sel.innerHTML = '<option value="">— Select opponent —</option>'

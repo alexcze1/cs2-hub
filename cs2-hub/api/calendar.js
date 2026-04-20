@@ -1,15 +1,10 @@
-const ICS_URL = 'https://pracc.com/api/matches/HuPNA2It0B4hxQNmFOa/calendar.ics'
-
 function parseICS(text) {
-  // Unfold continuation lines
   const unfolded = text.replace(/\r\n/g, '\n').replace(/\n[ \t]/g, '')
-
   const events = []
   const blocks = unfolded.split('BEGIN:VEVENT')
 
   for (let i = 1; i < blocks.length; i++) {
     const block = blocks[i]
-
     const get = key => {
       const m = block.match(new RegExp(`^${key}[;:][^\n]*`, 'm'))
       return m ? m[0].replace(/^[^:]+:/, '').trim() : null
@@ -51,8 +46,11 @@ function parseICS(text) {
 }
 
 export default async function handler(req, res) {
+  const calUrl = req.query?.url
+  if (!calUrl) { res.json([]); return }
+
   try {
-    const response = await fetch(ICS_URL)
+    const response = await fetch(calUrl)
     if (!response.ok) throw new Error(`ICS fetch failed: ${response.status}`)
     const text = await response.text()
     const events = parseICS(text)

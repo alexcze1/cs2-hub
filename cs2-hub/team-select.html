@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Select Team — CS2 Hub</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg)">
+  <div style="width:100%;max-width:420px;padding:24px">
+    <div style="font-size:22px;font-weight:800;letter-spacing:1px;color:var(--accent);margin-bottom:4px">⚡ CS2 HUB</div>
+    <div style="color:var(--muted);font-size:13px;margin-bottom:28px">Select or create a team to continue</div>
+
+    <div id="teams-list" style="margin-bottom:24px"></div>
+
+    <div style="border-top:1px solid var(--border);padding-top:20px">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;margin-bottom:12px;color:var(--muted)">CREATE NEW TEAM</div>
+      <div class="form-group">
+        <input class="form-input" id="f-team-name" placeholder="Team name"/>
+      </div>
+      <div class="form-group">
+        <input class="form-input" id="f-display-name" placeholder="Your display name (e.g. Alex)"/>
+      </div>
+      <div class="form-group">
+        <input class="form-input" id="f-nickname" placeholder="Your ingame nickname (e.g. fl0m)"/>
+      </div>
+      <div class="error-msg" id="create-error" style="display:none"></div>
+      <button class="btn btn-primary" id="create-btn" style="width:100%">Create Team</button>
+    </div>
+
+    <button class="btn btn-ghost" id="signout-btn" style="width:100%;margin-top:12px">Sign Out</button>
+  </div>
+  <script type="module" src="team-select.js"></script>
+</body>
+</html>

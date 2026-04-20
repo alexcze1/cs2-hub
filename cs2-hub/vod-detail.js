@@ -1,6 +1,6 @@
 import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
-import { supabase } from './supabase.js'
+import { supabase, getTeamId } from './supabase.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -191,7 +191,7 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   if (!maps.length) { errEl.textContent = 'Add at least one map.'; errEl.style.display = 'block'; return }
 
   const result  = computeMatchResult()
-  const payload = { title: opponent, opponent, result, match_type, match_date, demo_link, notes: null, maps }
+  const payload = { title: opponent, opponent, result, match_type, match_date, demo_link, notes: null, maps, team_id: getTeamId() }
 
   let error
   if (isEdit) {

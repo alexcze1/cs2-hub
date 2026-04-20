@@ -1,9 +1,16 @@
-// cs2-hub/layout.js
 import { signOut } from './auth.js'
+import { supabase, getTeamId } from './supabase.js'
 
-export function renderSidebar(activePage) {
+export async function renderSidebar(activePage) {
   const sidebar = document.getElementById('sidebar')
   if (!sidebar) return
+
+  let teamName = 'CS2 HUB'
+  const teamId = getTeamId()
+  if (teamId) {
+    const { data: team } = await supabase.from('teams').select('name').eq('id', teamId).single()
+    if (team) teamName = team.name.toUpperCase()
+  }
 
   const links = [
     { id: 'dashboard',  label: 'Dashboard',   href: 'dashboard.html',  section: 'MAIN' },
@@ -18,7 +25,7 @@ export function renderSidebar(activePage) {
     { id: 'roster',     label: 'Roster',      href: 'roster.html',     section: 'TEAM' },
   ]
 
-  let html = `<div class="team-name">⚡ CS2 HUB</div>`
+  let html = `<div class="team-name">⚡ ${esc(teamName)}</div>`
 
   for (const link of links) {
     if (link.section) html += `<div class="nav-section">${link.section}</div>`
@@ -26,8 +33,11 @@ export function renderSidebar(activePage) {
   }
 
   html += `<div style="flex:1"></div>`
+  html += `<a class="nav-item" href="team-select.html" style="font-size:11px;color:var(--muted)">Switch Team</a>`
   html += `<button class="nav-item" id="signout-btn">Sign Out</button>`
 
   sidebar.innerHTML = html
   document.getElementById('signout-btn').addEventListener('click', signOut)
 }
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }

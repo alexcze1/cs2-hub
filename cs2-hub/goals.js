@@ -1,6 +1,6 @@
 import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
-import { supabase } from './supabase.js'
+import { supabase, getTeamId } from './supabase.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -22,7 +22,7 @@ document.getElementById('f-progress').addEventListener('input', e => {
 })
 
 async function loadGoals() {
-  const { data, error } = await supabase.from('goals').select('*').order('created_at', { ascending: false })
+  const { data, error } = await supabase.from('goals').select('*').eq('team_id', getTeamId()).order('created_at', { ascending: false })
   if (error) { document.getElementById('goals-container').innerHTML = `<div class="empty-state"><h3>Failed to load</h3><p>${esc(error.message)}</p></div>`; return }
   allGoals = data ?? []
   renderGoals()
@@ -107,7 +107,7 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   const errEl       = document.getElementById('modal-error')
   if (!title) { errEl.textContent = 'Goal title is required.'; errEl.style.display = 'block'; return }
 
-  const payload = { title, horizon, status, progress, due_date, description, updated_at: new Date().toISOString() }
+  const payload = { title, horizon, status, progress, due_date, description, team_id: getTeamId(), updated_at: new Date().toISOString() }
   let error
   if (editingId) {
     ;({ error } = await supabase.from('goals').update(payload).eq('id', editingId))

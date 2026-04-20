@@ -1,7 +1,7 @@
 // cs2-hub/opponents.js
 import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
-import { supabase } from './supabase.js'
+import { supabase, getTeamId } from './supabase.js'
 
 function esc(text) {
   const d = document.createElement('div')
@@ -13,7 +13,7 @@ await requireAuth()
 renderSidebar('opponents')
 
 const el = document.getElementById('opponents-list')
-const { data: opponents, error } = await supabase.from('opponents').select('*').order('name', { ascending: true })
+const { data: opponents, error } = await supabase.from('opponents').select('*').eq('team_id', getTeamId()).order('name', { ascending: true })
 
 if (error) {
   el.innerHTML = `<div class="empty-state"><h3>Failed to load opponents</h3><p>${esc(error.message)}</p></div>`

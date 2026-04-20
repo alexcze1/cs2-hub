@@ -1,6 +1,6 @@
 import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
-import { supabase } from './supabase.js'
+import { supabase, getTeamId } from './supabase.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -259,7 +259,7 @@ document.getElementById('save-btn').addEventListener('click', async () => {
 
   if (!name) { errEl.textContent = 'Team name is required.'; errEl.style.display = 'block'; return }
 
-  const payload = { name, favored_maps: selectedMaps, antistrat }
+  const payload = { name, favored_maps: selectedMaps, antistrat, team_id: getTeamId() }
 
   let error
   if (isEdit) {
