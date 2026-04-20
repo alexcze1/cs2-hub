@@ -246,9 +246,9 @@ body {
 
 /* ── Map Badge ── */
 .map-badge {
-  width: 40px; height: 40px;
+  width: 32px; height: 32px;
   background: var(--border);
-  border-radius: 6px;
+  border-radius: 5px;
   overflow: hidden;
   flex-shrink: 0;
   position: relative;
@@ -716,9 +716,9 @@ body {
   text-decoration: none;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 16px;
-  margin-bottom: 10px;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
   transition: border-color .15s;
 }
 .strat-card:hover { border-color: var(--accent); }
@@ -726,19 +726,19 @@ body {
 .strat-card-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 7px;
 }
 .strat-card-title { flex: 1; min-width: 0; }
-.strat-name  { font-weight: 700; font-size: 15px; color: var(--text); }
-.strat-meta  { font-size: 12px; color: var(--muted); margin-top: 2px; }
-.strat-card-badges { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+.strat-name  { font-weight: 700; font-size: 13px; color: var(--text); }
+.strat-meta  { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.strat-card-badges { display: flex; gap: 5px; align-items: center; flex-shrink: 0; }
 
 .strat-side-badge {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: .06em;
-  padding: 3px 8px;
+  padding: 2px 6px;
   border-radius: 4px;
 }
 .strat-side-t  { background: rgba(239,68,68,0.12);  color: #f87171; }
@@ -747,25 +747,25 @@ body {
 .strat-roles {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 5px 20px;
+  gap: 2px 12px;
   background: var(--bg);
-  border-radius: 7px;
-  padding: 10px 14px;
-  margin-bottom: 10px;
+  border-radius: 5px;
+  padding: 6px 10px;
+  margin-bottom: 6px;
 }
-.strat-role-row   { display: flex; gap: 10px; align-items: baseline; min-width: 0; }
+.strat-role-row   { display: flex; gap: 8px; align-items: baseline; min-width: 0; }
 .strat-role-player {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--muted);
   font-weight: 600;
   flex-shrink: 0;
-  width: 58px;
+  width: 50px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .strat-role-name {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text);
   min-width: 0;
   overflow: hidden;
@@ -773,14 +773,15 @@ body {
   white-space: nowrap;
 }
 .strat-note-preview {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--muted);
-  margin-bottom: 8px;
+  margin-bottom: 5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.strat-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.strat-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+.strat-tags .tag { font-size: 10px; padding: 1px 6px; }
 
 /* ── Gameplan Sheets ── */
 .gameplan-sheet {
