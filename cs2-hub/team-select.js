@@ -105,12 +105,13 @@ document.getElementById('create-btn').addEventListener('click', async () => {
     .insert({ team_id: team.id, user_id: userId, role: 'owner' })
   if (memberErr) { errEl.textContent = memberErr.message; errEl.style.display = 'block'; return }
 
-  await supabase.from('roster').insert({
+  const { error: rosterErr } = await supabase.from('roster').insert({
     team_id: team.id,
     user_id: userId,
     username: displayName,
     nickname: nickname || null,
   })
+  if (rosterErr) { errEl.textContent = `Roster error: ${rosterErr.message}`; errEl.style.display = 'block'; return }
 
   setTeamId(team.id)
   window.location.href = 'dashboard.html'
