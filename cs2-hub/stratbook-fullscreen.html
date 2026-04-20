@@ -297,7 +297,7 @@ function render() {
         <div class="fs-roles">
           ${roles.map(r => `
             <div class="fs-role-row">
-              <span class="fs-role-player">${esc(p(r.player))}</span>
+              <span class="fs-role-player">${esc(p(r.player).slice(0,3).toUpperCase())}</span>
               <span class="fs-role-name">${esc(r.role)}</span>
             </div>
           `).join('')}
