@@ -4,8 +4,10 @@ import { supabase } from './supabase.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
+const MAP_IMG = { dust2: 'dust' }
 function mapIcon(map) {
-  const url = `https://raw.githubusercontent.com/MurkyYT/cs2-map-icons/main/images/de_${map}.png`
+  const file = MAP_IMG[map] ?? map
+  const url = `images/maps/${file}.png`
   return `<div class="map-badge"><img src="${url}" alt="${esc(map)}" onerror="this.parentElement.innerHTML='<span>${map.slice(0,3).toUpperCase()}</span>'"/></div>`
 }
 
