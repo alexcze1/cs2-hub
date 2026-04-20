@@ -170,6 +170,45 @@ function saveActivePlan() {
 }
 
 // ── Print ────────────────────────────────────────────────────
+function printSheetHTML(map, prefix, title) {
+  const d = antistrat[map]?.[`${prefix}_plan`] ?? {}
+  const pairs = [['pistols','style'], ['antiecos','forces']]
+  const singles = ['tendencies','exploits','solutions']
+  const posSide = prefix === 'ct' ? 't' : 'ct'
+  const positions = MAP_POSITIONS[map][posSide]
+  const posData = antistrat[map]?.[`${posSide}_positions`] ?? {}
+  const posLabelClass = prefix === 'ct' ? 't-positions-label' : 'ct-positions-label'
+  const posHeading = prefix === 'ct' ? 'THEIR T LINEUP' : 'THEIR CT LINEUP'
+  const titleClass = prefix === 'ct' ? 'ct-title' : 't-title'
+
+  const lineupHTML = positions.map(pos => {
+    const val = posData[pos] ?? ''
+    return `<span class="pprint-pos"><b>${esc(pos)}</b>${val ? ': '+esc(val) : ''}</span>`
+  }).join('')
+
+  return `<div class="pprint-sheet">
+    <div class="pprint-sheet-title ${titleClass}">${esc(title)}</div>
+    <div class="pprint-lineup-row">
+      <span class="pprint-lineup-label ${posLabelClass}">${posHeading}</span>
+      <span class="pprint-lineup-vals">${lineupHTML}</span>
+    </div>
+    ${pairs.map(([a, b]) => `
+      <div class="pprint-split">
+        <div class="pprint-block">
+          <div class="pprint-label ${GP_CLASSES[a]}">${GP_LABELS[a]}</div>
+          <div class="pprint-text">${esc(d[a] ?? '')}</div>
+        </div>
+        <div class="pprint-block">
+          <div class="pprint-label ${GP_CLASSES[b]}">${GP_LABELS[b]}</div>
+          <div class="pprint-text">${esc(d[b] ?? '')}</div>
+        </div>
+      </div>`).join('')}
+    ${singles.map(f => `
+      <div class="pprint-label ${GP_CLASSES[f]}">${GP_LABELS[f]}</div>
+      <div class="pprint-text">${esc(d[f] ?? '')}</div>`).join('')}
+  </div>`
+}
+
 window.printAntistrat = function() {
   saveActivePlan()
   const name = document.getElementById('f-name').value.trim() || 'Opponent'
@@ -181,12 +220,12 @@ window.printAntistrat = function() {
     document.body.appendChild(printArea)
   }
 
-  printArea.innerHTML = `<div class="print-opponent-name">${esc(name)}</div>`
+  printArea.innerHTML = `<div class="pprint-header">${esc(name)}</div>`
     + selectedMaps.map(map => {
         ensureMapData(map)
-        return `<div class="print-map-heading">${esc(MAP_LABELS[map])}</div>`
-             + gpSheetHTML(map, 'ct', 'CT GAMEPLAN', 'vs their T side', 'ct-title')
-             + gpSheetHTML(map, 't',  'T GAMEPLAN',  'vs their CT side', 't-title')
+        return `<div class="pprint-map-label">${esc(MAP_LABELS[map])}</div>`
+             + printSheetHTML(map, 'ct', 'CT GAMEPLAN — vs their T side')
+             + printSheetHTML(map, 't',  'T GAMEPLAN — vs their CT side')
       }).join('')
 
   document.body.classList.add('print-antistrat')

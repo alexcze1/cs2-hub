@@ -879,33 +879,49 @@ body {
   body.print-antistrat #print-all-maps { display: block !important; }
   #print-all-maps { display: none; }
 
-  /* ── Antistrat print ── */
-  .print-opponent-name {
-    font-size: 15pt; font-weight: 800; letter-spacing: 1px;
-    margin-bottom: 3mm; border-bottom: 2px solid #111; padding-bottom: 1.5mm;
+  /* ── Antistrat print (pprint-*) ── */
+  .pprint-header {
+    font-size: 9pt; font-weight: 800; letter-spacing: 0.5px; color: #111;
+    margin-bottom: 1mm;
   }
-  .print-map-heading {
-    font-size: 11pt; font-weight: 700; margin: 4mm 0 2mm;
-    background: #1e3a5f !important; color: #fff !important;
-    padding: 1.5mm 4mm; border-radius: 1.5mm;
+  .pprint-map-label {
+    font-size: 6.5pt; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+    color: #fff; background: #1e3a5f;
+    display: inline-block; padding: 0.4mm 2.5mm; border-radius: 1mm;
+    margin: 2mm 0 1mm;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
-  .gameplan-sheet {
-    border: 1px solid #ccc !important; border-radius: 3px !important;
-    margin-bottom: 3mm; page-break-inside: avoid;
+  .pprint-sheet {
+    border: 1px solid #ccc; border-radius: 2px;
+    margin-bottom: 1.5mm; break-inside: avoid;
   }
-  .gameplan-title { font-size: 9.5pt !important; padding: 1.5mm 3mm !important; }
+  .pprint-sheet-title {
+    font-size: 7pt; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+    padding: 0.7mm 2.5mm;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
   .ct-title { background: rgba(37,99,235,0.1) !important; color: #1d4ed8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .t-title  { background: rgba(109,40,217,0.1) !important; color: #5b21b6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .gameplan-split { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #ccc !important; }
-  .gameplan-block + .gameplan-block { border-left: 1px solid #ccc !important; }
-  .gameplan-section-label {
-    font-size: 7pt !important; padding: 1mm 3mm !important;
-    border-top: 1px solid #ccc !important;
+  .pprint-lineup-row {
+    display: flex; align-items: baseline; gap: 2mm; flex-wrap: wrap;
+    border-top: 1px solid #ccc; padding: 0.6mm 2.5mm;
+  }
+  .pprint-lineup-label {
+    font-size: 5.5pt; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
+    flex-shrink: 0; white-space: nowrap;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
-  .t-positions-label  { background: rgba(220,38,38,0.1)  !important; color: #b91c1c !important; }
-  .ct-positions-label { background: rgba(37,99,235,0.1)  !important; color: #1d4ed8 !important; }
+  .t-positions-label  { color: #b91c1c !important; }
+  .ct-positions-label { color: #1d4ed8 !important; }
+  .pprint-lineup-vals { font-size: 7pt; display: flex; flex-wrap: wrap; gap: 1.5mm; }
+  .pprint-pos { white-space: nowrap; }
+  .pprint-split { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #ccc; }
+  .pprint-block + .pprint-block { border-left: 1px solid #ccc; }
+  .pprint-label {
+    font-size: 5.5pt; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
+    padding: 0.5mm 2.5mm; border-top: 1px solid #ccc;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
   .pistols-label      { background: rgba(13,148,136,0.1) !important; color: #0f766e !important; }
   .style-label        { background: rgba(225,29,72,0.1)  !important; color: #be123c !important; }
   .antiecos-label     { background: rgba(13,148,136,0.1) !important; color: #0f766e !important; }
@@ -913,20 +929,9 @@ body {
   .tendencies-label   { background: rgba(109,40,217,0.1) !important; color: #5b21b6 !important; }
   .exploits-label     { background: rgba(180,83,9,0.1)   !important; color: #92400e !important; }
   .solutions-label    { background: rgba(21,128,61,0.1)  !important; color: #166534 !important; }
-  .gameplan-textarea, .form-textarea {
-    border: none !important; background: transparent !important;
-    color: #111 !important; font-size: 8.5pt !important;
-    min-height: unset !important; height: auto !important;
-    overflow: visible !important; white-space: pre-wrap !important;
-    resize: none !important; padding: 1mm 3mm !important;
-  }
-  .pos-grid { display: flex; flex-wrap: wrap; gap: 1.5mm; padding: 1.5mm 3mm !important; }
-  .pos-cell { display: flex; align-items: center; gap: 1mm; }
-  .pos-label { font-size: 7pt; font-weight: 700; }
-  .pos-input {
-    border: none !important; border-bottom: 1px solid #aaa !important;
-    background: transparent !important; color: #111 !important;
-    font-size: 8pt !important; width: 55px !important; padding: 0 !important;
+  .pprint-text {
+    font-size: 7.5pt; padding: 0.8mm 2.5mm 1.2mm;
+    white-space: pre-wrap; word-break: break-word; color: #111;
   }
 
   /* ── Match view (stratbook-fullscreen) print ── */
