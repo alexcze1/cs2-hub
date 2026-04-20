@@ -57,6 +57,10 @@ if (!events?.length) {
   document.getElementById('stat-next-date').textContent = formatDate(next.date)
 
   // Build a 7-day column grid starting from today
+  function localDateStr(d) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+  }
+
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(now)
     d.setDate(d.getDate() + i)
@@ -65,10 +69,10 @@ if (!events?.length) {
   })
 
   upcomingEl.innerHTML = `<div class="week-grid">${days.map(day => {
-    const dateStr = day.toISOString().slice(0, 10)
+    const dateStr = localDateStr(day)
     const dayLabel = day.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase()
     const dayNum   = day.getDate()
-    const isToday  = dateStr === now.toISOString().slice(0, 10)
+    const isToday  = day.getDate() === now.getDate() && day.getMonth() === now.getMonth() && day.getFullYear() === now.getFullYear()
     const dayEvents = events.filter(e => e.date.slice(0, 10) === dateStr)
 
     return `
@@ -136,7 +140,7 @@ if (!recentStrats?.length) {
 } else {
   recentEl.innerHTML = recentStrats.map(s => `
     <a class="list-row" href="stratbook-detail.html?id=${s.id}">
-      <div class="map-badge"><img src="https://raw.githubusercontent.com/MurkyYT/cs2-map-icons/main/images/de_${s.map}.png" alt="${esc(s.map)}" onerror="this.parentElement.innerHTML='<span>${s.map.slice(0,3).toUpperCase()}</span>'"/></div>
+      <div class="map-badge"><img src="images/maps/${s.map === 'dust2' ? 'dust' : s.map}.png" alt="${esc(s.map)}" onerror="this.parentElement.innerHTML='<span>${s.map.slice(0,3).toUpperCase()}</span>'"/></div>
       <div class="flex-1">
         <div class="row-name">${esc(s.name)}</div>
         <div class="row-meta">${esc(s.map)} · ${s.side === 't' ? 'T-Side' : 'CT-Side'} · ${esc(s.type)}</div>
