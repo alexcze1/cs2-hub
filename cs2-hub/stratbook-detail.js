@@ -21,8 +21,10 @@ const PLAYERS = ROLE_SLOTS.map(slot => {
 
 document.getElementById('player-roles').innerHTML = PLAYERS.map((p, i) => `
   <div class="role-row">
-    <span class="role-player-label">${esc(p.label)}</span>
-    ${p.label !== p.slot ? `<span style="font-size:10px;color:var(--muted);margin-right:4px">${esc(p.slot)}</span>` : ''}
+    <span class="role-player-label">
+      ${esc(p.label)}
+      ${p.label !== p.slot ? `<span style="font-size:10px;color:var(--muted);display:block;font-weight:400">${esc(p.slot)}</span>` : ''}
+    </span>
     <input class="form-input" id="role-${i}" placeholder="e.g. Smoke CT, entry short"/>
   </div>
 `).join('')
