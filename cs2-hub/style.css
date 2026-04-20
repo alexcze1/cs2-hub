@@ -102,6 +102,10 @@ body {
 }
 
 .page-sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+.page-subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+.section-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+.section-title { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
 
 /* ── Buttons ── */
 .btn {

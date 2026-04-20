@@ -25,60 +25,57 @@
       <button class="tab" data-status="resolved">Resolved</button>
     </div>
 
-    <!-- Modal -->
-    <div class="modal-overlay" id="modal" style="display:none">
+    <div class="modal-backdrop" id="modal" style="display:none">
       <div class="modal" style="max-width:500px;width:100%">
         <div class="modal-header">
           <div class="modal-title" id="modal-title">Add Issue</div>
           <button class="modal-close" id="modal-close">×</button>
         </div>
-        <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Issue Title</label>
+          <input class="form-input" id="f-title" placeholder="e.g. Losing B site pistol rounds on Mirage"/>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           <div class="form-group">
-            <label class="form-label">Issue Title</label>
-            <input class="form-input" id="f-title" placeholder="e.g. Losing B site pistol rounds on Mirage"/>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-            <div class="form-group">
-              <label class="form-label">Category</label>
-              <select class="form-select" id="f-category">
-                <option value="tactical">Tactical</option>
-                <option value="communication">Communication</option>
-                <option value="mental">Mental</option>
-                <option value="individual">Individual</option>
-                <option value="teamplay">Teamplay</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Priority</label>
-              <select class="form-select" id="f-priority">
-                <option value="high">High</option>
-                <option value="medium" selected>Medium</option>
-                <option value="low">Low</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Status</label>
-            <select class="form-select" id="f-status">
-              <option value="active">Active</option>
-              <option value="improving">Improving</option>
-              <option value="resolved">Resolved</option>
+            <label class="form-label">Category</label>
+            <select class="form-select" id="f-category">
+              <option value="tactical">Tactical</option>
+              <option value="communication">Communication</option>
+              <option value="mental">Mental</option>
+              <option value="individual">Individual</option>
+              <option value="teamplay">Teamplay</option>
+              <option value="other">Other</option>
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">Description</label>
-            <textarea class="form-textarea" id="f-description" placeholder="Describe the issue in detail…" style="min-height:70px"></textarea>
+            <label class="form-label">Priority</label>
+            <select class="form-select" id="f-priority">
+              <option value="high">High</option>
+              <option value="medium" selected>Medium</option>
+              <option value="low">Low</option>
+            </select>
           </div>
-          <div class="form-group">
-            <label class="form-label">Current Actions / How We're Tackling It</label>
-            <textarea class="form-textarea" id="f-actions" placeholder="What are we doing about this right now?" style="min-height:70px"></textarea>
-          </div>
-          <div class="error-msg" id="modal-error" style="display:none"></div>
         </div>
-        <div class="modal-footer">
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-select" id="f-status">
+            <option value="active">Active</option>
+            <option value="improving">Improving</option>
+            <option value="resolved">Resolved</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea class="form-textarea" id="f-description" placeholder="Describe the issue in detail…" style="min-height:70px"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Current Actions / How We're Tackling It</label>
+          <textarea class="form-textarea" id="f-actions" placeholder="What are we doing about this right now?" style="min-height:70px"></textarea>
+        </div>
+        <div class="error-msg" id="modal-error" style="display:none"></div>
+        <div class="modal-actions">
+          <button class="btn btn-danger btn-sm" id="delete-btn" style="display:none;margin-right:auto">Delete</button>
           <button class="btn btn-ghost" id="cancel-btn">Cancel</button>
-          <button class="btn btn-danger" id="delete-btn" style="display:none">Delete</button>
           <button class="btn btn-primary" id="save-btn">Save</button>
         </div>
       </div>
