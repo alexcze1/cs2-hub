@@ -144,14 +144,19 @@ const recentEl = document.getElementById('recent-strats')
 if (!recentStrats?.length) {
   recentEl.innerHTML = `<div class="empty-state"><h3>No strats yet</h3><p>Add one in the Stratbook.</p></div>`
 } else {
-  recentEl.innerHTML = recentStrats.map(s => `
-    <a class="list-row" href="stratbook-detail.html?id=${s.id}">
-      <div class="map-badge"><img src="images/maps/${s.map === 'dust2' ? 'dust' : s.map}.png" alt="${esc(s.map)}" onerror="this.parentElement.innerHTML='<span>${s.map.slice(0,3).toUpperCase()}</span>'"/></div>
+  recentEl.innerHTML = recentStrats.map(s => {
+    const sideColor = s.side === 't' ? 'var(--danger)' : 'var(--accent)'
+    const mapFile = s.map === 'dust2' ? 'dust' : s.map
+    return `
+    <a class="list-row" href="stratbook-detail.html?id=${s.id}" style="border-left:3px solid ${sideColor};padding-left:12px">
+      <div style="width:64px;height:44px;border-radius:6px;overflow:hidden;flex-shrink:0">
+        <img src="images/maps/${mapFile}.png" alt="${esc(s.map)}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='<span style=font-size:10px;font-weight:700>${s.map.slice(0,3).toUpperCase()}</span>'">
+      </div>
       <div class="flex-1">
         <div class="row-name">${esc(s.name)}</div>
-        <div class="row-meta">${esc(s.map)} · ${s.side === 't' ? 'T-Side' : 'CT-Side'} · ${esc(s.type)}</div>
+        <div class="row-meta">${esc(s.map.charAt(0).toUpperCase()+s.map.slice(1))} · ${s.side === 't' ? 'T-Side' : 'CT-Side'} · ${esc(s.type)}</div>
       </div>
       ${(s.tags ?? []).slice(0,2).map(t => `<span class="tag">${esc(t)}</span>`).join('')}
     </a>
-  `).join('')
+  `}).join('')
 }
