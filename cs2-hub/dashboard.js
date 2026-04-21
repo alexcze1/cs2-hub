@@ -11,12 +11,6 @@ function esc(text) {
 await requireAuth()
 renderSidebar('dashboard')
 
-const hour = now.getHours()
-const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
-document.getElementById('date-sub').textContent = new Date().toLocaleDateString('en-GB', {
-  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-})
-
 const TYPE_LABELS = { scrim: 'SCRIM', tournament: 'TOURNAMENT', meeting: 'MEETING', vod_review: 'VOD REVIEW' }
 
 function formatDate(iso) {
@@ -25,6 +19,11 @@ function formatDate(iso) {
 
 const teamId = getTeamId()
 const now = new Date()
+const hour = now.getHours()
+const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+document.getElementById('date-sub').textContent = now.toLocaleDateString('en-GB', {
+  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+})
 const weekLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
 
 const { data: teamRow } = await supabase.from('teams').select('name, pracc_url').eq('id', teamId).single()
