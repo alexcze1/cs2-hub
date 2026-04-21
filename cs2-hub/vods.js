@@ -13,6 +13,9 @@ function formatDate(d) {
 
 function pct(n, d) { return d === 0 ? 0 : Math.round((n / d) * 100) }
 
+const MAP_IMG = { dust2: 'dust' }
+function mapImgUrl(map) { return `images/maps/${MAP_IMG[map] ?? map}.png` }
+
 const el = document.getElementById('vods-list')
 const { data: vods, error } = await supabase.from('vods').select('*').eq('team_id', getTeamId()).order('match_date', { ascending: false })
 
@@ -118,14 +121,22 @@ if (error) {
     const maps = v.maps ?? []
     const mapsStr = maps.map(m => {
       const r = (m.score_us ?? 0) > (m.score_them ?? 0) ? 'win' : (m.score_them ?? 0) > (m.score_us ?? 0) ? 'loss' : 'draw'
-      return `<span class="map-chip map-chip-${r}">${m.map.slice(0,3).toUpperCase()} ${m.score_us ?? '?'}–${m.score_them ?? '?'}</span>`
+      const borderColor = r === 'win' ? 'var(--success)' : r === 'loss' ? 'var(--danger)' : 'var(--muted)'
+      const scoreColor  = r === 'win' ? 'var(--success)' : r === 'loss' ? 'var(--danger)' : 'var(--muted)'
+      return `<div style="position:relative;overflow:hidden;border-radius:6px;width:68px;height:50px;border:1.5px solid ${borderColor};flex-shrink:0">
+        <img src="${mapImgUrl(m.map)}" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.2;pointer-events:none">
+        <div style="position:relative;padding:5px 7px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
+          <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:var(--muted)">${m.map.slice(0,3).toUpperCase()}</span>
+          <span style="font-size:13px;font-weight:700;color:${scoreColor}">${m.score_us ?? '?'}–${m.score_them ?? '?'}</span>
+        </div>
+      </div>`
     }).join('')
     return `
       <a class="list-row" href="vod-detail.html?id=${v.id}">
         <span class="badge badge-${v.result ?? 'draw'}">${(v.result ?? '—').toUpperCase()}</span>
         <div class="flex-1">
           <div class="row-name">vs ${esc(v.opponent ?? v.title)}</div>
-          <div class="row-meta" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">${mapsStr}</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">${mapsStr}</div>
         </div>
         <div class="row-meta" style="text-align:right">
           <div>${esc(v.match_type ?? '')}</div>
