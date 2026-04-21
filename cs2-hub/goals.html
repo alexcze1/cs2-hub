@@ -13,27 +13,23 @@
     <div class="page-header">
       <div>
         <div class="page-title">TEAM GOALS</div>
-        <div class="page-subtitle">Long term · Monthly · Weekly</div>
+        <div class="page-subtitle" id="goals-sub">Loading…</div>
       </div>
       <button class="btn btn-primary" id="add-btn">+ Add Goal</button>
     </div>
 
-    <!-- Weekly Focus -->
-    <div style="margin-bottom:28px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--muted)">THIS WEEK'S FOCUS</div>
-        <button class="btn btn-ghost" style="font-size:11px;padding:3px 10px" id="add-focus-btn">+ Add</button>
-      </div>
-      <div id="focus-input-row" style="display:none;margin-bottom:10px;display:none">
-        <div style="display:flex;gap:8px">
-          <input class="form-input" id="focus-input" placeholder="e.g. Hit utility on Mirage B execute every round" style="flex:1;font-size:13px"/>
-          <button class="btn btn-primary" style="font-size:12px" id="focus-save-btn">Add</button>
-          <button class="btn btn-ghost" style="font-size:12px" id="focus-cancel-btn">Cancel</button>
-        </div>
-      </div>
-      <div id="focus-list" style="display:flex;flex-wrap:wrap;gap:8px">
-        <div style="color:var(--muted);font-size:13px;padding:8px 0" id="focus-empty">No focus items yet — add what the team is working on this week.</div>
-      </div>
+    <!-- Stats summary -->
+    <div id="goals-stats" style="display:flex;gap:12px;margin-bottom:24px"></div>
+
+    <!-- Category filter -->
+    <div class="tab-bar" id="cat-tabs" style="margin-bottom:24px">
+      <button class="tab active" data-cat="all">All</button>
+      <button class="tab" data-cat="competition">Competition</button>
+      <button class="tab" data-cat="strategy">Strategy</button>
+      <button class="tab" data-cat="aim">Aim & Mech</button>
+      <button class="tab" data-cat="communication">Communication</button>
+      <button class="tab" data-cat="mental">Mental</button>
+      <button class="tab" data-cat="other">Other</button>
     </div>
 
     <!-- Goal Modal -->
@@ -81,10 +77,6 @@
               <option value="dropped">Dropped</option>
             </select>
           </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Progress: <span id="progress-val">0</span>%</label>
-          <input type="range" id="f-progress" min="0" max="100" value="0" style="width:100%;accent-color:var(--accent)"/>
         </div>
         <div class="form-group">
           <label class="form-label">Due Date (optional)</label>
