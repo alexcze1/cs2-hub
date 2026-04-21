@@ -9,6 +9,17 @@ function esc(text) {
   return d.innerHTML
 }
 
+const MAP_IMG = { dust2: 'dust' }
+function mapChip(map) {
+  const src = `images/maps/${MAP_IMG[map] ?? map}.png`
+  return `<div style="position:relative;overflow:hidden;border-radius:5px;width:54px;height:38px;flex-shrink:0;border:1px solid var(--border)">
+    <img src="${src}" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.5;pointer-events:none">
+    <div style="position:relative;height:100%;display:flex;align-items:flex-end;padding:3px 4px">
+      <span style="font-size:9px;font-weight:700;letter-spacing:0.5px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.8)">${map.slice(0,3).toUpperCase()}</span>
+    </div>
+  </div>`
+}
+
 await requireAuth()
 renderSidebar('opponents')
 
@@ -27,7 +38,9 @@ if (error) {
       </div>
       <div class="flex-1">
         <div class="row-name">${esc(o.name)}</div>
-        <div class="row-meta">${o.favored_maps?.length ? 'Maps: ' + o.favored_maps.map(m => esc(m.charAt(0).toUpperCase()+m.slice(1))).join(', ') : 'No maps noted'}</div>
+        ${o.favored_maps?.length
+          ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${o.favored_maps.map(mapChip).join('')}</div>`
+          : `<div class="row-meta">No maps noted</div>`}
       </div>
     </a>
   `).join('')
