@@ -27,7 +27,6 @@ const CATEGORIES = {
 
 let allGoals   = []
 let editingId  = null
-let activeCat  = 'all'
 
 // ── Stats summary ──────────────────────────────────────────
 function renderStats() {
@@ -49,16 +48,6 @@ function renderStats() {
   `).join('')
 }
 
-// ── Category filter ────────────────────────────────────────
-document.getElementById('cat-tabs').addEventListener('click', e => {
-  const tab = e.target.closest('.tab')
-  if (!tab) return
-  document.querySelectorAll('#cat-tabs .tab').forEach(t => t.classList.remove('active'))
-  tab.classList.add('active')
-  activeCat = tab.dataset.cat
-  renderGoals()
-})
-
 // ── Goals ──────────────────────────────────────────────────
 async function loadGoals() {
   const { data, error } = await supabase.from('goals').select('*').eq('team_id', getTeamId()).order('created_at', { ascending: false })
@@ -70,11 +59,10 @@ async function loadGoals() {
 
 function renderGoals() {
   const el = document.getElementById('goals-container')
-  const filtered = activeCat === 'all' ? allGoals : allGoals.filter(g => g.category === activeCat)
-  const byHorizon = Object.fromEntries(HORIZONS.map(h => [h.key, filtered.filter(g => g.horizon === h.key)]))
+  const byHorizon = Object.fromEntries(HORIZONS.map(h => [h.key, allGoals.filter(g => g.horizon === h.key)]))
 
-  if (!filtered.length) {
-    el.innerHTML = `<div class="empty-state"><h3>No goals here</h3><p>${activeCat !== 'all' ? 'No goals in this category yet.' : 'Add your first team goal above.'}</p></div>`
+  if (!allGoals.length) {
+    el.innerHTML = `<div class="empty-state"><h3>No goals here</h3><p>Add your first team goal above.</p></div>`
     return
   }
 
