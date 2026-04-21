@@ -48,25 +48,27 @@ function renderGoals() {
         <div class="section-title">${h.label} <span style="color:var(--muted);font-weight:400;font-size:12px">${goals.length} goal${goals.length !== 1 ? 's' : ''}</span></div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-bottom:28px">
-        ${goals.map(g => `
-          <div class="list-row" style="flex-direction:column;align-items:flex-start;gap:8px;opacity:${g.status === 'dropped' ? 0.5 : 1}">
+        ${goals.map(g => {
+          const statusColor = STATUS_COLORS[g.status] ?? 'var(--accent)'
+          return `
+          <div class="list-row" style="flex-direction:column;align-items:flex-start;gap:8px;opacity:${g.status === 'dropped' ? 0.5 : 1};border-left:3px solid ${statusColor}">
             <div style="display:flex;justify-content:space-between;width:100%;align-items:flex-start">
-              <div style="font-weight:700;font-size:14px;flex:1">${esc(g.title)}</div>
+              <div style="font-weight:700;font-size:14px;flex:1">${g.status === 'completed' ? '✓ ' : ''}${esc(g.title)}</div>
               <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;flex-shrink:0" data-edit="${g.id}">Edit</button>
             </div>
             <div style="display:flex;align-items:center;gap:8px;width:100%">
               <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden">
-                <div style="height:100%;width:${g.progress}%;background:${STATUS_COLORS[g.status] ?? 'var(--accent)'};border-radius:3px"></div>
+                <div style="height:100%;width:${g.progress}%;background:${statusColor};border-radius:3px"></div>
               </div>
               <span style="font-size:11px;color:var(--muted);min-width:30px">${g.progress}%</span>
             </div>
             <div style="display:flex;gap:8px;align-items:center">
-              <span style="font-size:11px;color:${STATUS_COLORS[g.status] ?? 'var(--accent)'};font-weight:600;text-transform:uppercase">${g.status}</span>
+              <span style="font-size:10px;font-weight:700;letter-spacing:0.8px;color:${statusColor};background:${statusColor}18;padding:2px 8px;border-radius:4px;text-transform:uppercase">${g.status}</span>
               ${g.due_date ? `<span style="font-size:11px;color:var(--muted)">Due ${new Date(g.due_date).toLocaleDateString('en-GB', {day:'numeric',month:'short'})}</span>` : ''}
             </div>
             ${g.description ? `<div style="color:var(--muted);font-size:12px">${esc(g.description)}</div>` : ''}
           </div>
-        `).join('')}
+        `}).join('')}
       </div>
     `
   }).join('')
