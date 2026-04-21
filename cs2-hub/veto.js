@@ -9,6 +9,7 @@ renderSidebar('veto')
 
 const MAPS = ['ancient','mirage','nuke','anubis','inferno','overpass','dust2']
 const MAP_LABELS = { ancient:'Ancient', mirage:'Mirage', nuke:'Nuke', anubis:'Anubis', inferno:'Inferno', overpass:'Overpass', dust2:'Dust2' }
+const MAP_IMAGES = { ancient:'images/maps/ancient.png', mirage:'images/maps/mirage.png', nuke:'images/maps/nuke.png', anubis:'images/maps/anubis.png', inferno:'images/maps/inferno.png', overpass:'images/maps/overpass.png', dust2:'images/maps/dust.png' }
 
 const BO1_SEQUENCE = [
   { type:'ban',     team:'away' },
@@ -99,13 +100,20 @@ async function loadVetos() {
         </div>
         <button class="btn btn-ghost" style="font-size:12px" data-edit="${v.id}">Edit</button>
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px">
-        ${steps.filter(s => s.map).map(s => {
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:4px">
+        ${steps.filter(s => s.map).map((s, i) => {
           const color = s.type === 'ban' ? 'var(--danger)' : s.type === 'pick' ? 'var(--success)' : 'var(--accent)'
           const teamLabel = s.team === 'home' ? (v.home || 'Us') : s.team === 'away' ? (v.away || 'Them') : '—'
-          return `<div style="display:flex;flex-direction:column;padding:6px 10px;border-radius:6px;background:var(--surface);border-left:3px solid ${color};min-width:80px">
-            <span style="font-size:12px;font-weight:700;color:var(--text)">${esc(MAP_LABELS[s.map] ?? s.map)}</span>
-            <span style="font-size:10px;margin-top:2px;letter-spacing:0.5px"><span style="color:${color};font-weight:700">${s.type.toUpperCase()}</span><span style="opacity:0.45"> · ${esc(teamLabel)}</span></span>
+          const img = MAP_IMAGES[s.map] ?? ''
+          return `<div style="position:relative;overflow:hidden;border-radius:8px;width:120px;height:76px;border:1.5px solid ${color};flex-shrink:0">
+            ${img ? `<img src="${img}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.18;pointer-events:none">` : ''}
+            <div style="position:relative;padding:8px 10px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
+              <span style="font-size:9px;font-weight:700;letter-spacing:1.2px;color:${color}">${s.type.toUpperCase()}</span>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--text);line-height:1.2">${esc(MAP_LABELS[s.map] ?? s.map)}</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:2px">${esc(teamLabel)}</div>
+              </div>
+            </div>
           </div>`
         }).join('')}
       </div>
