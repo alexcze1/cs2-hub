@@ -66,8 +66,7 @@ function renderCalendar() {
   const gridStart = new Date(firstDay)
   gridStart.setDate(gridStart.getDate() - startOffset)
 
-  const now   = new Date()
-  const today = new Date(now)
+  const today = new Date()
   today.setHours(0, 0, 0, 0)
 
   const cells = []
@@ -90,7 +89,6 @@ function renderCalendar() {
         <div class="cal-day-num">${d.getDate()}</div>
         ${dayEvents.map(e => `
           <div class="cal-event cal-event-${e.type}${e.source === 'pracc' ? ' cal-event-pracc' : ''}" data-id="${esc(e.id)}"><span class="cal-event-time">${formatTime(e.date)}${e.end_date ? ' – ' + formatTime(e.end_date) : ''}</span> ${esc(e.title)}${e.source === 'pracc' ? ' <span class="pracc-badge">PRACC</span>' : ''}</div>
-          ${!e.source && new Date(e.date) < now ? `<a href="session-log.html?event_id=${esc(e.id)}" onclick="event.stopPropagation()" style="display:block;font-size:10px;font-weight:700;letter-spacing:0.5px;color:var(--muted);text-decoration:none;padding:2px 0 2px 4px;margin-top:2px;opacity:0.7">LOG →</a>` : ''}
         `).join('')}
       </div>
     `
