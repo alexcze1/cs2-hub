@@ -19,24 +19,34 @@ async function loadTeams() {
     .eq('user_id', userId)
 
   const el = document.getElementById('teams-list')
+
   if (!memberships?.length) {
-    el.innerHTML = `<div style="color:var(--muted);font-size:13px;margin-bottom:8px">You're not in any teams yet.</div>`
+    document.getElementById('no-teams-divider').style.display = 'block'
     return
   }
 
-  el.innerHTML = `<div style="font-size:11px;font-weight:700;letter-spacing:1.5px;margin-bottom:10px;color:var(--muted)">YOUR TEAMS</div>`
-    + memberships.map(m => `
-      <button class="list-row" style="width:100%;text-align:left;background:none;border:none;padding:12px 14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center" data-team-id="${m.team_id}">
-        <div style="flex:1">
-          <div class="row-name">${esc(m.teams.name)}</div>
-          <div class="row-meta" style="display:flex;align-items:center;gap:8px">
-            <span>${m.role === 'owner' ? 'Owner' : 'Member'}${m.player_role ? ' · ' + m.player_role : ''}</span>
-            ${m.teams.join_code ? `<span style="font-family:monospace;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--accent);background:var(--surface);padding:1px 6px;border-radius:4px;border:1px solid var(--border)">${esc(m.teams.join_code)}</span>` : ''}
+  document.getElementById('teams-section').style.display = 'block'
+
+  el.innerHTML = memberships.map(m => {
+    const initial = (m.teams.name || '?')[0].toUpperCase()
+    const roleLabel = m.role === 'owner' ? 'Owner' : 'Member'
+    const roleSuffix = m.player_role ? ' · ' + m.player_role : ''
+    const codeHtml = m.teams.join_code
+      ? `<span class="ts-team-code">${esc(m.teams.join_code)}</span>`
+      : ''
+    return `
+      <button class="ts-team-card" data-team-id="${m.team_id}">
+        <div class="ts-team-avatar">${initial}</div>
+        <div class="ts-team-info">
+          <div class="ts-team-name">${esc(m.teams.name)}</div>
+          <div class="ts-team-meta">
+            <span class="ts-team-role">${roleLabel}${roleSuffix}</span>
+            ${codeHtml}
           </div>
         </div>
-        <span style="color:var(--accent);font-size:12px">Enter →</span>
-      </button>
-    `).join('')
+        <span class="ts-enter-arrow">→</span>
+      </button>`
+  }).join('')
 
   el.querySelectorAll('[data-team-id]').forEach(btn => btn.addEventListener('click', () => {
     setTeamId(btn.dataset.teamId)
