@@ -102,7 +102,8 @@ async function loadVetos() {
       <div style="display:flex;flex-wrap:wrap;gap:6px">
         ${steps.filter(s => s.map).map(s => {
           const color = s.type === 'ban' ? 'var(--danger)' : s.type === 'pick' ? 'var(--success)' : 'var(--accent)'
-          return `<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:var(--border);border-left:3px solid ${color}">${esc(MAP_LABELS[s.map] ?? s.map)} <span style="opacity:0.6">${s.type}</span></span>`
+          const teamLabel = s.team === 'home' ? (v.home || 'Us') : s.team === 'away' ? (v.away || 'Them') : '—'
+          return `<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:var(--border);border-left:3px solid ${color}">${esc(MAP_LABELS[s.map] ?? s.map)} <span style="opacity:0.6">${s.type}</span> <span style="opacity:0.45">${esc(teamLabel)}</span></span>`
         }).join('')}
       </div>
       ${v.notes ? `<div style="color:var(--muted);font-size:12px">${esc(v.notes)}</div>` : ''}
@@ -120,6 +121,8 @@ function openModal(id = null) {
   document.getElementById('f-opponent').value = v?.opponent ?? ''
   document.getElementById('f-format').value   = v?.format   ?? 'bo1'
   document.getElementById('f-notes').value    = v?.notes    ?? ''
+  document.getElementById('f-home').value     = v?.home     ?? 'Us'
+  document.getElementById('f-away').value     = v?.away     ?? 'Them'
   vetoSteps = v?.steps ? JSON.parse(JSON.stringify(v.steps)) : []
   document.getElementById('delete-btn').style.display = id ? 'block' : 'none'
   document.getElementById('modal-error').style.display = 'none'
@@ -145,7 +148,9 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   const errEl    = document.getElementById('modal-error')
   if (!title) { errEl.textContent = 'Title is required.'; errEl.style.display = 'block'; return }
 
-  const payload = { title, opponent, format, steps: vetoSteps, notes, team_id: getTeamId(), updated_at: new Date().toISOString() }
+  const home = document.getElementById('f-home').value.trim() || 'Us'
+  const away = document.getElementById('f-away').value.trim() || 'Them'
+  const payload = { title, opponent, format, steps: vetoSteps, notes, home, away, team_id: getTeamId(), updated_at: new Date().toISOString() }
   let error
   if (editingId) {
     ;({ error } = await supabase.from('veto_predictions').update(payload).eq('id', editingId))

@@ -71,10 +71,11 @@ document.getElementById('join-btn').addEventListener('click', async () => {
     errEl.textContent = memberErr.message; errEl.style.display = 'block'; return
   }
 
-  await supabase.from('roster').upsert(
+  const { error: rosterErr } = await supabase.from('roster').upsert(
     { team_id: team.id, user_id: userId, username: displayName, nickname: nickname || null },
     { onConflict: 'team_id,user_id', ignoreDuplicates: false }
   )
+  if (rosterErr) { errEl.textContent = `Roster error: ${rosterErr.message}`; errEl.style.display = 'block'; return }
 
   setTeamId(team.id)
   window.location.href = 'dashboard.html'
