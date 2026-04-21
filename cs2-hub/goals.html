@@ -18,8 +18,27 @@
       <button class="btn btn-primary" id="add-btn">+ Add Goal</button>
     </div>
 
+    <!-- Weekly Focus -->
+    <div style="margin-bottom:28px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--muted)">THIS WEEK'S FOCUS</div>
+        <button class="btn btn-ghost" style="font-size:11px;padding:3px 10px" id="add-focus-btn">+ Add</button>
+      </div>
+      <div id="focus-input-row" style="display:none;margin-bottom:10px;display:none">
+        <div style="display:flex;gap:8px">
+          <input class="form-input" id="focus-input" placeholder="e.g. Hit utility on Mirage B execute every round" style="flex:1;font-size:13px"/>
+          <button class="btn btn-primary" style="font-size:12px" id="focus-save-btn">Add</button>
+          <button class="btn btn-ghost" style="font-size:12px" id="focus-cancel-btn">Cancel</button>
+        </div>
+      </div>
+      <div id="focus-list" style="display:flex;flex-wrap:wrap;gap:8px">
+        <div style="color:var(--muted);font-size:13px;padding:8px 0" id="focus-empty">No focus items yet — add what the team is working on this week.</div>
+      </div>
+    </div>
+
+    <!-- Goal Modal -->
     <div class="modal-backdrop" id="modal" style="display:none">
-      <div class="modal" style="max-width:480px;width:100%">
+      <div class="modal" style="max-width:520px;width:100%">
         <div class="modal-header">
           <div class="modal-title" id="modal-title">Add Goal</div>
           <button class="modal-close" id="modal-close">×</button>
@@ -28,21 +47,40 @@
           <label class="form-label">Goal</label>
           <input class="form-input" id="f-title" placeholder="e.g. Reach top 100 national ranking"/>
         </div>
-        <div class="form-group">
-          <label class="form-label">Time Horizon</label>
-          <select class="form-select" id="f-horizon">
-            <option value="long_term">Long Term</option>
-            <option value="monthly">Monthly</option>
-            <option value="weekly">Weekly</option>
-          </select>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select class="form-select" id="f-category">
+              <option value="competition">Competition</option>
+              <option value="strategy">Strategy</option>
+              <option value="aim">Aim & Mechanics</option>
+              <option value="communication">Communication</option>
+              <option value="mental">Mental</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Owner</label>
+            <input class="form-input" id="f-owner" placeholder="Team / player name"/>
+          </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Status</label>
-          <select class="form-select" id="f-status">
-            <option value="active">Active</option>
-            <option value="completed">Completed</option>
-            <option value="dropped">Dropped</option>
-          </select>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Time Horizon</label>
+            <select class="form-select" id="f-horizon">
+              <option value="long_term">Long Term</option>
+              <option value="monthly">Monthly</option>
+              <option value="weekly">Weekly</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select class="form-select" id="f-status">
+              <option value="active">Active</option>
+              <option value="completed">Completed</option>
+              <option value="dropped">Dropped</option>
+            </select>
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">Progress: <span id="progress-val">0</span>%</label>
@@ -53,8 +91,12 @@
           <input class="form-input" id="f-due" type="date"/>
         </div>
         <div class="form-group">
-          <label class="form-label">Description / Actions</label>
-          <textarea class="form-textarea" id="f-description" placeholder="What does achieving this look like?" style="min-height:70px"></textarea>
+          <label class="form-label">Description</label>
+          <textarea class="form-textarea" id="f-description" placeholder="What does achieving this look like?" style="min-height:60px"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Action Steps</label>
+          <textarea class="form-textarea" id="f-actions" placeholder="What will we actually do?&#10;• VOD review every Thursday&#10;• 30min aim training daily" style="min-height:80px"></textarea>
         </div>
         <div class="error-msg" id="modal-error" style="display:none"></div>
         <div class="modal-actions">
