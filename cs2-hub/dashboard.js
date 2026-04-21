@@ -51,7 +51,10 @@ if (!events?.length) {
   upcomingEl.innerHTML = `<div class="empty-state"><h3>No events this week</h3><p>Add one in the Schedule section.</p></div>`
 } else {
   const next = events[0]
-  document.getElementById('stat-next-event').textContent = next.title
+  const msUntil = new Date(next.date) - now
+  const hoursUntil = Math.floor(msUntil / 36e5)
+  const timeUntil = hoursUntil < 1 ? 'Starting soon' : hoursUntil < 24 ? `In ${hoursUntil}h` : `In ${Math.floor(hoursUntil/24)}d`
+  document.getElementById('stat-next-event').innerHTML = `${esc(next.title)} <span style="font-size:11px;font-weight:600;color:var(--accent);background:var(--accent)18;padding:2px 7px;border-radius:4px;margin-left:4px">${timeUntil}</span>`
   document.getElementById('stat-next-date').textContent = formatDate(next.date)
 
   function localDateStr(d) {
@@ -117,7 +120,15 @@ const recentForm = (vodData ?? []).slice(0, 5).map(v => {
   }
   return w > l ? 'W' : l > w ? 'L' : 'D'
 })
-document.getElementById('stat-vods').innerHTML = `${mw}W — ${ml}L`
+const totalM = mw + ml + md
+const winPct = totalM ? Math.round((mw / totalM) * 100) : 0
+document.getElementById('stat-vods').innerHTML = `<span style="color:var(--success)">${mw}W</span> <span style="color:var(--muted);font-size:16px">—</span> <span style="color:var(--danger)">${ml}L</span>`
+document.getElementById('stat-vods').insertAdjacentHTML('afterend', `
+  <div style="margin-top:8px;height:4px;border-radius:2px;background:var(--border);overflow:hidden">
+    <div style="height:100%;width:${winPct}%;background:var(--success);border-radius:2px;transition:width .4s"></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-top:4px">${winPct}% win rate · ${totalM} matches</div>
+`)
 document.getElementById('stat-vods-form').innerHTML = recentForm.map(r =>
   `<span class="form-dot form-dot-${r === 'W' ? 'win' : r === 'L' ? 'loss' : 'draw'}">${r}</span>`
 ).join('')
