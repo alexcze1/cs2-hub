@@ -5,10 +5,9 @@ import { supabase, getTeamId } from './supabase.js'
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
 const MAP_IMG = { dust2: 'dust' }
+function mapImgUrl(map) { return `images/maps/${MAP_IMG[map] ?? map}.png` }
 function mapIcon(map) {
-  const file = MAP_IMG[map] ?? map
-  const url = `images/maps/${file}.png`
-  return `<div class="map-badge"><img src="${url}" alt="${esc(map)}" onerror="this.parentElement.innerHTML='<span>${map.slice(0,3).toUpperCase()}</span>'"/></div>`
+  return `<div class="map-badge"><img src="${mapImgUrl(map)}" alt="${esc(map)}" onerror="this.parentElement.innerHTML='<span>${map.slice(0,3).toUpperCase()}</span>'"/></div>`
 }
 
 await requireAuth()
@@ -71,7 +70,8 @@ function renderList() {
     const mapLabel = s.map.charAt(0).toUpperCase() + s.map.slice(1)
 
     return `
-      <a class="strat-card strat-card-${s.side}" href="stratbook-detail.html?id=${esc(s.id)}">
+      <a class="strat-card strat-card-${s.side}" href="stratbook-detail.html?id=${esc(s.id)}" style="position:relative;overflow:hidden">
+        <img src="${mapImgUrl(s.map)}" aria-hidden="true" style="position:absolute;right:0;top:0;height:100%;width:200px;object-fit:cover;opacity:0.08;pointer-events:none;-webkit-mask-image:linear-gradient(to left,rgba(0,0,0,0.9) 0%,transparent 100%);mask-image:linear-gradient(to left,rgba(0,0,0,0.9) 0%,transparent 100%)">`
         <div class="strat-card-header">
           ${mapIcon(s.map)}
           <span class="strat-type-badge" style="color:${t.color};background:${t.color}22">${t.label}</span>
