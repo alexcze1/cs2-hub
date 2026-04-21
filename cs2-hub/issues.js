@@ -32,17 +32,19 @@ function renderIssues() {
     return
   }
 
-  el.innerHTML = filtered.map(i => `
-    <div class="list-row" style="flex-direction:column;align-items:flex-start;gap:10px">
+  el.innerHTML = filtered.map(i => {
+    const prioColor   = PRIORITY_COLORS[i.priority] ?? 'var(--muted)'
+    const statusColor = STATUS_COLORS[i.status]     ?? 'var(--muted)'
+    const catColor    = CAT_COLORS[i.category]      ?? 'var(--muted)'
+    return `
+    <div class="list-row" style="flex-direction:column;align-items:flex-start;gap:10px;border-left:3px solid ${prioColor}">
       <div style="display:flex;justify-content:space-between;width:100%;align-items:flex-start;gap:12px">
         <div style="flex:1">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-            <div style="font-weight:700;font-size:14px">${esc(i.title)}</div>
-            <span style="font-size:10px;font-weight:700;color:${PRIORITY_COLORS[i.priority]};text-transform:uppercase">${i.priority}</span>
-          </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <span style="font-size:11px;padding:1px 7px;border-radius:3px;background:var(--border);color:${CAT_COLORS[i.category] ?? 'var(--muted)'};font-weight:600;text-transform:uppercase">${esc(i.category)}</span>
-            <span style="font-size:11px;color:${STATUS_COLORS[i.status]};font-weight:600;text-transform:uppercase">${i.status}</span>
+          <div style="font-weight:700;font-size:14px;margin-bottom:6px">${esc(i.title)}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+            <span style="font-size:10px;font-weight:700;letter-spacing:0.8px;color:${prioColor};background:${prioColor}18;padding:2px 8px;border-radius:4px;text-transform:uppercase">${i.priority}</span>
+            <span style="font-size:10px;font-weight:700;letter-spacing:0.8px;color:${statusColor};background:${statusColor}18;padding:2px 8px;border-radius:4px;text-transform:uppercase">${i.status}</span>
+            <span style="font-size:10px;font-weight:700;letter-spacing:0.8px;color:${catColor};background:${catColor}18;padding:2px 8px;border-radius:4px;text-transform:uppercase">${esc(i.category)}</span>
           </div>
         </div>
         <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;flex-shrink:0" data-edit="${i.id}">Edit</button>
@@ -55,7 +57,7 @@ function renderIssues() {
         </div>
       ` : ''}
     </div>
-  `).join('')
+  `}).join('')
 
   document.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); openModal(e.target.dataset.edit) }))
 }
