@@ -72,9 +72,6 @@ function renderMaps() {
     const mapFile = m.map === 'dust2' ? 'dust' : m.map
     return `
       <div class="map-row">
-        <div style="width:36px;height:24px;border-radius:4px;overflow:hidden;flex-shrink:0">
-          <img src="images/maps/${mapFile}.png" style="width:100%;height:100%;object-fit:cover">
-        </div>
         <select class="form-select map-row-map" style="width:130px" data-i="${i}">${opts}</select>
         <div class="map-score-inputs">
           <input class="form-input map-row-us"   type="number" min="0" max="30" placeholder="Us"   value="${m.score_us   ?? ''}" data-i="${i}" style="width:66px;text-align:center"/>
