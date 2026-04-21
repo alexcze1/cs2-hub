@@ -72,7 +72,7 @@ function renderMaps() {
     const mapFile = m.map === 'dust2' ? 'dust' : m.map
     return `
       <div class="map-row">
-        <div style="width:44px;height:30px;border-radius:5px;overflow:hidden;flex-shrink:0">
+        <div style="width:36px;height:24px;border-radius:4px;overflow:hidden;flex-shrink:0">
           <img src="images/maps/${mapFile}.png" style="width:100%;height:100%;object-fit:cover">
         </div>
         <select class="form-select map-row-map" style="width:130px" data-i="${i}">${opts}</select>
