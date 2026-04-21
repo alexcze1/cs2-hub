@@ -9,6 +9,8 @@ renderSidebar('opponents')
 
 const MAPS = ['ancient','mirage','nuke','anubis','inferno','overpass','dust2']
 const MAP_LABELS = { ancient:'Ancient', mirage:'Mirage', nuke:'Nuke', anubis:'Anubis', inferno:'Inferno', overpass:'Overpass', dust2:'Dust2' }
+const MAP_IMG    = { dust2: 'dust' }
+function mapImgUrl(map) { return `images/maps/${MAP_IMG[map] ?? map}.png` }
 
 const MAP_POSITIONS = {
   ancient:  { t: ['A','MID','AWP','CAVE','B'],                    ct: ['A','MID','AWP','CAVE','B'] },
@@ -52,11 +54,16 @@ function ensureMapData(map) {
 // ── Map Selector ────────────────────────────────────────────
 function renderMapSelector() {
   const el = document.getElementById('map-selector')
-  el.innerHTML = MAPS.map(m => `
-    <button class="map-toggle ${selectedMaps.includes(m) ? 'active' : ''}" data-map="${m}">
-      ${esc(MAP_LABELS[m])}
-    </button>
-  `).join('')
+  el.innerHTML = MAPS.map(m => {
+    const active = selectedMaps.includes(m)
+    return `
+    <button class="map-toggle" data-map="${m}" style="position:relative;overflow:hidden;padding:0;width:90px;height:58px;border:1.5px solid ${active ? 'var(--accent)' : 'var(--border)'};border-radius:8px;background:var(--surface);opacity:${active ? '1' : '0.5'}">
+      <img src="${mapImgUrl(m)}" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:${active ? '0.35' : '0.2'};pointer-events:none">
+      <div style="position:relative;height:100%;display:flex;flex-direction:column;justify-content:flex-end;padding:6px 8px">
+        <span style="font-size:11px;font-weight:700;color:${active ? 'var(--accent)' : 'var(--text)'}">${esc(MAP_LABELS[m])}</span>
+      </div>
+    </button>`
+  }).join('')
 
   el.querySelectorAll('.map-toggle').forEach(btn => btn.addEventListener('click', () => {
     saveActivePlan()
@@ -85,11 +92,16 @@ function renderAntistratSection() {
 
 function renderMapTabs() {
   const el = document.getElementById('antistrat-map-tabs')
-  el.innerHTML = selectedMaps.map((m, i) => `
-    <button class="review-map-tab ${i === activeMapIdx ? 'active' : ''}" data-i="${i}">
-      ${esc(MAP_LABELS[m])}
-    </button>
-  `).join('')
+  el.innerHTML = selectedMaps.map((m, i) => {
+    const active = i === activeMapIdx
+    return `
+    <button class="review-map-tab" data-i="${i}" style="position:relative;overflow:hidden;padding:0;width:90px;height:54px;border:1.5px solid ${active ? 'var(--accent)' : 'var(--border)'};border-radius:7px;background:var(--surface)">
+      <img src="${mapImgUrl(m)}" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:${active ? '0.3' : '0.15'};pointer-events:none">
+      <div style="position:relative;height:100%;display:flex;align-items:flex-end;padding:6px 8px">
+        <span style="font-size:12px;font-weight:700;color:${active ? 'var(--accent)' : 'var(--text)'}">${esc(MAP_LABELS[m])}</span>
+      </div>
+    </button>`
+  }).join('')
 
   el.querySelectorAll('.review-map-tab').forEach(btn => btn.addEventListener('click', e => {
     saveActivePlan()
