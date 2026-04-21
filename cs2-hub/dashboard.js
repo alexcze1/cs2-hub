@@ -11,6 +11,8 @@ function esc(text) {
 await requireAuth()
 renderSidebar('dashboard')
 
+const hour = now.getHours()
+const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
 document.getElementById('date-sub').textContent = new Date().toLocaleDateString('en-GB', {
   weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
 })
@@ -25,7 +27,8 @@ const teamId = getTeamId()
 const now = new Date()
 const weekLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
 
-const { data: teamRow } = await supabase.from('teams').select('pracc_url').eq('id', teamId).single()
+const { data: teamRow } = await supabase.from('teams').select('name, pracc_url').eq('id', teamId).single()
+if (teamRow?.name) document.getElementById('page-greeting').textContent = `${greeting}, ${teamRow.name}`
 
 const [{ data: dbEvents }, pracc] = await Promise.all([
   supabase.from('events').select('*').eq('team_id', teamId).gte('date', now.toISOString()).lte('date', weekLater.toISOString()).order('date', { ascending: true }),
@@ -133,12 +136,19 @@ document.getElementById('stat-vods-form').innerHTML = recentForm.map(r =>
   `<span class="form-dot form-dot-${r === 'W' ? 'win' : r === 'L' ? 'loss' : 'draw'}">${r}</span>`
 ).join('')
 
+const { data: issuesData } = await supabase.from('issues').select('status').eq('team_id', teamId)
+const openIssues = (issuesData ?? []).filter(i => i.status !== 'resolved').length
+const issueColor = openIssues > 0 ? 'var(--danger)' : 'var(--success)'
+document.getElementById('stat-issues').innerHTML = `<span style="color:${issueColor}">${openIssues}</span>`
+document.getElementById('stat-issues-sub').textContent = openIssues === 0 ? 'All clear' : `${openIssues} need attention`
+document.getElementById('stat-issues-card').style.borderTopColor = issueColor
+
 const { data: recentStrats } = await supabase
   .from('strats')
   .select('id, name, map, side, type, tags')
   .eq('team_id', teamId)
   .order('created_at', { ascending: false })
-  .limit(3)
+  .limit(5)
 
 const recentEl = document.getElementById('recent-strats')
 if (!recentStrats?.length) {
