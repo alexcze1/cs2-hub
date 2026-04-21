@@ -29,14 +29,16 @@ async function loadRoster() {
     el.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><h3>No players yet</h3><p>Add players with the button above.</p></div>`
     return
   }
-  el.innerHTML = allPlayers.map(p => `
-    <div class="player-card" style="cursor:pointer" data-edit="${p.id}">
-      <div class="player-avatar">${esc((p.nickname || p.username || '?').slice(0,2).toUpperCase())}</div>
+  el.innerHTML = allPlayers.map(p => {
+    const roleColor = ROLE_COLORS[p.role] ?? 'var(--border)'
+    return `
+    <div class="player-card" style="cursor:pointer;border-top:3px solid ${roleColor}" data-edit="${p.id}">
+      <div class="player-avatar" style="background:${roleColor}22;border:2px solid ${roleColor};color:${roleColor}">${esc((p.nickname || p.username || '?').slice(0,2).toUpperCase())}</div>
       <div class="player-ign">${esc(p.nickname || p.username)}</div>
       ${p.username && p.nickname ? `<div class="player-name">${esc(p.username)}</div>` : ''}
-      <span class="role-badge" style="background:${ROLE_COLORS[p.role] ?? 'var(--border)'};color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700">${esc(p.role ?? 'Player')}</span>
+      <span class="role-badge" style="background:${roleColor};color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700">${esc(p.role ?? 'Player')}</span>
     </div>
-  `).join('')
+  `}).join('')
   document.querySelectorAll('[data-edit]').forEach(el => el.addEventListener('click', () => openModal(el.dataset.edit)))
 }
 
