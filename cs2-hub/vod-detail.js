@@ -67,10 +67,14 @@ function renderMaps() {
   }
 
   el.innerHTML = maps.map((m, i) => {
-    const opts = MAPS.map(n => `<option value="${n}" ${m.map === n ? 'selected' : ''}>${n.charAt(0).toUpperCase()+n.slice(1)}</option>`).join('')
-    const r    = mapResult(m)
+    const opts    = MAPS.map(n => `<option value="${n}" ${m.map === n ? 'selected' : ''}>${n.charAt(0).toUpperCase()+n.slice(1)}</option>`).join('')
+    const r       = mapResult(m)
+    const mapFile = m.map === 'dust2' ? 'dust' : m.map
     return `
       <div class="map-row">
+        <div style="width:44px;height:30px;border-radius:5px;overflow:hidden;flex-shrink:0">
+          <img src="images/maps/${mapFile}.png" style="width:100%;height:100%;object-fit:cover">
+        </div>
         <select class="form-select map-row-map" style="width:130px" data-i="${i}">${opts}</select>
         <div class="map-score-inputs">
           <input class="form-input map-row-us"   type="number" min="0" max="30" placeholder="Us"   value="${m.score_us   ?? ''}" data-i="${i}" style="width:66px;text-align:center"/>
@@ -108,10 +112,19 @@ function renderMaps() {
 function renderMapTabs() {
   const el = document.getElementById('review-map-tabs')
   el.innerHTML = maps.map((m, i) => {
-    const r = mapResult(m)
-    const score = m.score_us != null && m.score_them != null ? ` ${m.score_us}–${m.score_them}` : ''
-    return `<button class="review-map-tab ${i === activeMapTab ? 'active' : ''} ${r ? 'tab-'+r : ''}" data-i="${i}">
-      ${m.map.charAt(0).toUpperCase() + m.map.slice(1)}${score}
+    const r       = mapResult(m)
+    const mapFile = m.map === 'dust2' ? 'dust' : m.map
+    const borderColor = r === 'win' ? 'var(--success)' : r === 'loss' ? 'var(--danger)' : i === activeMapTab ? 'var(--accent)' : 'var(--border)'
+    const labelColor  = r === 'win' ? 'var(--success)' : r === 'loss' ? 'var(--danger)' : 'var(--muted)'
+    return `<button class="review-map-tab ${i === activeMapTab ? 'active' : ''}" data-i="${i}" style="position:relative;overflow:hidden;padding:0;width:90px;height:54px;border:1.5px solid ${borderColor};background:var(--surface)">
+      <img src="images/maps/${mapFile}.png" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:${i === activeMapTab ? '0.3' : '0.15'};pointer-events:none">
+      <div style="position:relative;padding:6px 8px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
+        <span style="font-size:9px;font-weight:700;letter-spacing:0.8px;color:${labelColor}">${r ? r.toUpperCase() : '—'}</span>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--text)">${m.map.charAt(0).toUpperCase() + m.map.slice(1)}</div>
+          ${m.score_us != null && m.score_them != null ? `<div style="font-size:10px;color:var(--muted)">${m.score_us}–${m.score_them}</div>` : ''}
+        </div>
+      </div>
     </button>`
   }).join('')
 
