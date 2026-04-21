@@ -196,10 +196,10 @@ body {
 }
 .week-event-time  { display: block; font-weight: 700; opacity: .75; font-size: 10px; }
 .week-event-title { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.week-event-scrim      { background: rgba(59,130,246,0.18); color: var(--accent); }
-.week-event-tournament { background: rgba(34,197,94,0.18);  color: var(--success); }
-.week-event-meeting    { background: rgba(167,139,250,0.18); color: var(--special); }
-.week-event-vod_review { background: rgba(249,115,22,0.18); color: var(--warning); }
+.week-event-scrim      { background: rgba(59,130,246,0.15); color: var(--accent);   border-left: 3px solid var(--accent); }
+.week-event-tournament { background: rgba(34,197,94,0.15);  color: var(--success);  border-left: 3px solid var(--success); }
+.week-event-meeting    { background: rgba(167,139,250,0.15); color: var(--special); border-left: 3px solid var(--special); }
+.week-event-vod_review { background: rgba(249,115,22,0.15); color: var(--warning);  border-left: 3px solid var(--warning); }
 .week-empty { color: var(--muted); font-size: 11px; text-align: center; padding-top: 4px; }
 
 /* ── Section Label ── */
@@ -534,13 +534,13 @@ body {
   cursor: pointer;
 }
 
-.cal-event-scrim      { background: rgba(59,130,246,0.20); color: var(--accent); }
-.cal-event-tournament { background: rgba(34,197,94,0.20);  color: var(--success); }
-.cal-event-meeting    { background: rgba(167,139,250,0.20); color: var(--special); }
-.cal-event-vod_review { background: rgba(249,115,22,0.20); color: var(--warning); }
+.cal-event-scrim      { background: rgba(59,130,246,0.15); color: var(--accent);   border-left: 3px solid var(--accent); }
+.cal-event-tournament { background: rgba(34,197,94,0.15);  color: var(--success);  border-left: 3px solid var(--success); }
+.cal-event-meeting    { background: rgba(167,139,250,0.15); color: var(--special); border-left: 3px solid var(--special); }
+.cal-event-vod_review { background: rgba(249,115,22,0.15); color: var(--warning);  border-left: 3px solid var(--warning); }
 
 .cal-event-time { font-weight: 700; opacity: 0.85; margin-right: 3px; }
-.cal-event-pracc { border-left: 2px solid var(--accent); }
+.cal-event-pracc { border-left: 3px solid var(--accent); }
 .pracc-badge { font-size: 9px; font-weight: 800; letter-spacing: .06em; background: var(--accent); color: #000; padding: 1px 4px; border-radius: 3px; vertical-align: middle; margin-left: 4px; }
 .form-static { color: var(--text-primary); padding: 6px 0; }
 
