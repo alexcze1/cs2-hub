@@ -13,21 +13,21 @@ export async function renderSidebar(activePage) {
   }
 
   const links = [
-    { id: 'dashboard',  label: 'Dashboard',        href: 'dashboard.html',  icon: '⊞', section: 'MAIN' },
-    { id: 'schedule',   label: 'Schedule',          href: 'schedule.html',   icon: '◷' },
-    { id: 'stratbook',  label: 'Stratbook',         href: 'stratbook.html',  icon: '≡',  section: 'TOOLS' },
-    { id: 'vods',       label: 'Results & Review',  href: 'vods.html',       icon: '◎' },
-    { id: 'opponents',  label: 'Anti-Strat',        href: 'opponents.html',  icon: '◈' },
+    { id: 'dashboard',  label: 'Dashboard',        href: 'dashboard.html',  icon: '⌂',  section: 'MAIN' },
+    { id: 'schedule',   label: 'Schedule',          href: 'schedule.html',   icon: '⊡' },
+    { id: 'stratbook',  label: 'Stratbook',         href: 'stratbook.html',  icon: '▤',  section: 'TOOLS' },
+    { id: 'vods',       label: 'Results & Review',  href: 'vods.html',       icon: '⊙' },
+    { id: 'opponents',  label: 'Anti-Strat',        href: 'opponents.html',  icon: '⊕' },
     { id: 'veto',       label: 'Map Veto',          href: 'veto.html',       icon: '⬡' },
-    { id: 'keywords',   label: 'Keywords',          href: 'keywords.html',   icon: '≈' },
-    { id: 'goals',      label: 'Team Goals',        href: 'goals.html',      icon: '◐' },
-    { id: 'issues',     label: 'Issues',            href: 'issues.html',     icon: '⚑' },
-    { id: 'roster',     label: 'Roster',            href: 'roster.html',     icon: '◉', section: 'TEAM' },
+    { id: 'keywords',   label: 'Keywords',          href: 'keywords.html',   icon: '#' },
+    { id: 'goals',      label: 'Team Goals',        href: 'goals.html',      icon: '◎' },
+    { id: 'issues',     label: 'Issues',            href: 'issues.html',     icon: '⚠' },
+    { id: 'roster',     label: 'Roster',            href: 'roster.html',     icon: '⊛', section: 'TEAM' },
   ]
 
   let html = `
     <div class="sidebar-brand">
-      <img src="images/logo-text.png" alt="MIDROUND" class="sidebar-logo-img"/>
+      <img src="images/logo-lettering.png" alt="MIDROUND" class="sidebar-logo-img"/>
       <div class="team-name">${esc(teamName)}</div>
     </div>`
 
