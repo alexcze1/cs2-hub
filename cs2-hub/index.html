@@ -5,11 +5,59 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>MIDROUND — Login</title>
   <link rel="stylesheet" href="style.css"/>
+  <style>
+    .login-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 16px;
+      background-color: var(--bg);
+      background-image:
+        linear-gradient(rgba(59,130,246,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59,130,246,0.035) 1px, transparent 1px);
+      background-size: 44px 44px;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 400px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--accent);
+      border-radius: 12px;
+      padding: 40px 36px;
+      animation: ts-enter 0.35s ease both;
+    }
+
+    @keyframes ts-enter {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .login-logo {
+      display: block;
+      width: 152px;
+      filter: invert(1);
+      margin: 0 auto 12px;
+      opacity: 0.92;
+    }
+
+    .login-tagline {
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: 3.5px;
+      text-transform: uppercase;
+      text-align: center;
+      margin-bottom: 36px;
+      font-weight: 600;
+    }
+  </style>
 </head>
 <body>
 <div class="login-page">
   <div class="login-card">
-    <img src="images/logo-lettering.png" alt="MIDROUND" style="width:180px;filter:invert(1);margin-bottom:12px;display:block;margin-left:auto;margin-right:auto"/>
+    <img src="images/logo-lettering.png" alt="MIDROUND" class="login-logo"/>
     <div class="login-tagline">Team access only</div>
 
     <div class="form-group">
@@ -28,7 +76,6 @@
   import { signIn } from './auth.js'
   import { supabase } from './supabase.js'
 
-  // Redirect if already logged in
   const { data: { session } } = await supabase.auth.getSession()
   if (session) {
     window.location.href = 'dashboard.html'
@@ -53,7 +100,6 @@
       }
     })
 
-    // Allow Enter key
     document.getElementById('password').addEventListener('keydown', e => {
       if (e.key === 'Enter') btn.click()
     })
