@@ -99,11 +99,14 @@ async function loadVetos() {
         </div>
         <button class="btn btn-ghost" style="font-size:12px" data-edit="${v.id}">Edit</button>
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px">
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
         ${steps.filter(s => s.map).map(s => {
           const color = s.type === 'ban' ? 'var(--danger)' : s.type === 'pick' ? 'var(--success)' : 'var(--accent)'
           const teamLabel = s.team === 'home' ? (v.home || 'Us') : s.team === 'away' ? (v.away || 'Them') : '—'
-          return `<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:var(--border);border-left:3px solid ${color}">${esc(MAP_LABELS[s.map] ?? s.map)} <span style="opacity:0.6">${s.type}</span> <span style="opacity:0.45">${esc(teamLabel)}</span></span>`
+          return `<div style="display:flex;flex-direction:column;padding:6px 10px;border-radius:6px;background:var(--surface);border-left:3px solid ${color};min-width:80px">
+            <span style="font-size:12px;font-weight:700;color:var(--text)">${esc(MAP_LABELS[s.map] ?? s.map)}</span>
+            <span style="font-size:10px;margin-top:2px;letter-spacing:0.5px"><span style="color:${color};font-weight:700">${s.type.toUpperCase()}</span><span style="opacity:0.45"> · ${esc(teamLabel)}</span></span>
+          </div>`
         }).join('')}
       </div>
       ${v.notes ? `<div style="color:var(--muted);font-size:12px">${esc(v.notes)}</div>` : ''}
