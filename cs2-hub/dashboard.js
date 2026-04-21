@@ -149,9 +149,7 @@ if (!recentStrats?.length) {
     const mapFile = s.map === 'dust2' ? 'dust' : s.map
     return `
     <a class="list-row" href="stratbook-detail.html?id=${s.id}" style="border-left:3px solid ${sideColor};padding-left:12px">
-      <div style="width:42px;height:30px;border-radius:5px;overflow:hidden;flex-shrink:0">
-        <img src="images/maps/${mapFile}.png" alt="${esc(s.map)}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='<span style=font-size:10px;font-weight:700>${s.map.slice(0,3).toUpperCase()}</span>'">
-      </div>
+      <div class="map-badge"><img src="images/maps/${mapFile}.png" alt="${esc(s.map)}" onerror="this.parentElement.innerHTML='<span>${s.map.slice(0,3).toUpperCase()}</span>'"/></div>
       <div class="flex-1">
         <div class="row-name">${esc(s.name)}</div>
         <div class="row-meta">${esc(s.map.charAt(0).toUpperCase()+s.map.slice(1))} · ${s.side === 't' ? 'T-Side' : 'CT-Side'} · ${esc(s.type)}</div>
