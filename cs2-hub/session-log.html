@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Session Log — MIDROUND</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <a href="schedule.html" style="color:var(--muted);font-size:13px;text-decoration:none">← Schedule</a>
+        <div class="page-title" id="event-title" style="margin-top:6px">Session Log</div>
+        <div id="event-meta" style="font-size:13px;color:var(--muted);margin-top:4px"></div>
+      </div>
+    </div>
+    <div style="max-width:720px">
+      <div id="log-body"></div>
+    </div>
+  </main>
+</div>
+<script type="module" src="session-log.js"></script>
+</body>
+</html>
