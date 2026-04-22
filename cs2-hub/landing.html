@@ -1069,87 +1069,94 @@
   </div>
 
   <div class="feature-wrap feature-wrap-alt">
-    <div class="feature feature-flip">
-      <div class="feature-copy reveal reveal-delay-1">
-        <div class="feature-eyebrow">Antistrat</div>
-        <h2 class="feature-headline">KNOW YOUR ENEMY<br>BEFORE THE SERVER LOADS.</h2>
-        <p class="feature-body">Build a complete antistrat sheet for every opponent — CT and T side positions, pistol tendencies, exploits, and solutions. When it's game day, print the full gameplan as a PDF and take it to the booth.</p>
-      </div>
-      <div class="feature-mock reveal reveal-delay-2" style="padding:0;overflow:hidden;background:#080c14;">
-        <!-- Real opponent-detail page structure -->
+    <div class="matchview-showcase reveal">
+      <div class="feature-eyebrow">Antistrat</div>
+      <h2 class="feature-headline">KNOW YOUR ENEMY<br>BEFORE THE SERVER LOADS.</h2>
+      <p class="feature-body">Build a complete antistrat sheet for every opponent — CT and T side positions, pistol tendencies, exploits, and solutions. When it's game day, print the full gameplan as a PDF and take it to the booth.</p>
+      <!-- Full-width antistrat mock -->
+      <div style="border:1px solid #1a2744;border-radius:10px;overflow:hidden;background:#080c14;">
         <div class="app-page-header">
           <div>
             <div class="app-page-back">← Opponents</div>
             <div class="app-page-title">NATUS VINCERE</div>
           </div>
-          <div style="display:flex;gap:10px;align-items:center">
-            <button class="app-btn app-btn-secondary">Print</button>
-            <button class="app-btn app-btn-primary">Save</button>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div style="display:flex;gap:4px">
+              <button class="app-map-toggle active">Mirage</button>
+              <button class="app-map-toggle">Nuke</button>
+              <button class="app-map-toggle">Inferno</button>
+              <button class="app-map-toggle">Ancient</button>
+            </div>
+            <div style="width:1px;height:20px;background:#1a2744;margin:0 4px"></div>
+            <button class="app-btn app-btn-secondary" style="font-size:12px;padding:6px 14px">⎙ Print</button>
+            <button class="app-btn app-btn-primary" style="font-size:12px;padding:6px 14px">Save</button>
           </div>
         </div>
-        <div style="padding:14px 20px;border-bottom:1px solid #1a2744">
-          <div class="app-section-label">Maps</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button class="app-map-toggle active">Mirage</button>
-            <button class="app-map-toggle">Nuke</button>
-            <button class="app-map-toggle">Inferno</button>
-            <button class="app-map-toggle">Ancient</button>
-          </div>
+        <!-- Antistrat map tabs -->
+        <div style="display:flex;gap:6px;padding:10px 18px;border-bottom:1px solid #1a2744;background:rgba(0,0,0,0.15)">
+          <button class="app-review-map-tab active">Mirage</button>
+          <button class="app-review-map-tab">Nuke</button>
+          <button class="app-review-map-tab">Inferno</button>
         </div>
-        <div style="padding:14px 20px">
-          <div class="app-section-label">Antistrat</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
-            <button class="app-review-map-tab active">Mirage</button>
-            <button class="app-review-map-tab">Nuke</button>
-            <button class="app-review-map-tab">Inferno</button>
-          </div>
-          <div class="gameplan-sheet" style="margin-bottom:12px">
+        <!-- CT + T side-by-side -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:14px 18px">
+          <div class="gameplan-sheet">
             <div class="gameplan-title ct-title">CT GAMEPLAN <span style="opacity:0.6;font-weight:400">— vs their T side</span></div>
             <div class="gameplan-split">
               <div class="gameplan-block">
                 <div class="gameplan-section-label pistols-label">PISTOLS</div>
-                <div class="gameplan-textarea-static">Stack B, force banana push early. IGL takes mid control round 1.</div>
+                <div class="gameplan-textarea-static">Stack B, force banana push early.</div>
               </div>
               <div class="gameplan-block">
                 <div class="gameplan-section-label style-label">STYLE</div>
-                <div class="gameplan-textarea-static">Reactive, info-based. AWP repositions every round.</div>
+                <div class="gameplan-textarea-static">Reactive, info-based. AWP repositions.</div>
               </div>
             </div>
             <div class="gameplan-split">
               <div class="gameplan-block">
                 <div class="gameplan-section-label antiecos-label">ANTIECOS</div>
-                <div class="gameplan-textarea-static">Stack mid + apps. Watch for B rush early.</div>
+                <div class="gameplan-textarea-static">Stack mid + apps.</div>
               </div>
               <div class="gameplan-block">
                 <div class="gameplan-section-label forces-label">FORCES</div>
-                <div class="gameplan-textarea-static">Full B stack. Don't push mid on force rounds.</div>
+                <div class="gameplan-textarea-static">Full B stack. Don't push mid.</div>
               </div>
             </div>
             <div class="gameplan-section-label tendencies-label">TENDENCIES</div>
             <div class="gameplan-textarea-static">Fast rotates on any info. AWP repositions each round without flashing.</div>
             <div class="gameplan-section-label exploits-label">EXPLOITS</div>
-            <div class="gameplan-textarea-static">Weak to mid flash burst before 20s. Connector smoke timing inconsistent.</div>
+            <div class="gameplan-textarea-static">Weak to mid flash before 20s. Connector smoke timing inconsistent.</div>
             <div class="gameplan-section-label solutions-label">SOLUTIONS</div>
-            <div class="gameplan-textarea-static">Flash mid pre-20s. Fake B early, rotate, split A connector.</div>
+            <div class="gameplan-textarea-static">Flash mid pre-20s. Fake B, rotate, split A connector.</div>
           </div>
           <div class="gameplan-sheet">
             <div class="gameplan-title t-title">T GAMEPLAN <span style="opacity:0.6;font-weight:400">— vs their CT side</span></div>
             <div class="gameplan-split">
               <div class="gameplan-block">
                 <div class="gameplan-section-label pistols-label">PISTOLS</div>
-                <div class="gameplan-textarea-static">Force B rush round 2. All-in banana with pistols.</div>
+                <div class="gameplan-textarea-static">Force B rush round 2. All-in banana.</div>
               </div>
               <div class="gameplan-block">
                 <div class="gameplan-section-label style-label">STYLE</div>
-                <div class="gameplan-textarea-static">Slow default with mid control. Rarely open rush.</div>
+                <div class="gameplan-textarea-static">Slow default with mid control. Rarely rushes.</div>
+              </div>
+            </div>
+            <div class="gameplan-split">
+              <div class="gameplan-block">
+                <div class="gameplan-section-label antiecos-label">ANTIECOS</div>
+                <div class="gameplan-textarea-static">Stack B, force a pick banana early.</div>
+              </div>
+              <div class="gameplan-block">
+                <div class="gameplan-section-label forces-label">FORCES</div>
+                <div class="gameplan-textarea-static">Push mid immediately, deny info.</div>
               </div>
             </div>
             <div class="gameplan-section-label tendencies-label">TENDENCIES</div>
             <div class="gameplan-textarea-static">Slow default, heavy mid presence first 30s. Almost never eco rushes.</div>
             <div class="gameplan-section-label exploits-label">EXPLOITS</div>
-            <div class="gameplan-textarea-static">Plant timing is predictable B site. Late rotates from mid.</div>
+            <div class="gameplan-textarea-static">Plant timing predictable B site. Late rotates from mid.</div>
             <div class="gameplan-section-label solutions-label">SOLUTIONS</div>
-            <div class="gameplan-textarea-static">Deny banana before 20s. Fake B early, split A connector late.</div>
+            <div class="gameplan-textarea-static">Deny banana before 20s. Fake B early, split A late.</div>
           </div>
         </div>
       </div>
@@ -1157,40 +1164,147 @@
   </div>
 
   <div class="feature-wrap">
-    <div class="feature">
-      <div class="feature-mock reveal reveal-delay-1">
-        <div class="feature-mock-glow"></div>
-        <div class="mock-result-row">
-          <div class="mock-map-chip mock-chip-win">W</div>
-          <div class="mock-result-info">
-            <div class="mock-result-map">Mirage</div>
-            <div class="mock-result-score">16 — 11</div>
+    <div class="matchview-showcase reveal">
+      <div class="feature-eyebrow">Results & Review</div>
+      <h2 class="feature-headline">REVIEW EVERY MAP.<br>LEARN FROM EVERY LOSS.</h2>
+      <p class="feature-body">Log match results and write structured post-match notes per side — what worked CT, what broke T, what to fix next session. Every map becomes a lesson your whole team can read before the next scrim.</p>
+      <!-- Stats bar -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
+        <div style="background:#0a0e1a;border:1px solid #1a2744;border-top:3px solid #3b82f6;border-radius:8px;padding:14px 18px">
+          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280;margin-bottom:6px">Match Record</div>
+          <div style="font-size:18px;font-weight:800">7W — 3L</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:2px">10 matches · 70% win rate</div>
+        </div>
+        <div style="background:#0a0e1a;border:1px solid #1a2744;border-top:3px solid #22c55e;border-radius:8px;padding:14px 18px">
+          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280;margin-bottom:6px">Round Win Rate</div>
+          <div style="font-size:22px;font-weight:800">58%</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:2px">312W — 228L rounds</div>
+        </div>
+        <div style="background:#0a0e1a;border:1px solid #1a2744;border-top:3px solid #a78bfa;border-radius:8px;padding:14px 18px">
+          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280;margin-bottom:6px">Best Map</div>
+          <div style="font-size:20px;font-weight:800">Mirage</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:2px">78% win rate</div>
+        </div>
+        <div style="background:#0a0e1a;border:1px solid #1a2744;border-top:3px solid #6b7280;border-radius:8px;padding:14px 18px">
+          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280;margin-bottom:6px">Recent Form</div>
+          <div style="display:flex;gap:4px;margin-top:4px">
+            <span style="background:rgba(34,197,94,0.15);color:#22c55e;border-radius:4px;padding:3px 8px;font-size:12px;font-weight:700">W</span>
+            <span style="background:rgba(34,197,94,0.15);color:#22c55e;border-radius:4px;padding:3px 8px;font-size:12px;font-weight:700">W</span>
+            <span style="background:rgba(239,68,68,0.15);color:#ef4444;border-radius:4px;padding:3px 8px;font-size:12px;font-weight:700">L</span>
+            <span style="background:rgba(34,197,94,0.15);color:#22c55e;border-radius:4px;padding:3px 8px;font-size:12px;font-weight:700">W</span>
+            <span style="background:rgba(34,197,94,0.15);color:#22c55e;border-radius:4px;padding:3px 8px;font-size:12px;font-weight:700">W</span>
           </div>
-          <div class="mock-result-date">Apr 21</div>
-        </div>
-        <div class="mock-result-row">
-          <div class="mock-map-chip mock-chip-loss">L</div>
-          <div class="mock-result-info">
-            <div class="mock-result-map">Inferno</div>
-            <div class="mock-result-score">13 — 16</div>
-          </div>
-          <div class="mock-result-date">Apr 21</div>
-        </div>
-        <div class="mock-divider"></div>
-        <div class="mock-vod-label">Review — Inferno</div>
-        <div class="mock-review-block">
-          <div class="mock-review-label mock-review-ct">CT Side</div>
-          <div class="mock-review-text">Good banana control rounds 1–5. Lost A site discipline mid-half — anchor pushed too early twice. Connector smoke timing needs work.</div>
-        </div>
-        <div class="mock-review-block">
-          <div class="mock-review-label mock-review-t">T Side</div>
-          <div class="mock-review-text">Mid control strong. B executes worked when we smoked CT. Fix: stop defaulting to A split when B info is unclear — costs too much time.</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:6px">Last 5 matches</div>
         </div>
       </div>
-      <div class="feature-copy reveal reveal-delay-2">
-        <div class="feature-eyebrow">Results & Review</div>
-        <h2 class="feature-headline">REVIEW EVERY MAP.<br>LEARN FROM EVERY LOSS.</h2>
-        <p class="feature-body">Log match results and write structured post-match notes per side — what worked CT, what broke T, what to fix next session. Every map becomes a lesson your whole team can read before the next scrim.</p>
+      <!-- Match list -->
+      <div style="background:#0a0e1a;border:1px solid #1a2744;border-radius:10px;overflow:hidden">
+        <!-- Match row 1 — expanded -->
+        <div style="border-bottom:1px solid #1a2744">
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 16px">
+            <span style="background:rgba(34,197,94,0.15);color:#22c55e;border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;flex-shrink:0">WIN</span>
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:14px;margin-bottom:6px">vs NATUS VINCERE</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <div style="position:relative;overflow:hidden;border-radius:6px;width:72px;height:52px;border:1.5px solid rgba(34,197,94,0.5);flex-shrink:0">
+                  <img src="images/maps/mirage.png" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.2;pointer-events:none">
+                  <div style="position:relative;padding:5px 7px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
+                    <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:#6b7280">MIR</span>
+                    <span style="font-size:13px;font-weight:700;color:#22c55e">16–11</span>
+                  </div>
+                </div>
+                <div style="position:relative;overflow:hidden;border-radius:6px;width:72px;height:52px;border:1.5px solid rgba(239,68,68,0.5);flex-shrink:0">
+                  <img src="images/maps/inferno.png" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.2;pointer-events:none">
+                  <div style="position:relative;padding:5px 7px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
+                    <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:#6b7280">INF</span>
+                    <span style="font-size:13px;font-weight:700;color:#ef4444">13–16</span>
+                  </div>
+                </div>
+                <div style="position:relative;overflow:hidden;border-radius:6px;width:72px;height:52px;border:1.5px solid rgba(34,197,94,0.5);flex-shrink:0">
+                  <img src="images/maps/nuke.png" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.2;pointer-events:none">
+                  <div style="position:relative;padding:5px 7px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
+                    <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:#6b7280">NUK</span>
+                    <span style="font-size:13px;font-weight:700;color:#22c55e">16–9</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style="color:#6b7280;font-size:12px;text-align:right;flex-shrink:0">
+              <div>Scrim</div>
+              <div>Apr 21</div>
+            </div>
+          </div>
+          <!-- Expanded review notes -->
+          <div style="background:rgba(0,0,0,0.25);border-top:1px solid #1a2744;padding:14px 16px">
+            <div style="display:flex;gap:6px;margin-bottom:12px">
+              <button class="app-review-map-tab active">Mirage</button>
+              <button class="app-review-map-tab">Inferno</button>
+              <button class="app-review-map-tab">Nuke</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+              <div style="background:#0a0e1a;border:1px solid #1a2744;border-radius:8px;padding:12px">
+                <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280;margin-bottom:8px">OVERVIEW</div>
+                <div style="font-size:12px;color:#9ca3af;line-height:1.6">Strong first half. AWP impact was high. Second half rotation timings cost us two rounds but held composure.</div>
+              </div>
+              <div style="background:#0a0e1a;border:1px solid #1a2744;border-top:2px solid #3b82f6;border-radius:8px;padding:12px">
+                <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#3b82f6;margin-bottom:8px">CT SIDE</div>
+                <div style="font-size:12px;color:#9ca3af;line-height:1.6">Good banana control rounds 1–5. Lost A site discipline mid-half — anchor pushed too early twice.</div>
+              </div>
+              <div style="background:#0a0e1a;border:1px solid #1a2744;border-top:2px solid #f87171;border-radius:8px;padding:12px">
+                <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#f87171;margin-bottom:8px">T SIDE</div>
+                <div style="font-size:12px;color:#9ca3af;line-height:1.6">Mid control strong. B executes worked when we smoked CT. Stop defaulting to A split when B info is unclear.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Match row 2 -->
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid #1a2744">
+          <span style="background:rgba(239,68,68,0.15);color:#ef4444;border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;flex-shrink:0">LOSS</span>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:14px;margin-bottom:6px">vs ASTRALIS</div>
+            <div style="display:flex;gap:8px">
+              <div style="position:relative;overflow:hidden;border-radius:6px;width:72px;height:52px;border:1.5px solid rgba(34,197,94,0.5);flex-shrink:0">
+                <img src="images/maps/ancient.png" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.2;pointer-events:none">
+                <div style="position:relative;padding:5px 7px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
+                  <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:#6b7280">ANC</span>
+                  <span style="font-size:13px;font-weight:700;color:#22c55e">16–14</span>
+                </div>
+              </div>
+              <div style="position:relative;overflow:hidden;border-radius:6px;width:72px;height:52px;border:1.5px solid rgba(239,68,68,0.5);flex-shrink:0">
+                <img src="images/maps/overpass.png" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.2;pointer-events:none">
+                <div style="position:relative;padding:5px 7px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
+                  <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:#6b7280">OVP</span>
+                  <span style="font-size:13px;font-weight:700;color:#ef4444">10–16</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="color:#6b7280;font-size:12px;text-align:right;flex-shrink:0"><div>Tournament</div><div>Apr 18</div></div>
+        </div>
+        <!-- Match row 3 -->
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 16px">
+          <span style="background:rgba(34,197,94,0.15);color:#22c55e;border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;flex-shrink:0">WIN</span>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:14px;margin-bottom:6px">vs VITALITY</div>
+            <div style="display:flex;gap:8px">
+              <div style="position:relative;overflow:hidden;border-radius:6px;width:72px;height:52px;border:1.5px solid rgba(34,197,94,0.5);flex-shrink:0">
+                <img src="images/maps/mirage.png" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.2;pointer-events:none">
+                <div style="position:relative;padding:5px 7px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
+                  <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:#6b7280">MIR</span>
+                  <span style="font-size:13px;font-weight:700;color:#22c55e">16–8</span>
+                </div>
+              </div>
+              <div style="position:relative;overflow:hidden;border-radius:6px;width:72px;height:52px;border:1.5px solid rgba(34,197,94,0.5);flex-shrink:0">
+                <img src="images/maps/dust.png" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.2;pointer-events:none">
+                <div style="position:relative;padding:5px 7px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
+                  <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:#6b7280">D2</span>
+                  <span style="font-size:13px;font-weight:700;color:#22c55e">16–12</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="color:#6b7280;font-size:12px;text-align:right;flex-shrink:0"><div>Scrim</div><div>Apr 15</div></div>
+        </div>
       </div>
     </div>
   </div>
