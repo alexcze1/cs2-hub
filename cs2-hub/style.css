@@ -908,9 +908,11 @@ body {
   border-radius: 0;
   border: none;
   border-top: 1px solid var(--border);
-  resize: vertical;
+  resize: none;
   min-height: 70px;
   font-size: 13px;
+  overflow: hidden;
+  field-sizing: content;
 }
 .gameplan-textarea:focus { border-color: var(--accent); }
 

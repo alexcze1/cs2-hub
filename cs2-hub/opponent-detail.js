@@ -4,6 +4,12 @@ import { supabase, getTeamId } from './supabase.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
+function autoExpand(ta) {
+  if (CSS.supports('field-sizing', 'content')) return
+  ta.style.height = 'auto'
+  ta.style.height = ta.scrollHeight + 'px'
+}
+
 await requireAuth()
 renderSidebar('opponents')
 
@@ -165,6 +171,11 @@ function renderGameplans() {
   ensureMapData(map)
   el.innerHTML = gpSheetHTML(map, 'ct', 'CT GAMEPLAN', 'vs their T side', 'ct-title')
                + gpSheetHTML(map, 't',  'T GAMEPLAN',  'vs their CT side', 't-title')
+
+  el.querySelectorAll('.gameplan-textarea').forEach(ta => {
+    autoExpand(ta)
+    ta.addEventListener('input', () => autoExpand(ta))
+  })
 
   el.querySelectorAll('.pos-input').forEach(inp => inp.addEventListener('input', e => {
     const { map: m, side, pos } = e.target.dataset
