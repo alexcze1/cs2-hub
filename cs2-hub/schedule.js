@@ -1,6 +1,7 @@
 import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
+import { toast } from './toast.js'
 
 function esc(text) {
   const d = document.createElement('div')
@@ -160,14 +161,14 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     ;({ error } = await supabase.from('events').insert(payload))
   }
   if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return }
-  closeModal(); loadEvents()
+  closeModal(); toast(editingId ? 'Event updated' : 'Event added'); loadEvents()
 })
 
 document.getElementById('delete-btn').addEventListener('click', async () => {
   if (!confirm('Delete this event?')) return
   const { error } = await supabase.from('events').delete().eq('id', editingId)
   if (error) { document.getElementById('modal-error').textContent = `Delete failed: ${error.message}`; document.getElementById('modal-error').style.display = 'block'; return }
-  closeModal(); loadEvents()
+  closeModal(); toast('Event deleted'); loadEvents()
 })
 
 // ── Pracc read-only modal ──────────────────────────────────

@@ -1,6 +1,7 @@
 import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
+import { toast } from './toast.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -111,14 +112,14 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     ;({ error } = await supabase.from('issues').insert(payload))
   }
   if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return }
-  closeModal(); loadIssues()
+  closeModal(); toast(editingId ? 'Issue updated' : 'Issue added'); loadIssues()
 })
 
 document.getElementById('delete-btn').addEventListener('click', async () => {
   if (!confirm('Delete this issue?')) return
   const { error } = await supabase.from('issues').delete().eq('id', editingId)
   if (error) { document.getElementById('modal-error').textContent = error.message; document.getElementById('modal-error').style.display = 'block'; return }
-  closeModal(); loadIssues()
+  closeModal(); toast('Issue deleted'); loadIssues()
 })
 
 loadIssues()

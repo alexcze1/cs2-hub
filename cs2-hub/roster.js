@@ -1,6 +1,7 @@
 import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
+import { toast } from './toast.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -76,14 +77,14 @@ document.getElementById('save-player-btn').addEventListener('click', async () =>
     ;({ error } = await supabase.from('roster').insert(payload))
   }
   if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return }
-  closeModal(); loadRoster()
+  closeModal(); toast(editingId ? 'Player updated' : 'Player added'); loadRoster()
 })
 
 document.getElementById('delete-player-btn').addEventListener('click', async () => {
   if (!confirm('Remove this player from the roster?')) return
   const { error } = await supabase.from('roster').delete().eq('id', editingId)
   if (error) { document.getElementById('modal-error').textContent = error.message; document.getElementById('modal-error').style.display = 'block'; return }
-  closeModal(); loadRoster()
+  closeModal(); toast('Player removed'); loadRoster()
 })
 
 loadRoster()

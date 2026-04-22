@@ -1,6 +1,7 @@
 import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
+import { toast } from './toast.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -83,14 +84,14 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     ;({ error } = await supabase.from('keywords').insert(payload))
   }
   if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return }
-  closeModal(); loadKeywords()
+  closeModal(); toast(editingId ? 'Keyword updated' : 'Keyword added'); loadKeywords()
 })
 
 document.getElementById('delete-btn').addEventListener('click', async () => {
   if (!confirm('Delete this keyword?')) return
   const { error } = await supabase.from('keywords').delete().eq('id', editingId)
   if (error) { document.getElementById('modal-error').textContent = error.message; document.getElementById('modal-error').style.display = 'block'; return }
-  closeModal(); loadKeywords()
+  closeModal(); toast('Keyword deleted'); loadKeywords()
 })
 
 loadKeywords()
