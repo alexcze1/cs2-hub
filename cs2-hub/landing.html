@@ -155,6 +155,115 @@
       0%, 100% { transform: translateX(-50%) translateY(0); opacity: 0.5; }
       50%       { transform: translateX(-50%) translateY(9px); opacity: 1; }
     }
+
+    /* ── Feature sections (shared) ── */
+    .feature-wrap { padding: 100px 0; }
+    .feature-wrap-alt { background: #060810; }
+
+    .feature {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 0 60px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+    }
+    .feature-flip .feature-copy { order: -1; }
+
+    .feature-eyebrow {
+      font-size: 10px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+    .feature-headline {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: clamp(30px, 3vw, 46px);
+      font-weight: 700;
+      text-transform: uppercase;
+      line-height: 1.1;
+      letter-spacing: 0.5px;
+      margin-bottom: 18px;
+    }
+    .feature-body {
+      color: var(--muted-lt);
+      font-size: 15px;
+      line-height: 1.75;
+    }
+
+    .feature-mock {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+      position: relative;
+    }
+    .feature-mock-glow {
+      position: absolute;
+      top: -60px; left: -60px; right: -60px; bottom: -60px;
+      background: radial-gradient(ellipse 55% 55% at 35% 50%, rgba(59,130,246,0.08), transparent);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    /* ── Mock: Stratbook cards ── */
+    .mock-strat-card {
+      border-radius: 8px;
+      padding: 11px 14px;
+      margin-bottom: 8px;
+      border: 1px solid var(--border);
+      border-left-width: 3px;
+    }
+    .mock-strat-card:last-child { margin-bottom: 0; }
+    .mock-strat-ct { border-left-color: #3b82f6; background: rgba(59,130,246,0.04); }
+    .mock-strat-t  { border-left-color: #f87171; background: rgba(248,113,113,0.04); }
+    .mock-strat-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 9px;
+    }
+    .mock-badge {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .mock-badge-ct { background: rgba(59,130,246,0.15); color: #3b82f6; }
+    .mock-badge-t  { background: rgba(248,113,113,0.15); color: #f87171; }
+    .mock-strat-name { font-weight: 700; font-size: 13px; flex: 1; }
+    .mock-map-chip {
+      font-size: 10px;
+      color: var(--muted);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 7px;
+      flex-shrink: 0;
+    }
+    .mock-roles {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3px 12px;
+    }
+    .mock-role { display: flex; gap: 8px; align-items: baseline; }
+    .mock-player {
+      font-size: 10px;
+      color: var(--muted);
+      font-weight: 600;
+      width: 46px;
+      flex-shrink: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .mock-role-pos { font-size: 12px; color: var(--text); }
   </style>
 </head>
 <body>
@@ -180,6 +289,55 @@
       </svg>
     </div>
   </section>
+
+  <div class="feature-wrap">
+    <div class="feature">
+      <div class="feature-mock">
+        <div class="feature-mock-glow"></div>
+        <div class="mock-strat-card mock-strat-ct">
+          <div class="mock-strat-header">
+            <span class="mock-badge mock-badge-ct">CT</span>
+            <span class="mock-strat-name">Default Setup</span>
+            <span class="mock-map-chip">Mirage</span>
+          </div>
+          <div class="mock-roles">
+            <div class="mock-role"><span class="mock-player">apex</span><span class="mock-role-pos">A Site anchor</span></div>
+            <div class="mock-role"><span class="mock-player">niko</span><span class="mock-role-pos">Mid window</span></div>
+            <div class="mock-role"><span class="mock-player">zywoo</span><span class="mock-role-pos">B aggression</span></div>
+            <div class="mock-role"><span class="mock-player">mathieu</span><span class="mock-role-pos">Catwalk lurk</span></div>
+          </div>
+        </div>
+        <div class="mock-strat-card mock-strat-t">
+          <div class="mock-strat-header">
+            <span class="mock-badge mock-badge-t">T</span>
+            <span class="mock-strat-name">Mid to B Split</span>
+            <span class="mock-map-chip">Mirage</span>
+          </div>
+          <div class="mock-roles">
+            <div class="mock-role"><span class="mock-player">simple</span><span class="mock-role-pos">Mid lurk</span></div>
+            <div class="mock-role"><span class="mock-player">electronic</span><span class="mock-role-pos">B execute</span></div>
+            <div class="mock-role"><span class="mock-player">perfecto</span><span class="mock-role-pos">Short smoke</span></div>
+          </div>
+        </div>
+        <div class="mock-strat-card mock-strat-ct">
+          <div class="mock-strat-header">
+            <span class="mock-badge mock-badge-ct">CT</span>
+            <span class="mock-strat-name">B Aggressive Push</span>
+            <span class="mock-map-chip">Inferno</span>
+          </div>
+          <div class="mock-roles">
+            <div class="mock-role"><span class="mock-player">device</span><span class="mock-role-pos">Banana AWP</span></div>
+            <div class="mock-role"><span class="mock-player">xyp9x</span><span class="mock-role-pos">Apps flash</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="feature-copy">
+        <div class="feature-eyebrow">Stratbook</div>
+        <h2 class="feature-headline">EVERY PLAY.<br>ORGANIZED.</h2>
+        <p class="feature-body">Build your team's full tactical library — sorted by map, side, and role. In match view, pull up your gameplan fullscreen mid-game so everyone stays on the same page from pistol round to overtime.</p>
+      </div>
+    </div>
+  </div>
 
   <script>
   const nav = document.getElementById('site-nav');
