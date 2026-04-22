@@ -364,6 +364,21 @@
       flex-shrink: 0;
     }
     .mock-note-text { color: var(--muted-lt); line-height: 1.5; }
+    .mock-review-block { margin-bottom: 10px; }
+    .mock-review-block:last-child { margin-bottom: 0; }
+    .mock-review-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 4px 8px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 5px;
+    }
+    .mock-review-ct { background: rgba(59,130,246,0.15); color: #3b82f6; }
+    .mock-review-t  { background: rgba(248,113,113,0.15); color: #f87171; }
+    .mock-review-text { font-size: 12px; color: var(--muted-lt); line-height: 1.55; }
 
     /* ── Mock: Schedule week strip ── */
     .mock-schedule-section { text-align: center; max-width: 1160px; margin: 0 auto; padding: 0 60px; }
@@ -558,7 +573,7 @@
     <div class="hero-content reveal">
       <img src="images/logo-lettering.png" alt="MIDROUND" class="hero-logo"/>
       <h1 class="hero-headline">THE PLATFORM SERIOUS<br>CS2 TEAMS USE.</h1>
-      <p class="hero-sub">Stratbook &nbsp;·&nbsp; Antistrat &nbsp;·&nbsp; VOD Review &nbsp;·&nbsp; Schedule</p>
+      <p class="hero-sub">Stratbook &nbsp;·&nbsp; Anti-strat &nbsp;·&nbsp; Results & Review &nbsp;·&nbsp; Schedule</p>
       <a href="#waitlist" class="hero-cta">Request Access →</a>
     </div>
     <div class="hero-chevron">
@@ -666,24 +681,20 @@
           <div class="mock-result-date">Apr 21</div>
         </div>
         <div class="mock-divider"></div>
-        <div class="mock-vod-label">VOD Notes — Inferno</div>
-        <div class="mock-note">
-          <span class="mock-ts">01:32</span>
-          <span class="mock-note-text">Lost banana control too early — rotate mid instead</span>
+        <div class="mock-vod-label">Review — Inferno</div>
+        <div class="mock-review-block">
+          <div class="mock-review-label mock-review-ct">CT Side</div>
+          <div class="mock-review-text">Good banana control rounds 1–5. Lost A site discipline mid-half — anchor pushed too early twice. Connector smoke timing needs work.</div>
         </div>
-        <div class="mock-note">
-          <span class="mock-ts">04:17</span>
-          <span class="mock-note-text">3-man B rush caught us off-guard, need wider spread</span>
-        </div>
-        <div class="mock-note">
-          <span class="mock-ts">09:05</span>
-          <span class="mock-note-text">Good read on pistol but forgot AWP angle at connector</span>
+        <div class="mock-review-block">
+          <div class="mock-review-label mock-review-t">T Side</div>
+          <div class="mock-review-text">Mid control strong. B executes worked when we smoked CT. Fix: stop defaulting to A split when B info is unclear — costs too much time.</div>
         </div>
       </div>
       <div class="feature-copy reveal reveal-delay-2">
-        <div class="feature-eyebrow">Results & VOD Review</div>
+        <div class="feature-eyebrow">Results & Review</div>
         <h2 class="feature-headline">REVIEW EVERY MAP.<br>LEARN FROM EVERY LOSS.</h2>
-        <p class="feature-body">Log match results, then review the VOD with timestamped notes tied directly to each round. Every mistake becomes a lesson your whole team can read before the next session.</p>
+        <p class="feature-body">Log match results and write structured post-match notes per side — what worked CT, what broke T, what to fix next session. Every map becomes a lesson your whole team can read before the next scrim.</p>
       </div>
     </div>
   </div>
