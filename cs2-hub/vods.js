@@ -99,17 +99,29 @@ if (error) {
     <div class="map-breakdown-grid">
       ${sortedMaps.map(([map, s]) => {
         const games = s.w + s.l
-        const wp = pct(s.w, games)
-        const rp = pct(s.rw, s.rw + s.rl)
+        const wp  = pct(s.w, games)
+        const rp  = pct(s.rw, s.rw + s.rl)
+        const img = mapImgUrl(map)
+        const barColor = wp >= 60 ? 'var(--success)' : wp >= 45 ? 'var(--accent)' : 'var(--danger)'
+        const labelColor = wp >= 60 ? 'var(--success)' : wp >= 45 ? 'var(--muted)' : 'var(--danger)'
+        const label = wp >= 60 ? 'STRONG' : wp >= 45 ? 'EVEN' : 'WEAK'
         return `
-          <div class="map-stat-row">
-            <div class="map-stat-name">${map.charAt(0).toUpperCase() + map.slice(1)}</div>
-            <div class="map-stat-record">${s.w}W — ${s.l}L</div>
-            <div class="map-stat-bar-wrap">
-              <div class="map-stat-bar" style="width:${wp}%" title="${wp}% map win rate"></div>
+          <div class="map-stat-card">
+            <img src="${img}" class="map-stat-bg" aria-hidden="true">
+            <div class="map-stat-body">
+              <div class="map-stat-top">
+                <span class="map-stat-name">${map.charAt(0).toUpperCase() + map.slice(1)}</span>
+                <span class="map-stat-label" style="color:${labelColor}">${label}</span>
+              </div>
+              <div class="map-stat-record">${s.w}W — ${s.l}L <span style="color:var(--muted);font-weight:400">(${games} game${games !== 1 ? 's' : ''})</span></div>
+              <div class="map-stat-bar-wrap">
+                <div class="map-stat-bar" style="width:${wp}%;background:${barColor}"></div>
+              </div>
+              <div class="map-stat-footer">
+                <span class="map-stat-pct" style="color:${barColor}">${wp}% win rate</span>
+                <span class="map-stat-rounds">${rp}% rounds</span>
+              </div>
             </div>
-            <div class="map-stat-pct">${wp}%</div>
-            <div class="map-stat-rounds" title="Round win rate">${rp}% rds</div>
           </div>
         `
       }).join('')}

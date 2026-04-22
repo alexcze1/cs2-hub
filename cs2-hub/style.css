@@ -694,22 +694,38 @@ body {
 .map-chip-loss { background: rgba(239,68,68,0.15);  color: var(--danger); }
 .map-chip-draw { background: rgba(107,114,128,0.15);color: var(--muted); }
 
-.map-breakdown-grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
-.map-stat-row {
+.map-breakdown-grid {
   display: grid;
-  grid-template-columns: 90px 72px 1fr 44px 64px;
-  align-items: center;
-  gap: 12px;
-  background: var(--surface);
-  border-radius: 8px;
-  padding: 10px 14px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  margin-bottom: 8px;
 }
-.map-stat-name   { font-weight: 700; font-size: 13px; }
-.map-stat-record { color: var(--muted); font-size: 12px; }
-.map-stat-bar-wrap { background: var(--border); border-radius: 4px; height: 6px; overflow: hidden; }
-.map-stat-bar    { height: 100%; background: var(--accent); border-radius: 4px; transition: width .4s; }
-.map-stat-pct    { font-weight: 700; font-size: 13px; text-align: right; }
-.map-stat-rounds { color: var(--muted); font-size: 11px; text-align: right; }
+.map-stat-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.map-stat-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.1;
+  pointer-events: none;
+}
+.map-stat-body  { position: relative; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.map-stat-top   { display: flex; justify-content: space-between; align-items: center; }
+.map-stat-name  { font-weight: 700; font-size: 14px; }
+.map-stat-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; }
+.map-stat-record { font-size: 12px; font-weight: 600; color: var(--text); }
+.map-stat-bar-wrap { background: var(--border); border-radius: 4px; height: 5px; overflow: hidden; }
+.map-stat-bar   { height: 100%; border-radius: 4px; transition: width .5s ease; }
+.map-stat-footer { display: flex; justify-content: space-between; align-items: center; }
+.map-stat-pct   { font-weight: 700; font-size: 13px; }
+.map-stat-rounds { color: var(--muted); font-size: 11px; }
 
 .form-dots { display: flex; gap: 5px; align-items: center; }
 .form-dot {
