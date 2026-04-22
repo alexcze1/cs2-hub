@@ -557,6 +557,146 @@
     .reveal.visible { opacity: 1; transform: translateY(0); }
     .reveal-delay-1 { transition-delay: 0.10s; }
     .reveal-delay-2 { transition-delay: 0.20s; }
+
+    /* ── Stratbook Match View showcase ── */
+    .matchview-showcase {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 0 60px;
+    }
+    .matchview-showcase .feature-eyebrow,
+    .matchview-showcase .feature-headline { text-align: center; }
+    .matchview-showcase .feature-body {
+      text-align: center;
+      max-width: 600px;
+      margin: 0 auto 44px;
+    }
+
+    .mock-mv {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .mock-mv-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,0,0,0.3);
+    }
+    .mock-mv-maptabs { display: flex; gap: 2px; flex: 1; min-width: 0; }
+    .mock-mv-maptab {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.4px;
+      padding: 3px 9px; border-radius: 4px; color: var(--muted);
+      white-space: nowrap;
+    }
+    .mock-mv-maptab.on { background: rgba(59,130,246,0.18); color: var(--accent); }
+    .mock-mv-sidetabs {
+      display: flex; border: 1px solid var(--border); border-radius: 5px;
+      overflow: hidden; flex-shrink: 0; margin-right: 8px;
+    }
+    .mock-mv-side { font-size: 9px; font-weight: 700; padding: 3px 9px; color: var(--muted); }
+    .mock-mv-side.on { background: var(--accent); color: #fff; }
+    .mock-mv-printbtn {
+      display: flex; align-items: center; gap: 4px;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 5px; padding: 3px 11px; font-size: 9px; font-weight: 600;
+      color: var(--muted-lt); flex-shrink: 0; white-space: nowrap;
+    }
+    .mock-mv-body { display: flex; min-height: 200px; }
+    .mock-mv-strats {
+      flex: 1; display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 8px; padding: 10px; align-content: start; min-width: 0;
+    }
+    .mock-mv-card {
+      border-radius: 7px; padding: 9px 10px;
+      border: 1px solid var(--border); border-left-width: 3px;
+    }
+    .mock-mv-ct { border-left-color: #3b82f6; background: rgba(59,130,246,0.04); }
+    .mock-mv-t  { border-left-color: #f87171; background: rgba(248,113,113,0.04); }
+    .mock-mv-card-header { display: flex; align-items: center; gap: 5px; margin-bottom: 6px; }
+    .mock-mv-card-name { font-weight: 700; font-size: 11px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mock-mv-card-type { font-size: 8px; color: var(--muted); }
+    .mock-mv-card-roles { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 6px; }
+    .mock-mv-card-role { display: flex; gap: 4px; align-items: baseline; }
+    .mock-mv-card-player { font-size: 8px; color: var(--muted); font-weight: 700; width: 26px; flex-shrink: 0; }
+    .mock-mv-card-pos { font-size: 9px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Antistrat sidebar panel inside Match View */
+    .mock-mv-panel {
+      width: 210px; flex-shrink: 0;
+      border-left: 1px solid var(--border);
+      background: rgba(0,0,0,0.18);
+      display: flex; flex-direction: column;
+    }
+    .mock-panel-opp-row {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 10px; border-bottom: 1px solid var(--border);
+    }
+    .mock-panel-opp-name { font-size: 10px; font-weight: 700; color: var(--text); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mock-panel-opp-arrow { font-size: 9px; color: var(--muted); }
+    .mock-panel-maptabs { display: flex; gap: 2px; padding: 4px 8px; border-bottom: 1px solid var(--border); }
+    .mock-panel-maptab { font-size: 8px; font-weight: 700; padding: 2px 6px; border-radius: 3px; color: var(--muted); }
+    .mock-panel-maptab.on { background: rgba(59,130,246,0.18); color: var(--accent); }
+    .mock-panel-side-header {
+      font-size: 8px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+      padding: 5px 10px;
+    }
+    .mock-panel-ct-head { background: rgba(59,130,246,0.12); color: #3b82f6; border-bottom: 1px solid var(--border); }
+    .mock-panel-t-head  { background: rgba(167,139,250,0.10); color: #a78bfa; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .mock-panel-row { display: flex; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .mock-panel-row-key {
+      font-size: 7px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
+      color: var(--muted); padding: 5px 8px; width: 54px; flex-shrink: 0;
+      border-right: 1px solid rgba(255,255,255,0.04); padding-top: 6px;
+    }
+    .mock-panel-row-val { font-size: 9px; color: var(--muted-lt); padding: 5px 7px; line-height: 1.4; flex: 1; }
+
+    /* ── Antistrat standalone page mock ── */
+    .mock-as {
+      background: #060b17;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .mock-as-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; border-bottom: 1px solid var(--border);
+      background: rgba(0,0,0,0.25);
+    }
+    .mock-as-teamname {
+      font-weight: 700; font-size: 12px; color: var(--text);
+      display: flex; align-items: center; gap: 7px;
+    }
+    .mock-as-printbtn {
+      display: flex; align-items: center; gap: 5px;
+      background: var(--accent); border-radius: 5px;
+      padding: 6px 13px; font-size: 10px; font-weight: 700;
+      color: #fff; letter-spacing: 0.3px; white-space: nowrap;
+    }
+    .mock-as-maptabs {
+      display: flex; gap: 2px; padding: 6px 10px;
+      border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.12);
+    }
+    .mock-as-maptab { font-size: 9px; font-weight: 700; padding: 3px 9px; border-radius: 4px; color: var(--muted); }
+    .mock-as-maptab.on { background: rgba(59,130,246,0.18); color: var(--accent); }
+    .mock-as-body { display: grid; grid-template-columns: 1fr 1fr; }
+    .mock-as-side { border-right: 1px solid var(--border); }
+    .mock-as-side:last-child { border-right: none; }
+    .mock-as-side-header {
+      font-size: 8px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+      padding: 7px 12px; border-bottom: 1px solid var(--border);
+    }
+    .mock-as-ct-head { background: rgba(59,130,246,0.12); color: #3b82f6; }
+    .mock-as-t-head  { background: rgba(167,139,250,0.10); color: #a78bfa; }
+    .mock-as-section { border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .mock-as-sec-label {
+      font-size: 7px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+      padding: 5px 12px 2px; color: var(--muted);
+    }
+    .mock-as-sec-text { font-size: 11px; color: var(--muted-lt); padding: 3px 12px 8px; line-height: 1.5; }
   </style>
 </head>
 <body>
@@ -584,50 +724,153 @@
   </section>
 
   <div class="feature-wrap">
-    <div class="feature">
-      <div class="feature-mock reveal reveal-delay-1">
-        <div class="feature-mock-glow"></div>
-        <div class="mock-strat-card mock-strat-ct">
-          <div class="mock-strat-header">
-            <span class="mock-badge mock-badge-ct">CT</span>
-            <span class="mock-strat-name">Default Setup</span>
-            <span class="mock-map-chip">Mirage</span>
+    <div class="matchview-showcase reveal">
+      <div class="feature-eyebrow">Stratbook · Match View</div>
+      <h2 class="feature-headline">EVERY STRAT. EVERY OPPONENT.<br>ONE FULLSCREEN VIEW.</h2>
+      <p class="feature-body">Build your full tactical library by map and side. In Match View, pull every strat and the full antistrat sheet side-by-side on one screen — so nothing gets missed from pistol round to overtime.</p>
+      <div class="mock-mv">
+        <div class="mock-mv-header">
+          <div class="mock-mv-maptabs">
+            <span class="mock-mv-maptab on">All</span>
+            <span class="mock-mv-maptab">Ancient</span>
+            <span class="mock-mv-maptab">Mirage</span>
+            <span class="mock-mv-maptab">Nuke</span>
+            <span class="mock-mv-maptab">Anubis</span>
+            <span class="mock-mv-maptab">Inferno</span>
+            <span class="mock-mv-maptab">Overpass</span>
           </div>
-          <div class="mock-roles">
-            <div class="mock-role"><span class="mock-player">apex</span><span class="mock-role-pos">A Site anchor</span></div>
-            <div class="mock-role"><span class="mock-player">niko</span><span class="mock-role-pos">Mid window</span></div>
-            <div class="mock-role"><span class="mock-player">zywoo</span><span class="mock-role-pos">B aggression</span></div>
-            <div class="mock-role"><span class="mock-player">mathieu</span><span class="mock-role-pos">Catwalk lurk</span></div>
+          <div class="mock-mv-sidetabs">
+            <span class="mock-mv-side on">Both</span>
+            <span class="mock-mv-side">T-Side</span>
+            <span class="mock-mv-side">CT-Side</span>
           </div>
-        </div>
-        <div class="mock-strat-card mock-strat-t">
-          <div class="mock-strat-header">
-            <span class="mock-badge mock-badge-t">T</span>
-            <span class="mock-strat-name">Mid to B Split</span>
-            <span class="mock-map-chip">Mirage</span>
-          </div>
-          <div class="mock-roles">
-            <div class="mock-role"><span class="mock-player">simple</span><span class="mock-role-pos">Mid lurk</span></div>
-            <div class="mock-role"><span class="mock-player">electronic</span><span class="mock-role-pos">B execute</span></div>
-            <div class="mock-role"><span class="mock-player">perfecto</span><span class="mock-role-pos">Short smoke</span></div>
+          <div class="mock-mv-printbtn">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Print
           </div>
         </div>
-        <div class="mock-strat-card mock-strat-ct">
-          <div class="mock-strat-header">
-            <span class="mock-badge mock-badge-ct">CT</span>
-            <span class="mock-strat-name">B Aggressive Push</span>
-            <span class="mock-map-chip">Inferno</span>
+        <div class="mock-mv-body">
+          <div class="mock-mv-strats">
+            <div class="mock-mv-card mock-mv-ct">
+              <div class="mock-mv-card-header">
+                <span class="mock-badge mock-badge-ct">CT</span>
+                <span class="mock-mv-card-name">Default Setup</span>
+                <span class="mock-mv-card-type">Passive</span>
+              </div>
+              <div class="mock-mv-card-roles">
+                <div class="mock-mv-card-role"><span class="mock-mv-card-player">ZWO</span><span class="mock-mv-card-pos">A Site anchor</span></div>
+                <div class="mock-mv-card-role"><span class="mock-mv-card-player">NKO</span><span class="mock-mv-card-pos">Window AWP</span></div>
+                <div class="mock-mv-card-role"><span class="mock-mv-card-player">MAT</span><span class="mock-mv-card-pos">Catwalk lurk</span></div>
+                <div class="mock-mv-card-role"><span class="mock-mv-card-player">ZYW</span><span class="mock-mv-card-pos">B passive</span></div>
+                <div class="mock-mv-card-role"><span class="mock-mv-card-player">APX</span><span class="mock-mv-card-pos">Mid control</span></div>
+              </div>
+            </div>
+            <div class="mock-mv-card mock-mv-t">
+              <div class="mock-mv-card-header">
+                <span class="mock-badge mock-badge-t">T</span>
+                <span class="mock-mv-card-name">Mid to B Split</span>
+                <span class="mock-mv-card-type">Execute</span>
+              </div>
+              <div class="mock-mv-card-roles">
+                <div class="mock-mv-card-role"><span class="mock-mv-card-player">SMP</span><span class="mock-mv-card-pos">Mid control</span></div>
+                <div class="mock-mv-card-role"><span class="mock-mv-card-player">ELC</span><span class="mock-mv-card-pos">B execute</span></div>
+                <div class="mock-mv-card-role"><span class="mock-mv-card-player">PFT</span><span class="mock-mv-card-pos">Short smoke</span></div>
+                <div class="mock-mv-card-role"><span class="mock-mv-card-player">APX</span><span class="mock-mv-card-pos">Short entry</span></div>
+                <div class="mock-mv-card-role"><span class="mock-mv-card-player">ZYW</span><span class="mock-mv-card-pos">Plant cover</span></div>
+              </div>
+            </div>
+            <div class="mock-mv-card mock-mv-ct">
+              <div class="mock-mv-card-header">
+                <span class="mock-badge mock-badge-ct">CT</span>
+                <span class="mock-mv-card-name">Stack A Aggressive</span>
+                <span class="mock-mv-card-type">Aggro</span>
+              </div>
+              <div class="mock-mv-card-roles">
+                <div class="mock-mv-card-role"><span class="mock-mv-card-player">APX</span><span class="mock-mv-card-pos">Apps aggro</span></div>
+                <div class="mock-mv-card-role"><span class="mock-mv-card-player">NKO</span><span class="mock-mv-card-pos">A heaven</span></div>
+                <div class="mock-mv-card-role"><span class="mock-mv-card-player">MAT</span><span class="mock-mv-card-pos">Short flash</span></div>
+                <div class="mock-mv-card-role"><span class="mock-mv-card-player">ZYW</span><span class="mock-mv-card-pos">Short push</span></div>
+              </div>
+            </div>
+            <div class="mock-mv-card mock-mv-t">
+              <div class="mock-mv-card-header">
+                <span class="mock-badge mock-badge-t">T</span>
+                <span class="mock-mv-card-name">A Fast Execute</span>
+                <span class="mock-mv-card-type">Rush</span>
+              </div>
+              <div class="mock-mv-card-roles">
+                <div class="mock-mv-card-role"><span class="mock-mv-card-player">ZWO</span><span class="mock-mv-card-pos">Entry anchor</span></div>
+                <div class="mock-mv-card-role"><span class="mock-mv-card-player">SMP</span><span class="mock-mv-card-pos">Jungle smoke</span></div>
+                <div class="mock-mv-card-role"><span class="mock-mv-card-player">ZYW</span><span class="mock-mv-card-pos">Plant cover</span></div>
+                <div class="mock-mv-card-role"><span class="mock-mv-card-player">ELC</span><span class="mock-mv-card-pos">CT cross</span></div>
+              </div>
+            </div>
+            <div class="mock-mv-card mock-mv-ct">
+              <div class="mock-mv-card-header">
+                <span class="mock-badge mock-badge-ct">CT</span>
+                <span class="mock-mv-card-name">B 2-Man Stack</span>
+                <span class="mock-mv-card-type">Passive</span>
+              </div>
+              <div class="mock-mv-card-roles">
+                <div class="mock-mv-card-role"><span class="mock-mv-card-player">ZYW</span><span class="mock-mv-card-pos">Banana AWP</span></div>
+                <div class="mock-mv-card-role"><span class="mock-mv-card-player">ELC</span><span class="mock-mv-card-pos">Apps passive</span></div>
+                <div class="mock-mv-card-role"><span class="mock-mv-card-player">SMP</span><span class="mock-mv-card-pos">Underpass</span></div>
+              </div>
+            </div>
+            <div class="mock-mv-card mock-mv-t">
+              <div class="mock-mv-card-header">
+                <span class="mock-badge mock-badge-t">T</span>
+                <span class="mock-mv-card-name">B Full Rush</span>
+                <span class="mock-mv-card-type">Rush</span>
+              </div>
+              <div class="mock-mv-card-roles">
+                <div class="mock-mv-card-role"><span class="mock-mv-card-player">SMP</span><span class="mock-mv-card-pos">Entry banana</span></div>
+                <div class="mock-mv-card-role"><span class="mock-mv-card-player">ELC</span><span class="mock-mv-card-pos">Flash support</span></div>
+                <div class="mock-mv-card-role"><span class="mock-mv-card-player">PFT</span><span class="mock-mv-card-pos">Boost apps</span></div>
+                <div class="mock-mv-card-role"><span class="mock-mv-card-player">ZWO</span><span class="mock-mv-card-pos">B entry</span></div>
+              </div>
+            </div>
           </div>
-          <div class="mock-roles">
-            <div class="mock-role"><span class="mock-player">device</span><span class="mock-role-pos">Banana AWP</span></div>
-            <div class="mock-role"><span class="mock-player">xyp9x</span><span class="mock-role-pos">Apps flash</span></div>
+          <div class="mock-mv-panel">
+            <div class="mock-panel-opp-row">
+              <span class="mock-panel-opp-name">NATUS VINCERE</span>
+              <span class="mock-panel-opp-arrow">▾</span>
+            </div>
+            <div class="mock-panel-maptabs">
+              <span class="mock-panel-maptab on">Mirage</span>
+              <span class="mock-panel-maptab">Nuke</span>
+              <span class="mock-panel-maptab">Inferno</span>
+            </div>
+            <div>
+              <div class="mock-panel-side-header mock-panel-ct-head">CT SIDE</div>
+              <div class="mock-panel-row">
+                <span class="mock-panel-row-key">Positions</span>
+                <span class="mock-panel-row-val">2 banana, 1 apps, AWP window. Fast rotates on any info.</span>
+              </div>
+              <div class="mock-panel-row">
+                <span class="mock-panel-row-key">Pistols</span>
+                <span class="mock-panel-row-val">Full B stack round 1. Push banana early.</span>
+              </div>
+              <div class="mock-panel-row">
+                <span class="mock-panel-row-key">Exploits</span>
+                <span class="mock-panel-row-val">Weak to mid flash burst before 20s.</span>
+              </div>
+              <div class="mock-panel-side-header mock-panel-t-head">T SIDE</div>
+              <div class="mock-panel-row">
+                <span class="mock-panel-row-key">Tend.</span>
+                <span class="mock-panel-row-val">Slow default. Heavy mid presence first 30s.</span>
+              </div>
+              <div class="mock-panel-row">
+                <span class="mock-panel-row-key">Anti-eco</span>
+                <span class="mock-panel-row-val">Force B rush. All-in banana with pistols.</span>
+              </div>
+              <div class="mock-panel-row">
+                <span class="mock-panel-row-key">Solutions</span>
+                <span class="mock-panel-row-val">Fake B, rotate mid, split A connector before 25s.</span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="feature-copy reveal reveal-delay-2">
-        <div class="feature-eyebrow">Stratbook</div>
-        <h2 class="feature-headline">EVERY PLAY.<br>ORGANIZED.</h2>
-        <p class="feature-body">Build your team's full tactical library — sorted by map, side, and role. In match view, pull up your gameplan fullscreen mid-game so everyone stays on the same page from pistol round to overtime.</p>
       </div>
     </div>
   </div>
@@ -640,21 +883,55 @@
         <p class="feature-body">Build a complete antistrat sheet for every opponent — CT and T side positions, pistol tendencies, exploits, and solutions. When it's game day, print the full gameplan as a PDF and take it to the booth.</p>
       </div>
       <div class="feature-mock reveal reveal-delay-2">
-        <div class="mock-gameplan">
-          <div class="mock-gp-title mock-gp-title-ct">CT Side</div>
-          <div class="mock-gp-section-label mock-gp-label-positions">Positions</div>
-          <div class="mock-gp-text">A: anchor + aggressive peek connector. B: 2 man banana, 1 apps. Mid: IGL rotates on info.</div>
-          <div class="mock-gp-section-label mock-gp-label-pistols">Pistols</div>
-          <div class="mock-gp-text">Stack B, force early banana push. IGL takes mid control round 1.</div>
-          <div class="mock-gp-title mock-gp-title-t">T Side</div>
-          <div class="mock-gp-section-label mock-gp-label-tend">Tendencies</div>
-          <div class="mock-gp-text">Heavy mid presence first 30s. Default slow play, rarely rush A. Watch for late split.</div>
-          <div class="mock-gp-section-label mock-gp-label-solutions">Solutions</div>
-          <div class="mock-gp-text">Fake B early, rotate mid, split A connector. Deny banana control before 20s.</div>
-        </div>
-        <div class="mock-print-badge">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-          Print-ready PDF
+        <div class="mock-as">
+          <div class="mock-as-header">
+            <div class="mock-as-teamname">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              NATUS VINCERE
+            </div>
+            <div class="mock-as-printbtn">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              Print PDF
+            </div>
+          </div>
+          <div class="mock-as-maptabs">
+            <span class="mock-as-maptab on">Mirage</span>
+            <span class="mock-as-maptab">Nuke</span>
+            <span class="mock-as-maptab">Inferno</span>
+            <span class="mock-as-maptab">Ancient</span>
+          </div>
+          <div class="mock-as-body">
+            <div class="mock-as-side">
+              <div class="mock-as-side-header mock-as-ct-head">CT Side</div>
+              <div class="mock-as-section">
+                <div class="mock-as-sec-label">Positions</div>
+                <div class="mock-as-sec-text">2 banana + 1 apps. AWP holds window, rotates on info call.</div>
+              </div>
+              <div class="mock-as-section">
+                <div class="mock-as-sec-label">Pistols / Style</div>
+                <div class="mock-as-sec-text">Full stack B round 1. Early banana push, IGL takes mid info.</div>
+              </div>
+              <div class="mock-as-section">
+                <div class="mock-as-sec-label">Exploits</div>
+                <div class="mock-as-sec-text">Weak to mid flash burst. Connector smoke timing inconsistent.</div>
+              </div>
+            </div>
+            <div class="mock-as-side">
+              <div class="mock-as-side-header mock-as-t-head">T Side</div>
+              <div class="mock-as-section">
+                <div class="mock-as-sec-label">Tendencies</div>
+                <div class="mock-as-sec-text">Slow default, heavy mid presence first 30s. Rarely eco rushes.</div>
+              </div>
+              <div class="mock-as-section">
+                <div class="mock-as-sec-label">Anti-ecos / Forces</div>
+                <div class="mock-as-sec-text">Force B rush on eco. Often all-in banana with pistols.</div>
+              </div>
+              <div class="mock-as-section">
+                <div class="mock-as-sec-label">Solutions</div>
+                <div class="mock-as-sec-text">Fake B early, rotate mid, split A connector before 25s.</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
