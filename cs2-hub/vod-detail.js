@@ -1,6 +1,7 @@
 import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
+import { toast } from './toast.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -13,6 +14,48 @@ const isEdit = !!id
 let maps = []
 let activeMapTab = 0
 let autosaveTimer = null
+let scanTarget = null
+
+// Shared hidden file input for scoreboard scans
+const scanInput = document.createElement('input')
+scanInput.type = 'file'
+scanInput.accept = 'image/*'
+scanInput.style.display = 'none'
+document.body.appendChild(scanInput)
+
+scanInput.addEventListener('change', async () => {
+  const file = scanInput.files[0]
+  scanInput.value = ''
+  if (!file || scanTarget === null) return
+  const idx = scanTarget
+  scanTarget = null
+  const scanBtn = document.querySelector(`.map-row-scan[data-i="${idx}"]`)
+  if (scanBtn) { scanBtn.disabled = true; scanBtn.classList.add('scanning') }
+  try {
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result.split(',')[1])
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+    const mediaType = file.type || 'image/png'
+    const res = await fetch('/api/scan-scoreboard', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ image: base64, mediaType })
+    })
+    if (!res.ok) throw new Error(await res.text())
+    const { score_a, score_b, map } = await res.json()
+    maps[idx].score_us   = score_a ?? null
+    maps[idx].score_them = score_b ?? null
+    if (map && MAPS.includes(map)) maps[idx].map = map
+    renderMaps()
+    toast('Scores filled — tap ⇄ to flip if reversed')
+  } catch {
+    toast('Could not read scoreboard', 'error')
+  }
+  if (scanBtn) { scanBtn.disabled = false; scanBtn.classList.remove('scanning') }
+})
 
 // ── Helpers ────────────────────────────────────────────────
 function mapResult(m) {
@@ -79,6 +122,10 @@ function renderMaps() {
           <input class="form-input map-row-them" type="number" min="0" max="30" placeholder="Them" value="${m.score_them ?? ''}" data-i="${i}" style="width:66px;text-align:center"/>
         </div>
         ${r ? `<span class="badge badge-${r}">${r.toUpperCase()}</span>` : '<span style="width:52px"></span>'}
+        <button class="map-row-icon-btn map-row-scan" data-i="${i}" title="Scan scoreboard screenshot">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
+        <button class="map-row-icon-btn map-row-swap" data-i="${i}" title="Swap Us / Them scores">⇄</button>
         <button class="map-row-remove" data-i="${i}">×</button>
       </div>
     `
@@ -92,6 +139,17 @@ function renderMaps() {
   }))
   el.querySelectorAll('.map-row-them').forEach(inp => inp.addEventListener('input', e => {
     maps[+e.target.dataset.i].score_them = e.target.value !== '' ? +e.target.value : null; renderMaps()
+  }))
+  el.querySelectorAll('.map-row-scan').forEach(btn => btn.addEventListener('click', () => {
+    scanTarget = +btn.dataset.i
+    scanInput.click()
+  }))
+  el.querySelectorAll('.map-row-swap').forEach(btn => btn.addEventListener('click', () => {
+    const i = +btn.dataset.i
+    const tmp = maps[i].score_us
+    maps[i].score_us = maps[i].score_them
+    maps[i].score_them = tmp
+    renderMaps()
   }))
   el.querySelectorAll('.map-row-remove').forEach(btn => btn.addEventListener('click', e => {
     saveActiveNotes()

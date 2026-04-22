@@ -682,6 +682,21 @@ body {
   line-height: 1;
   flex-shrink: 0;
 }
+.map-row-icon-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px 6px;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+.map-row-icon-btn:hover { color: var(--text); border-color: var(--accent); }
+.map-row-icon-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.map-row-icon-btn.scanning { color: var(--accent); border-color: var(--accent); }
 .map-chip {
   display: inline-block;
   font-size: 11px;
