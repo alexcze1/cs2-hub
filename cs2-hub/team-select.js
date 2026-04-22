@@ -4,7 +4,7 @@ import { signOut } from './auth.js'
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
 const { data: { session } } = await supabase.auth.getSession()
-if (!session) { window.location.href = 'index.html'; throw 0 }
+if (!session) { window.location.href = 'login.html'; throw 0 }
 
 const userId = session.user.id
 

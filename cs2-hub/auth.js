@@ -3,7 +3,7 @@ import { supabase } from './supabase.js'
 export async function requireAuth() {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) {
-    window.location.href = 'index.html'
+    window.location.href = 'login.html'
     throw 0
   }
   if (!window.location.pathname.endsWith('team-select.html')) {
@@ -36,7 +36,7 @@ export async function signIn(email, password) {
 
 export async function signOut() {
   await supabase.auth.signOut()
-  window.location.href = 'index.html'
+  window.location.href = 'login.html'
 }
 
 export async function getUser() {
