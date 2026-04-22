@@ -455,6 +455,93 @@
       background: var(--accent);
       flex-shrink: 0;
     }
+
+    /* ── Waitlist CTA ── */
+    .waitlist {
+      padding: 120px 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .waitlist-glow {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 60% 60% at 50% 50%, rgba(59,130,246,0.14), transparent 70%);
+      pointer-events: none;
+    }
+    .waitlist-content { position: relative; z-index: 1; }
+    .waitlist-headline {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: clamp(36px, 5vw, 58px);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      line-height: 1.08;
+      margin-bottom: 14px;
+    }
+    .waitlist-sub { color: var(--muted-lt); font-size: 15px; margin-bottom: 44px; }
+    .waitlist-form {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      max-width: 500px;
+      margin: 0 auto 14px;
+    }
+    .waitlist-input {
+      flex: 1;
+      min-width: 220px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 13px 16px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+    .waitlist-input:focus { border-color: var(--accent); }
+    .waitlist-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 13px 28px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+      transition: opacity 0.15s;
+      letter-spacing: 0.3px;
+    }
+    .waitlist-btn:hover { opacity: 0.84; }
+    .waitlist-note { color: var(--muted); font-size: 12px; letter-spacing: 0.3px; }
+    .waitlist-success { color: #22c55e; font-size: 15px; font-weight: 600; display: none; }
+
+    /* ── Footer ── */
+    .site-footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .footer-logo { width: 110px; filter: invert(1); opacity: 0.5; display: block; }
+    .footer-copy { color: var(--muted); font-size: 12px; letter-spacing: 0.5px; }
+
+    /* ── Reveal animations ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-delay-1 { transition-delay: 0.10s; }
+    .reveal-delay-2 { transition-delay: 0.20s; }
   </style>
 </head>
 <body>
@@ -468,7 +555,7 @@
   <section class="hero">
     <div class="hero-glow"></div>
     <div class="hero-grid"></div>
-    <div class="hero-content">
+    <div class="hero-content reveal">
       <img src="images/logo-lettering.png" alt="MIDROUND" class="hero-logo"/>
       <h1 class="hero-headline">THE PLATFORM SERIOUS<br>CS2 TEAMS USE.</h1>
       <p class="hero-sub">Stratbook &nbsp;·&nbsp; Antistrat &nbsp;·&nbsp; VOD Review &nbsp;·&nbsp; Schedule</p>
@@ -483,7 +570,7 @@
 
   <div class="feature-wrap">
     <div class="feature">
-      <div class="feature-mock">
+      <div class="feature-mock reveal reveal-delay-1">
         <div class="feature-mock-glow"></div>
         <div class="mock-strat-card mock-strat-ct">
           <div class="mock-strat-header">
@@ -522,7 +609,7 @@
           </div>
         </div>
       </div>
-      <div class="feature-copy">
+      <div class="feature-copy reveal reveal-delay-2">
         <div class="feature-eyebrow">Stratbook</div>
         <h2 class="feature-headline">EVERY PLAY.<br>ORGANIZED.</h2>
         <p class="feature-body">Build your team's full tactical library — sorted by map, side, and role. In match view, pull up your gameplan fullscreen mid-game so everyone stays on the same page from pistol round to overtime.</p>
@@ -532,12 +619,12 @@
 
   <div class="feature-wrap feature-wrap-alt">
     <div class="feature feature-flip">
-      <div class="feature-copy">
+      <div class="feature-copy reveal reveal-delay-1">
         <div class="feature-eyebrow">Antistrat</div>
         <h2 class="feature-headline">KNOW YOUR ENEMY<br>BEFORE THE SERVER LOADS.</h2>
         <p class="feature-body">Build a complete antistrat sheet for every opponent — CT and T side positions, pistol tendencies, exploits, and solutions. When it's game day, print the full gameplan as a PDF and take it to the booth.</p>
       </div>
-      <div class="feature-mock">
+      <div class="feature-mock reveal reveal-delay-2">
         <div class="mock-gameplan">
           <div class="mock-gp-title mock-gp-title-ct">CT Side</div>
           <div class="mock-gp-section-label mock-gp-label-positions">Positions</div>
@@ -560,7 +647,7 @@
 
   <div class="feature-wrap">
     <div class="feature">
-      <div class="feature-mock">
+      <div class="feature-mock reveal reveal-delay-1">
         <div class="feature-mock-glow"></div>
         <div class="mock-result-row">
           <div class="mock-map-chip mock-chip-win">W</div>
@@ -593,7 +680,7 @@
           <span class="mock-note-text">Good read on pistol but forgot AWP angle at connector</span>
         </div>
       </div>
-      <div class="feature-copy">
+      <div class="feature-copy reveal reveal-delay-2">
         <div class="feature-eyebrow">Results & VOD Review</div>
         <h2 class="feature-headline">REVIEW EVERY MAP.<br>LEARN FROM EVERY LOSS.</h2>
         <p class="feature-body">Log match results, then review the VOD with timestamped notes tied directly to each round. Every mistake becomes a lesson your whole team can read before the next session.</p>
@@ -602,7 +689,7 @@
   </div>
 
   <div class="feature-wrap feature-wrap-alt">
-    <div class="mock-schedule-section">
+    <div class="mock-schedule-section reveal">
       <div class="feature-eyebrow" style="margin-bottom:14px">Schedule</div>
       <h2 class="mock-schedule-headline">EVERY SCRIM, TOURNAMENT,<br>AND MEETING — IN ONE PLACE.</h2>
       <p class="mock-schedule-body">Pull in your pracc.com bookings and Google Calendar events automatically. See your full week at a glance — no more missed scrims.</p>
@@ -657,7 +744,7 @@
 
   <section class="waitlist" id="waitlist">
     <div class="waitlist-glow"></div>
-    <div class="waitlist-content">
+    <div class="waitlist-content reveal">
       <h2 class="waitlist-headline">BUILT FOR TEAMS<br>THAT TAKE IT SERIOUSLY.</h2>
       <p class="waitlist-sub">MIDROUND is invite-only. Request access and we'll reach out.</p>
       <div class="waitlist-form" id="waitlist-form">
@@ -669,7 +756,7 @@
     </div>
   </section>
 
-  <footer class="site-footer">
+  <footer class="site-footer reveal">
     <img src="images/logo-lettering.png" alt="MIDROUND" class="footer-logo"/>
     <span class="footer-copy">© MIDROUND 2026</span>
   </footer>
@@ -690,6 +777,16 @@
   document.getElementById('waitlist-email').addEventListener('keydown', e => {
     if (e.key === 'Enter') document.getElementById('waitlist-btn').click();
   });
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
   </script>
 </body>
 </html>
