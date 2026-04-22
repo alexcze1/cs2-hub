@@ -264,6 +264,50 @@
       white-space: nowrap;
     }
     .mock-role-pos { font-size: 12px; color: var(--text); }
+
+    /* ── Mock: Antistrat gameplan sheet ── */
+    .mock-gameplan { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .mock-gp-title {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 9px 14px;
+    }
+    .mock-gp-title-ct { background: rgba(59,130,246,0.15); color: #3b82f6; }
+    .mock-gp-title-t  { background: rgba(167,139,250,0.15); color: #a78bfa; }
+    .mock-gp-section-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-top: 1px solid var(--border);
+    }
+    .mock-gp-label-positions { background: rgba(59,130,246,0.10); color: #3b82f6; }
+    .mock-gp-label-pistols   { background: rgba(20,184,166,0.12); color: #2dd4bf; }
+    .mock-gp-label-tend      { background: rgba(167,139,250,0.12); color: #a78bfa; }
+    .mock-gp-label-solutions { background: rgba(34,197,94,0.12); color: #22c55e; }
+    .mock-gp-text {
+      font-size: 12px;
+      color: var(--muted-lt);
+      padding: 8px 14px 10px;
+      border-top: 1px solid var(--border);
+      line-height: 1.55;
+    }
+    .mock-print-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 11px;
+      color: var(--muted-lt);
+      letter-spacing: 0.5px;
+    }
   </style>
 </head>
 <body>
@@ -335,6 +379,34 @@
         <div class="feature-eyebrow">Stratbook</div>
         <h2 class="feature-headline">EVERY PLAY.<br>ORGANIZED.</h2>
         <p class="feature-body">Build your team's full tactical library — sorted by map, side, and role. In match view, pull up your gameplan fullscreen mid-game so everyone stays on the same page from pistol round to overtime.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="feature-wrap feature-wrap-alt">
+    <div class="feature feature-flip">
+      <div class="feature-copy">
+        <div class="feature-eyebrow">Antistrat</div>
+        <h2 class="feature-headline">KNOW YOUR ENEMY<br>BEFORE THE SERVER LOADS.</h2>
+        <p class="feature-body">Build a complete antistrat sheet for every opponent — CT and T side positions, pistol tendencies, exploits, and solutions. When it's game day, print the full gameplan as a PDF and take it to the booth.</p>
+      </div>
+      <div class="feature-mock">
+        <div class="mock-gameplan">
+          <div class="mock-gp-title mock-gp-title-ct">CT Side</div>
+          <div class="mock-gp-section-label mock-gp-label-positions">Positions</div>
+          <div class="mock-gp-text">A: anchor + aggressive peek connector. B: 2 man banana, 1 apps. Mid: IGL rotates on info.</div>
+          <div class="mock-gp-section-label mock-gp-label-pistols">Pistols</div>
+          <div class="mock-gp-text">Stack B, force early banana push. IGL takes mid control round 1.</div>
+          <div class="mock-gp-title mock-gp-title-t">T Side</div>
+          <div class="mock-gp-section-label mock-gp-label-tend">Tendencies</div>
+          <div class="mock-gp-text">Heavy mid presence first 30s. Default slow play, rarely rush A. Watch for late split.</div>
+          <div class="mock-gp-section-label mock-gp-label-solutions">Solutions</div>
+          <div class="mock-gp-text">Fake B early, rotate mid, split A connector. Deny banana control before 20s.</div>
+        </div>
+        <div class="mock-print-badge">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Print-ready PDF
+        </div>
       </div>
     </div>
   </div>
