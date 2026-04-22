@@ -697,6 +697,158 @@
       padding: 5px 12px 2px; color: var(--muted);
     }
     .mock-as-sec-text { font-size: 11px; color: var(--muted-lt); padding: 3px 12px 8px; line-height: 1.5; }
+
+    /* ── Real app classes: Match View ── */
+    .fs-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 14px; background: #0d1526;
+      border-bottom: 1px solid #1a2744;
+      flex-shrink: 0; flex-wrap: wrap;
+    }
+    .fs-title {
+      font-size: 11px; font-weight: 800; letter-spacing: .12em;
+      text-transform: uppercase; color: #3b82f6;
+      margin-right: 4px; white-space: nowrap;
+    }
+    .fs-map-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+    .fs-tab {
+      background: #080c14; border: 1px solid #1a2744;
+      border-radius: 5px; color: #9ca3af; cursor: default;
+      font-family: inherit; font-size: 11px; font-weight: 600;
+      padding: 3px 10px; transition: none;
+    }
+    .fs-tab.active   { background: #3b82f6; border-color: #3b82f6; color: #000; }
+    .fs-tab-t.active  { background: #f87171; border-color: #f87171; color: #000; }
+    .fs-tab-ct.active { background: #3b82f6; border-color: #3b82f6; color: #000; }
+    .fs-sep { width: 1px; height: 20px; background: #1a2744; margin: 0 4px; flex-shrink: 0; }
+    .fs-right { margin-left: auto; display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+    .fs-count { font-size: 11px; color: #6b7280; }
+    .fs-fullscreen-btn {
+      background: #1a2744; border: none; border-radius: 5px;
+      color: #9ca3af; cursor: default; font-size: 11px; font-weight: 600;
+      font-family: inherit; padding: 4px 10px;
+    }
+    .fs-main-split { display: flex; overflow: hidden; height: 380px; }
+    .fs-strats-col {
+      flex: 1; overflow-y: auto; padding: 8px 10px;
+      column-count: 3; column-gap: 8px;
+    }
+    .fs-card {
+      display: inline-block; width: 100%; background: #0d1526;
+      border: 1px solid #1a2744; border-left: 3px solid #1a2744;
+      border-radius: 6px; padding: 7px 9px; margin-bottom: 6px;
+      break-inside: avoid;
+    }
+    .fs-card-t  { border-left-color: #f87171; }
+    .fs-card-ct { border-left-color: #3b82f6; }
+    .fs-card-top {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 6px; margin-bottom: 5px;
+    }
+    .fs-strat-name {
+      font-size: 12px; font-weight: 700; color: #fff;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;
+    }
+    .fs-badges { display: flex; gap: 3px; flex-shrink: 0; }
+    .fs-badge {
+      font-size: 9px; font-weight: 700; letter-spacing: .04em;
+      padding: 1px 5px; border-radius: 3px; text-transform: uppercase;
+    }
+    .fs-badge-t    { background: rgba(239,68,68,0.15);  color: #f87171; }
+    .fs-badge-ct   { background: rgba(59,130,246,0.15); color: #3b82f6; }
+    .fs-badge-type { background: #1a2744; color: #6b7280; }
+    .fs-roles { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; }
+    .fs-role-row { display: flex; gap: 5px; align-items: baseline; min-width: 0; }
+    .fs-role-player {
+      font-size: 9px; color: #6b7280; font-weight: 700;
+      flex-shrink: 0; width: 22px; text-transform: uppercase;
+    }
+    .fs-role-name { font-size: 10px; color: #fff; min-width: 0; word-break: break-word; }
+    .fs-antistrat-panel {
+      width: 340px; flex-shrink: 0; border-left: 1px solid #1a2744;
+      background: #0d1526; overflow-y: auto; padding: 12px 14px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .fs-panel-title {
+      font-size: 10px; font-weight: 800; letter-spacing: 2px;
+      color: #6b7280; text-transform: uppercase; margin-bottom: 2px;
+    }
+    .fs-form-select {
+      width: 100%; background: #080c14; border: 1px solid #1a2744;
+      border-radius: 6px; padding: 5px 8px; color: #fff;
+      font-size: 12px; font-family: inherit;
+    }
+    .fs-map-tab-row { display: flex; flex-wrap: wrap; gap: 4px; }
+    .fs-panel-map-tab {
+      background: #0d1526; border: 1px solid #1a2744; border-radius: 7px;
+      color: #9ca3af; cursor: default; font-family: inherit;
+      font-size: 10px; font-weight: 600; padding: 3px 8px;
+    }
+    .fs-panel-map-tab.active { background: #3b82f6; border-color: #3b82f6; color: #000; }
+
+    /* ── Real app classes: Gameplan sheet ── */
+    .gameplan-sheet { border: 1px solid #1a2744; border-radius: 10px; overflow: hidden; }
+    .gameplan-sheet + .gameplan-sheet { margin-top: 8px; }
+    .gameplan-title {
+      font-size: 11px; font-weight: 700; letter-spacing: 2px;
+      text-transform: uppercase; padding: 10px 16px;
+    }
+    .ct-title { background: rgba(59,130,246,0.15); color: #3b82f6; }
+    .t-title  { background: rgba(167,139,250,0.15); color: #a78bfa; }
+    .gameplan-split {
+      display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #1a2744;
+    }
+    .gameplan-block { padding: 0; }
+    .gameplan-block + .gameplan-block { border-left: 1px solid #1a2744; }
+    .gameplan-section-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 2px;
+      text-transform: uppercase; padding: 7px 14px;
+      border-top: 1px solid #1a2744;
+    }
+    .pistols-label   { background: rgba(20,184,166,0.18); color: #2dd4bf; }
+    .style-label     { background: rgba(251,113,133,0.18); color: #fb7185; }
+    .antiecos-label  { background: rgba(20,184,166,0.18); color: #2dd4bf; }
+    .forces-label    { background: rgba(236,72,153,0.18); color: #f472b6; }
+    .tendencies-label { background: rgba(167,139,250,0.18); color: #a78bfa; }
+    .exploits-label  { background: rgba(251,191,36,0.18); color: #fbbf24; }
+    .solutions-label { background: rgba(34,197,94,0.18);  color: #22c55e; }
+    .gameplan-textarea-static {
+      display: block; background: transparent; border: none;
+      border-top: 1px solid #1a2744; color: #fff; font-family: inherit;
+      font-size: 13px; line-height: 1.75; padding: 8px 14px;
+      width: 100%; min-height: 60px; white-space: pre-wrap; word-break: break-word;
+    }
+    .gameplan-textarea-sm { font-size: 10px; padding: 4px 8px; min-height: 20px; line-height: 1.5; }
+
+    /* ── Real app classes: Antistrat standalone ── */
+    .app-page-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      padding: 18px 24px; background: #0d1526; border-bottom: 1px solid #1a2744;
+    }
+    .app-page-back { color: #6b7280; font-size: 13px; margin-bottom: 8px; }
+    .app-page-title { font-size: 21px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+    .app-btn {
+      padding: 9px 18px; border-radius: 7px; font-size: 13px; font-weight: 600;
+      cursor: default; border: none; font-family: inherit;
+    }
+    .app-btn-primary { background: #3b82f6; color: #fff; }
+    .app-btn-secondary { background: #1a2744; color: #9ca3af; }
+    .app-section-label {
+      color: #3b82f6; font-size: 10px; letter-spacing: 2px;
+      text-transform: uppercase; margin-bottom: 12px; margin-top: 0;
+    }
+    .app-map-toggle {
+      padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600;
+      cursor: default; color: #6b7280; background: none;
+      border: 1px solid #1a2744; font-family: inherit;
+    }
+    .app-map-toggle.active { background: rgba(59,130,246,0.15); color: #fff; border-color: #3b82f6; }
+    .app-review-map-tab {
+      background: #0d1526; border: 1px solid #1a2744; border-radius: 7px;
+      color: #9ca3af; cursor: default; font-family: inherit;
+      font-size: 12px; font-weight: 600; padding: 5px 14px;
+    }
+    .app-review-map-tab.active { background: #3b82f6; border-color: #3b82f6; color: #000; }
   </style>
 </head>
 <body>
@@ -728,145 +880,184 @@
       <div class="feature-eyebrow">Stratbook · Match View</div>
       <h2 class="feature-headline">EVERY STRAT. EVERY OPPONENT.<br>ONE FULLSCREEN VIEW.</h2>
       <p class="feature-body">Build your full tactical library by map and side. In Match View, pull every strat and the full antistrat sheet side-by-side on one screen — so nothing gets missed from pistol round to overtime.</p>
-      <div class="mock-mv">
-        <div class="mock-mv-header">
-          <div class="mock-mv-maptabs">
-            <span class="mock-mv-maptab on">All</span>
-            <span class="mock-mv-maptab">Ancient</span>
-            <span class="mock-mv-maptab">Mirage</span>
-            <span class="mock-mv-maptab">Nuke</span>
-            <span class="mock-mv-maptab">Anubis</span>
-            <span class="mock-mv-maptab">Inferno</span>
-            <span class="mock-mv-maptab">Overpass</span>
+      <div style="border:1px solid #1a2744;border-radius:10px;overflow:hidden;display:flex;flex-direction:column;">
+        <!-- Real Match View header — exact app structure -->
+        <div class="fs-header">
+          <span class="fs-title">Match View</span>
+          <div class="fs-map-tabs">
+            <button class="fs-tab active">All</button>
+            <button class="fs-tab">Ancient</button>
+            <button class="fs-tab">Mirage</button>
+            <button class="fs-tab">Nuke</button>
+            <button class="fs-tab">Anubis</button>
+            <button class="fs-tab">Inferno</button>
+            <button class="fs-tab">Overpass</button>
+            <button class="fs-tab">Dust2</button>
           </div>
-          <div class="mock-mv-sidetabs">
-            <span class="mock-mv-side on">Both</span>
-            <span class="mock-mv-side">T-Side</span>
-            <span class="mock-mv-side">CT-Side</span>
+          <div class="fs-sep"></div>
+          <div class="fs-map-tabs">
+            <button class="fs-tab active">Both</button>
+            <button class="fs-tab fs-tab-t">T-Side</button>
+            <button class="fs-tab fs-tab-ct">CT-Side</button>
           </div>
-          <div class="mock-mv-printbtn">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-            Print
+          <div class="fs-sep"></div>
+          <select class="fs-form-select" style="width:130px">
+            <option>All Players</option>
+          </select>
+          <div class="fs-right">
+            <span class="fs-count">6 strats</span>
+            <button class="fs-fullscreen-btn">⎙ Print</button>
+            <button class="fs-fullscreen-btn">⤢ Fullscreen</button>
           </div>
         </div>
-        <div class="mock-mv-body">
-          <div class="mock-mv-strats">
-            <div class="mock-mv-card mock-mv-ct">
-              <div class="mock-mv-card-header">
-                <span class="mock-badge mock-badge-ct">CT</span>
-                <span class="mock-mv-card-name">Default Setup</span>
-                <span class="mock-mv-card-type">Passive</span>
+        <!-- Real Match View body: strats (3-col) + antistrat panel -->
+        <div class="fs-main-split">
+          <div class="fs-strats-col">
+            <div class="fs-card fs-card-ct">
+              <div class="fs-card-top">
+                <span class="fs-strat-name">Default Setup</span>
+                <div class="fs-badges">
+                  <span class="fs-badge fs-badge-ct">CT</span>
+                  <span class="fs-badge fs-badge-type">Passive</span>
+                </div>
               </div>
-              <div class="mock-mv-card-roles">
-                <div class="mock-mv-card-role"><span class="mock-mv-card-player">ZWO</span><span class="mock-mv-card-pos">A Site anchor</span></div>
-                <div class="mock-mv-card-role"><span class="mock-mv-card-player">NKO</span><span class="mock-mv-card-pos">Window AWP</span></div>
-                <div class="mock-mv-card-role"><span class="mock-mv-card-player">MAT</span><span class="mock-mv-card-pos">Catwalk lurk</span></div>
-                <div class="mock-mv-card-role"><span class="mock-mv-card-player">ZYW</span><span class="mock-mv-card-pos">B passive</span></div>
-                <div class="mock-mv-card-role"><span class="mock-mv-card-player">APX</span><span class="mock-mv-card-pos">Mid control</span></div>
-              </div>
-            </div>
-            <div class="mock-mv-card mock-mv-t">
-              <div class="mock-mv-card-header">
-                <span class="mock-badge mock-badge-t">T</span>
-                <span class="mock-mv-card-name">Mid to B Split</span>
-                <span class="mock-mv-card-type">Execute</span>
-              </div>
-              <div class="mock-mv-card-roles">
-                <div class="mock-mv-card-role"><span class="mock-mv-card-player">SMP</span><span class="mock-mv-card-pos">Mid control</span></div>
-                <div class="mock-mv-card-role"><span class="mock-mv-card-player">ELC</span><span class="mock-mv-card-pos">B execute</span></div>
-                <div class="mock-mv-card-role"><span class="mock-mv-card-player">PFT</span><span class="mock-mv-card-pos">Short smoke</span></div>
-                <div class="mock-mv-card-role"><span class="mock-mv-card-player">APX</span><span class="mock-mv-card-pos">Short entry</span></div>
-                <div class="mock-mv-card-role"><span class="mock-mv-card-player">ZYW</span><span class="mock-mv-card-pos">Plant cover</span></div>
+              <div class="fs-roles">
+                <div class="fs-role-row"><span class="fs-role-player">ZWO</span><span class="fs-role-name">A Site anchor</span></div>
+                <div class="fs-role-row"><span class="fs-role-player">NKO</span><span class="fs-role-name">Window AWP</span></div>
+                <div class="fs-role-row"><span class="fs-role-player">MAT</span><span class="fs-role-name">Catwalk lurk</span></div>
+                <div class="fs-role-row"><span class="fs-role-player">ZYW</span><span class="fs-role-name">B passive</span></div>
+                <div class="fs-role-row"><span class="fs-role-player">APX</span><span class="fs-role-name">IGL roam</span></div>
               </div>
             </div>
-            <div class="mock-mv-card mock-mv-ct">
-              <div class="mock-mv-card-header">
-                <span class="mock-badge mock-badge-ct">CT</span>
-                <span class="mock-mv-card-name">Stack A Aggressive</span>
-                <span class="mock-mv-card-type">Aggro</span>
+            <div class="fs-card fs-card-t">
+              <div class="fs-card-top">
+                <span class="fs-strat-name">Mid to B Split</span>
+                <div class="fs-badges">
+                  <span class="fs-badge fs-badge-t">T</span>
+                  <span class="fs-badge fs-badge-type">Execute</span>
+                </div>
               </div>
-              <div class="mock-mv-card-roles">
-                <div class="mock-mv-card-role"><span class="mock-mv-card-player">APX</span><span class="mock-mv-card-pos">Apps aggro</span></div>
-                <div class="mock-mv-card-role"><span class="mock-mv-card-player">NKO</span><span class="mock-mv-card-pos">A heaven</span></div>
-                <div class="mock-mv-card-role"><span class="mock-mv-card-player">MAT</span><span class="mock-mv-card-pos">Short flash</span></div>
-                <div class="mock-mv-card-role"><span class="mock-mv-card-player">ZYW</span><span class="mock-mv-card-pos">Short push</span></div>
-              </div>
-            </div>
-            <div class="mock-mv-card mock-mv-t">
-              <div class="mock-mv-card-header">
-                <span class="mock-badge mock-badge-t">T</span>
-                <span class="mock-mv-card-name">A Fast Execute</span>
-                <span class="mock-mv-card-type">Rush</span>
-              </div>
-              <div class="mock-mv-card-roles">
-                <div class="mock-mv-card-role"><span class="mock-mv-card-player">ZWO</span><span class="mock-mv-card-pos">Entry anchor</span></div>
-                <div class="mock-mv-card-role"><span class="mock-mv-card-player">SMP</span><span class="mock-mv-card-pos">Jungle smoke</span></div>
-                <div class="mock-mv-card-role"><span class="mock-mv-card-player">ZYW</span><span class="mock-mv-card-pos">Plant cover</span></div>
-                <div class="mock-mv-card-role"><span class="mock-mv-card-player">ELC</span><span class="mock-mv-card-pos">CT cross</span></div>
+              <div class="fs-roles">
+                <div class="fs-role-row"><span class="fs-role-player">SMP</span><span class="fs-role-name">Mid control</span></div>
+                <div class="fs-role-row"><span class="fs-role-player">ELC</span><span class="fs-role-name">B execute</span></div>
+                <div class="fs-role-row"><span class="fs-role-player">PFT</span><span class="fs-role-name">Short smoke</span></div>
+                <div class="fs-role-row"><span class="fs-role-player">APX</span><span class="fs-role-name">Short entry</span></div>
+                <div class="fs-role-row"><span class="fs-role-player">ZYW</span><span class="fs-role-name">Plant cover</span></div>
               </div>
             </div>
-            <div class="mock-mv-card mock-mv-ct">
-              <div class="mock-mv-card-header">
-                <span class="mock-badge mock-badge-ct">CT</span>
-                <span class="mock-mv-card-name">B 2-Man Stack</span>
-                <span class="mock-mv-card-type">Passive</span>
+            <div class="fs-card fs-card-ct">
+              <div class="fs-card-top">
+                <span class="fs-strat-name">Stack A Aggressive</span>
+                <div class="fs-badges">
+                  <span class="fs-badge fs-badge-ct">CT</span>
+                  <span class="fs-badge fs-badge-type">Aggro</span>
+                </div>
               </div>
-              <div class="mock-mv-card-roles">
-                <div class="mock-mv-card-role"><span class="mock-mv-card-player">ZYW</span><span class="mock-mv-card-pos">Banana AWP</span></div>
-                <div class="mock-mv-card-role"><span class="mock-mv-card-player">ELC</span><span class="mock-mv-card-pos">Apps passive</span></div>
-                <div class="mock-mv-card-role"><span class="mock-mv-card-player">SMP</span><span class="mock-mv-card-pos">Underpass</span></div>
+              <div class="fs-roles">
+                <div class="fs-role-row"><span class="fs-role-player">APX</span><span class="fs-role-name">Apps aggro</span></div>
+                <div class="fs-role-row"><span class="fs-role-player">NKO</span><span class="fs-role-name">A heaven</span></div>
+                <div class="fs-role-row"><span class="fs-role-player">MAT</span><span class="fs-role-name">Short flash</span></div>
+                <div class="fs-role-row"><span class="fs-role-player">ZYW</span><span class="fs-role-name">Short push</span></div>
               </div>
             </div>
-            <div class="mock-mv-card mock-mv-t">
-              <div class="mock-mv-card-header">
-                <span class="mock-badge mock-badge-t">T</span>
-                <span class="mock-mv-card-name">B Full Rush</span>
-                <span class="mock-mv-card-type">Rush</span>
+            <div class="fs-card fs-card-t">
+              <div class="fs-card-top">
+                <span class="fs-strat-name">A Fast Execute</span>
+                <div class="fs-badges">
+                  <span class="fs-badge fs-badge-t">T</span>
+                  <span class="fs-badge fs-badge-type">Rush</span>
+                </div>
               </div>
-              <div class="mock-mv-card-roles">
-                <div class="mock-mv-card-role"><span class="mock-mv-card-player">SMP</span><span class="mock-mv-card-pos">Entry banana</span></div>
-                <div class="mock-mv-card-role"><span class="mock-mv-card-player">ELC</span><span class="mock-mv-card-pos">Flash support</span></div>
-                <div class="mock-mv-card-role"><span class="mock-mv-card-player">PFT</span><span class="mock-mv-card-pos">Boost apps</span></div>
-                <div class="mock-mv-card-role"><span class="mock-mv-card-player">ZWO</span><span class="mock-mv-card-pos">B entry</span></div>
+              <div class="fs-roles">
+                <div class="fs-role-row"><span class="fs-role-player">ZWO</span><span class="fs-role-name">Entry anchor</span></div>
+                <div class="fs-role-row"><span class="fs-role-player">SMP</span><span class="fs-role-name">Jungle smoke</span></div>
+                <div class="fs-role-row"><span class="fs-role-player">ZYW</span><span class="fs-role-name">Plant cover</span></div>
+                <div class="fs-role-row"><span class="fs-role-player">ELC</span><span class="fs-role-name">CT cross</span></div>
+              </div>
+            </div>
+            <div class="fs-card fs-card-ct">
+              <div class="fs-card-top">
+                <span class="fs-strat-name">B 2-Man Stack</span>
+                <div class="fs-badges">
+                  <span class="fs-badge fs-badge-ct">CT</span>
+                  <span class="fs-badge fs-badge-type">Passive</span>
+                </div>
+              </div>
+              <div class="fs-roles">
+                <div class="fs-role-row"><span class="fs-role-player">ZYW</span><span class="fs-role-name">Banana AWP</span></div>
+                <div class="fs-role-row"><span class="fs-role-player">ELC</span><span class="fs-role-name">Apps passive</span></div>
+                <div class="fs-role-row"><span class="fs-role-player">SMP</span><span class="fs-role-name">Underpass</span></div>
+              </div>
+            </div>
+            <div class="fs-card fs-card-t">
+              <div class="fs-card-top">
+                <span class="fs-strat-name">B Full Rush</span>
+                <div class="fs-badges">
+                  <span class="fs-badge fs-badge-t">T</span>
+                  <span class="fs-badge fs-badge-type">Rush</span>
+                </div>
+              </div>
+              <div class="fs-roles">
+                <div class="fs-role-row"><span class="fs-role-player">SMP</span><span class="fs-role-name">Entry banana</span></div>
+                <div class="fs-role-row"><span class="fs-role-player">ELC</span><span class="fs-role-name">Flash support</span></div>
+                <div class="fs-role-row"><span class="fs-role-player">PFT</span><span class="fs-role-name">Boost apps</span></div>
+                <div class="fs-role-row"><span class="fs-role-player">ZWO</span><span class="fs-role-name">B entry</span></div>
               </div>
             </div>
           </div>
-          <div class="mock-mv-panel">
-            <div class="mock-panel-opp-row">
-              <span class="mock-panel-opp-name">NATUS VINCERE</span>
-              <span class="mock-panel-opp-arrow">▾</span>
-            </div>
-            <div class="mock-panel-maptabs">
-              <span class="mock-panel-maptab on">Mirage</span>
-              <span class="mock-panel-maptab">Nuke</span>
-              <span class="mock-panel-maptab">Inferno</span>
+          <!-- Real antistrat panel -->
+          <div class="fs-antistrat-panel">
+            <div class="fs-panel-title">Antistrat</div>
+            <select class="fs-form-select">
+              <option>NATUS VINCERE</option>
+            </select>
+            <div class="fs-map-tab-row">
+              <button class="fs-panel-map-tab active">Mirage</button>
+              <button class="fs-panel-map-tab">Nuke</button>
+              <button class="fs-panel-map-tab">Inferno</button>
             </div>
             <div>
-              <div class="mock-panel-side-header mock-panel-ct-head">CT SIDE</div>
-              <div class="mock-panel-row">
-                <span class="mock-panel-row-key">Positions</span>
-                <span class="mock-panel-row-val">2 banana, 1 apps, AWP window. Fast rotates on any info.</span>
+              <div class="gameplan-sheet">
+                <div class="gameplan-title ct-title">CT GAMEPLAN <span style="opacity:0.6;font-weight:400">— vs their T side</span></div>
+                <div style="padding:4px 10px 6px;font-size:10px;border-top:1px solid #1a2744">
+                  <div style="font-size:8px;font-weight:700;letter-spacing:1px;color:#6b7280;margin-bottom:3px">LINEUP</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:4px;font-size:10px"><span><b>A</b>: anchor</span> · <span><b>B</b>: 2 banana</span> · <span><b>Mid</b>: IGL</span></div>
+                </div>
+                <div class="gameplan-split">
+                  <div class="gameplan-block">
+                    <div class="gameplan-section-label pistols-label" style="font-size:8px;padding:3px 8px">PISTOLS</div>
+                    <div class="gameplan-textarea-static gameplan-textarea-sm">Stack B, push banana early R1.</div>
+                  </div>
+                  <div class="gameplan-block">
+                    <div class="gameplan-section-label style-label" style="font-size:8px;padding:3px 8px">STYLE</div>
+                    <div class="gameplan-textarea-static gameplan-textarea-sm">Reactive, info-based. AWP repositions.</div>
+                  </div>
+                </div>
+                <div class="gameplan-split">
+                  <div class="gameplan-block">
+                    <div class="gameplan-section-label antiecos-label" style="font-size:8px;padding:3px 8px">ANTIECOS</div>
+                    <div class="gameplan-textarea-static gameplan-textarea-sm">Stack mid + apps. Watch for B rush.</div>
+                  </div>
+                  <div class="gameplan-block">
+                    <div class="gameplan-section-label forces-label" style="font-size:8px;padding:3px 8px">FORCES</div>
+                    <div class="gameplan-textarea-static gameplan-textarea-sm">Full B stack. Don't push mid.</div>
+                  </div>
+                </div>
+                <div class="gameplan-section-label tendencies-label" style="font-size:8px;padding:3px 8px">TENDENCIES</div>
+                <div class="gameplan-textarea-static gameplan-textarea-sm">Fast rotate on sound. AWP repositions each round.</div>
+                <div class="gameplan-section-label exploits-label" style="font-size:8px;padding:3px 8px">EXPLOITS</div>
+                <div class="gameplan-textarea-static gameplan-textarea-sm">Weak to mid flash early. Connector smoke timing off.</div>
+                <div class="gameplan-section-label solutions-label" style="font-size:8px;padding:3px 8px">SOLUTIONS</div>
+                <div class="gameplan-textarea-static gameplan-textarea-sm">Flash mid pre-20s. Fake B, split A connector.</div>
               </div>
-              <div class="mock-panel-row">
-                <span class="mock-panel-row-key">Pistols</span>
-                <span class="mock-panel-row-val">Full B stack round 1. Push banana early.</span>
-              </div>
-              <div class="mock-panel-row">
-                <span class="mock-panel-row-key">Exploits</span>
-                <span class="mock-panel-row-val">Weak to mid flash burst before 20s.</span>
-              </div>
-              <div class="mock-panel-side-header mock-panel-t-head">T SIDE</div>
-              <div class="mock-panel-row">
-                <span class="mock-panel-row-key">Tend.</span>
-                <span class="mock-panel-row-val">Slow default. Heavy mid presence first 30s.</span>
-              </div>
-              <div class="mock-panel-row">
-                <span class="mock-panel-row-key">Anti-eco</span>
-                <span class="mock-panel-row-val">Force B rush. All-in banana with pistols.</span>
-              </div>
-              <div class="mock-panel-row">
-                <span class="mock-panel-row-key">Solutions</span>
-                <span class="mock-panel-row-val">Fake B, rotate mid, split A connector before 25s.</span>
+              <div class="gameplan-sheet">
+                <div class="gameplan-title t-title">T GAMEPLAN <span style="opacity:0.6;font-weight:400">— vs their CT side</span></div>
+                <div class="gameplan-section-label tendencies-label" style="font-size:8px;padding:3px 8px">TENDENCIES</div>
+                <div class="gameplan-textarea-static gameplan-textarea-sm">Slow default, heavy mid first 30s. Rarely eco rush.</div>
+                <div class="gameplan-section-label exploits-label" style="font-size:8px;padding:3px 8px">EXPLOITS</div>
+                <div class="gameplan-textarea-static gameplan-textarea-sm">Late rotates. Plant timing predictable B site.</div>
+                <div class="gameplan-section-label solutions-label" style="font-size:8px;padding:3px 8px">SOLUTIONS</div>
+                <div class="gameplan-textarea-static gameplan-textarea-sm">Deny banana before 20s. Fake B, split A late.</div>
               </div>
             </div>
           </div>
@@ -882,55 +1073,81 @@
         <h2 class="feature-headline">KNOW YOUR ENEMY<br>BEFORE THE SERVER LOADS.</h2>
         <p class="feature-body">Build a complete antistrat sheet for every opponent — CT and T side positions, pistol tendencies, exploits, and solutions. When it's game day, print the full gameplan as a PDF and take it to the booth.</p>
       </div>
-      <div class="feature-mock reveal reveal-delay-2">
-        <div class="mock-as">
-          <div class="mock-as-header">
-            <div class="mock-as-teamname">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              NATUS VINCERE
-            </div>
-            <div class="mock-as-printbtn">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-              Print PDF
-            </div>
+      <div class="feature-mock reveal reveal-delay-2" style="padding:0;overflow:hidden;background:#080c14;">
+        <!-- Real opponent-detail page structure -->
+        <div class="app-page-header">
+          <div>
+            <div class="app-page-back">← Opponents</div>
+            <div class="app-page-title">NATUS VINCERE</div>
           </div>
-          <div class="mock-as-maptabs">
-            <span class="mock-as-maptab on">Mirage</span>
-            <span class="mock-as-maptab">Nuke</span>
-            <span class="mock-as-maptab">Inferno</span>
-            <span class="mock-as-maptab">Ancient</span>
+          <div style="display:flex;gap:10px;align-items:center">
+            <button class="app-btn app-btn-secondary">Print</button>
+            <button class="app-btn app-btn-primary">Save</button>
           </div>
-          <div class="mock-as-body">
-            <div class="mock-as-side">
-              <div class="mock-as-side-header mock-as-ct-head">CT Side</div>
-              <div class="mock-as-section">
-                <div class="mock-as-sec-label">Positions</div>
-                <div class="mock-as-sec-text">2 banana + 1 apps. AWP holds window, rotates on info call.</div>
+        </div>
+        <div style="padding:14px 20px;border-bottom:1px solid #1a2744">
+          <div class="app-section-label">Maps</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="app-map-toggle active">Mirage</button>
+            <button class="app-map-toggle">Nuke</button>
+            <button class="app-map-toggle">Inferno</button>
+            <button class="app-map-toggle">Ancient</button>
+          </div>
+        </div>
+        <div style="padding:14px 20px">
+          <div class="app-section-label">Antistrat</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+            <button class="app-review-map-tab active">Mirage</button>
+            <button class="app-review-map-tab">Nuke</button>
+            <button class="app-review-map-tab">Inferno</button>
+          </div>
+          <div class="gameplan-sheet" style="margin-bottom:12px">
+            <div class="gameplan-title ct-title">CT GAMEPLAN <span style="opacity:0.6;font-weight:400">— vs their T side</span></div>
+            <div class="gameplan-split">
+              <div class="gameplan-block">
+                <div class="gameplan-section-label pistols-label">PISTOLS</div>
+                <div class="gameplan-textarea-static">Stack B, force banana push early. IGL takes mid control round 1.</div>
               </div>
-              <div class="mock-as-section">
-                <div class="mock-as-sec-label">Pistols / Style</div>
-                <div class="mock-as-sec-text">Full stack B round 1. Early banana push, IGL takes mid info.</div>
-              </div>
-              <div class="mock-as-section">
-                <div class="mock-as-sec-label">Exploits</div>
-                <div class="mock-as-sec-text">Weak to mid flash burst. Connector smoke timing inconsistent.</div>
-              </div>
-            </div>
-            <div class="mock-as-side">
-              <div class="mock-as-side-header mock-as-t-head">T Side</div>
-              <div class="mock-as-section">
-                <div class="mock-as-sec-label">Tendencies</div>
-                <div class="mock-as-sec-text">Slow default, heavy mid presence first 30s. Rarely eco rushes.</div>
-              </div>
-              <div class="mock-as-section">
-                <div class="mock-as-sec-label">Anti-ecos / Forces</div>
-                <div class="mock-as-sec-text">Force B rush on eco. Often all-in banana with pistols.</div>
-              </div>
-              <div class="mock-as-section">
-                <div class="mock-as-sec-label">Solutions</div>
-                <div class="mock-as-sec-text">Fake B early, rotate mid, split A connector before 25s.</div>
+              <div class="gameplan-block">
+                <div class="gameplan-section-label style-label">STYLE</div>
+                <div class="gameplan-textarea-static">Reactive, info-based. AWP repositions every round.</div>
               </div>
             </div>
+            <div class="gameplan-split">
+              <div class="gameplan-block">
+                <div class="gameplan-section-label antiecos-label">ANTIECOS</div>
+                <div class="gameplan-textarea-static">Stack mid + apps. Watch for B rush early.</div>
+              </div>
+              <div class="gameplan-block">
+                <div class="gameplan-section-label forces-label">FORCES</div>
+                <div class="gameplan-textarea-static">Full B stack. Don't push mid on force rounds.</div>
+              </div>
+            </div>
+            <div class="gameplan-section-label tendencies-label">TENDENCIES</div>
+            <div class="gameplan-textarea-static">Fast rotates on any info. AWP repositions each round without flashing.</div>
+            <div class="gameplan-section-label exploits-label">EXPLOITS</div>
+            <div class="gameplan-textarea-static">Weak to mid flash burst before 20s. Connector smoke timing inconsistent.</div>
+            <div class="gameplan-section-label solutions-label">SOLUTIONS</div>
+            <div class="gameplan-textarea-static">Flash mid pre-20s. Fake B early, rotate, split A connector.</div>
+          </div>
+          <div class="gameplan-sheet">
+            <div class="gameplan-title t-title">T GAMEPLAN <span style="opacity:0.6;font-weight:400">— vs their CT side</span></div>
+            <div class="gameplan-split">
+              <div class="gameplan-block">
+                <div class="gameplan-section-label pistols-label">PISTOLS</div>
+                <div class="gameplan-textarea-static">Force B rush round 2. All-in banana with pistols.</div>
+              </div>
+              <div class="gameplan-block">
+                <div class="gameplan-section-label style-label">STYLE</div>
+                <div class="gameplan-textarea-static">Slow default with mid control. Rarely open rush.</div>
+              </div>
+            </div>
+            <div class="gameplan-section-label tendencies-label">TENDENCIES</div>
+            <div class="gameplan-textarea-static">Slow default, heavy mid presence first 30s. Almost never eco rushes.</div>
+            <div class="gameplan-section-label exploits-label">EXPLOITS</div>
+            <div class="gameplan-textarea-static">Plant timing is predictable B site. Late rotates from mid.</div>
+            <div class="gameplan-section-label solutions-label">SOLUTIONS</div>
+            <div class="gameplan-textarea-static">Deny banana before 20s. Fake B early, split A connector late.</div>
           </div>
         </div>
       </div>
