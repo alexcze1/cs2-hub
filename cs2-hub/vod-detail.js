@@ -125,9 +125,9 @@ function renderMapTabs() {
     </button>`
   }).join('')
 
-  el.querySelectorAll('.review-map-tab').forEach(btn => btn.addEventListener('click', e => {
+  el.querySelectorAll('.review-map-tab').forEach(btn => btn.addEventListener('click', () => {
     saveActiveNotes()
-    activeMapTab = +e.target.dataset.i
+    activeMapTab = +btn.dataset.i
     renderMapTabs()
     loadActiveNotes()
     if (isEdit) scheduleAutosave()
