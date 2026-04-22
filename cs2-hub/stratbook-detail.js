@@ -2,6 +2,7 @@
 import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
+import { toast } from './toast.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -82,7 +83,8 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   }
 
   if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return }
-  location.href = 'stratbook.html'
+  toast(isEdit ? 'Strat updated' : 'Strat saved')
+  setTimeout(() => { location.href = 'stratbook.html' }, 700)
 })
 
 // Delete
@@ -95,7 +97,8 @@ document.getElementById('delete-btn').addEventListener('click', async () => {
     errEl.style.display = 'block'
     return
   }
-  location.href = 'stratbook.html'
+  toast('Strat deleted')
+  setTimeout(() => { location.href = 'stratbook.html' }, 700)
 })
 
 // ── Print ────────────────────────────────────────────────────

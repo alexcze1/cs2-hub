@@ -1,6 +1,7 @@
 import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
+import { toast } from './toast.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -291,8 +292,9 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     ;({ error } = await supabase.from('opponents').insert(payload))
   }
 
-  if (error) { alert('Save failed: ' + error.message); errEl.textContent = error.message; errEl.style.display = 'block'; return }
-  location.href = 'opponents.html'
+  if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return }
+  toast(isEdit ? 'Opponent saved' : 'Opponent added')
+  setTimeout(() => { location.href = 'opponents.html' }, 700)
 })
 
 // ── Delete ──────────────────────────────────────────────────
@@ -304,5 +306,6 @@ document.getElementById('delete-btn').addEventListener('click', async () => {
     document.getElementById('save-error').style.display = 'block'
     return
   }
-  location.href = 'opponents.html'
+  toast('Opponent deleted')
+  setTimeout(() => { location.href = 'opponents.html' }, 700)
 })
