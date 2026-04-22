@@ -84,7 +84,8 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     ;({ error } = await supabase.from('keywords').insert(payload))
   }
   if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return }
-  closeModal(); toast(editingId ? 'Keyword updated' : 'Keyword added'); loadKeywords()
+  const wasEditing = !!editingId
+  closeModal(); toast(wasEditing ? 'Keyword updated' : 'Keyword added'); loadKeywords()
 })
 
 document.getElementById('delete-btn').addEventListener('click', async () => {

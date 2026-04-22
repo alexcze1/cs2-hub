@@ -77,7 +77,8 @@ document.getElementById('save-player-btn').addEventListener('click', async () =>
     ;({ error } = await supabase.from('roster').insert(payload))
   }
   if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return }
-  closeModal(); toast(editingId ? 'Player updated' : 'Player added'); loadRoster()
+  const wasEditing = !!editingId
+  closeModal(); toast(wasEditing ? 'Player updated' : 'Player added'); loadRoster()
 })
 
 document.getElementById('delete-player-btn').addEventListener('click', async () => {

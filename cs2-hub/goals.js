@@ -165,7 +165,8 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     ;({ error } = await supabase.from('goals').insert(payload))
   }
   if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return }
-  closeModal(); toast(editingId ? 'Goal updated' : 'Goal added'); loadGoals()
+  const wasEditing = !!editingId
+  closeModal(); toast(wasEditing ? 'Goal updated' : 'Goal added'); loadGoals()
 })
 
 document.getElementById('delete-btn').addEventListener('click', async () => {

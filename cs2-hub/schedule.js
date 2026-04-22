@@ -161,7 +161,8 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     ;({ error } = await supabase.from('events').insert(payload))
   }
   if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return }
-  closeModal(); toast(editingId ? 'Event updated' : 'Event added'); loadEvents()
+  const wasEditing = !!editingId
+  closeModal(); toast(wasEditing ? 'Event updated' : 'Event added'); loadEvents()
 })
 
 document.getElementById('delete-btn').addEventListener('click', async () => {
