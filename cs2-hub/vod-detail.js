@@ -19,28 +19,33 @@ let _ocrWorker = null
 
 async function getOcrWorker() {
   if (_ocrWorker) return _ocrWorker
-  // Tesseract loaded via CDN script tag in HTML
   _ocrWorker = await Tesseract.createWorker('eng', 1, { logger: () => {} })
-  await _ocrWorker.setParameters({ tessedit_char_whitelist: '0123456789:- ' })
+  await _ocrWorker.setParameters({
+    tessedit_char_whitelist: '0123456789:- ',
+    tessedit_pageseg_mode: '11', // sparse text — find numbers anywhere
+  })
   return _ocrWorker
 }
 
-// Preprocess image to greyscale + boost contrast for better OCR accuracy
+// Upscale 2x + hard black/white threshold for cleaner OCR
 function preprocessImage(file) {
   return new Promise(resolve => {
     const img = new Image()
     const url = URL.createObjectURL(file)
     img.onload = () => {
+      const scale = 2
       const canvas = document.createElement('canvas')
-      canvas.width = img.naturalWidth
-      canvas.height = img.naturalHeight
+      canvas.width  = img.naturalWidth  * scale
+      canvas.height = img.naturalHeight * scale
       const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0)
+      ctx.imageSmoothingEnabled = true
+      ctx.imageSmoothingQuality = 'high'
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
       URL.revokeObjectURL(url)
       const d = ctx.getImageData(0, 0, canvas.width, canvas.height)
       for (let i = 0; i < d.data.length; i += 4) {
         const g = 0.299 * d.data[i] + 0.587 * d.data[i+1] + 0.114 * d.data[i+2]
-        const v = Math.min(255, Math.max(0, (g - 128) * 1.8 + 128))
+        const v = g > 100 ? 255 : 0  // hard threshold — white text on black
         d.data[i] = d.data[i+1] = d.data[i+2] = v
       }
       ctx.putImageData(d, 0, 0)
@@ -90,9 +95,9 @@ scanInput.addEventListener('change', async () => {
     maps[idx].score_us   = result.score_a
     maps[idx].score_them = result.score_b
     renderMaps()
-    toast('Scores filled — tap ⇄ to flip if reversed')
+    toast(`Scores filled: ${result.score_a}–${result.score_b} — tap ⇄ to flip if reversed`)
   } catch {
-    toast('Could not read scores from image', 'error')
+    toast('Could not read scores — try cropping tighter around the numbers', 'error')
   }
   if (scanBtn) { scanBtn.disabled = false; scanBtn.classList.remove('scanning') }
 })
