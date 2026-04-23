@@ -2,6 +2,7 @@ import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
+import { attachPlayerAutocomplete, getPlayerImage, playerAvatarEl } from './player-autocomplete.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -30,11 +31,18 @@ async function loadRoster() {
     el.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><h3>No players yet</h3><p>Add players with the button above.</p></div>`
     return
   }
-  el.innerHTML = allPlayers.map(p => {
+
+  // Resolve player photos in parallel
+  const images = await Promise.all(allPlayers.map(p => getPlayerImage(p.nickname || p.username)))
+
+  el.innerHTML = allPlayers.map((p, i) => {
     const roleColor = ROLE_COLORS[p.role] ?? 'var(--border)'
+    const avatarHtml = images[i]
+      ? `<img src="${images[i]}" alt="${esc(p.nickname || p.username)}" style="width:72px;height:72px;object-fit:cover;border-radius:50%;border:2px solid ${roleColor};margin-bottom:10px">`
+      : `<div class="player-avatar" style="background:${roleColor}22;border:2px solid ${roleColor};color:${roleColor}">${esc((p.nickname || p.username || '?').slice(0,2).toUpperCase())}</div>`
     return `
     <div class="player-card" style="cursor:pointer;border-top:3px solid ${roleColor}" data-edit="${p.id}">
-      <div class="player-avatar" style="background:${roleColor}22;border:2px solid ${roleColor};color:${roleColor}">${esc((p.nickname || p.username || '?').slice(0,2).toUpperCase())}</div>
+      ${avatarHtml}
       <div class="player-ign">${esc(p.nickname || p.username)}</div>
       ${p.username && p.nickname ? `<div class="player-name">${esc(p.username)}</div>` : ''}
       <span class="role-badge" style="background:${roleColor};color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700">${esc(p.role ?? 'Player')}</span>
@@ -52,10 +60,29 @@ function openModal(id = null) {
   document.getElementById('f-role').value     = p?.role     ?? ''
   document.getElementById('delete-player-btn').style.display = id ? 'block' : 'none'
   document.getElementById('modal-error').style.display = 'none'
+  // Update avatar preview when editing
+  updateAvatarPreview(p?.nickname || p?.username || '')
   document.getElementById('modal').style.display = 'flex'
 }
 
 function closeModal() { document.getElementById('modal').style.display = 'none'; editingId = null }
+
+// Live avatar preview in modal
+async function updateAvatarPreview(ign) {
+  const wrap = document.getElementById('modal-avatar-preview')
+  if (!wrap) return
+  const img = await getPlayerImage(ign)
+  wrap.innerHTML = playerAvatarEl(img, ign, 52)
+}
+
+// Attach autocomplete to nickname field
+attachPlayerAutocomplete(document.getElementById('f-nickname'), player => {
+  updateAvatarPreview(player.ign)
+})
+
+document.getElementById('f-nickname').addEventListener('input', e => {
+  updateAvatarPreview(e.target.value.trim())
+})
 
 document.getElementById('add-player-btn').addEventListener('click', () => openModal())
 document.getElementById('modal-close').addEventListener('click', closeModal)

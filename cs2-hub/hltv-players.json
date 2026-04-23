@@ -1,0 +1,1778 @@
+[
+  {
+    "id": 7322,
+    "ign": "apEX",
+    "name": "Dan Madesclaire",
+    "team": "Vitality",
+    "country": "FR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/3M9h08qvl3YOsaRcAvKhs4.png?ixlib=java-2.1.0&w=400&s=c1acc9777d9e3165140548582e9bf1f5"
+  },
+  {
+    "id": 11893,
+    "ign": "ZywOo",
+    "name": "Mathieu Herbaut",
+    "team": "Vitality",
+    "country": "FR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/blnoWFtH8GUJZjhr8H0P4u.png?ixlib=java-2.1.0&w=400&s=dc0fe6bd817ef852f59185ccf6b6c868"
+  },
+  {
+    "id": 16693,
+    "ign": "flameZ",
+    "name": "Shahar Shushan",
+    "team": "Vitality",
+    "country": "IL",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/LUQi5dX9boyO0uDadUGht5.png?ixlib=java-2.1.0&w=400&s=1c5c46fe41e79b19a69b479d8abbbb41"
+  },
+  {
+    "id": 18462,
+    "ign": "mezii",
+    "name": "William Merriman",
+    "team": "Vitality",
+    "country": "GB",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/7GVUrVLAQkgnuovRkk5Bxw.png?ixlib=java-2.1.0&w=400&s=00b346853396c35e5889b00be2766c99"
+  },
+  {
+    "id": 11816,
+    "ign": "ropz",
+    "name": null,
+    "team": "Vitality",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 18987,
+    "ign": "b1t",
+    "name": null,
+    "team": "Natus Vincere",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 9816,
+    "ign": "Aleksib",
+    "name": "Aleksi Virolainen",
+    "team": "Natus Vincere",
+    "country": "FI",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/7-TvianW79yWk13gdw-Jc5.png?ixlib=java-2.1.0&w=400&s=f94eda5a77f332bc02821e6b845ca207"
+  },
+  {
+    "id": 14759,
+    "ign": "iM",
+    "name": "Mihai Ivan",
+    "team": "Natus Vincere",
+    "country": "RO",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/lWNcoOFOcHF3uIERANZRXh.png?ixlib=java-2.1.0&w=400&s=cd5df4d5e89df8cab0e4a7edd6db0d8b"
+  },
+  {
+    "id": 20127,
+    "ign": "w0nderful",
+    "name": "Ihor Zhdanov",
+    "team": "Natus Vincere",
+    "country": "UA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/OepRRBoc68iVojIfgK3JIA.png?ixlib=java-2.1.0&w=400&s=99dcc1115ffec1ed275a5cf4eacca825"
+  },
+  {
+    "id": 22673,
+    "ign": "makazze",
+    "name": "Drin Shaqiri",
+    "team": "Natus Vincere",
+    "country": "XK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/U6KmIKHcqg2OpMrNn-Aqk6.png?ixlib=java-2.1.0&w=400&s=420f1bcb0e6943b68fafb5e2d933197c"
+  },
+  {
+    "id": 12553,
+    "ign": "yuurih",
+    "name": "Yuri Santos",
+    "team": "FURIA",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/ZapU9KMKIlH1bDpSlV6MO1.png?ixlib=java-2.1.0&w=400&s=09cb203041b92340db49939164bc6f99"
+  },
+  {
+    "id": 15631,
+    "ign": "KSCERATO",
+    "name": null,
+    "team": "FURIA",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 2023,
+    "ign": "FalleN",
+    "name": "Gabriel Toledo",
+    "team": "FURIA",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/gQbb4I0TeHmxx7bYBOtd7T.png?ixlib=java-2.1.0&w=400&s=744dd676bd5ad23e4adfc8dc8fcbaa80"
+  },
+  {
+    "id": 24144,
+    "ign": "molodoy",
+    "name": "Danil Golubenko",
+    "team": "FURIA",
+    "country": "KZ",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/oPoWLYFq87cIs2cYDo8id7.png?ixlib=java-2.1.0&w=400&s=26d135bacbf9f98ff775421c3ca2bf4c"
+  },
+  {
+    "id": 13915,
+    "ign": "YEKINDAR",
+    "name": null,
+    "team": "FURIA",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 3741,
+    "ign": "NiKo",
+    "name": "Nikola Kovač",
+    "team": "Falcons",
+    "country": "BA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/ZrAcgiRTFgDyDj4k04-xAh.png?ixlib=java-2.1.0&w=400&s=afb5419d8de8399ef582f5446702a278"
+  },
+  {
+    "id": 12018,
+    "ign": "TeSeS",
+    "name": "René Madsen",
+    "team": "Falcons",
+    "country": "DK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/M7vtVu2MP606MqUmkW7ha4.png?ixlib=java-2.1.0&w=400&s=a0e159d3ec0ec708bb1db0eefbddb40b"
+  },
+  {
+    "id": 19230,
+    "ign": "m0NESY",
+    "name": "Ilya Osipov",
+    "team": "Falcons",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/e20I1I0Ld0bWn_VI31pf08.png?ixlib=java-2.1.0&w=400&s=6f89be52bc56efdd00b207268a1f7cfe"
+  },
+  {
+    "id": 24177,
+    "ign": "kyousuke",
+    "name": "Maksim Lukin",
+    "team": "Falcons",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/_s6UUQ4E92xw1uSWWCafsK.png?ixlib=java-2.1.0&w=400&s=d94a122aa9a8ec89f0727656b69e2415"
+  },
+  {
+    "id": 429,
+    "ign": "karrigan",
+    "name": null,
+    "team": "Falcons",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 18317,
+    "ign": "magixx",
+    "name": "Boris Vorobiev",
+    "team": "Spirit",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/1V7ijAaTXl3umTr7cPo0VF.png?ixlib=java-2.1.0&w=400&s=fd243be6d54de849949d6a837c3abe5e"
+  },
+  {
+    "id": 21167,
+    "ign": "donk",
+    "name": "Danil Kryshkovets",
+    "team": "Spirit",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/C4b0sMnty05S40UmXhLRD4.png?ixlib=java-2.1.0&w=400&s=8d846371bff4a867c0fcc3e038e02b1f"
+  },
+  {
+    "id": 20423,
+    "ign": "zont1x",
+    "name": "Myroslav Plakhotia",
+    "team": "Spirit",
+    "country": "UA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/wi3shJIerTjUCELul_JOus.png?ixlib=java-2.1.0&w=400&s=ce5a7296c8ec30e2bae0592b3be12667"
+  },
+  {
+    "id": 16920,
+    "ign": "sh1ro",
+    "name": "Dmitry Sokolov",
+    "team": "Spirit",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/Grz5vLIlrpeI7IQmm8d-jH.png?ixlib=java-2.1.0&w=400&s=3cfc5c3d0dbe422578931aabe14faa3c"
+  },
+  {
+    "id": 19808,
+    "ign": "tN1R",
+    "name": "Andrey Tatarinovich",
+    "team": "Spirit",
+    "country": "BY",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/PONEIASU8jyJz2lnNS13bp.png?ixlib=java-2.1.0&w=400&s=c995668c01532a97dc5709f25f479f8d"
+  },
+  {
+    "id": 19235,
+    "ign": "BELCHONOKK",
+    "name": "Andrey Yasinskiy",
+    "team": "PARIVISION",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/zUguI2YXOX1m4qNTvjLVJA.png?ixlib=java-2.1.0&w=400&s=d7b91a53ca75d162319590247dadb8c9"
+  },
+  {
+    "id": 13776,
+    "ign": "Jame",
+    "name": "Dzhami Ali",
+    "team": "PARIVISION",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/lExXxzg2gbyA0EHm8KCz4u.png?ixlib=java-2.1.0&w=400&s=c106f0b0387580e86e8b7967a0870a4b"
+  },
+  {
+    "id": 22929,
+    "ign": "nota",
+    "name": "Emil Moskvitin",
+    "team": "PARIVISION",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/5nxuQDMUKuIOM0WQkHU5IU.png?ixlib=java-2.1.0&w=400&s=4db636bcb2c5b0c070a3607deba2bbe1"
+  },
+  {
+    "id": 22471,
+    "ign": "xiELO",
+    "name": "Vladislav Lysov",
+    "team": "PARIVISION",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/12rQpFRvYZuulGxqh4Bp8V.png?ixlib=java-2.1.0&w=400&s=de89c478f6304f225b228c4aef018629"
+  },
+  {
+    "id": 23685,
+    "ign": "zweih",
+    "name": null,
+    "team": "PARIVISION",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 20194,
+    "ign": "bLitz",
+    "name": null,
+    "team": "The MongolZ",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 20275,
+    "ign": "Techno",
+    "name": "Sodbayar Munkhbold",
+    "team": "The MongolZ",
+    "country": "MN",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/mqG9yUYHd3C7P_O7JT3aIk.png?ixlib=java-2.1.0&w=400&s=5dca94b3d8ec7278af0b4b28350bfafc"
+  },
+  {
+    "id": 21809,
+    "ign": "910",
+    "name": "Usukhbayar Banzragch",
+    "team": "The MongolZ",
+    "country": "MN",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/VxQNCCbY7RGsKWMHGPrG_j.png?ixlib=java-2.1.0&w=400&s=45ad44f02269180c887b1c77dd0e69c6"
+  },
+  {
+    "id": 21001,
+    "ign": "mzinho",
+    "name": "Ayush Batbold",
+    "team": "The MongolZ",
+    "country": "MN",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/aAu_vh2NO0Y7s-NXpQ_DR7.png?ixlib=java-2.1.0&w=400&s=6b03b2c89e2c770e6e4949fc8943b460"
+  },
+  {
+    "id": 23402,
+    "ign": "cobrazera",
+    "name": "Anarbileg Uuganbayar",
+    "team": "The MongolZ",
+    "country": "MN",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/OzJI6tOD5op15oO_0GVAZw.png?ixlib=java-2.1.0&w=400&s=a5dc6219defcb92d0de3aaf7cb4cc631"
+  },
+  {
+    "id": 20304,
+    "ign": "Staehr",
+    "name": "Victor Staehr",
+    "team": "Astralis",
+    "country": "DK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/G8Z6QGNGayCWloB10UbFlG.png?ixlib=java-2.1.0&w=400&s=515c7a1c8549ec7f9f3fafad7254a46f"
+  },
+  {
+    "id": 17956,
+    "ign": "jabbi",
+    "name": "Jakob Nygaard",
+    "team": "Astralis",
+    "country": "DK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/dKxXCjAKGoulY4j-QQbtsK.png?ixlib=java-2.1.0&w=400&s=6ea64435f308847e3b5b4a4b444c4a1a"
+  },
+  {
+    "id": 10096,
+    "ign": "HooXi",
+    "name": null,
+    "team": "Astralis",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 16726,
+    "ign": "phzy",
+    "name": "Love Smidebrant",
+    "team": "Astralis",
+    "country": "SE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/YKUX_-o1Q6SH4Tg15oh3sN.png?ixlib=java-2.1.0&w=400&s=41c1ee8900e8b8e9384c1859f8dcb792"
+  },
+  {
+    "id": 21217,
+    "ign": "ryu",
+    "name": null,
+    "team": "Astralis",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 22674,
+    "ign": "cmtry",
+    "name": "Nikita Samolotov",
+    "team": "FUT",
+    "country": "UA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/JorVcvfs4eJnOeEASNTJor.png?ixlib=java-2.1.0&w=400&s=6f5570e4fab41656ca1402715b69bf42"
+  },
+  {
+    "id": 20584,
+    "ign": "dem0n",
+    "name": "Dmytro Myroshnychenko",
+    "team": "FUT",
+    "country": "UA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/8vdNoQ4bmcWPDmuhCDaJv7.png?ixlib=java-2.1.0&w=400&s=76bc25b4440d5f0de8c0192e0e49734c"
+  },
+  {
+    "id": 23553,
+    "ign": "dziugss",
+    "name": "Džiugas Steponavičius",
+    "team": "FUT",
+    "country": "LT",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/eTJu4sdB8MJJ97ixYS1Q8i.png?ixlib=java-2.1.0&w=400&s=42a225e58635602bd46ec5011e2b059c"
+  },
+  {
+    "id": 22203,
+    "ign": "Krabeni",
+    "name": "Aulon Fazlija",
+    "team": "FUT",
+    "country": "XK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/kcyl7BuE4C4otOtVCpg5w1.png?ixlib=java-2.1.0&w=400&s=6caaba1568f6522e95f90d371fd3e1dd"
+  },
+  {
+    "id": 20761,
+    "ign": "lauNX",
+    "name": null,
+    "team": "FUT",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 18072,
+    "ign": "torzsi",
+    "name": "Ádám Torzsás",
+    "team": "MOUZ",
+    "country": "HU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/R_N5toY5QunKzIeapwFCG9.png?ixlib=java-2.1.0&w=400&s=eb37cbe88e025dbd8e8e09c6cd981478"
+  },
+  {
+    "id": 20312,
+    "ign": "xertioN",
+    "name": null,
+    "team": "MOUZ",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 18221,
+    "ign": "Spinx",
+    "name": "Lotan Giladi",
+    "team": "MOUZ",
+    "country": "IL",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/e21k33SYzHd4xiEclyz50o.png?ixlib=java-2.1.0&w=400&s=8203b6b71262769700d17cf759a27db8"
+  },
+  {
+    "id": 19206,
+    "ign": "jL",
+    "name": "Justinas Lekavicius",
+    "team": "MOUZ",
+    "country": "LT",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/UGID7eabT-jrCrZAs3M-7N.png?ixlib=java-2.1.0&w=400&s=d05e11c1cc6d4415d0ae4042aba590ff"
+  },
+  {
+    "id": 24457,
+    "ign": "xelex",
+    "name": "Adrian Vincze",
+    "team": "MOUZ",
+    "country": "HU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/AygpsIHI6i_iX_6GGFW390.png?ixlib=java-2.1.0&w=400&s=4050bd76d24f2f381ccebf1a940c2064"
+  },
+  {
+    "id": 3972,
+    "ign": "huNter-",
+    "name": null,
+    "team": "G2",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 20447,
+    "ign": "HeavyGod",
+    "name": "Nikita Martynenko",
+    "team": "G2",
+    "country": "IL",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/7YARN6oC6zkO22mBCXZAHo.png?ixlib=java-2.1.0&w=400&s=8513917a1c78baec33911d3f0090e230"
+  },
+  {
+    "id": 21062,
+    "ign": "MATYS",
+    "name": "Matúš Šimko",
+    "team": "G2",
+    "country": "SK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/oGPiQDWLSu-D0d44tWo7Rb.png?ixlib=java-2.1.0&w=400&s=7c6c244b3c1bc2a4e3c646c000beb82a"
+  },
+  {
+    "id": 19164,
+    "ign": "SunPayus",
+    "name": "Álvaro García",
+    "team": "G2",
+    "country": "ES",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/yAgUY9LUAMh8xAzkqvPSen.png?ixlib=java-2.1.0&w=400&s=5e92883335088ce686644f517b51c32a"
+  },
+  {
+    "id": 9436,
+    "ign": "NertZ",
+    "name": "Guy Iluz",
+    "team": "G2",
+    "country": "IL",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/QWIhUZgGXKt7hcHi9u1hnu.png?ixlib=java-2.1.0&w=400&s=85a195c11817fb9c81b2fb8303607bf1"
+  },
+  {
+    "id": 19739,
+    "ign": "Ex3rcice",
+    "name": "Pierre Bulinge",
+    "team": "3DMAX",
+    "country": "FR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/IYVgzqBalEJQ1yfY44t-tb.png?ixlib=java-2.1.0&w=400&s=e3468e42fc76a75e9d05b6a46bb757f7"
+  },
+  {
+    "id": 13497,
+    "ign": "Lucky",
+    "name": "Lucas Chastang",
+    "team": "3DMAX",
+    "country": "FR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/DMcfIxPaeKaYDodzvCrTdk.png?ixlib=java-2.1.0&w=400&s=251298a6fc81a25285a7bb79ebd38db6"
+  },
+  {
+    "id": 13138,
+    "ign": "Maka",
+    "name": "Bryan Canda",
+    "team": "3DMAX",
+    "country": "FR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/1W9-kjxnxtc5-lmQyoD1zG.png?ixlib=java-2.1.0&w=400&s=d39c14623a502f7f19c8bc833e29f011"
+  },
+  {
+    "id": 21969,
+    "ign": "Graviti",
+    "name": "Filip Brankovic",
+    "team": "3DMAX",
+    "country": "FR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/-uLmAgfdhg94TAc5lc5uYV.png?ixlib=java-2.1.0&w=400&s=1093a73d3f8a75e7a1470003515c287c"
+  },
+  {
+    "id": 14176,
+    "ign": "misutaaa",
+    "name": "Kévin Rabier",
+    "team": "3DMAX",
+    "country": "FR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/9rRPkI01HF_4lLV0JMx5x2.png?ixlib=java-2.1.0&w=400&s=06b8db18def391789349b79a73c8c583"
+  },
+  {
+    "id": 21708,
+    "ign": "npl",
+    "name": "Andrii Kukharskyi",
+    "team": "B8",
+    "country": "UA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/ikLbsTodutbrStvWokgR_w.png?ixlib=java-2.1.0&w=400&s=b1681801fbaa4a2d2b5a30a332605fe5"
+  },
+  {
+    "id": 23643,
+    "ign": "esenthial",
+    "name": "Dmytro Tsvir",
+    "team": "B8",
+    "country": "UA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/MqxnP0w72L9EWsESLPeFoG.png?ixlib=java-2.1.0&w=400&s=e2a0f20fc1887cac80cb5bbe5ed09fde"
+  },
+  {
+    "id": 20112,
+    "ign": "alex666",
+    "name": "Alexey Yarmoshchuk",
+    "team": "B8",
+    "country": "UA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/kGubjP-W68zZM7bKB-pq3X.png?ixlib=java-2.1.0&w=400&s=f8173b3ae7567f626c001ce6780e64b7"
+  },
+  {
+    "id": 22842,
+    "ign": "kensizor",
+    "name": "Artem Kapran",
+    "team": "B8",
+    "country": "UA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/ggwJBGqRSPt8irtlNEIo2R.png?ixlib=java-2.1.0&w=400&s=4af13872b3dcdbc5dd2ca3353a69d79e"
+  },
+  {
+    "id": 25619,
+    "ign": "s1zzi",
+    "name": null,
+    "team": "B8",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 12092,
+    "ign": "max",
+    "name": "Maximiliano Gonzalez",
+    "team": "9z",
+    "country": "UY",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/vPT97tKV6UdEu6QPI8oPew.png?ixlib=java-2.1.0&w=400&s=4f8932410e2ff307ec8e934b4f63eba5"
+  },
+  {
+    "id": 22613,
+    "ign": "HUASOPEEK",
+    "name": null,
+    "team": "9z",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 20394,
+    "ign": "luchov",
+    "name": null,
+    "team": "9z",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 14737,
+    "ign": "meyern",
+    "name": "Ignacio Meyer",
+    "team": "9z",
+    "country": "AR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/IChotzP5mVSrqVy4PTHYzK.png?ixlib=java-2.1.0&w=400&s=963f6554d0eaa1ae9924c4e9f4188d0f"
+  },
+  {
+    "id": 14736,
+    "ign": "dgt",
+    "name": "Franco Garcia",
+    "team": "9z",
+    "country": "UY",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/6WgYZCFU9Si5ZpP8-Mx2Xc.png?ixlib=java-2.1.0&w=400&s=c85964b03b119712205b02cc19a1ab11"
+  },
+  {
+    "id": 18053,
+    "ign": "broky",
+    "name": "Helvijs Saukants",
+    "team": "FaZe",
+    "country": "LV",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/PhWXitAqrij9y8UgA14Vtu.png?ixlib=java-2.1.0&w=400&s=35c99a09186fc08befcf20befcff3b14"
+  },
+  {
+    "id": 9960,
+    "ign": "frozen",
+    "name": "David Čerňanský",
+    "team": "FaZe",
+    "country": "SK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/9W3dN51SYk7fVdz0JtUTd6.png?ixlib=java-2.1.0&w=400&s=762cb3fd622fb4fbac83afaa33ea3e5e"
+  },
+  {
+    "id": 22383,
+    "ign": "jcobbb",
+    "name": "Jakub Pietruszewski",
+    "team": "FaZe",
+    "country": "PL",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/x9MfB1IN50I4WdbdB41v-F.png?ixlib=java-2.1.0&w=400&s=d67ef64b58b43d193191d1750adf203a"
+  },
+  {
+    "id": 10394,
+    "ign": "Twistzz",
+    "name": null,
+    "team": "FaZe",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 19187,
+    "ign": "xfl0ud",
+    "name": null,
+    "team": "HEROIC",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 22047,
+    "ign": "yxngstxr",
+    "name": "Simon Boije",
+    "team": "HEROIC",
+    "country": "SE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/GV0GnKexXo17cH1aO1bRcY.png?ixlib=java-2.1.0&w=400&s=19badedd13223f3e6f2c36b8ab4270c1"
+  },
+  {
+    "id": 20119,
+    "ign": "nilo",
+    "name": "Linus Bergman",
+    "team": "HEROIC",
+    "country": "SE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/a_XL7ROfsn8YhNS_l7kIbv.png?ixlib=java-2.1.0&w=400&s=3aca6b0f83d2460b05bfe1e141557557"
+  },
+  {
+    "id": 21983,
+    "ign": "Chr1zN",
+    "name": null,
+    "team": "HEROIC",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 21163,
+    "ign": "susp",
+    "name": "Tim Ångström",
+    "team": "HEROIC",
+    "country": "SE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/Mdc2qZZptN3d3jGfXraSjk.png?ixlib=java-2.1.0&w=400&s=57dd867c35c98dba45e6f822fb5878c4"
+  },
+  {
+    "id": 19645,
+    "ign": "JamYoung",
+    "name": "Yi Yang",
+    "team": "TYLOO",
+    "country": "CN",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/T3crr0FvTbEmBtt-CYp5RG.png?ixlib=java-2.1.0&w=400&s=df1de969ede8432fc708946cde95962c"
+  },
+  {
+    "id": 20895,
+    "ign": "Mercury",
+    "name": null,
+    "team": "TYLOO",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 21621,
+    "ign": "Moseyuh",
+    "name": "Qianhao Chen",
+    "team": "TYLOO",
+    "country": "CN",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/2o7IiFaNgIgdyn2iF2BdT7.png?ixlib=java-2.1.0&w=400&s=5040cd09a8a1393108715918b46e6040"
+  },
+  {
+    "id": 20702,
+    "ign": "Jee",
+    "name": "Dongkai Ji",
+    "team": "TYLOO",
+    "country": "CN",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/kHtMM4mJ3iE22ShEr2KdND.png?ixlib=java-2.1.0&w=400&s=eafb10abc77317df1f1f63fefe3d5e88"
+  },
+  {
+    "id": 24857,
+    "ign": "Zero",
+    "name": "Su Jingshen",
+    "team": "TYLOO",
+    "country": "CN",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/OWaIRoK2dNVyrGoqVL5Wtn.png?ixlib=java-2.1.0&w=400&s=9023a9c49af5dadb56cf2ece63550388"
+  },
+  {
+    "id": 22860,
+    "ign": "avid",
+    "name": "Arvid Åberg",
+    "team": "Alliance",
+    "country": "SE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/Y685KEPs6ylylkjINcUZ_l.png?ixlib=java-2.1.0&w=400&s=e2e4aa37d7ce1dcf71d8ae2f8ec19551"
+  },
+  {
+    "id": 7443,
+    "ign": "twist",
+    "name": "Simon Eliasson",
+    "team": "Alliance",
+    "country": "SE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/uRJ0eZJ-8VEets7qRpDBek.png?ixlib=java-2.1.0&w=400&s=323bd8b68df1c76f1bfaf63689f73b6f"
+  },
+  {
+    "id": 22760,
+    "ign": "upE",
+    "name": "Markus Johansson",
+    "team": "Alliance",
+    "country": "SE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/l4d-8lsIOh8IUJ1Mq94Sp_.png?ixlib=java-2.1.0&w=400&s=6bc55966aa81f0cba08549c98a72ab9e"
+  },
+  {
+    "id": 16487,
+    "ign": "eraa",
+    "name": "Sean Knutsson",
+    "team": "Alliance",
+    "country": "SE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/gxNU-UfUNvMYTX1I5r-LhR.png?ixlib=java-2.1.0&w=400&s=2981d0f34354c1d1b17f4f6088224026"
+  },
+  {
+    "id": 24083,
+    "ign": "MaiL09",
+    "name": "Liam Tügel",
+    "team": "Alliance",
+    "country": "SE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/14-4iwtJhTUQu3cUEjeuRB.png?ixlib=java-2.1.0&w=400&s=099e3382af2cff3064e0025ed9abfd18"
+  },
+  {
+    "id": 18506,
+    "ign": "S1ren",
+    "name": "Pavel Ogloblin",
+    "team": "BetBoom",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/NzFHx0RTQabobGqj-6wAKy.png?ixlib=java-2.1.0&w=400&s=7cbbffc2762e81b292b0f5c868fb4cda"
+  },
+  {
+    "id": 21667,
+    "ign": "Magnojez",
+    "name": "Kirill Rodnov",
+    "team": "BetBoom",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/rZIp5FExZD3Pfjlf7nUUSN.png?ixlib=java-2.1.0&w=400&s=7a51fd6854a67706c04ed290757f3c5a"
+  },
+  {
+    "id": 11840,
+    "ign": "Boombl4",
+    "name": "Kirill Mikhailov",
+    "team": "BetBoom",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/Uzj7tb4h_VkBzIr686Ax6Q.png?ixlib=java-2.1.0&w=400&s=4c6d70bdfc96c5a27a38d67bbfc1914f"
+  },
+  {
+    "id": 20357,
+    "ign": "d1Ledez",
+    "name": "Daniil Kustov",
+    "team": "BetBoom",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/TQfRJz2zp41OdZaugCD7xB.png?ixlib=java-2.1.0&w=400&s=ac5381272d51ba864bd1366b6287ae6b"
+  },
+  {
+    "id": 15662,
+    "ign": "zorte",
+    "name": "Aleksandr Zagodyrenko",
+    "team": "BetBoom",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/G1u-Dhy3vEz1Kurd32DtrM.png?ixlib=java-2.1.0&w=400&s=1be96569a3b2ae4c60ead30f88770fa1"
+  },
+  {
+    "id": 16599,
+    "ign": "Swisher",
+    "name": "Michael Schmid",
+    "team": "M80",
+    "country": "US",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/29ZsyLzmin7ulOnJCcA3wM.png?ixlib=java-2.1.0&w=400&s=6644ca2a670a81840d9f20cb95676f9e"
+  },
+  {
+    "id": 15370,
+    "ign": "slaxz-",
+    "name": "Fritz Dietrich",
+    "team": "M80",
+    "country": "DE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/y_IxxTxErUYvRag___p54_.png?ixlib=java-2.1.0&w=400&s=33c80d62cf753b1b6fec95a85f0e87c6"
+  },
+  {
+    "id": 20104,
+    "ign": "s1n",
+    "name": "Elias Stein",
+    "team": "M80",
+    "country": "DE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/omou6FnIFE6WR1gOsMOUYc.png?ixlib=java-2.1.0&w=400&s=d148e6d26f4b9a8a8e8dba45ed31d0c8"
+  },
+  {
+    "id": 22921,
+    "ign": "Lake",
+    "name": "Mason Sanderson",
+    "team": "M80",
+    "country": "US",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/fcLbbeY2MoA_9_WCCA-p_R.png?ixlib=java-2.1.0&w=400&s=a8106291a5f1f811c793e2ca5478329b"
+  },
+  {
+    "id": 21665,
+    "ign": "JBa",
+    "name": "Josh Barutt",
+    "team": "M80",
+    "country": "US",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/e1F2VxFPrjax_4VC8-tRB0.png?ixlib=java-2.1.0&w=400&s=70d0da40a4f07c6fdb6fda301649e321"
+  },
+  {
+    "id": 21816,
+    "ign": "Gizmy",
+    "name": "Jack von Spreckelsen",
+    "team": "Monte",
+    "country": "GB",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/GrU5oOJaKtw3dQy80x43Cx.png?ixlib=java-2.1.0&w=400&s=b534362b3a5b4542d092fa7e3465eb36"
+  },
+  {
+    "id": 19926,
+    "ign": "afro",
+    "name": "Aurélien Drapier",
+    "team": "Monte",
+    "country": "FR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/bcqrKzWEiMOw0cZ4v-jhhX.png?ixlib=java-2.1.0&w=400&s=2869872dac00fe76245e3d2b431a2ac2"
+  },
+  {
+    "id": 22106,
+    "ign": "AZUWU",
+    "name": "Oscar Bell",
+    "team": "Monte",
+    "country": "GB",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/0IH9t5RmINJhyZyzWAQn-8.png?ixlib=java-2.1.0&w=400&s=41da163be6380331eed305c97eba03b3"
+  },
+  {
+    "id": 19015,
+    "ign": "Bymas",
+    "name": "Aurimas Pipiras",
+    "team": "Monte",
+    "country": "LT",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/RbNnp0DpRLb5703phEBXDh.png?ixlib=java-2.1.0&w=400&s=5bbe3105c495c7ae8260009620ee7ae1"
+  },
+  {
+    "id": 17145,
+    "ign": "Rainwaker",
+    "name": "Aleks Petrov",
+    "team": "Monte",
+    "country": "BG",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/FxAQoE7Wj2IbO4_DxiA_tk.png?ixlib=java-2.1.0&w=400&s=17283f40d6d89b67e4adb0f621380211"
+  },
+  {
+    "id": 8520,
+    "ign": "NAF",
+    "name": "Keith Markovic",
+    "team": "Liquid",
+    "country": "CA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/IsWTIH0Z8VFH27xELG8X-F.png?ixlib=java-2.1.0&w=400&s=f421eb31cfdd47c8bc97a2a95f7d8f7b"
+  },
+  {
+    "id": 21763,
+    "ign": "ultimate",
+    "name": "Roland Tomkowiak",
+    "team": "Liquid",
+    "country": "PL",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/OXZiSpq7Pv8_LlokCWtjvj.png?ixlib=java-2.1.0&w=400&s=b9162a6b10c8b23865cc7468978b34d6"
+  },
+  {
+    "id": 16820,
+    "ign": "siuhy",
+    "name": "Kamil Szkaradek",
+    "team": "Liquid",
+    "country": "PL",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/bHQKxD5jNZ2n1YpeYeeTA6.png?ixlib=java-2.1.0&w=400&s=5061ee629f29b424647754ed12f94e04"
+  },
+  {
+    "id": 8738,
+    "ign": "EliGE",
+    "name": "Jonathan Jablonowski",
+    "team": "Liquid",
+    "country": "US",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/tY4zfxxGWqYkmtIkQ-K1th.png?ixlib=java-2.1.0&w=400&s=a8922acd464ea669d714298f4cf283d6"
+  },
+  {
+    "id": 11617,
+    "ign": "malbsMd",
+    "name": "Mario Samayoa",
+    "team": "Liquid",
+    "country": "GT",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/ctUILRDjbNaDhZTIkGKwXF.png?ixlib=java-2.1.0&w=400&s=6918113c9cad418df3fad983dc894890"
+  },
+  {
+    "id": 18141,
+    "ign": "biguzera",
+    "name": "Rodrigo Bittencourt",
+    "team": "paiN",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/HUy3TltSQxWgWwlTy42u9k.png?ixlib=java-2.1.0&w=400&s=4965d6fb0352a171baa71fbc16046e4d"
+  },
+  {
+    "id": 20171,
+    "ign": "snow",
+    "name": "João Vinicius",
+    "team": "paiN",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/l97Ga-CHqlvYGF_y4oTUr5.png?ixlib=java-2.1.0&w=400&s=d67ced065eabeef6d9a01bc81cf7287b"
+  },
+  {
+    "id": 18714,
+    "ign": "piriajr",
+    "name": "Guilherme Barbosa",
+    "team": "paiN",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/VYJimjFTbcbszh3T6eJsNa.png?ixlib=java-2.1.0&w=400&s=5a25a385efea675f761f5c2aa3c294ce"
+  },
+  {
+    "id": 16816,
+    "ign": "vsm",
+    "name": "Vinicius Moreira",
+    "team": "paiN",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/9l4fmqtPpnYTVLSpIszftp.png?ixlib=java-2.1.0&w=400&s=a49d24061ab0d5cf60dfa48989e64d94"
+  },
+  {
+    "id": 18835,
+    "ign": "saffee",
+    "name": "Rafael Costa",
+    "team": "paiN",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/lQlP5UhO9eKgTRo7v4hfj7.png?ixlib=java-2.1.0&w=400&s=8077494c94dce5e35c209ee8e7559f66"
+  },
+  {
+    "id": 20987,
+    "ign": "brnz4n",
+    "name": "Breno Poletto",
+    "team": "MIBR",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/4QxpvFP9PJy70pt7Cjrmnx.png?ixlib=java-2.1.0&w=400&s=f4c9f818c08cd114b37a0436aaee2650"
+  },
+  {
+    "id": 21037,
+    "ign": "insani",
+    "name": "Felipe Yuji",
+    "team": "MIBR",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/rMLFuDdAsdhOFc2DoQ9n7k.png?ixlib=java-2.1.0&w=400&s=1159d0701afb1514001444387c22ef56"
+  },
+  {
+    "id": 23192,
+    "ign": "kl1m",
+    "name": "Klimentii Krivosheev",
+    "team": "MIBR",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/_EQqLknLcE-6K0XtiEjRH2.png?ixlib=java-2.1.0&w=400&s=33cb8d510095a7449598721634bdac9c"
+  },
+  {
+    "id": 19310,
+    "ign": "LNZ",
+    "name": "Linus Holtäng",
+    "team": "MIBR",
+    "country": "SE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/c7tcRMt0bkk12_yaIBZTLC.png?ixlib=java-2.1.0&w=400&s=b702fd627509f340516faea6b65e815f"
+  },
+  {
+    "id": 21288,
+    "ign": "venomzera",
+    "name": "Carlos Eduardo",
+    "team": "MIBR",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/BTNEAhe45nPFjEifq-R-sV.png?ixlib=java-2.1.0&w=400&s=dd800e15cd61b560db63025a94b1e4e6"
+  },
+  {
+    "id": 3849,
+    "ign": "JW",
+    "name": null,
+    "team": "EYEBALLERS",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 22914,
+    "ign": "dex",
+    "name": "Sebastian Samuelsson",
+    "team": "EYEBALLERS",
+    "country": "SE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/OaeEOxBDGamCXJZGaciTXf.png?ixlib=java-2.1.0&w=400&s=085f806ab43fb3f1e2d8a00d4ae2dc26"
+  },
+  {
+    "id": 21012,
+    "ign": "Ro1f",
+    "name": "Kalle Johansson",
+    "team": "EYEBALLERS",
+    "country": "SE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/eatJhRru1xxsPHr5AtmGO8.png?ixlib=java-2.1.0&w=400&s=6c2e47484e4632ad0cf5dad8fc044cbd"
+  },
+  {
+    "id": 20879,
+    "ign": "maxster",
+    "name": "Max Jansson",
+    "team": "EYEBALLERS",
+    "country": "SE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/XfSJXG1UNf2tKLKA_fMDvH.png?ixlib=java-2.1.0&w=400&s=fe3f4097afffb581d78ca16858c65b11"
+  },
+  {
+    "id": 21159,
+    "ign": "bobeksde",
+    "name": "Jonatan Persson",
+    "team": "EYEBALLERS",
+    "country": "SE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/GqJxPl5gyb_9puqJQ5XTHx.png?ixlib=java-2.1.0&w=400&s=16cd5bf673cd9947e55d7e40cb7c1abd"
+  },
+  {
+    "id": 20625,
+    "ign": "Banjo",
+    "name": "Matias Kivistö",
+    "team": "FOKUS",
+    "country": "FI",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/wn4JSgSZ8EZy38XmbK__8R.png?ixlib=java-2.1.0&w=400&s=304a4b91ce82f6d8e759b6567db09ae3"
+  },
+  {
+    "id": 24203,
+    "ign": "Jorko",
+    "name": "Georgi Mitev",
+    "team": "FOKUS",
+    "country": "BG",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/RcAJt7YW7ym2wQE0omMl3k.png?ixlib=java-2.1.0&w=400&s=000ca026c08aad08340fdde43ca3ac1f"
+  },
+  {
+    "id": 24332,
+    "ign": "Matheos",
+    "name": "Mateo Prišlin",
+    "team": "FOKUS",
+    "country": "HR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/3Nagp4PpiodYGaz_XciTei.png?ixlib=java-2.1.0&w=400&s=812e8390f30cc2d0b23b820430177914"
+  },
+  {
+    "id": 20358,
+    "ign": "volt",
+    "name": null,
+    "team": "FOKUS",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 16486,
+    "ign": "ztr",
+    "name": "Erik Gustafsson",
+    "team": "FOKUS",
+    "country": "SE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/1h0qiKnYaHNXapZDuIDUzY.png?ixlib=java-2.1.0&w=400&s=77145c5b3171c39d8c69276150631c78"
+  },
+  {
+    "id": 13249,
+    "ign": "oSee",
+    "name": "Josh Ohm",
+    "team": "NRG",
+    "country": "US",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/PSZRu17-f2TcgPB_aFuY0p.png?ixlib=java-2.1.0&w=400&s=01e839321d0044ec205bd544146c1cd2"
+  },
+  {
+    "id": 7687,
+    "ign": "nitr0",
+    "name": "Nick Cannella",
+    "team": "NRG",
+    "country": "US",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/VV5H8oDdijd-yrY420upLi.png?ixlib=java-2.1.0&w=400&s=843a2ebc3aa094c2087d788f10b6a4da"
+  },
+  {
+    "id": 16717,
+    "ign": "br0",
+    "name": "Alexander Bro",
+    "team": "NRG",
+    "country": "DK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/GUQ9JBYM_eIJtW-0jbCeBM.png?ixlib=java-2.1.0&w=400&s=0c0dba1dc1ecbdcd452bb2a989d2bba9"
+  },
+  {
+    "id": 8711,
+    "ign": "Sonic",
+    "name": "Aran Groesbeek",
+    "team": "NRG",
+    "country": "ZA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/Fuul_Sae87vY63eQkabuKx.png?ixlib=java-2.1.0&w=400&s=face1674a548434672527fb4f78f31b9"
+  },
+  {
+    "id": 13578,
+    "ign": "Grim",
+    "name": "Michael Wince",
+    "team": "NRG",
+    "country": "US",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/G1P8NBXAJ_kwr-SAD1-p-Y.png?ixlib=java-2.1.0&w=400&s=5bd31bf64163019041df7e6995d408d1"
+  },
+  {
+    "id": 14148,
+    "ign": "sjuush",
+    "name": "Rasmus Beck",
+    "team": "Ninjas in Pyjamas",
+    "country": "DK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/LI-h-toKvr9SLKJkmUcZ7c.png?ixlib=java-2.1.0&w=400&s=ed39bf3233a0cc390c850d0e4e206a69"
+  },
+  {
+    "id": 922,
+    "ign": "Snappi",
+    "name": "Marco Pfeiffer",
+    "team": "Ninjas in Pyjamas",
+    "country": "DK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/-ihDkbQ6iZIJpru6isBmkw.png?ixlib=java-2.1.0&w=400&s=85bd3c8e58741ca6f72d986d206c4b48"
+  },
+  {
+    "id": 23372,
+    "ign": "xKacpersky",
+    "name": "Kacper Gabara",
+    "team": "Ninjas in Pyjamas",
+    "country": "PL",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/4ICjUyvBowN1B8nI2ipn1_.png?ixlib=java-2.1.0&w=400&s=84ca08e91c4000525b16f22d93b321ed"
+  },
+  {
+    "id": 24283,
+    "ign": "cairne",
+    "name": "Artem Mushynskyi",
+    "team": "Ninjas in Pyjamas",
+    "country": "UA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/ni1UKsMhFGJ90wvU4Obcot.png?ixlib=java-2.1.0&w=400&s=bd8ce360c3b49f725f128f2d57dc5b07"
+  },
+  {
+    "id": 10994,
+    "ign": "stavn",
+    "name": null,
+    "team": "Ninjas in Pyjamas",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 21452,
+    "ign": "Kvem",
+    "name": "Vladyslav Korol",
+    "team": "Passion UA",
+    "country": "UA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/JvYP6XOACW_PwcfuZagHol.png?ixlib=java-2.1.0&w=400&s=e5dd54a095e81718290f9673d4db6c3c"
+  },
+  {
+    "id": 11630,
+    "ign": "JT",
+    "name": "Johnny Theodosiou",
+    "team": "Passion UA",
+    "country": "ZA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/pQNSQ0rPk_iY9lvGh2dbUa.png?ixlib=java-2.1.0&w=400&s=11c76b6354eae255415ccdc42b88c562"
+  },
+  {
+    "id": 21620,
+    "ign": "nicx",
+    "name": "Nick Lee",
+    "team": "Passion UA",
+    "country": "US",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/WCBEk2pM3W8G2t-2wYHXWS.png?ixlib=java-2.1.0&w=400&s=482d45038a5b5eff218e864cd817d3bd"
+  },
+  {
+    "id": 20903,
+    "ign": "Senzu",
+    "name": "Azbayar Munkhbold",
+    "team": "Passion UA",
+    "country": "MN",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/ACOV-uKlXkFHz-Ab9WB0lq.png?ixlib=java-2.1.0&w=400&s=40648e97cc8f707dc90531cb04e2a2b0"
+  },
+  {
+    "id": 19869,
+    "ign": "try",
+    "name": "Santino Rigal",
+    "team": "Passion UA",
+    "country": "AR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/kG1YZPanCCpZGAJ4VosNwW.png?ixlib=java-2.1.0&w=400&s=57a5b92fb976188a0408bd24dfd13c1d"
+  },
+  {
+    "id": 12810,
+    "ign": "SHOCK",
+    "name": "Max Kvapil",
+    "team": "SINNERS",
+    "country": "CZ",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/PBOdakTycAFJxNAvve7HPT.png?ixlib=java-2.1.0&w=400&s=b9ae5f3e32a18f8ab51f6007dd140df4"
+  },
+  {
+    "id": 11199,
+    "ign": "beastik",
+    "name": "Sebastian Daňo",
+    "team": "SINNERS",
+    "country": "CZ",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/E8-watV8NAug_fwmMmdxEV.png?ixlib=java-2.1.0&w=400&s=8ad8c1097f4c90e201653615fee73a4b"
+  },
+  {
+    "id": 23295,
+    "ign": "kisserek",
+    "name": "Kamil Banak",
+    "team": "SINNERS",
+    "country": "PL",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/PRdYAagL5KCYKugIvp-36X.png?ixlib=java-2.1.0&w=400&s=b44e8e0d5863b5ea39e9506060ebb934"
+  },
+  {
+    "id": 23459,
+    "ign": "stressarN",
+    "name": "Jordan Manevski",
+    "team": "SINNERS",
+    "country": "MK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/Vd2xyBtJ3oGxb40VkvLQvV.png?ixlib=java-2.1.0&w=400&s=a18dfbc85a93249c909d90358edcb981"
+  },
+  {
+    "id": 21113,
+    "ign": "MoDo",
+    "name": "Mădălin-Andrei Mirea",
+    "team": "SINNERS",
+    "country": "RO",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/3o4_lnu8ZdqYBwWdMvr_ZG.png?ixlib=java-2.1.0&w=400&s=32d745d4fdad5c19d923c3602a0b911d"
+  },
+  {
+    "id": 22570,
+    "ign": "tomaszin",
+    "name": "Tomas Corna",
+    "team": "BESTIA",
+    "country": "AR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/0MU6aXWLdatOgeQPTCL5Q7.png?ixlib=java-2.1.0&w=400&s=ef865b168c3449023c6da297744ce8d7"
+  },
+  {
+    "id": 20185,
+    "ign": "cass1n",
+    "name": "Cássio Santos",
+    "team": "BESTIA",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/AGnZeNN98DqGWGvjsx0gji.png?ixlib=java-2.1.0&w=400&s=7bba6fad64688ab7e6a671e4f480519f"
+  },
+  {
+    "id": 20607,
+    "ign": "buda",
+    "name": "Nicolás Kramer",
+    "team": "BESTIA",
+    "country": "AR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/raV8vyAiCZ-wDOnmZwGWPV.png?ixlib=java-2.1.0&w=400&s=bb03c803d8d56cdea91268bc0188ecc2"
+  },
+  {
+    "id": 19985,
+    "ign": "nacho",
+    "name": "Ignacio Rodriguez",
+    "team": "BESTIA",
+    "country": "AR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/wFMEmIEb8efwarE9VDl_iK.png?ixlib=java-2.1.0&w=400&s=abc84c97e8c90eb134aa63ad336abcfb"
+  },
+  {
+    "id": 24863,
+    "ign": "timo",
+    "name": "Cristhian Perez",
+    "team": "BESTIA",
+    "country": "UY",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/rJFtL24rg0Ii-HWWd4HX3K.png?ixlib=java-2.1.0&w=400&s=b55bc1c119d3cb8b7cbaa6150b72f2be"
+  },
+  {
+    "id": 19750,
+    "ign": "drop",
+    "name": "André Abreu",
+    "team": "RED Canids",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/aYSCp6sYYsSWPVz7T_wJZH.png?ixlib=java-2.1.0&w=400&s=0c4067b6334b4d0ac8f2c21ee484f508"
+  },
+  {
+    "id": 20085,
+    "ign": "kauez",
+    "name": "Kaue Kaschuk",
+    "team": "RED Canids",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/2Fm-YLPRcTq7CaYyYisrHD.png?ixlib=java-2.1.0&w=400&s=0d659562388232b0f457fc25de800eea"
+  },
+  {
+    "id": 20026,
+    "ign": "chayJESUS",
+    "name": "Richard Seidy",
+    "team": "RED Canids",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/xEcBlEHzSQM8gXAijZlXJ3.png?ixlib=java-2.1.0&w=400&s=325af33b520b9b96e9232f810382071e"
+  },
+  {
+    "id": 18865,
+    "ign": "dav1deuS",
+    "name": "David Tapia Maldonado",
+    "team": "RED Canids",
+    "country": "CL",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/GutnAZa9DEGXALA1MIADlD.png?ixlib=java-2.1.0&w=400&s=4841b91fdf3acbc0b9eeeee1446d0306"
+  },
+  {
+    "id": 25777,
+    "ign": "reNTU",
+    "name": "Renan Cardoso",
+    "team": "RED Canids",
+    "country": "BR",
+    "image": null
+  },
+  {
+    "id": 21385,
+    "ign": "mizu",
+    "name": "Dmitry Kondratev",
+    "team": "HOTU",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/e6gFy2hB_wg8IJofJcAvt3.png?ixlib=java-2.1.0&w=400&s=6d7b89b3534f30957f99594302c2a1ac"
+  },
+  {
+    "id": 24806,
+    "ign": "frontales",
+    "name": "Kim Argunov",
+    "team": "HOTU",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/GSFcPwd--SCHo_UihInJUO.png?ixlib=java-2.1.0&w=400&s=6575469c4ed2cda2d5e80f889d11d34d"
+  },
+  {
+    "id": 16612,
+    "ign": "n0rb3r7",
+    "name": "David Danielyan",
+    "team": "HOTU",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/lxUFAYq3KJkVWlSw4uARWf.png?ixlib=java-2.1.0&w=400&s=346401f9cd511b3e8965c06c3217de0b"
+  },
+  {
+    "id": 8371,
+    "ign": "alex",
+    "name": null,
+    "team": "Gentle Mates",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 19509,
+    "ign": "dav1g",
+    "name": "David Granado Bermudo",
+    "team": "Gentle Mates",
+    "country": "ES",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/AS1udbalr2Tm-KHCTO1tXr.png?ixlib=java-2.1.0&w=400&s=fb0a95343d0da0e7ee2eabb41cfca3d7"
+  },
+  {
+    "id": 21239,
+    "ign": "MartinezSa",
+    "name": null,
+    "team": "Gentle Mates",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 9254,
+    "ign": "mopoz",
+    "name": "Alejandro Fernández-Quejo Cano",
+    "team": "Gentle Mates",
+    "country": "ES",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/KHbfDVctpLVwk-HNqJCr53.png?ixlib=java-2.1.0&w=400&s=3e1eef46e0138a84d844c49d294c48a2"
+  },
+  {
+    "id": 18749,
+    "ign": "sausol",
+    "name": "Pere Solsona Saumell",
+    "team": "Gentle Mates",
+    "country": "ES",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/odJHGF8lngmXX28-FOWbwG.png?ixlib=java-2.1.0&w=400&s=84009533dcda1a898d224c5ca3505564"
+  },
+  {
+    "id": 2898,
+    "ign": "raalz",
+    "name": "Rasmus Steensborg",
+    "team": "9INE",
+    "country": "DK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/XUuGHHe38ca6m6Jv1Rz1R0.png?ixlib=java-2.1.0&w=400&s=268394b8647d64b8f70b351a4de1132d"
+  },
+  {
+    "id": 20300,
+    "ign": "kraghen",
+    "name": null,
+    "team": "9INE",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 22702,
+    "ign": "cej0t",
+    "name": "Jan Dyl",
+    "team": "9INE",
+    "country": "PL",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/aYn--tdPai96a_rfemaqwC.png?ixlib=java-2.1.0&w=400&s=e8d8eb35f6fba16fc0c864cf07ea78e8"
+  },
+  {
+    "id": 20309,
+    "ign": "bnox",
+    "name": "Bartosz Niebisz",
+    "team": "9INE",
+    "country": "PL",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/N3Fx0c2bZKqkURLWRxgLcR.png?ixlib=java-2.1.0&w=400&s=ef600fd27caae2cac9b617cf8ad41079"
+  },
+  {
+    "id": 21715,
+    "ign": "flayy",
+    "name": "Alan Krupa",
+    "team": "9INE",
+    "country": "PL",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/4JMpL9Jfg9P0m85bM5L24G.png?ixlib=java-2.1.0&w=400&s=b7fb7874da2ebf89422e26476fecbea2"
+  },
+  {
+    "id": 16723,
+    "ign": "Cabbi",
+    "name": "Casper Jensen",
+    "team": "Sashi",
+    "country": "DK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/JzUGsTczbjKtTlSL2hXvyI.png?ixlib=java-2.1.0&w=400&s=bf7d768e8c0befacf47597f632fcd7ff"
+  },
+  {
+    "id": 20090,
+    "ign": "Zyphon",
+    "name": "Rasmus Nordfoss",
+    "team": "Sashi",
+    "country": "DK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/s5FZB_ovrIYhCtNY1ayPgj.png?ixlib=java-2.1.0&w=400&s=d4ecb9c797edac5d4138e243fd972e92"
+  },
+  {
+    "id": 23338,
+    "ign": "Beccie",
+    "name": "Lukas Bauder Balcells",
+    "team": "Sashi",
+    "country": "DK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/uEL4-9vW_bB4p-WVeJmbFy.png?ixlib=java-2.1.0&w=400&s=de47ed8667b7b01b83c02b716f7e409a"
+  },
+  {
+    "id": 21199,
+    "ign": "MistR",
+    "name": "Mikkel Thomsen",
+    "team": "Sashi",
+    "country": "DK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/tFmF1c3-w649dI2bFONbce.png?ixlib=java-2.1.0&w=400&s=59521a9a5923d93d44f9789aca566ab0"
+  },
+  {
+    "id": 10330,
+    "ign": "acoR",
+    "name": "Frederik Gyldstrand",
+    "team": "Sashi",
+    "country": "DK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/I8_QuWON0TL5iY5KCIEyex.png?ixlib=java-2.1.0&w=400&s=cdf70978618f56d94068e3e7ed6a01c8"
+  },
+  {
+    "id": 17861,
+    "ign": "JOTA",
+    "name": "Jhonatan Willian",
+    "team": "Gaimin Gladiators",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/edmWYsY1FnBxtimxWJ-IqN.png?ixlib=java-2.1.0&w=400&s=89b10a44dda7ad9d5de4cbf862369a32"
+  },
+  {
+    "id": 9482,
+    "ign": "NEKIZ",
+    "name": "Gabriel Schenato",
+    "team": "Gaimin Gladiators",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/Ap3y4fett7BHBRP09T3h9v.png?ixlib=java-2.1.0&w=400&s=676eb121baa525e2a1a21ab4ce0f7c38"
+  },
+  {
+    "id": 8565,
+    "ign": "HEN1",
+    "name": "Henrique Teles",
+    "team": "Gaimin Gladiators",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/g8yCCk8BGZyN5KIFKAx4hv.png?ixlib=java-2.1.0&w=400&s=25b384c88ba3ee6e563d3b90fc41facd"
+  },
+  {
+    "id": 15914,
+    "ign": "Luken",
+    "name": "Luca Nadotti",
+    "team": "Gaimin Gladiators",
+    "country": "AR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/JqVWwhZsaPPcwzUZWYSNAD.png?ixlib=java-2.1.0&w=400&s=db176273b4c58ee0887162ea72d2f209"
+  },
+  {
+    "id": 8564,
+    "ign": "fer",
+    "name": "Fernando Alvarenga",
+    "team": "Gaimin Gladiators",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/0wByIKmMndjpZZS9V6_485.png?ixlib=java-2.1.0&w=400&s=c405eb54d75015b10b2dca87231b04b6"
+  },
+  {
+    "id": 17918,
+    "ign": "nosraC",
+    "name": "Carson O'Reilly",
+    "team": "Voca",
+    "country": "US",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/JGj7Utzg_zl3PbPJFvUB24.png?ixlib=java-2.1.0&w=400&s=2a1b7c95d7fd6c9b74f62bdd5faf085b"
+  },
+  {
+    "id": 19711,
+    "ign": "snav",
+    "name": "Wyatt Phillippi",
+    "team": "Voca",
+    "country": "US",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/PxTkHzBAhzwJOYPzuzmdFp.png?ixlib=java-2.1.0&w=400&s=09b7312b049a72ef3e576b25b01c7b0d"
+  },
+  {
+    "id": 14619,
+    "ign": "Infinite",
+    "name": "Gage Green",
+    "team": "Voca",
+    "country": "US",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/odCVf7_HVMKB27iijSQeEy.png?ixlib=java-2.1.0&w=400&s=5f71c4e0d815d4dd8342f6d716c3149a"
+  },
+  {
+    "id": 20333,
+    "ign": "Jeorge",
+    "name": "Jeorge  Endicott",
+    "team": "Voca",
+    "country": "US",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/7WRnNHB97ogQmtqTw_3LV3.png?ixlib=java-2.1.0&w=400&s=c909552e657885c4c2d46c50a7f008bf"
+  },
+  {
+    "id": 14494,
+    "ign": "junior",
+    "name": "Paytyn Johnson",
+    "team": "Voca",
+    "country": "US",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/FbwRZPjmP339MASz9BcS8k.png?ixlib=java-2.1.0&w=400&s=7426364a4dd29889e5d83fce5f4f4cfd"
+  },
+  {
+    "id": 23686,
+    "ign": "kashl1d",
+    "name": "Danila Dronov",
+    "team": "K27",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/nX_zfjpm7AN10TRtcKanur.png?ixlib=java-2.1.0&w=400&s=75ae2e7aec63330ef0d84f42b929b047"
+  },
+  {
+    "id": 22886,
+    "ign": "xeedo",
+    "name": "Aleksey Mikulich",
+    "team": "K27",
+    "country": "BY",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/SJ61xBXLRGOXI5mA_mZl7Q.png?ixlib=java-2.1.0&w=400&s=3cb859405ad087d701d02c27c921d652"
+  },
+  {
+    "id": 24725,
+    "ign": "qw1nk1",
+    "name": "Daniil Kabilov",
+    "team": "K27",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/THIeQKEizvicvhzQCf2B80.png?ixlib=java-2.1.0&w=400&s=b77770e7e89f8358ce48413af9347265"
+  },
+  {
+    "id": 19575,
+    "ign": "X5G7V",
+    "name": "Daniil Maryshev",
+    "team": "K27",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/EzQSO9YSCBzjM9u55uJ-ns.png?ixlib=java-2.1.0&w=400&s=65eb440f4aa718e23fa2184dfc82f5d5"
+  },
+  {
+    "id": 20101,
+    "ign": "fame",
+    "name": "Petr Bolyshev",
+    "team": "K27",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/RxGNuvJVpJ_GQaNRFHgZUp.png?ixlib=java-2.1.0&w=400&s=07e555bacb2ca5f328dc58e36e1a9688"
+  },
+  {
+    "id": 20451,
+    "ign": "abizz",
+    "name": "Matias Muñiz Cusi",
+    "team": "ShindeN",
+    "country": "AR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/wa1wl6qJlm9RDuliS9o3Kt.png?ixlib=java-2.1.0&w=400&s=b242e3627633011484c495dc670ff8bc"
+  },
+  {
+    "id": 20992,
+    "ign": "ivz",
+    "name": "Ivan Quintana",
+    "team": "ShindeN",
+    "country": "AR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/A_jZhaA9MgMekugyC5g-fY.png?ixlib=java-2.1.0&w=400&s=83087a4018dd6c6419a6d80d30b82ceb"
+  },
+  {
+    "id": 21155,
+    "ign": "naz",
+    "name": null,
+    "team": "ShindeN",
+    "country": null,
+    "image": null
+  },
+  {
+    "id": 18554,
+    "ign": "tom1jed",
+    "name": "Tomas Rivero",
+    "team": "ShindeN",
+    "country": "AR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/rdNwRP3dv2uOXqur-BbY3B.png?ixlib=java-2.1.0&w=400&s=15526e47fc3713be774ba2abe4830e1f"
+  },
+  {
+    "id": 24749,
+    "ign": "guty",
+    "name": "Lautaro Gomez",
+    "team": "ShindeN",
+    "country": "AR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/ZonW-1eWiBPxEP4hJ7WmKO.png?ixlib=java-2.1.0&w=400&s=def2979338a424c19b67dd0956c9a5a6"
+  },
+  {
+    "id": 8183,
+    "ign": "rain",
+    "name": "Håvard Nygaard",
+    "team": "100 Thieves",
+    "country": "NO",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/nXL70GOOHok5ugYIDZ_Kj8.png?ixlib=java-2.1.0&w=400&s=607ef6eb02fa8caf4842e28f9ec50a44"
+  },
+  {
+    "id": 21014,
+    "ign": "Ag1l",
+    "name": "André Gil",
+    "team": "100 Thieves",
+    "country": "PT",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/QQgFnoHcDy4VUsEXXQW2Is.png?ixlib=java-2.1.0&w=400&s=fe96523a5eac73cc495734babdd30c4f"
+  },
+  {
+    "id": 23397,
+    "ign": "poiii",
+    "name": "Alex Nyholm Sundgren",
+    "team": "100 Thieves",
+    "country": "SE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/lRCuXWCHBM-8P1xVlfFdqu.png?ixlib=java-2.1.0&w=400&s=07cb3805c52e2a5f923ddad388dc97a1"
+  },
+  {
+    "id": 22695,
+    "ign": "sirah",
+    "name": "William Kjærsgaard",
+    "team": "100 Thieves",
+    "country": "DK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/A1CSROtCratRrMi4bJpj66.png?ixlib=java-2.1.0&w=400&s=93b85edfa844d2a57536e722283d4fb4"
+  },
+  {
+    "id": 7592,
+    "ign": "device",
+    "name": "Nicolai Reedtz",
+    "team": "100 Thieves",
+    "country": "DK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/2yjZS2yI86a6JOSZBqTU1N.png?ixlib=java-2.1.0&w=400&s=1012517778101ce925ad9d7515252f95"
+  },
+  {
+    "id": 16551,
+    "ign": "Westmelon",
+    "name": "Zhe Niu",
+    "team": "Lynn Vision",
+    "country": "CN",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/w9IH6NVwZaEghBrni9KUye.png?ixlib=java-2.1.0&w=400&s=5a1798f197ebed18b8cacd9deb0670d2"
+  },
+  {
+    "id": 18744,
+    "ign": "z4KR",
+    "name": "Sike Zhang",
+    "team": "Lynn Vision",
+    "country": "CN",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/fcO07i0REvntQD_HarJL6R.png?ixlib=java-2.1.0&w=400&s=f2205ac7184639b59abc19ccea375100"
+  },
+  {
+    "id": 22922,
+    "ign": "EmiliaQAQ",
+    "name": "Junjie Tang",
+    "team": "Lynn Vision",
+    "country": "CN",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/KGJ5Waz1a9xx0avH99wf83.png?ixlib=java-2.1.0&w=400&s=94c341ab7d11b9fe1d650c7f1e27bc00"
+  },
+  {
+    "id": 20254,
+    "ign": "Starry",
+    "name": "Lizhi Ye",
+    "team": "Lynn Vision",
+    "country": "CN",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/tuGiVdrZEWz7RX-GAhNJIn.png?ixlib=java-2.1.0&w=400&s=0173f8b47bff2aa64cc872c0480db277"
+  },
+  {
+    "id": 23100,
+    "ign": "C4LLM3SU3",
+    "name": "Qihao Su",
+    "team": "Lynn Vision",
+    "country": "CN",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/l5gxGzlPyAqU3ihCeVYnWS.png?ixlib=java-2.1.0&w=400&s=dc284363d72cbc68efaa6000f196d2b0"
+  },
+  {
+    "id": 19064,
+    "ign": "spooke",
+    "name": "Olle Grundström",
+    "team": "OG",
+    "country": "SE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/ra0PeL2fVt7AxoHwBXGqXa.png?ixlib=java-2.1.0&w=400&s=c1ca8fc0e64f3b3634d9e0d04135d086"
+  },
+  {
+    "id": 20878,
+    "ign": "adamb",
+    "name": "Adam Ångström",
+    "team": "OG",
+    "country": "SE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/tY9xcoWjeMn_wCd3ynSVn4.png?ixlib=java-2.1.0&w=400&s=5863658e9f6ba4313e0e6981396e65c6"
+  },
+  {
+    "id": 20465,
+    "ign": "arrozdoce",
+    "name": "Rafael Wing",
+    "team": "OG",
+    "country": "PT",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/84yNa83wQrhR6zp44Tcyy3.png?ixlib=java-2.1.0&w=400&s=a879f0272eb711bc70689fe15c09a39c"
+  },
+  {
+    "id": 7964,
+    "ign": "cadiaN",
+    "name": "Casper Møller",
+    "team": "OG",
+    "country": "DK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/ebOhqlSeLL0aRR_8Zh3Wcq.png?ixlib=java-2.1.0&w=400&s=7302693d006a50c82e2552724dabbc32"
+  },
+  {
+    "id": 8374,
+    "ign": "bodyy",
+    "name": "Alexandre Pianaro",
+    "team": "OG",
+    "country": "FR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/ROV-ClQa2ClKQr2MmvECk1.png?ixlib=java-2.1.0&w=400&s=b78375ed93255e84230b49008e8e7e39"
+  },
+  {
+    "id": 7528,
+    "ign": "KRIMZ",
+    "name": "Freddy Johansson",
+    "team": "fnatic",
+    "country": "SE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/An6_EFWkCv8WoOHQ6opNpk.png?ixlib=java-2.1.0&w=400&s=4c052b8d19a048c4442e8a0a38f04e46"
+  },
+  {
+    "id": 17803,
+    "ign": "fEAR",
+    "name": "Rodion Smyk",
+    "team": "fnatic",
+    "country": "UA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/V-kFKG26AJzoZHP-4WD0kt.png?ixlib=java-2.1.0&w=400&s=c9b58dce64cf89614ce7efa38d66caf5"
+  },
+  {
+    "id": 23046,
+    "ign": "jambo",
+    "name": "Dmytro Semera",
+    "team": "fnatic",
+    "country": "UA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/tYkzIH288oKT-OWIh1k-zG.png?ixlib=java-2.1.0&w=400&s=bc7297f581a2f1c0f2ac3cc3272d4181"
+  },
+  {
+    "id": 23414,
+    "ign": "jackasmo",
+    "name": "Nikita Skyba",
+    "team": "fnatic",
+    "country": "UA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/uIbJk0pkjgwzEZs2Q9aecd.png?ixlib=java-2.1.0&w=400&s=e2f973478a3d1146fb3d0a5e036aa0f7"
+  },
+  {
+    "id": 24914,
+    "ign": "Br4tkO",
+    "name": "Viktor Kondratets",
+    "team": "fnatic",
+    "country": "UA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/CUoi5Fgb-O0XMh3s_O2dX3.png?ixlib=java-2.1.0&w=400&s=4586e753e6d9ea8550ceca8c689f3016"
+  },
+  {
+    "id": 20558,
+    "ign": "gafolo",
+    "name": "Victor Andrade",
+    "team": "Sharks",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/bw-XL6rA-1VNT-IEYvSq3z.png?ixlib=java-2.1.0&w=400&s=60c44706e7e735fd2ae28abe7d69837e"
+  },
+  {
+    "id": 21921,
+    "ign": "rdnzao",
+    "name": "Daniel Monteiro",
+    "team": "Sharks",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/DdQxqrJtF1HzTRb08-5fhi.png?ixlib=java-2.1.0&w=400&s=f0189d040078ee6f8050cc44a4a105bf"
+  },
+  {
+    "id": 22911,
+    "ign": "doc",
+    "name": "Danilo Barros",
+    "team": "Sharks",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/Si5nQDIOjm_Ph-cq6G4wrH.png?ixlib=java-2.1.0&w=400&s=7b4c56af9fc08e184d590426444ace89"
+  },
+  {
+    "id": 21170,
+    "ign": "koala",
+    "name": "João Pfeffer",
+    "team": "Sharks",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/WOOHUP2FuQY98slSwHOiCh.png?ixlib=java-2.1.0&w=400&s=6a6497943bde27587189419e2a47563f"
+  },
+  {
+    "id": 21221,
+    "ign": "maxxkor",
+    "name": "Máximo Cortina",
+    "team": "Sharks",
+    "country": "AR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/oQmyXb2zSmLk7wm-MGDBPS.png?ixlib=java-2.1.0&w=400&s=aa21e7a15b828fea16ac3539958352bb"
+  }
+]
