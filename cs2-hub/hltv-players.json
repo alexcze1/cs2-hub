@@ -9454,5 +9454,1409 @@
     "team": "Atrix",
     "country": "BR",
     "image": "https://img-cdn.hltv.org/playerbodyshot/LI_bvVLUGvq6AsPINAcapi.png?ixlib=java-2.1.0&w=400&s=2b34fce242a21c23586d26e944ec0172"
+  },
+  {
+    "id": 9086,
+    "ign": "XTQZZZ",
+    "name": "Rémy Quoniam",
+    "team": "Vitality",
+    "country": "FR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/PCcD-8f5bvVBDEqLxHBmf1.png?ixlib=java-2.1.0&w=400&s=48c85b739befe4f653c45842e2d22e0a",
+    "role": "Coach"
+  },
+  {
+    "id": 24267,
+    "ign": "sidde",
+    "name": "Sid Macedo",
+    "team": "FURIA",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/tC0c78cxXd6470GcmDYM_5.png?ixlib=java-2.1.0&w=400&s=55a2a493d40b458f6d6e3d375e9fef66",
+    "role": "Coach"
+  },
+  {
+    "id": 21,
+    "ign": "zonic",
+    "name": null,
+    "team": "Falcons",
+    "country": null,
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 2154,
+    "ign": "hally",
+    "name": "Sergey Shavaev",
+    "team": "Spirit",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/78IQUXwAhudT5BxZEuAVpg.png?ixlib=java-2.1.0&w=400&s=e6deecb13fbe875c5251c001b6fe299d",
+    "role": "Coach"
+  },
+  {
+    "id": 2794,
+    "ign": "Fabre",
+    "name": "Sezgin Kalaycı",
+    "team": "Aurora",
+    "country": "TR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/EplwhZQeG2XaEweN0NNr6m.png?ixlib=java-2.1.0&w=400&s=8353f993e30a836f2e87218e1b3f1447",
+    "role": "Coach"
+  },
+  {
+    "id": 1865,
+    "ign": "dastan",
+    "name": "Dastan Akbayev",
+    "team": "PARIVISION",
+    "country": "KZ",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/IMi8MptwbOU9n76ACOxGue.png?ixlib=java-2.1.0&w=400&s=3277374eeade3ab278a4bb9768c0abad",
+    "role": "Coach"
+  },
+  {
+    "id": 9243,
+    "ign": "maaRaa",
+    "name": "Erdenedalai Bayanbat",
+    "team": "The MongolZ",
+    "country": "MN",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/zlohSsErzPDCPl7t2D6gpJ.png?ixlib=java-2.1.0&w=400&s=f98149b6ec79671d325c4820b2a71e9c",
+    "role": "Coach"
+  },
+  {
+    "id": 6124,
+    "ign": "ruggah",
+    "name": "Casper Due",
+    "team": "Astralis",
+    "country": "DK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/fUgVuTo12JzioaSN6eHfiF.png?ixlib=java-2.1.0&w=400&s=5102fd30d463ca7f984cfe5ab92a93dc",
+    "role": "Coach"
+  },
+  {
+    "id": 14202,
+    "ign": "coolio",
+    "name": "András Fercsák",
+    "team": "FUT",
+    "country": "HU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/ysmYFvNTIfzBsBT6WxXMCM.png?ixlib=java-2.1.0&w=400&s=eb76b709aeb53fcefe6368cda0fdd15b",
+    "role": "Coach"
+  },
+  {
+    "id": 9295,
+    "ign": "sycrone",
+    "name": "Dennis Nielsen",
+    "team": "MOUZ",
+    "country": "DK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/dqzgtep4z5-NNwhR0EdhY6.png?ixlib=java-2.1.0&w=400&s=5c1bce0d6b719f4096b6fbdad9448229",
+    "role": "Coach"
+  },
+  {
+    "id": 7821,
+    "ign": "sAw",
+    "name": "Eetu Saha",
+    "team": "G2",
+    "country": "FI",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/bxH173ep8BOOKO68QnCozH.png?ixlib=java-2.1.0&w=400&s=e19c20c17115fedf7a44b210158fc572",
+    "role": "Coach"
+  },
+  {
+    "id": 18731,
+    "ign": "wasiNk",
+    "name": "Damien Dufour",
+    "team": "3DMAX",
+    "country": "FR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/q11dJU652JKqsG0LVu0heG.png?ixlib=java-2.1.0&w=400&s=73aa3eba3a0a3db46c641c619bbb8292",
+    "role": "Coach"
+  },
+  {
+    "id": 2530,
+    "ign": "adrrr",
+    "name": "Alan Riveros",
+    "team": "Legacy",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/gallerypicture/qflqTMZ0qyjz_m-gLRg7U5.jpg?bg=3e4c54&h=200&ixlib=java-2.1.0&rect=473%2C177%2C1141%2C1141&w=200&s=ffc8e769682840c3015900367216ccf9",
+    "role": "Coach"
+  },
+  {
+    "id": 555,
+    "ign": "BIT",
+    "name": "Bruno Fukuda Lima",
+    "team": "9z",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/4TJwT7MS3CMBAdMG12xwf3.png?ixlib=java-2.1.0&w=400&s=03a28225c922864c16d0777a5ea99647",
+    "role": "Coach"
+  },
+  {
+    "id": 7264,
+    "ign": "enkay J",
+    "name": "Niclas Krumhorn",
+    "team": "FaZe",
+    "country": "DE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/C57L9G7mvcd7op7cGf63LL.png?ixlib=java-2.1.0&w=400&s=6a0fccf3f683e5bca3da07cb0eb93ae1",
+    "role": "Coach"
+  },
+  {
+    "id": 8601,
+    "ign": "zhokiNg",
+    "name": "WeiJie Zhong",
+    "team": "TYLOO",
+    "country": "CN",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/hWL3Z9wtshhXsZZtfjZpdg.png?ixlib=java-2.1.0&w=400&s=769a798821f9bc5bb1c5563dbb718495",
+    "role": "Coach"
+  },
+  {
+    "id": 21040,
+    "ign": "Hawk",
+    "name": "Simon Vävinggren",
+    "team": "Alliance",
+    "country": "SE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/oL7HAwt_o_pcpk36efGb1v.png?ixlib=java-2.1.0&w=400&s=194983aaedd46312d4bc59277c73710c",
+    "role": "Coach"
+  },
+  {
+    "id": 1084,
+    "ign": "Fierce",
+    "name": null,
+    "team": "BetBoom",
+    "country": null,
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 2335,
+    "ign": "kakafu",
+    "name": "Alexander Szymanczyk",
+    "team": "Monte",
+    "country": "AT",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/t5kfh8TMmofBid3l-xazVX.png?ixlib=java-2.1.0&w=400&s=693372c3ee32ac0b2f84732db49c88c2",
+    "role": "Coach"
+  },
+  {
+    "id": 5440,
+    "ign": "flashie",
+    "name": "Viktor Tamás Bea",
+    "team": "Liquid",
+    "country": "HU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/OcoCjEDmsJ3-6OQC3SpNu1.png?ixlib=java-2.1.0&w=400&s=68b668f18b19f9f0bb44ba31ab2a2b64",
+    "role": "Coach"
+  },
+  {
+    "id": 5738,
+    "ign": "rikz",
+    "name": null,
+    "team": "paiN",
+    "country": null,
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 8325,
+    "ign": "imd",
+    "name": "Adrian Pieper",
+    "team": "GamerLegion",
+    "country": "PL",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/AeMBpiLYjPrzvwSbKcrXKV.png?ixlib=java-2.1.0&w=400&s=c886eff92670d12cd590476dc7abbe4d",
+    "role": "Coach"
+  },
+  {
+    "id": 4216,
+    "ign": "LETN1",
+    "name": "Nestor Tanić",
+    "team": "MIBR",
+    "country": "RS",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/bR85MIQaaM8is1EIPh6mrV.png?ixlib=java-2.1.0&w=400&s=c965953f944eefe6006da3fd4a05bf93",
+    "role": "Coach"
+  },
+  {
+    "id": 8801,
+    "ign": "xenn",
+    "name": "Sebastian Hoch",
+    "team": "BIG",
+    "country": "DE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/rHvZFo-lM62mYCnYobnUfk.png?ixlib=java-2.1.0&w=400&s=9232e67a74cf547cf15b1b88c9ce6d06",
+    "role": "Coach"
+  },
+  {
+    "id": 434,
+    "ign": "pita",
+    "name": "Faruk Pita",
+    "team": "EYEBALLERS",
+    "country": "BA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/7A2bPq9CqBobBN4p04bMC4.png?ixlib=java-2.1.0&w=400&s=78e74aacefa1703ccae1242e9018d468",
+    "role": "Coach"
+  },
+  {
+    "id": 162,
+    "ign": "kuben",
+    "name": "Jakub Gurczyński",
+    "team": "FOKUS",
+    "country": "PL",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/WXQhx3we2wBGVyyNlg9OGw.png?ixlib=java-2.1.0&w=400&s=1d299636404e238007b174577fdad68a",
+    "role": "Coach"
+  },
+  {
+    "id": 8521,
+    "ign": "daps",
+    "name": "Damian Steele",
+    "team": "NRG",
+    "country": "CA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/iAvXRhPXfa-iAMPiqdFoPB.png?ixlib=java-2.1.0&w=400&s=f8de14ca0aa52788d4f400a5d7d0a2fe",
+    "role": "Coach"
+  },
+  {
+    "id": 8447,
+    "ign": "T.c",
+    "name": "Tiaan Coertzen",
+    "team": "Passion UA",
+    "country": "ZA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/mbMwCSM4t4XIz40VejVo9h.png?ixlib=java-2.1.0&w=400&s=8b05b04aeaa1c0d37a5da314e175f958",
+    "role": "Coach"
+  },
+  {
+    "id": 21471,
+    "ign": "Bfull",
+    "name": "Jakub Kokoška",
+    "team": "SINNERS",
+    "country": "CZ",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/VAeWlzk9TyGgucy1ks-m1o.png?ixlib=java-2.1.0&w=400&s=e6048803b99042daa08a34689d63f281",
+    "role": "Coach"
+  },
+  {
+    "id": 23467,
+    "ign": "shaRpy",
+    "name": "Afonso Bastos",
+    "team": "BESTIA",
+    "country": "PT",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/tFo8mybS6XTO8yh47eT1RX.png?ixlib=java-2.1.0&w=400&s=fac8ae384cb597dcd13a0444025b716b",
+    "role": "Coach"
+  },
+  {
+    "id": 14780,
+    "ign": "tge",
+    "name": null,
+    "team": "RED Canids",
+    "country": null,
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 964,
+    "ign": "mou",
+    "name": "Rustem Telepov",
+    "team": "HOTU",
+    "country": "KZ",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/RMwdesLPiNVkt76HefyRzb.png?ixlib=java-2.1.0&w=400&s=aa13ee69dfc590bae6a4479d3031143b",
+    "role": "Coach"
+  },
+  {
+    "id": 8786,
+    "ign": "jR",
+    "name": null,
+    "team": "Inner Circle",
+    "country": null,
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 921,
+    "ign": "BERRY",
+    "name": "Danny Krüger",
+    "team": "9INE",
+    "country": "DK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/hr7XFYj6kvC9C1pPMkxeOK.png?ixlib=java-2.1.0&w=400&s=41fca59a5a7f0cab3a084a297543ba13",
+    "role": "Coach"
+  },
+  {
+    "id": 7415,
+    "ign": "HUNDEN",
+    "name": null,
+    "team": "Sashi",
+    "country": null,
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 11332,
+    "ign": "horvy",
+    "name": "João Horvath",
+    "team": "Gaimin Gladiators",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/rWT-s5q0e1CgjjsScOkemf.png?ixlib=java-2.1.0&w=400&s=12723c297a287d98994e12728c7c3148",
+    "role": "Coach"
+  },
+  {
+    "id": 1915,
+    "ign": "SEMPHIS",
+    "name": "Kory Friesen",
+    "team": "Voca",
+    "country": "CA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/P4W_Ec2hB1DktlGGWcgnMu.png?ixlib=java-2.1.0&w=400&s=d0a3815377f34de2418a2b9375dcbcde",
+    "role": "Coach"
+  },
+  {
+    "id": 21226,
+    "ign": "RUGO",
+    "name": "Lorenzo Rugo",
+    "team": "ShindeN",
+    "country": "AR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/8_78nJLqrwW6mhQg-gSE4n.png?ixlib=java-2.1.0&w=400&s=61a9b89b94d74913d60876e73c789c75",
+    "role": "Coach"
+  },
+  {
+    "id": 7412,
+    "ign": "gla1ve",
+    "name": null,
+    "team": "100 Thieves",
+    "country": null,
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 24028,
+    "ign": "GUM",
+    "name": null,
+    "team": "Lynn Vision",
+    "country": null,
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 8047,
+    "ign": "Lambert",
+    "name": "Lambert Prigent",
+    "team": "OG",
+    "country": "FR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/7ctxKTCHN8syAB7KWrHGbD.png?ixlib=java-2.1.0&w=400&s=e5a6550031220d91d346dbe1c56d046f",
+    "role": "Coach"
+  },
+  {
+    "id": 9363,
+    "ign": "Independent",
+    "name": "Miks Siliņš",
+    "team": "fnatic",
+    "country": "LV",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/k7ASgzJTP88B-UmhyeMOLs.png?ixlib=java-2.1.0&w=400&s=7cac99c2982f358e7e4dd1d67ef611c3",
+    "role": "Coach"
+  },
+  {
+    "id": 628,
+    "ign": "coachi",
+    "name": "Hélder Sancho",
+    "team": "Sharks",
+    "country": "PT",
+    "image": "https://img-cdn.hltv.org/gallerypicture/EWszlwE5hebi1DZUFi6JBR.jpg?bg=3e4c54&h=200&ixlib=java-2.1.0&rect=1587%2C487%2C1411%2C1411&w=200&s=f566f0ad8588228f976371486f171296",
+    "role": "Coach"
+  },
+  {
+    "id": 7384,
+    "ign": "zakk",
+    "name": "Rafael Fernandes",
+    "team": "Imperial",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/LjCkl6Lf4rHeMp-wOjvlHr.png?ixlib=java-2.1.0&w=400&s=030b92283f9d1b92032faef95b236b2b",
+    "role": "Coach"
+  },
+  {
+    "id": 20200,
+    "ign": "NMV",
+    "name": "Maksim Naumov",
+    "team": "Nemesis",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/gEE2MK93vd8mV5PLsKZ7h8.png?ixlib=java-2.1.0&w=400&s=baa620cf08b662c08afba5478fa356c6",
+    "role": "Coach"
+  },
+  {
+    "id": 7150,
+    "ign": "Rejin",
+    "name": null,
+    "team": "Tricked",
+    "country": null,
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 8082,
+    "ign": "AZR",
+    "name": "Aaron Ward",
+    "team": "FlyQuest",
+    "country": "AU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/ZZq8sHXA_fP721X1_u_-As.png?ixlib=java-2.1.0&w=400&s=b578005715b30c2c253ea92ceead821f",
+    "role": "Coach"
+  },
+  {
+    "id": 161,
+    "ign": "TaZ",
+    "name": null,
+    "team": "BC.Game",
+    "country": null,
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 21427,
+    "ign": "bullet",
+    "name": "Evgeny Batkin",
+    "team": "magic",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/p1l4G0H613Klo_5cVux_iR.png?ixlib=java-2.1.0&w=400&s=3a30a4b33c0bec94d0a332829e89f254",
+    "role": "Coach"
+  },
+  {
+    "id": 20092,
+    "ign": "Bogdan",
+    "name": "Jędrzej Rokita",
+    "team": "Betclic",
+    "country": "PL",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/MENr8IzkgZIDS2HLdp19V8.png?ixlib=java-2.1.0&w=400&s=ebef648a45f2aedfd8e1af0fa59a057d",
+    "role": "Coach"
+  },
+  {
+    "id": 15208,
+    "ign": "splawik",
+    "name": "Łukasz Jahns",
+    "team": "Wildcard",
+    "country": "PL",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/TI5NaL845yMacbX0Hjtpov.png?ixlib=java-2.1.0&w=400&s=0e0f4d4dc07241fb7af675c40b90adde",
+    "role": "Coach"
+  },
+  {
+    "id": 25412,
+    "ign": "Pradiggg",
+    "name": "Vsevolod Plotnikov",
+    "team": "PsychoFace",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/cnpV-ZzuFE4cEisFFxB5yl.png?ixlib=java-2.1.0&w=400&s=7901ae2c58bb7d235ea6c93e6ba138ce",
+    "role": "Coach"
+  },
+  {
+    "id": 5206,
+    "ign": "Carnage",
+    "name": null,
+    "team": "The Huns",
+    "country": null,
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 20682,
+    "ign": "Juve",
+    "name": null,
+    "team": "Fluxo",
+    "country": null,
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 330,
+    "ign": "MusambaN1",
+    "name": "Jonathan Torrent",
+    "team": "AM",
+    "country": "ES",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/XEj_T2fwP5kEZjE3V7y4Wu.png?ixlib=java-2.1.0&w=400&s=ed47308dfd8fd2a418b5cf9ba4aaebfd",
+    "role": "Coach"
+  },
+  {
+    "id": 7148,
+    "ign": "friberg",
+    "name": "Adam Friberg",
+    "team": "Johnny Speeds",
+    "country": "SE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/zOpDO7ol2eqTShgbJfo1_0.png?ixlib=java-2.1.0&w=400&s=a4d5c26b76106e765d5c0c953629e5c3",
+    "role": "Coach"
+  },
+  {
+    "id": 7951,
+    "ign": "cau",
+    "name": "Ilnar Galeev",
+    "team": "1win",
+    "country": "KZ",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/7g031oXFKrRZafHDybj0PE.png?ixlib=java-2.1.0&w=400&s=60790418edf9987bfaadd37316245a44",
+    "role": "Coach"
+  },
+  {
+    "id": 17,
+    "ign": "Zyppe",
+    "name": "Samuel Martinsson",
+    "team": "SemperFi",
+    "country": "SE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/jM-CL5Se5Qk9valJV6OhQ9.png?ixlib=java-2.1.0&w=400&s=4adc0a4019677f9f5adf9b59628af95f",
+    "role": "Coach"
+  },
+  {
+    "id": 2638,
+    "ign": "Wierd_1k",
+    "name": "Sergey Tur",
+    "team": "BET-M",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/oltI31vDRRdUB9P0GQ4R0A.png?ixlib=java-2.1.0&w=400&s=32e88337096f40aac9a6c1538284928e",
+    "role": "Coach"
+  },
+  {
+    "id": 20388,
+    "ign": "milky",
+    "name": "Milen Iliev",
+    "team": "Acend",
+    "country": "BG",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/Y8D0dz-lY2-SMnyfmKaAH-.png?ixlib=java-2.1.0&w=400&s=1b2dfe56aacefcb5ccfcf01107317749",
+    "role": "Coach"
+  },
+  {
+    "id": 21098,
+    "ign": "gusihx",
+    "name": "Nicolas Rovira",
+    "team": "Bounty Hunters",
+    "country": "AR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/VCp2xCPNW9UNygC12Vg6KR.png?ixlib=java-2.1.0&w=400&s=14da4f1cdf83ec1ec57ea6ad548ff886",
+    "role": "Coach"
+  },
+  {
+    "id": 7027,
+    "ign": "z8z",
+    "name": "Zhenghui Liu",
+    "team": "Rare Atom",
+    "country": "CN",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/u4uL8ABdYwcHt0hxDkMML_.png?ixlib=java-2.1.0&w=400&s=84460fea26babc8cc4b6322211eb45be",
+    "role": "Coach"
+  },
+  {
+    "id": 19828,
+    "ign": "Redka",
+    "name": "Munkh-ochir Myagmarsuren",
+    "team": "Chinggis Warriors",
+    "country": "MN",
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 17552,
+    "ign": "disturbed",
+    "name": "Pablo Fernandes",
+    "team": "LP",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/ac6tqe0Fd7sEt_QJiVF3Xn.png?ixlib=java-2.1.0&w=400&s=6a14cee35f3f02ed6a6821e621ec62c5",
+    "role": "Coach"
+  },
+  {
+    "id": 3499,
+    "ign": "pixel",
+    "name": "Vladimir Lukyanov",
+    "team": "CYBERSHOKE",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/iTno1BkBjqAS3vXnE5fpRr.png?ixlib=java-2.1.0&w=400&s=8baa1991a41a8690bee90dc2f8fb9bfc",
+    "role": "Coach"
+  },
+  {
+    "id": 20068,
+    "ign": "Tionix",
+    "name": "Samy von Gehlen",
+    "team": "INFINITE",
+    "country": "DE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/NRqmncz_ouR3538cdtvomN.png?ixlib=java-2.1.0&w=400&s=049fd394011cf8fd7db043b65d4e8156",
+    "role": "Coach"
+  },
+  {
+    "id": 20238,
+    "ign": "viridian",
+    "name": "Eddie Azzi",
+    "team": "THUNDER dOWNUNDER",
+    "country": "AU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/arG5nuGR00pnT_PlkdA4Nv.png?ixlib=java-2.1.0&w=400&s=bee05b4185da8af7d8b210b2f206c57d",
+    "role": "Coach"
+  },
+  {
+    "id": 11765,
+    "ign": "Malware",
+    "name": "Babjet Muçaj",
+    "team": "MANA",
+    "country": "AL",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/NASrEry2ZHnXSr-ppU1MKz.png?ixlib=java-2.1.0&w=400&s=07d56d8e51f6bf413d896129f073aea3",
+    "role": "Coach"
+  },
+  {
+    "id": 16870,
+    "ign": "ProbLeM",
+    "name": "Dmitriy Martinov",
+    "team": "Virtus.pro",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/IkJ6zMLHpEZoQ3Agf_smQQ.png?ixlib=java-2.1.0&w=400&s=3c15c331bf583b5acd7627f625dc52f6",
+    "role": "Coach"
+  },
+  {
+    "id": 12269,
+    "ign": "Jyo",
+    "name": "Rassim Valijev",
+    "team": "Ursa",
+    "country": "EE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/ilEYDqlW_WJWbEeQt_oCTB.png?ixlib=java-2.1.0&w=400&s=f855a46c83b502b32df00ffed23a8826",
+    "role": "Coach"
+  },
+  {
+    "id": 23022,
+    "ign": "shocky",
+    "name": "Marat Karabanov",
+    "team": "ex-RUBY",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/5Gn65LxFj-HZ8bdvtXyxpO.png?ixlib=java-2.1.0&w=400&s=be0af71e5a3a6de28221af710db7173e",
+    "role": "Coach"
+  },
+  {
+    "id": 153,
+    "ign": "Jumpy",
+    "name": null,
+    "team": "Sangal",
+    "country": null,
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 21215,
+    "ign": "tooi",
+    "name": "Albinas Šeputis",
+    "team": "ASTRAL",
+    "country": "LT",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/iUod6Yq6o_0IaR_vXMUD4_.png?ixlib=java-2.1.0&w=400&s=93a609e6af7959bc6d3866490430386e",
+    "role": "Coach"
+  },
+  {
+    "id": 16946,
+    "ign": "Polt",
+    "name": "Vadim Tsyrov",
+    "team": "Nuclear TigeRES",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/KCKHIUqMuTqlLxApke5KLS.png?ixlib=java-2.1.0&w=400&s=6e05b9359d2a3cc3538400b8cbf75c14",
+    "role": "Coach"
+  },
+  {
+    "id": 20619,
+    "ign": "vinS",
+    "name": "Vincent Jozefiak",
+    "team": "Metizport",
+    "country": "PL",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/V6Iy7q-spiGZ8xuKkLNWtB.png?ixlib=java-2.1.0&w=400&s=72a49b5bd8283a50eb5bc650f90be704",
+    "role": "Coach"
+  },
+  {
+    "id": 7327,
+    "ign": "vts",
+    "name": "Rui Soares",
+    "team": "Rebels",
+    "country": "PT",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/R6N5vjnIZxfhc9IrZm13of.png?ixlib=java-2.1.0&w=400&s=dd3d99caaabb7fa4b10a3177efdccd78",
+    "role": "Coach"
+  },
+  {
+    "id": 20904,
+    "ign": "ViTaL",
+    "name": "Davy Boulos",
+    "team": "BASEMENT BOYS",
+    "country": "LB",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/9dUkU_IFMLgFiUudTHPbWB.png?ixlib=java-2.1.0&w=400&s=44815489f5e70fa42c1fed2edebc9c6f",
+    "role": "Coach"
+  },
+  {
+    "id": 9819,
+    "ign": "doto",
+    "name": "Joonas Forss",
+    "team": "HEROIC Academy",
+    "country": "FI",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/JMqkWcDtKsH6lfbzoDnjc9.png?ixlib=java-2.1.0&w=400&s=6808d6073fa4338b236d78c993fb0660",
+    "role": "Coach"
+  },
+  {
+    "id": 25534,
+    "ign": "Rickertje",
+    "name": "Rupert Hoop",
+    "team": "HYPERSPIRIT",
+    "country": "BE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/9CwRimEwwnFKHxJV0-_zmZ.png?ixlib=java-2.1.0&w=400&s=6fa5b028084bf504b5c945f2fac3eae3",
+    "role": "Coach"
+  },
+  {
+    "id": 24476,
+    "ign": "L1nkero",
+    "name": "Ivan Voronin",
+    "team": "Lavked",
+    "country": "RU",
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 2391,
+    "ign": "wezx",
+    "name": "Kenni Holmberg",
+    "team": "WAZABI",
+    "country": "DK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/xWE2kXE37aDzqBmBSiNwRc.png?ixlib=java-2.1.0&w=400&s=0a82f581bdb06c44efb86ab9096cec11",
+    "role": "Coach"
+  },
+  {
+    "id": 9798,
+    "ign": "lunAtic",
+    "name": null,
+    "team": "Phantom",
+    "country": null,
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 9294,
+    "ign": "NaToSaphiX",
+    "name": "Niels Christian Sillassen",
+    "team": "Falcons Force",
+    "country": "DK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/HLvT5GY3RVpIbOqwvSfFF8.png?ixlib=java-2.1.0&w=400&s=1b60719300da0cefbae5328768b9069a",
+    "role": "Coach"
+  },
+  {
+    "id": 15718,
+    "ign": "peku",
+    "name": null,
+    "team": "HAVU",
+    "country": null,
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 15681,
+    "ign": "Diesen",
+    "name": "Amartuvshin Ganbaatar",
+    "team": "NEXVOID",
+    "country": "MN",
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 22097,
+    "ign": "KinGui",
+    "name": "Guilherme Balancieri",
+    "team": "UNO MILLE",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/RTxVZsOwvvN_E1mdBEmmJh.png?ixlib=java-2.1.0&w=400&s=6d4d539534f5c03c7910c2917da3081f",
+    "role": "Coach"
+  },
+  {
+    "id": 11944,
+    "ign": "KAOS",
+    "name": "Matheus Nicolau",
+    "team": "Keyd Stars",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/TO5-AK0DISKk_yabI5KLWz.png?ixlib=java-2.1.0&w=400&s=e71ad23626f0238d06c218bf9bc86c3c",
+    "role": "Coach"
+  },
+  {
+    "id": 18228,
+    "ign": "rjy",
+    "name": "Dmitry Chumak",
+    "team": "Leo",
+    "country": "UA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/bPf8ms98-EhtKMEAV1arvI.png?ixlib=java-2.1.0&w=400&s=213a0b3e4fa7fd2f7b105bba80313ec8",
+    "role": "Coach"
+  },
+  {
+    "id": 973,
+    "ign": "SZPERO",
+    "name": "Grzegorz Dziamałek",
+    "team": "KOLESIE",
+    "country": "PL",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/mUNE8XiQJ9svd8ADXd_nmf.png?ixlib=java-2.1.0&w=400&s=c91833da96387eaf1d22fd1063873409",
+    "role": "Coach"
+  },
+  {
+    "id": 300,
+    "ign": "lmbt",
+    "name": "Sergey Bezhanov",
+    "team": "MOUZ NXT",
+    "country": "UA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/Xlg_HX3-acOK9NUnSIlEhO.png?ixlib=java-2.1.0&w=400&s=641f2e082ac0982c4f01652ef246ca9a",
+    "role": "Coach"
+  },
+  {
+    "id": 12133,
+    "ign": "BestronG",
+    "name": "Khurts Artssed",
+    "team": "BMZ",
+    "country": "MN",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/dwWyVXO_DRBxl_rbRZLbGL.png?ixlib=java-2.1.0&w=400&s=0dc2ae74aefa17bfbb9da53a244317a3",
+    "role": "Coach"
+  },
+  {
+    "id": 21503,
+    "ign": "SKY",
+    "name": "Pedro Lahass",
+    "team": "GameHunters",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/ypEsmnoQWzfsy2-KfD8Le_.png?ixlib=java-2.1.0&w=400&s=721d24aea9fb94e2f69708bb4f6f9efa",
+    "role": "Coach"
+  },
+  {
+    "id": 11716,
+    "ign": "SANJI",
+    "name": "Sanjar Kuliev",
+    "team": "RUSTEC",
+    "country": "UZ",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/02ztlwlybIcadVKF8s5yGa.png?ixlib=java-2.1.0&w=400&s=f341891c4db50026456e47875bb9fba8",
+    "role": "Coach"
+  },
+  {
+    "id": 19309,
+    "ign": "Whitey",
+    "name": null,
+    "team": "ENCE",
+    "country": null,
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 9522,
+    "ign": "kani",
+    "name": "Tuvshintugs Erdenebat",
+    "team": "5star",
+    "country": "MN",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/y2zdgsvJ1FAfcUz04Ui3aV.png?ixlib=java-2.1.0&w=400&s=ea521ae7d41d8b2998905a169b05b3fe",
+    "role": "Coach"
+  },
+  {
+    "id": 24085,
+    "ign": "monarrrh",
+    "name": "Dmytro Shakh",
+    "team": "Lazer Cats",
+    "country": "UA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/t5o-RM3JKiIAykHnkiWdcn.png?ixlib=java-2.1.0&w=400&s=686821e519096c9b55afde17b632216a",
+    "role": "Coach"
+  },
+  {
+    "id": 9108,
+    "ign": "tucks",
+    "name": "Tyler Reilly",
+    "team": "Ground Zero",
+    "country": "AU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/I-l4SWGZ0ZV9EZTzuiGQ3j.png?ixlib=java-2.1.0&w=400&s=8356db7fbedec76faa452b5f549cc22b",
+    "role": "Coach"
+  },
+  {
+    "id": 11806,
+    "ign": "JD",
+    "name": "Damian Simonovic",
+    "team": "Rooster",
+    "country": "AU",
+    "image": "https://img-cdn.hltv.org/gallerypicture/ygI0T6gJfv4jrHkfQzKLWz.jpg?bg=3e4c54&h=200&ixlib=java-2.1.0&rect=648%2C87%2C724%2C724&w=200&s=1a5b4ab8187ac45aff46f67c3dffb184",
+    "role": "Coach"
+  },
+  {
+    "id": 23189,
+    "ign": "farao",
+    "name": "Raynan Carvalho",
+    "team": "MIBR Academy",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/6Yi5zaB4LT6aE3i6yQV3MA.png?ixlib=java-2.1.0&w=400&s=38a69e56cb4fa204a3c2ad0069a66781",
+    "role": "Coach"
+  },
+  {
+    "id": 19239,
+    "ign": "44",
+    "name": "Dmitry Dzutsev",
+    "team": "QUAZAR",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/mvNP67netrlUSIli5ph2c_.png?ixlib=java-2.1.0&w=400&s=a327226ebb9de648a414dc48b8928683",
+    "role": "Coach"
+  },
+  {
+    "id": 8598,
+    "ign": "Marek",
+    "name": "Tzu-Chi Huang",
+    "team": "FengDa",
+    "country": "TW",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/wv5MrWaAy8HASPWO0TCa9q.png?ixlib=java-2.1.0&w=400&s=2f0cded45a965b1c36ccbc555b27d03e",
+    "role": "Coach"
+  },
+  {
+    "id": 26103,
+    "ign": "glico",
+    "name": "Jiaqi Fan",
+    "team": "Change The Game",
+    "country": "CN",
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 17316,
+    "ign": "Vert",
+    "name": "Georgiy Kinzyagulov",
+    "team": "CYBERSHOKE Prospects",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/zHKOfpLsiys-m07Xc2sqXU.png?ixlib=java-2.1.0&w=400&s=ed8df21eb0b6e3aff42dca13514ea15d",
+    "role": "Coach"
+  },
+  {
+    "id": 21739,
+    "ign": "replay",
+    "name": "Pavel Vaněk",
+    "team": "UNiTY",
+    "country": "CZ",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/ZTvB8kUgVZSP9atSGn0mfk.png?ixlib=java-2.1.0&w=400&s=91e4a290634d30b5c51acf56ad62a254",
+    "role": "Coach"
+  },
+  {
+    "id": 22696,
+    "ign": "Dengzoe",
+    "name": "Bertil Dengsø Vest Hansen",
+    "team": "STATE",
+    "country": "DK",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/7CFyVH4fOGmYkdLUIx5gxa.png?ixlib=java-2.1.0&w=400&s=518c76e6f5335842f4da7a57f4a73ee9",
+    "role": "Coach"
+  },
+  {
+    "id": 7016,
+    "ign": "HZ",
+    "name": "Zhen Huang",
+    "team": "UR",
+    "country": "CN",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/N9Cz97arnt1NFoMCpGum7x.png?ixlib=java-2.1.0&w=400&s=3ea4b48e4387a027912e9cdbf32a7ba6",
+    "role": "Coach"
+  },
+  {
+    "id": 24073,
+    "ign": "asph7xia",
+    "name": "Oleg Gusev",
+    "team": "TNT",
+    "country": "RU",
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 8259,
+    "ign": "neathz",
+    "name": "Oleg Kornev",
+    "team": "Oxuji",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/sydoXwPOTCDP_5zwBP6n6U.png?ixlib=java-2.1.0&w=400&s=309d50e40ad147b004bb0279b93d68b6",
+    "role": "Coach"
+  },
+  {
+    "id": 7499,
+    "ign": "Spiidi",
+    "name": "Timo Richter",
+    "team": "BIG Academy",
+    "country": "DE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/9IdbLcpnHYXqGPYSQFdXTF.png?ixlib=java-2.1.0&w=400&s=b5c2f6b045b3ba92d3767f7586d43c55",
+    "role": "Coach"
+  },
+  {
+    "id": 1866,
+    "ign": "Shara",
+    "name": "Oleksandr Hordieyev",
+    "team": "ALGO",
+    "country": "UA",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/OZviJmHVgNF0IAk6xP93Gl.png?ixlib=java-2.1.0&w=400&s=eb22e95140eaa4393c88bdf352f409e7",
+    "role": "Coach"
+  },
+  {
+    "id": 10051,
+    "ign": "fANTASTIKA",
+    "name": null,
+    "team": "Omega",
+    "country": null,
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 24802,
+    "ign": "MAD",
+    "name": null,
+    "team": "InControl",
+    "country": null,
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 23556,
+    "ign": "HS",
+    "name": "Bruno Sousa",
+    "team": "Famalicão",
+    "country": "PT",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/YDRHIYthuWMprSZHxLIand.png?ixlib=java-2.1.0&w=400&s=fad53e70efcb2a76c5bbb552475fab8f",
+    "role": "Coach"
+  },
+  {
+    "id": 25499,
+    "ign": "mowzassa",
+    "name": "Tiago Rodrigues",
+    "team": "SAW",
+    "country": "PT",
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 9574,
+    "ign": "snatchie",
+    "name": null,
+    "team": "NAVI Junior",
+    "country": null,
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 18146,
+    "ign": "aNSeLMO",
+    "name": "Magnai Natsagdorj",
+    "team": "The QUBE",
+    "country": "MN",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/We3w9lwJNKxvyifgmj3o8I.png?ixlib=java-2.1.0&w=400&s=3c0ccdfc3adc62ab071204d2764cfce2",
+    "role": "Coach"
+  },
+  {
+    "id": 25757,
+    "ign": "ChrizMiz",
+    "name": "Christoffer Christiansen",
+    "team": "XI",
+    "country": "DK",
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 25454,
+    "ign": "OrangeZ",
+    "name": "Leroy Burns",
+    "team": "Arcade",
+    "country": "AU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/f8RTHoREWl2BwUfa6f178Z.png?ixlib=java-2.1.0&w=400&s=9ac61a36cefcc3b9446dcd24dd5c3757",
+    "role": "Coach"
+  },
+  {
+    "id": 23607,
+    "ign": "esp1rit_o",
+    "name": "Victor Menezes",
+    "team": "Procyon",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/ZVDUadkE38kdoloYHbmnUy.png?ixlib=java-2.1.0&w=400&s=d84070b46425ed95f2a4e1fb0d57ca9e",
+    "role": "Coach"
+  },
+  {
+    "id": 2909,
+    "ign": "addi",
+    "name": "Andreas Wallenberg",
+    "team": "Sashi Academy",
+    "country": "SE",
+    "image": "https://img-cdn.hltv.org/gallerypicture/Lzc22XilW7y5nJIfyoQa0w.jpg?bg=3e4c54&h=200&ixlib=java-2.1.0&rect=2410%2C1080%2C1010%2C1010&w=200&s=497f7c3f92c5737ffaba1e1b96ed31b8",
+    "role": "Coach"
+  },
+  {
+    "id": 19503,
+    "ign": "eRCEG",
+    "name": "Uroš Erceg",
+    "team": "Drama",
+    "country": "RS",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/-OrFny1XTS20n0tzzCX72j.png?ixlib=java-2.1.0&w=400&s=5b2e0e4a1dd9658d25b8b4f91ba48cb4",
+    "role": "Coach"
+  },
+  {
+    "id": 21285,
+    "ign": "mtsGOD",
+    "name": "Mateus Marchesotti",
+    "team": "Crashers",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/2KwOuBGAcP31jAE1OzywJU.png?ixlib=java-2.1.0&w=400&s=9fac6374cc28d3334550a21f489901b9",
+    "role": "Coach"
+  },
+  {
+    "id": 21533,
+    "ign": "innersh1ne",
+    "name": null,
+    "team": "G2 Ares",
+    "country": null,
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 10508,
+    "ign": "nbl",
+    "name": "Nabil Aleua",
+    "team": "R2",
+    "country": "AR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/2KaFIx4-aEPUXA4S3nP8_H.png?ixlib=java-2.1.0&w=400&s=3ae94f00f42c9dd1434a551e6aacd76f",
+    "role": "Coach"
+  },
+  {
+    "id": 10052,
+    "ign": "fitch",
+    "name": "Bektiyar Bahytov",
+    "team": "Rune Eaters",
+    "country": "KZ",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/CtSQPlGFafRxneQS9Gyao1.png?ixlib=java-2.1.0&w=400&s=57bd72a80b8e7a69debb3b47c4495cbc",
+    "role": "Coach"
+  },
+  {
+    "id": 23188,
+    "ign": "darkpsy",
+    "name": "Igor Zaniboni",
+    "team": "Chicken Coop",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/J4klBelQ1iUdT8dOFZz6yn.png?ixlib=java-2.1.0&w=400&s=ee79f2963d12622c830e6c17891f5669",
+    "role": "Coach"
+  },
+  {
+    "id": 16771,
+    "ign": "lineko",
+    "name": "John Lineck",
+    "team": "RED Canids Academy",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/hUNmsp4Lb_8nVeAfOBKyAC.png?ixlib=java-2.1.0&w=400&s=7684b1182ad0a84e125eaed81f8b840e",
+    "role": "Coach"
+  },
+  {
+    "id": 11926,
+    "ign": "mds",
+    "name": "Aleksandr Rubets",
+    "team": "Endless Journey",
+    "country": "BY",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/Tva5jtf7ldUg8axipEUWyM.png?ixlib=java-2.1.0&w=400&s=2cec64d5db792d9da01de4440099251d",
+    "role": "Coach"
+  },
+  {
+    "id": 4476,
+    "ign": "BAXACHA",
+    "name": null,
+    "team": "Partizan",
+    "country": null,
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 26027,
+    "ign": "keepup",
+    "name": "Niko Lebar",
+    "team": "Diamant",
+    "country": "SI",
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 11241,
+    "ign": "Maiko",
+    "name": "Bora Igci",
+    "team": "Bushido Wildcats",
+    "country": "TR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/2b-GM6Grj3OK20ObjrzUy6.png?ixlib=java-2.1.0&w=400&s=2ab01637663b67f2a62d05d224692164",
+    "role": "Coach"
+  },
+  {
+    "id": 24643,
+    "ign": "sagez",
+    "name": "Matias De Tomaso",
+    "team": "BESTIA Academy",
+    "country": "AR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/f-liZs0EmqGkuZdPSU7bol.png?ixlib=java-2.1.0&w=400&s=bceba0784b0b09b8033fdb2e74b323f1",
+    "role": "Coach"
+  },
+  {
+    "id": 24226,
+    "ign": "hardok",
+    "name": "Vitor Fernandes",
+    "team": "METANOIA Wolves",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/IOtcZBqb-w8XHNtcRlp6h5.png?ixlib=java-2.1.0&w=400&s=e711443be7df6aa06f77c092008eaaea",
+    "role": "Coach"
+  },
+  {
+    "id": 25382,
+    "ign": "modjoo",
+    "name": "Ilya Barashkov",
+    "team": "Aurora Young Blud",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/IUAp3x4wwFL43nT3wz6yHK.png?ixlib=java-2.1.0&w=400&s=d6f9119f8787a0312fecfce5db2f327e",
+    "role": "Coach"
+  },
+  {
+    "id": 5153,
+    "ign": "ninja",
+    "name": "Erich Beyer",
+    "team": "Aether",
+    "country": "US",
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 25650,
+    "ign": "Obyj",
+    "name": "Onur Buğra Yaman",
+    "team": "Misa",
+    "country": "TR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/VDpQ7bg-hqQkGIRoqIhMoh.png?ixlib=java-2.1.0&w=400&s=d11432e208704f99d8076686c37362ca",
+    "role": "Coach"
+  },
+  {
+    "id": 840,
+    "ign": "karl",
+    "name": "Xi Wang",
+    "team": "BORING PLAYERS",
+    "country": "CN",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/dVfN2ptm546hDqQu7Wm04S.png?ixlib=java-2.1.0&w=400&s=7ddcfec9bc06da9890b05182a99b5fac",
+    "role": "Coach"
+  },
+  {
+    "id": 25970,
+    "ign": "Kaduzera",
+    "name": "Carlos Garcia",
+    "team": "METANOIA",
+    "country": "BR",
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 44,
+    "ign": "BARBARR",
+    "name": "André Möller",
+    "team": "BRUTE",
+    "country": "SE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/_YngakclbcgBnlxptCF-OM.png?ixlib=java-2.1.0&w=400&s=9d750c5027e7754b1ef93fedea6c6c37",
+    "role": "Coach"
+  },
+  {
+    "id": 19211,
+    "ign": "chrizm",
+    "name": "Mirzarakhim Mirzakarimov",
+    "team": "Haunted House",
+    "country": "UZ",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/zmcOL6zFJeskQPfFVmMwFG.png?ixlib=java-2.1.0&w=400&s=7d66f41337b6995e68011fa9ceb90a5a",
+    "role": "Coach"
+  },
+  {
+    "id": 21803,
+    "ign": "AmirZ",
+    "name": "Amirali Zahedi",
+    "team": "ScarX",
+    "country": "GB",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/EAzfxdhswtTNlobikISkIO.png?ixlib=java-2.1.0&w=400&s=a064c9d72e5d221f4810a245189f061c",
+    "role": "Coach"
+  },
+  {
+    "id": 24495,
+    "ign": "STATI",
+    "name": "Vinicius Stati",
+    "team": "NIC",
+    "country": "BR",
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 25589,
+    "ign": "wecles",
+    "name": null,
+    "team": "Fire Flux",
+    "country": null,
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 22018,
+    "ign": "TaaaL",
+    "name": "Caio Rangel",
+    "team": "ALKA",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/Amr2_IM889kK-PXZNqCt3k.png?ixlib=java-2.1.0&w=400&s=96293e43326536f32964bd3698f0c1a7",
+    "role": "Coach"
+  },
+  {
+    "id": 5184,
+    "ign": "luq",
+    "name": "Lucas Guedes Cavalcanti",
+    "team": "Players",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/nEoUBdRqHp51P0-hr1bkvO.png?ixlib=java-2.1.0&w=400&s=0e0a1f68bb4b544cef564e3e625ee662",
+    "role": "Coach"
+  },
+  {
+    "id": 20593,
+    "ign": "Airax",
+    "name": "Jussi Airaksinen",
+    "team": "KUUSAMO",
+    "country": "FI",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/KhN_TlJsA3lVdz5Pj34JOn.png?ixlib=java-2.1.0&w=400&s=f951925ad2ee17e56cc0c78079c1379c",
+    "role": "Coach"
+  },
+  {
+    "id": 25070,
+    "ign": "Meand",
+    "name": "Yuriy Mandzhiev",
+    "team": "JUMBO",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/LzAqNucEqs0Yrwxq2iA0-Q.png?ixlib=java-2.1.0&w=400&s=c4ba94f1f2b1539f46a87a024e736354",
+    "role": "Coach"
+  },
+  {
+    "id": 17768,
+    "ign": "hechtikal",
+    "name": "Henric Ohlund",
+    "team": "ReThink",
+    "country": "SE",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/lz_lBb-8sdyPOkIHszrQRb.png?ixlib=java-2.1.0&w=400&s=14274b91aaa32434446326a5f4f6bd68",
+    "role": "Coach"
+  },
+  {
+    "id": 23465,
+    "ign": "Monsalve",
+    "name": "Victor Domingo Monsalve",
+    "team": "Prestige",
+    "country": "ES",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/TpbiMudpRHb1gbqzMz_kY6.png?ixlib=java-2.1.0&w=400&s=c593de64fb5055c5971fbac8831e6ecc",
+    "role": "Coach"
+  },
+  {
+    "id": 25533,
+    "ign": "MeYdeY",
+    "name": "Adrian Madej",
+    "team": "Dziuseppe",
+    "country": "PL",
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 17341,
+    "ign": "msr",
+    "name": "Leonardo Caixeta",
+    "team": "FURIA fe",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/xfkUaMGjHdBHlQC1yzVee3.png?ixlib=java-2.1.0&w=400&s=f55791e92af4262f185b97c7d8db826a",
+    "role": "Coach"
+  },
+  {
+    "id": 24172,
+    "ign": "yuramyata",
+    "name": "Yuriy Krivosheev",
+    "team": "Young TigeRES",
+    "country": "RU",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/lLK-VDMFJApr-wuJdjMtVc.png?ixlib=java-2.1.0&w=400&s=47a8c94a281300faef8ec13c8675b633",
+    "role": "Coach"
+  },
+  {
+    "id": 24350,
+    "ign": "Flasky",
+    "name": "Guilherme Amorim",
+    "team": "VEXA",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/vxdgmg-UDlyrl97qKcl0JP.png?ixlib=java-2.1.0&w=400&s=c39296361432cfb9375d822c0e4601a6",
+    "role": "Coach"
+  },
+  {
+    "id": 23203,
+    "ign": "naxx",
+    "name": "Nykolas Gorniski",
+    "team": "MIBR fe",
+    "country": "BR",
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 25994,
+    "ign": "Nzg",
+    "name": "Guilherme Meni Lemos",
+    "team": "Hacha",
+    "country": "BR",
+    "image": null,
+    "role": "Coach"
+  },
+  {
+    "id": 15449,
+    "ign": "segalla",
+    "name": "Lucas Mancini",
+    "team": "Atrix",
+    "country": "BR",
+    "image": "https://img-cdn.hltv.org/playerbodyshot/KMl86HfsmHvPLUsSkYzBzG.png?ixlib=java-2.1.0&w=400&s=8f2b654bd85e04067b26534c7cc3b6df",
+    "role": "Coach"
   }
 ]
