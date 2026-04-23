@@ -1,52 +1,1694 @@
 [
-  {"rank":1,"name":"Vitality","id":9565,"logo":"https://img-cdn.hltv.org/teamlogo/ogcHrcCdzRvxbYvAz04KAN.png?ixlib=java-2.1.0&w=50&s=e1f6019aa9f274ffe45a5e99c88dbc02"},
-  {"rank":2,"name":"Natus Vincere","id":4608,"logo":"https://img-cdn.hltv.org/teamlogo/9iMirAi7ArBLNU8p3kqUTZ.svg?ixlib=java-2.1.0&s=4dd8635be16122656093ae9884675d0c"},
-  {"rank":3,"name":"FURIA","id":8297,"logo":null},
-  {"rank":4,"name":"Falcons","id":11283,"logo":"https://img-cdn.hltv.org/teamlogo/4eJSkDQINNM6Tbs4WvLzkN.png?ixlib=java-2.1.0&w=50&s=d8c857ea47046f61eca695beab0d12ef"},
-  {"rank":5,"name":"Spirit","id":7020,"logo":"https://img-cdn.hltv.org/teamlogo/syrtYYKR7sBRw3ZHy1YFX7.png?ixlib=java-2.1.0&w=50&s=40e66714687bec05ea422255b1c0099e"},
-  {"rank":6,"name":"Aurora","id":11861,"logo":"https://img-cdn.hltv.org/teamlogo/yJzPNOeXlyiniNxanYJCrv.png?ixlib=java-2.1.0&w=50&s=2c08f70c2f2f8c2024a438ddcf19bbf1"},
-  {"rank":7,"name":"PARIVISION","id":12467,"logo":"https://img-cdn.hltv.org/teamlogo/MFcDe-M8wfGOUU6x4sRELR.png?ixlib=java-2.1.0&w=50&s=1d91076a58b354d8c3eaeda3162c292e"},
-  {"rank":8,"name":"The MongolZ","id":6248,"logo":"https://img-cdn.hltv.org/teamlogo/bRk2sh_tSTO6fq1GLhgcal.png?ixlib=java-2.1.0&w=50&s=8b08e53858eb817852ae74b30a30151d"},
-  {"rank":9,"name":"Astralis","id":6665,"logo":"https://img-cdn.hltv.org/teamlogo/9bgXHp-oh1oaXr7F0mTGmd.svg?ixlib=java-2.1.0&s=f567161ab183001be33948b98c4b2067"},
-  {"rank":10,"name":"FUT","id":13286,"logo":"https://img-cdn.hltv.org/teamlogo/Os71GAOy8KDuQFc0M8HE6O.png?ixlib=java-2.1.0&w=50&s=86f2bded6bcb7c690a42a62250ed69e7"},
-  {"rank":11,"name":"MOUZ","id":4494,"logo":null},
-  {"rank":12,"name":"G2","id":5995,"logo":null},
-  {"rank":13,"name":"3DMAX","id":4914,"logo":null},
-  {"rank":14,"name":"B8","id":11241,"logo":"https://img-cdn.hltv.org/teamlogo/O6nRWTCjUzBAR4pcOcrpSG.png?ixlib=java-2.1.0&w=50&s=305dde82e764725dab7e626800328137"},
-  {"rank":15,"name":"Legacy","id":12468,"logo":"https://img-cdn.hltv.org/teamlogo/RWbHH6RA8uGwJurGeLFvSr.png?ixlib=java-2.1.0&w=50&s=3d251032e156cab2f6df8c630ca29745"},
-  {"rank":16,"name":"9z","id":9996,"logo":"https://img-cdn.hltv.org/teamlogo/COZDFWOIm41AT0srqOHFhM.png?invert=true&ixlib=java-2.1.0&sat=-100&w=50&s=b00d55fe74b90f91c5b7e2b58bda5afb"},
-  {"rank":17,"name":"FaZe","id":6667,"logo":"https://img-cdn.hltv.org/teamlogo/OKLwq88GXjl5GQ48Y5SrvW.png?ixlib=java-2.1.0&w=50&s=0a0d65eeb1b0e82ada20c42c038552fa"},
-  {"rank":18,"name":"HEROIC","id":7175,"logo":"https://img-cdn.hltv.org/teamlogo/4S22uk_gnZTiQiI-hhH4yp.png?ixlib=java-2.1.0&w=50&s=3619ddf1d490573ab3dc261b8c2f3f6f"},
-  {"rank":19,"name":"TYLOO","id":4863,"logo":"https://img-cdn.hltv.org/teamlogo/hMPKtNMDxp07n3lrBEHCuq.svg?ixlib=java-2.1.0&s=6d22fc4af07d0cd9d31fcd7f3023af9a"},
-  {"rank":20,"name":"Alliance","id":12474,"logo":"https://img-cdn.hltv.org/teamlogo/xsWK0BtR26rN776qdnWFC1.png?ixlib=java-2.1.0&w=50&s=4aaf659c3855ebf08c78c157a0653352"},
-  {"rank":21,"name":"BetBoom","id":12394,"logo":"https://img-cdn.hltv.org/teamlogo/G4ZrdB0-q41USPd_z27IQA.png?ixlib=java-2.1.0&w=50&s=9c15ddf70f9c66399d4a47e0d8e93511"},
-  {"rank":22,"name":"M80","id":12376,"logo":null},
-  {"rank":23,"name":"Monte","id":11811,"logo":"https://img-cdn.hltv.org/teamlogo/2tc9n4fHkiRIX2FiJSkhgt.png?ixlib=java-2.1.0&w=50&s=7334ef0dd24ba5349b404dfd0e8c6148"},
-  {"rank":24,"name":"Liquid","id":5973,"logo":"https://img-cdn.hltv.org/teamlogo/JMeLLbWKCIEJrmfPaqOz4O.svg?ixlib=java-2.1.0&s=c02caf90234d3a3ebac074c84ba1ea62"},
-  {"rank":25,"name":"paiN","id":4773,"logo":"https://img-cdn.hltv.org/teamlogo/iUUCFwCOFmOrwhB8q8smMg.svg?ixlib=java-2.1.0&s=1446e1cf3d02deb8190fe6efd14e4ce4"},
-  {"rank":26,"name":"GamerLegion","id":9928,"logo":"https://img-cdn.hltv.org/teamlogo/vN7O46QoQ346WIRZ8D3spC.png?ixlib=java-2.1.0&w=50&s=f139433d31902eea5898c3a63fcc643a"},
-  {"rank":27,"name":"MIBR","id":9215,"logo":"https://img-cdn.hltv.org/teamlogo/sVnH-oAf1J5TnMwoY4cxUC.png?ixlib=java-2.1.0&w=50&s=b0ef463fa0f1638bce72a89590fbaddf"},
-  {"rank":28,"name":"BIG","id":7532,"logo":"https://img-cdn.hltv.org/teamlogo/OgMRQA35hopXA8kDwMFHIY.svg?ixlib=java-2.1.0&s=ec7bc44165c7acf4224a22a1338ab7d7"},
-  {"rank":29,"name":"EYEBALLERS","id":11737,"logo":"https://img-cdn.hltv.org/teamlogo/3-Mfc-yWBTls8MPSEFhma5.png?invert=true&ixlib=java-2.1.0&sat=-100&w=50&s=2ffde3e377d01663937bf08b74d2057b"},
-  {"rank":30,"name":"FOKUS","id":13679,"logo":"https://img-cdn.hltv.org/teamlogo/VFmCLfAOw0WUmb_2fDDX3o.png?ixlib=java-2.1.0&w=50&s=e10aa35f917c5b05e6ed2a011da8d36a"},
-  {"rank":31,"name":"NRG","id":6673,"logo":"https://img-cdn.hltv.org/teamlogo/SJZaPBCyZssru-pUDS3aZe.png?ixlib=java-2.1.0&w=50&s=5f4ca255d90b4ea7092882834bbf1bdc"},
-  {"rank":32,"name":"Ninjas in Pyjamas","id":4411,"logo":null},
-  {"rank":33,"name":"Passion UA","id":12426,"logo":"https://img-cdn.hltv.org/teamlogo/N2r90H86RES7-yGZeqREoX.png?ixlib=java-2.1.0&w=50&s=78daf41ce5c011c9a262c108a9209d34"},
-  {"rank":34,"name":"SINNERS","id":10577,"logo":"https://img-cdn.hltv.org/teamlogo/9l_WdQSU9JsNHzpK-pwOG2.svg?ixlib=java-2.1.0&s=af432c3ef61c0c843331cc0dc2fed1ed"},
-  {"rank":35,"name":"BESTIA","id":12144,"logo":"https://img-cdn.hltv.org/teamlogo/Z_R5K__qrvHmPjF66iCay-.png?ixlib=java-2.1.0&w=50&s=7e2afd72c2b3cabf53244ed6bc5142e3"},
-  {"rank":36,"name":"RED Canids","id":7176,"logo":"https://img-cdn.hltv.org/teamlogo/Lyr7VJ-litGOwnRBu_8K5q.png?ixlib=java-2.1.0&w=50&s=4beac26b74d83ad2b1753ba2c5cb575d"},
-  {"rank":37,"name":"HOTU","id":11581,"logo":null},
-  {"rank":38,"name":"Gentle Mates","id":13404,"logo":"https://img-cdn.hltv.org/teamlogo/4vM_jGA-gAmOO3D19rxR1F.png?ixlib=java-2.1.0&w=50&s=e84a0026333c0d681a146ae08e1d318f"},
-  {"rank":39,"name":"Inner Circle","id":13117,"logo":"https://img-cdn.hltv.org/teamlogo/nzJhoae6HI3i1UORM-DBFD.png?ixlib=java-2.1.0&w=50&s=35faf966127b13f4cc4b7250a5aed454"},
-  {"rank":40,"name":"9INE","id":10278,"logo":"https://img-cdn.hltv.org/teamlogo/BGC4LXlC8s4W0xWyelk2BI.png?ixlib=java-2.1.0&w=50&s=9b131e9589738e2c66ad28f1c1ed1d4b"},
-  {"rank":41,"name":"Sashi","id":11712,"logo":"https://img-cdn.hltv.org/teamlogo/xa5M31PECYUvHs6wlM9nzM.png?ixlib=java-2.1.0&w=50&s=e3f81637bc8dc9f9e3ab89a0a5c78d7d"},
-  {"rank":42,"name":"Gaimin Gladiators","id":11571,"logo":"https://img-cdn.hltv.org/teamlogo/nnUUng-EKdho6MRIhK3-5N.png?ixlib=java-2.1.0&w=50&s=c586546866230a714d618f68027169ec"},
-  {"rank":43,"name":"Voca","id":13499,"logo":"https://img-cdn.hltv.org/teamlogo/1Z_CvAJE9Qb5h9WyIi1PoP.png?ixlib=java-2.1.0&w=50&s=fb5cc17a7e784c586e6adb2372583c34"},
-  {"rank":44,"name":"K27","id":12895,"logo":"https://img-cdn.hltv.org/teamlogo/7LmOZHYhlq-fIAm23aM2q1.png?ixlib=java-2.1.0&w=50&s=e194cf9c20b306723ae899eac0e8a356"},
-  {"rank":45,"name":"ShindeN","id":12959,"logo":"https://img-cdn.hltv.org/teamlogo/5tfhYrPKeLDzFW8X-vFExJ.png?ixlib=java-2.1.0&w=50&s=cfc4c6391157f58820f5108485a4f2a6"},
-  {"rank":46,"name":"100 Thieves","id":8474,"logo":null},
-  {"rank":47,"name":"Lynn Vision","id":8840,"logo":"https://img-cdn.hltv.org/teamlogo/DPcHT21uWwK1hDD_3txlL9.png?ixlib=java-2.1.0&w=50&s=4b5d5a187f00caf9bbae2d0fcbca6ff6"},
-  {"rank":48,"name":"OG","id":10503,"logo":"https://img-cdn.hltv.org/teamlogo/DfvLcyBWZPzMcRRqzxUfqL.png?ixlib=java-2.1.0&w=50&s=91d21a528d5bd893fb659abfe7077d40"},
-  {"rank":49,"name":"fnatic","id":4991,"logo":"https://img-cdn.hltv.org/teamlogo/dLtWEdSV58lIX1amAFggy0.svg?ixlib=java-2.1.0&s=f24d0a7b3ef24ed57184a51d35202b4e"},
-  {"rank":50,"name":"Sharks","id":8113,"logo":"https://img-cdn.hltv.org/teamlogo/xduTwTuydAWc0Dbt-eEjeH.png?ixlib=java-2.1.0&w=50&s=16cdced9e9b1a2b2e771157638f39391"}
+  {
+    "rank": 1,
+    "name": "Vitality",
+    "id": 9565,
+    "logo": "https://img-cdn.hltv.org/teamlogo/ogcHrcCdzRvxbYvAz04KAN.png?ixlib=java-2.1.0&w=50&s=e1f6019aa9f274ffe45a5e99c88dbc02"
+  },
+  {
+    "rank": 2,
+    "name": "Natus Vincere",
+    "id": 4608,
+    "logo": "https://img-cdn.hltv.org/teamlogo/9iMirAi7ArBLNU8p3kqUTZ.svg?ixlib=java-2.1.0&s=4dd8635be16122656093ae9884675d0c"
+  },
+  {
+    "rank": 3,
+    "name": "FURIA",
+    "id": 8297,
+    "logo": "https://img-cdn.hltv.org/teamlogo/mvNQc4csFGtxXk5guAh8m1.svg?ixlib=java-2.1.0&s=11e5056829ad5d6c06c5961bbe76d20c"
+  },
+  {
+    "rank": 4,
+    "name": "Falcons",
+    "id": 11283,
+    "logo": "https://img-cdn.hltv.org/teamlogo/4eJSkDQINNM6Tbs4WvLzkN.png?ixlib=java-2.1.0&w=50&s=d8c857ea47046f61eca695beab0d12ef"
+  },
+  {
+    "rank": 5,
+    "name": "Spirit",
+    "id": 7020,
+    "logo": "https://img-cdn.hltv.org/teamlogo/syrtYYKR7sBRw3ZHy1YFX7.png?ixlib=java-2.1.0&w=50&s=40e66714687bec05ea422255b1c0099e"
+  },
+  {
+    "rank": 6,
+    "name": "Aurora",
+    "id": 11861,
+    "logo": "https://img-cdn.hltv.org/teamlogo/yJzPNOeXlyiniNxanYJCrv.png?ixlib=java-2.1.0&w=50&s=2c08f70c2f2f8c2024a438ddcf19bbf1"
+  },
+  {
+    "rank": 7,
+    "name": "PARIVISION",
+    "id": 12467,
+    "logo": "https://img-cdn.hltv.org/teamlogo/MFcDe-M8wfGOUU6x4sRELR.png?ixlib=java-2.1.0&w=50&s=1d91076a58b354d8c3eaeda3162c292e"
+  },
+  {
+    "rank": 8,
+    "name": "The MongolZ",
+    "id": 6248,
+    "logo": "https://img-cdn.hltv.org/teamlogo/bRk2sh_tSTO6fq1GLhgcal.png?ixlib=java-2.1.0&w=50&s=8b08e53858eb817852ae74b30a30151d"
+  },
+  {
+    "rank": 9,
+    "name": "Astralis",
+    "id": 6665,
+    "logo": "https://img-cdn.hltv.org/teamlogo/9bgXHp-oh1oaXr7F0mTGmd.svg?ixlib=java-2.1.0&s=f567161ab183001be33948b98c4b2067"
+  },
+  {
+    "rank": 10,
+    "name": "FUT",
+    "id": 13286,
+    "logo": "https://img-cdn.hltv.org/teamlogo/Os71GAOy8KDuQFc0M8HE6O.png?ixlib=java-2.1.0&w=50&s=86f2bded6bcb7c690a42a62250ed69e7"
+  },
+  {
+    "rank": 11,
+    "name": "MOUZ",
+    "id": 4494,
+    "logo": "https://img-cdn.hltv.org/teamlogo/IejtXpquZnE8KqYPB1LNKw.svg?ixlib=java-2.1.0&s=7fd33b8def053fbfd8fdbb58e3bdcd3c"
+  },
+  {
+    "rank": 12,
+    "name": "G2",
+    "id": 5995,
+    "logo": "https://img-cdn.hltv.org/teamlogo/zFLwAELOD15BjJSDMMNBWQ.png?ixlib=java-2.1.0&w=50&s=affb583e6716d8ee904826992255cc4b"
+  },
+  {
+    "rank": 13,
+    "name": "3DMAX",
+    "id": 4914,
+    "logo": "https://img-cdn.hltv.org/teamlogo/QGPDS3Z2-aMXwCYVgA4RWH.png?ixlib=java-2.1.0&w=50&s=ec528d7e9d0f9b6b4bac227901fb1590"
+  },
+  {
+    "rank": 14,
+    "name": "B8",
+    "id": 11241,
+    "logo": "https://img-cdn.hltv.org/teamlogo/O6nRWTCjUzBAR4pcOcrpSG.png?ixlib=java-2.1.0&w=50&s=305dde82e764725dab7e626800328137"
+  },
+  {
+    "rank": 15,
+    "name": "Legacy",
+    "id": 12468,
+    "logo": "https://img-cdn.hltv.org/teamlogo/RWbHH6RA8uGwJurGeLFvSr.png?ixlib=java-2.1.0&w=50&s=3d251032e156cab2f6df8c630ca29745"
+  },
+  {
+    "rank": 16,
+    "name": "9z",
+    "id": 9996,
+    "logo": "https://img-cdn.hltv.org/teamlogo/COZDFWOIm41AT0srqOHFhM.png?invert=true&ixlib=java-2.1.0&sat=-100&w=50&s=b00d55fe74b90f91c5b7e2b58bda5afb"
+  },
+  {
+    "rank": 17,
+    "name": "FaZe",
+    "id": 6667,
+    "logo": "https://img-cdn.hltv.org/teamlogo/OKLwq88GXjl5GQ48Y5SrvW.png?ixlib=java-2.1.0&w=50&s=0a0d65eeb1b0e82ada20c42c038552fa"
+  },
+  {
+    "rank": 18,
+    "name": "HEROIC",
+    "id": 7175,
+    "logo": "https://img-cdn.hltv.org/teamlogo/4S22uk_gnZTiQiI-hhH4yp.png?ixlib=java-2.1.0&w=50&s=3619ddf1d490573ab3dc261b8c2f3f6f"
+  },
+  {
+    "rank": 19,
+    "name": "TYLOO",
+    "id": 4863,
+    "logo": "https://img-cdn.hltv.org/teamlogo/hMPKtNMDxp07n3lrBEHCuq.svg?ixlib=java-2.1.0&s=6d22fc4af07d0cd9d31fcd7f3023af9a"
+  },
+  {
+    "rank": 20,
+    "name": "Alliance",
+    "id": 12474,
+    "logo": "https://img-cdn.hltv.org/teamlogo/xsWK0BtR26rN776qdnWFC1.png?ixlib=java-2.1.0&w=50&s=4aaf659c3855ebf08c78c157a0653352"
+  },
+  {
+    "rank": 21,
+    "name": "BetBoom",
+    "id": 12394,
+    "logo": "https://img-cdn.hltv.org/teamlogo/G4ZrdB0-q41USPd_z27IQA.png?ixlib=java-2.1.0&w=50&s=9c15ddf70f9c66399d4a47e0d8e93511"
+  },
+  {
+    "rank": 22,
+    "name": "M80",
+    "id": 12376,
+    "logo": "https://img-cdn.hltv.org/teamlogo/YsaWwP_VrkbHzuhszuANEK.png?ixlib=java-2.1.0&w=50&s=47a8cff375da8242af9137a2a592b97d"
+  },
+  {
+    "rank": 23,
+    "name": "Monte",
+    "id": 11811,
+    "logo": "https://img-cdn.hltv.org/teamlogo/2tc9n4fHkiRIX2FiJSkhgt.png?ixlib=java-2.1.0&w=50&s=7334ef0dd24ba5349b404dfd0e8c6148"
+  },
+  {
+    "rank": 24,
+    "name": "Liquid",
+    "id": 5973,
+    "logo": "https://img-cdn.hltv.org/teamlogo/JMeLLbWKCIEJrmfPaqOz4O.svg?ixlib=java-2.1.0&s=c02caf90234d3a3ebac074c84ba1ea62"
+  },
+  {
+    "rank": 25,
+    "name": "paiN",
+    "id": 4773,
+    "logo": "https://img-cdn.hltv.org/teamlogo/iUUCFwCOFmOrwhB8q8smMg.svg?ixlib=java-2.1.0&s=1446e1cf3d02deb8190fe6efd14e4ce4"
+  },
+  {
+    "rank": 26,
+    "name": "GamerLegion",
+    "id": 9928,
+    "logo": "https://img-cdn.hltv.org/teamlogo/vN7O46QoQ346WIRZ8D3spC.png?ixlib=java-2.1.0&w=50&s=f139433d31902eea5898c3a63fcc643a"
+  },
+  {
+    "rank": 27,
+    "name": "MIBR",
+    "id": 9215,
+    "logo": "https://img-cdn.hltv.org/teamlogo/sVnH-oAf1J5TnMwoY4cxUC.png?ixlib=java-2.1.0&w=50&s=b0ef463fa0f1638bce72a89590fbaddf"
+  },
+  {
+    "rank": 28,
+    "name": "BIG",
+    "id": 7532,
+    "logo": "https://img-cdn.hltv.org/teamlogo/OgMRQA35hopXA8kDwMFHIY.svg?ixlib=java-2.1.0&s=ec7bc44165c7acf4224a22a1338ab7d7"
+  },
+  {
+    "rank": 29,
+    "name": "EYEBALLERS",
+    "id": 11737,
+    "logo": "https://img-cdn.hltv.org/teamlogo/3-Mfc-yWBTls8MPSEFhma5.png?invert=true&ixlib=java-2.1.0&sat=-100&w=50&s=2ffde3e377d01663937bf08b74d2057b"
+  },
+  {
+    "rank": 30,
+    "name": "FOKUS",
+    "id": 13679,
+    "logo": "https://img-cdn.hltv.org/teamlogo/VFmCLfAOw0WUmb_2fDDX3o.png?ixlib=java-2.1.0&w=50&s=e10aa35f917c5b05e6ed2a011da8d36a"
+  },
+  {
+    "rank": 31,
+    "name": "NRG",
+    "id": 6673,
+    "logo": "https://img-cdn.hltv.org/teamlogo/SJZaPBCyZssru-pUDS3aZe.png?ixlib=java-2.1.0&w=50&s=5f4ca255d90b4ea7092882834bbf1bdc"
+  },
+  {
+    "rank": 32,
+    "name": "Ninjas in Pyjamas",
+    "id": 4411,
+    "logo": "https://img-cdn.hltv.org/teamlogo/-ttGATBV_P_HcZazxNNtIb.png?ixlib=java-2.1.0&w=50&s=ba94f7812d1f47183a83f3f34ab959eb"
+  },
+  {
+    "rank": 33,
+    "name": "Passion UA",
+    "id": 12426,
+    "logo": "https://img-cdn.hltv.org/teamlogo/N2r90H86RES7-yGZeqREoX.png?ixlib=java-2.1.0&w=50&s=78daf41ce5c011c9a262c108a9209d34"
+  },
+  {
+    "rank": 34,
+    "name": "SINNERS",
+    "id": 10577,
+    "logo": "https://img-cdn.hltv.org/teamlogo/9l_WdQSU9JsNHzpK-pwOG2.svg?ixlib=java-2.1.0&s=af432c3ef61c0c843331cc0dc2fed1ed"
+  },
+  {
+    "rank": 35,
+    "name": "BESTIA",
+    "id": 12144,
+    "logo": "https://img-cdn.hltv.org/teamlogo/Z_R5K__qrvHmPjF66iCay-.png?ixlib=java-2.1.0&w=50&s=7e2afd72c2b3cabf53244ed6bc5142e3"
+  },
+  {
+    "rank": 36,
+    "name": "RED Canids",
+    "id": 7176,
+    "logo": "https://img-cdn.hltv.org/teamlogo/Lyr7VJ-litGOwnRBu_8K5q.png?ixlib=java-2.1.0&w=50&s=4beac26b74d83ad2b1753ba2c5cb575d"
+  },
+  {
+    "rank": 37,
+    "name": "HOTU",
+    "id": 11581,
+    "logo": "https://img-cdn.hltv.org/teamlogo/UH5TD1Lyutr_JwKu2ldl-A.png?ixlib=java-2.1.0&w=50&s=6ff0544743996e6f3b166643371d2839"
+  },
+  {
+    "rank": 38,
+    "name": "Gentle Mates",
+    "id": 13404,
+    "logo": "https://img-cdn.hltv.org/teamlogo/4vM_jGA-gAmOO3D19rxR1F.png?ixlib=java-2.1.0&w=50&s=e84a0026333c0d681a146ae08e1d318f"
+  },
+  {
+    "rank": 39,
+    "name": "Inner Circle",
+    "id": 13117,
+    "logo": "https://img-cdn.hltv.org/teamlogo/nzJhoae6HI3i1UORM-DBFD.png?ixlib=java-2.1.0&w=50&s=35faf966127b13f4cc4b7250a5aed454"
+  },
+  {
+    "rank": 40,
+    "name": "9INE",
+    "id": 10278,
+    "logo": "https://img-cdn.hltv.org/teamlogo/BGC4LXlC8s4W0xWyelk2BI.png?ixlib=java-2.1.0&w=50&s=9b131e9589738e2c66ad28f1c1ed1d4b"
+  },
+  {
+    "rank": 41,
+    "name": "Sashi",
+    "id": 11712,
+    "logo": "https://img-cdn.hltv.org/teamlogo/xa5M31PECYUvHs6wlM9nzM.png?ixlib=java-2.1.0&w=50&s=e3f81637bc8dc9f9e3ab89a0a5c78d7d"
+  },
+  {
+    "rank": 42,
+    "name": "Gaimin Gladiators",
+    "id": 11571,
+    "logo": "https://img-cdn.hltv.org/teamlogo/nnUUng-EKdho6MRIhK3-5N.png?ixlib=java-2.1.0&w=50&s=c586546866230a714d618f68027169ec"
+  },
+  {
+    "rank": 43,
+    "name": "Voca",
+    "id": 13499,
+    "logo": "https://img-cdn.hltv.org/teamlogo/1Z_CvAJE9Qb5h9WyIi1PoP.png?ixlib=java-2.1.0&w=50&s=fb5cc17a7e784c586e6adb2372583c34"
+  },
+  {
+    "rank": 44,
+    "name": "K27",
+    "id": 12895,
+    "logo": "https://img-cdn.hltv.org/teamlogo/7LmOZHYhlq-fIAm23aM2q1.png?ixlib=java-2.1.0&w=50&s=e194cf9c20b306723ae899eac0e8a356"
+  },
+  {
+    "rank": 45,
+    "name": "ShindeN",
+    "id": 12959,
+    "logo": "https://img-cdn.hltv.org/teamlogo/5tfhYrPKeLDzFW8X-vFExJ.png?ixlib=java-2.1.0&w=50&s=cfc4c6391157f58820f5108485a4f2a6"
+  },
+  {
+    "rank": 46,
+    "name": "100 Thieves",
+    "id": 8474,
+    "logo": "https://img-cdn.hltv.org/teamlogo/QdpX-_6C2wHMgv98VAE6il.png?ixlib=java-2.1.0&w=50&s=5f34e763e5f7c7d0408a8814f42d7a87"
+  },
+  {
+    "rank": 47,
+    "name": "Lynn Vision",
+    "id": 8840,
+    "logo": "https://img-cdn.hltv.org/teamlogo/DPcHT21uWwK1hDD_3txlL9.png?ixlib=java-2.1.0&w=50&s=4b5d5a187f00caf9bbae2d0fcbca6ff6"
+  },
+  {
+    "rank": 48,
+    "name": "OG",
+    "id": 10503,
+    "logo": "https://img-cdn.hltv.org/teamlogo/DfvLcyBWZPzMcRRqzxUfqL.png?ixlib=java-2.1.0&w=50&s=91d21a528d5bd893fb659abfe7077d40"
+  },
+  {
+    "rank": 49,
+    "name": "fnatic",
+    "id": 4991,
+    "logo": "https://img-cdn.hltv.org/teamlogo/dLtWEdSV58lIX1amAFggy0.svg?ixlib=java-2.1.0&s=f24d0a7b3ef24ed57184a51d35202b4e"
+  },
+  {
+    "rank": 50,
+    "name": "Sharks",
+    "id": 8113,
+    "logo": "https://img-cdn.hltv.org/teamlogo/xduTwTuydAWc0Dbt-eEjeH.png?ixlib=java-2.1.0&w=50&s=16cdced9e9b1a2b2e771157638f39391"
+  },
+  {
+    "rank": 51,
+    "name": "Imperial",
+    "id": 9455,
+    "logo": "https://img-cdn.hltv.org/teamlogo/bBDk6-rND06sAzn67b5RdP.png?ixlib=java-2.1.0&w=50&s=467e31ba123f509130d647fbf1e04ef2"
+  },
+  {
+    "rank": 52,
+    "name": "Nemesis",
+    "id": 13355,
+    "logo": "https://img-cdn.hltv.org/teamlogo/elLVHPbX3OkW4t8CHjKnoY.png?ixlib=java-2.1.0&w=50&s=334764e4cfd4a3b805b21085a21a4c5b"
+  },
+  {
+    "rank": 53,
+    "name": "Tricked",
+    "id": 4602,
+    "logo": "https://img-cdn.hltv.org/teamlogo/blNchPRF06sVx4To-LemoY.png?ixlib=java-2.1.0&w=50&s=939b83c622f496db95d11bfd0f85b428"
+  },
+  {
+    "rank": 54,
+    "name": "FlyQuest",
+    "id": 12774,
+    "logo": "https://img-cdn.hltv.org/teamlogo/fmqTgF6Ziw0uied7MO3_ri.png?ixlib=java-2.1.0&w=50&s=255b5a4c460ad03161509ff7eb77b2dc"
+  },
+  {
+    "rank": 55,
+    "name": "Nemiga",
+    "id": 7969,
+    "logo": "https://img-cdn.hltv.org/teamlogo/6ZPCm5r3XyGByXkFGiRnLh.png?ixlib=java-2.1.0&w=50&s=daa0328ebd0143763544b564610721e9"
+  },
+  {
+    "rank": 56,
+    "name": "BC.Game",
+    "id": 12878,
+    "logo": "https://img-cdn.hltv.org/teamlogo/Hwf-Y5nN-3qSvd0FZXOCh5.png?ixlib=java-2.1.0&w=50&s=a139a056665fc6d1534bd4d969ad2eaf"
+  },
+  {
+    "rank": 57,
+    "name": "magic",
+    "id": 13592,
+    "logo": "https://img-cdn.hltv.org/teamlogo/KYi27Dm-DVyEUj0WIG5Bdx.png?ixlib=java-2.1.0&w=50&s=d490c0b14e24cbc6ddd70f0534ff3651"
+  },
+  {
+    "rank": 58,
+    "name": "Betclic",
+    "id": 12916,
+    "logo": null
+  },
+  {
+    "rank": 59,
+    "name": "Wildcard",
+    "id": 12257,
+    "logo": "https://img-cdn.hltv.org/teamlogo/-46lJ-DcmPL_j_5R2WvLiS.png?ixlib=java-2.1.0&w=50&s=3bf750ca209fefcb665134fd61f43ffb"
+  },
+  {
+    "rank": 60,
+    "name": "PsychoFace",
+    "id": 13799,
+    "logo": "/dynamic-svg/teamplaceholder?letter=P"
+  },
+  {
+    "rank": 61,
+    "name": "The Huns",
+    "id": 12510,
+    "logo": "https://img-cdn.hltv.org/teamlogo/VgVw2z9BmJJ2knbbyXeDfc.png?ixlib=java-2.1.0&w=50&s=c1577bd514234eb3d106357de5ea6aa4"
+  },
+  {
+    "rank": 62,
+    "name": "Fluxo",
+    "id": 11837,
+    "logo": "https://img-cdn.hltv.org/teamlogo/zGveLNj821BCJGMu93qnj-.png?ixlib=java-2.1.0&w=50&s=f7d69ef82fdaf8d8b7f5a1a7fa8f13ed"
+  },
+  {
+    "rank": 63,
+    "name": "WW",
+    "id": 12967,
+    "logo": "https://img-cdn.hltv.org/teamlogo/eCREd3vUcWijSsxUZ7GEoW.png?ixlib=java-2.1.0&w=50&s=aeda10fd2ce9c4467e66c3c4415b8cdc"
+  },
+  {
+    "rank": 64,
+    "name": "AM",
+    "id": 13237,
+    "logo": "https://img-cdn.hltv.org/teamlogo/WqSceeErZORFGoG8gJ4nLT.png?ixlib=java-2.1.0&w=50&s=a225f2cb39db0bf539158223cea243a2"
+  },
+  {
+    "rank": 65,
+    "name": "Johnny Speeds",
+    "id": 12604,
+    "logo": "https://img-cdn.hltv.org/teamlogo/Qmj_vOYob6-N4w0-MkiQhT.png?ixlib=java-2.1.0&w=50&s=1ac8b274e801c8c4b265b4fc3ea1900c"
+  },
+  {
+    "rank": 66,
+    "name": "Eternal Fire",
+    "id": 11251,
+    "logo": "https://img-cdn.hltv.org/teamlogo/Tafdq71X3B_-73b73bAixr.png?ixlib=java-2.1.0&w=50&s=f1505e0f7e03bed0d0d2b4c809768198"
+  },
+  {
+    "rank": 67,
+    "name": "1win",
+    "id": 10621,
+    "logo": "https://img-cdn.hltv.org/teamlogo/zbmzI2IMFNwHUvTO4EHaTZ.png?ixlib=java-2.1.0&w=50&s=fd29838f5b22b76075de4c80c2e04c0b"
+  },
+  {
+    "rank": 68,
+    "name": "SemperFi",
+    "id": 12901,
+    "logo": "https://img-cdn.hltv.org/teamlogo/AhNio82uoOBO6dVCMCgDx-.png?ixlib=java-2.1.0&w=50&s=6fccab37a1e276b984b9f63daa2df18e"
+  },
+  {
+    "rank": 69,
+    "name": "AaB",
+    "id": 9621,
+    "logo": "https://img-cdn.hltv.org/teamlogo/LqikHWQrIW3-MssZO9wdVb.png?ixlib=java-2.1.0&w=50&s=b93e024ab543bc98f1491ad2ea1accbb"
+  },
+  {
+    "rank": 70,
+    "name": "JiJieHao",
+    "id": 10245,
+    "logo": "https://img-cdn.hltv.org/teamlogo/OmcJcjX0obWnKkP7ChpuFA.png?ixlib=java-2.1.0&w=50&s=8e3bd16625d6f62c95285c98080ded66"
+  },
+  {
+    "rank": 71,
+    "name": "BET-M",
+    "id": 13619,
+    "logo": "https://img-cdn.hltv.org/teamlogo/V7kOhjpI4AiRCPnthLVvL6.png?ixlib=java-2.1.0&w=50&s=6ded0349cde3e1cc18b4b28c3d8cb91c"
+  },
+  {
+    "rank": 72,
+    "name": "Acend",
+    "id": 13518,
+    "logo": "https://img-cdn.hltv.org/teamlogo/TslndPhDvsn1bLMdm1j2i6.png?ixlib=java-2.1.0&w=50&s=0b477b55a7781f7f9bd5278cd9714ca2"
+  },
+  {
+    "rank": 73,
+    "name": "Walczaki",
+    "id": 13808,
+    "logo": "https://img-cdn.hltv.org/teamlogo/7J1EJEnAG7-_sekQrIc_8E.png?ixlib=java-2.1.0&w=50&s=8984799e60101fff9a9c9edd76cc50df"
+  },
+  {
+    "rank": 74,
+    "name": "TDK",
+    "id": 13644,
+    "logo": "https://img-cdn.hltv.org/teamlogo/6wH8gXfEHnpsR_VufJ2Egb.png?ixlib=java-2.1.0&w=50&s=154b4029b7c38e9c8dd97869a0026aaf"
+  },
+  {
+    "rank": 75,
+    "name": "Bounty Hunters",
+    "id": 12776,
+    "logo": "https://img-cdn.hltv.org/teamlogo/wJ38S9ZUb82rj8deT4_jqT.png?ixlib=java-2.1.0&w=50&s=b6af112ea7725decdb013a94a3605b39"
+  },
+  {
+    "rank": 76,
+    "name": "Rare Atom",
+    "id": 11514,
+    "logo": "https://img-cdn.hltv.org/teamlogo/CH9I3Xh0tW94uEN1BMe9Pu.png?ixlib=java-2.1.0&w=50&s=fda7c0e83d4889a4164b99316b8f358f"
+  },
+  {
+    "rank": 77,
+    "name": "Chinggis Warriors",
+    "id": 12646,
+    "logo": "https://img-cdn.hltv.org/teamlogo/esvV905BqvAKUUPLq8e89T.png?ixlib=java-2.1.0&w=50&s=dd947742be3993f7b235cd1928ab078e"
+  },
+  {
+    "rank": 78,
+    "name": "LP",
+    "id": 13304,
+    "logo": "/dynamic-svg/teamplaceholder?letter=L"
+  },
+  {
+    "rank": 79,
+    "name": "ARCRED",
+    "id": 10459,
+    "logo": "https://img-cdn.hltv.org/teamlogo/FkqmKLoI7VzD95HuCu36rp.png?ixlib=java-2.1.0&w=50&s=a939e8537e182dc2a7493840443ec227"
+  },
+  {
+    "rank": 80,
+    "name": "Galorys",
+    "id": 12677,
+    "logo": "https://img-cdn.hltv.org/teamlogo/GljsUhNlV1YdE2Z1ge-HzK.png?ixlib=java-2.1.0&w=50&s=fd7e8570af28b29e7dfa34eab2c506b1"
+  },
+  {
+    "rank": 81,
+    "name": "CYBERSHOKE",
+    "id": 12380,
+    "logo": "https://img-cdn.hltv.org/teamlogo/gzn14uIQ6ENslja9hMqnkj.png?ixlib=java-2.1.0&w=50&s=0bea5f061e9130561d93b89834624603"
+  },
+  {
+    "rank": 82,
+    "name": "SPARTA",
+    "id": 13214,
+    "logo": "https://img-cdn.hltv.org/teamlogo/4S4uiHHvhV2IFrEap8xG1H.png?ixlib=java-2.1.0&w=50&s=24bc35b96e8e749c5f158c05aed2a0ff"
+  },
+  {
+    "rank": 83,
+    "name": "INFINITE",
+    "id": 10823,
+    "logo": "https://img-cdn.hltv.org/teamlogo/Bq4oCmwPwqkpV5XvHqmVhI.png?ixlib=java-2.1.0&w=50&s=16e18db9b1e19dc66aeed84ec4c6367e"
+  },
+  {
+    "rank": 84,
+    "name": "THUNDER dOWNUNDER",
+    "id": 13486,
+    "logo": "https://img-cdn.hltv.org/teamlogo/bSRhbVtvK3S64DVmh5XIgi.png?ixlib=java-2.1.0&w=50&s=83a402b5b6e8c40009d10e796645e479"
+  },
+  {
+    "rank": 85,
+    "name": "Fisher College",
+    "id": 12769,
+    "logo": "https://img-cdn.hltv.org/teamlogo/4zwNM5cY9YTtWQVH6JPCik.png?ixlib=java-2.1.0&w=50&s=5e5294a7e4bb0cbde449f73e4ac937a0"
+  },
+  {
+    "rank": 86,
+    "name": "MANA",
+    "id": 13310,
+    "logo": "https://img-cdn.hltv.org/teamlogo/h2IKJglH4eY5xOIiJH1Pjf.png?ixlib=java-2.1.0&w=50&s=6e0bd2ed9469c68cd1ab4bb9749048b5"
+  },
+  {
+    "rank": 87,
+    "name": "Virtus.pro",
+    "id": 5378,
+    "logo": "https://img-cdn.hltv.org/teamlogo/yZ6Bpuui1rW3jocXQ68XgZ.svg?ixlib=java-2.1.0&s=f39be1d3e7baf30a4e7f0b1216720875"
+  },
+  {
+    "rank": 88,
+    "name": "Ursa",
+    "id": 13231,
+    "logo": "https://img-cdn.hltv.org/teamlogo/y8cjHnlpqAPHEVRTd_tnzz.png?ixlib=java-2.1.0&w=50&s=648081ff7eaa6acbb51237e6ea5d5b6f"
+  },
+  {
+    "rank": 89,
+    "name": "ex-RUBY",
+    "id": 13617,
+    "logo": "/dynamic-svg/teamplaceholder?letter=e"
+  },
+  {
+    "rank": 90,
+    "name": "Sangal",
+    "id": 10333,
+    "logo": "https://img-cdn.hltv.org/teamlogo/zPv_FeMF8CANC10Jz32P9l.png?ixlib=java-2.1.0&w=50&s=741a13d27b484b39f24cdc76dbf80568"
+  },
+  {
+    "rank": 91,
+    "name": "ASTRAL",
+    "id": 13333,
+    "logo": null
+  },
+  {
+    "rank": 92,
+    "name": "Nuclear TigeRES",
+    "id": 13027,
+    "logo": "https://img-cdn.hltv.org/teamlogo/GcO3SLh1j8cgiNGoEXNUVS.png?ixlib=java-2.1.0&w=50&s=856dc9f0ffdbeedbe76d9874fbcdb546"
+  },
+  {
+    "rank": 93,
+    "name": "Fake do Biru",
+    "id": 13081,
+    "logo": "/dynamic-svg/teamplaceholder?letter=F"
+  },
+  {
+    "rank": 94,
+    "name": "Metizport",
+    "id": 11641,
+    "logo": "https://img-cdn.hltv.org/teamlogo/L6vT42LZaQh88EXiZ5FpHK.png?ixlib=java-2.1.0&w=50&s=85eeac10933db8bdbf17dfcc28972af2"
+  },
+  {
+    "rank": 95,
+    "name": "Rebels",
+    "id": 12642,
+    "logo": "https://img-cdn.hltv.org/teamlogo/vfupmnriFumqC8u48wFIdm.png?ixlib=java-2.1.0&w=50&s=f88ee3468bbd8661c4d9e40b2eddda29"
+  },
+  {
+    "rank": 96,
+    "name": "Bebop",
+    "id": 13613,
+    "logo": "/dynamic-svg/teamplaceholder?letter=B"
+  },
+  {
+    "rank": 97,
+    "name": "BASEMENT BOYS",
+    "id": 13181,
+    "logo": "https://img-cdn.hltv.org/teamlogo/IAgnK7oXGijw4nomIKEVIw.png?ixlib=java-2.1.0&w=50&s=b4de8c1c642e9e648d878215fc8ac9ba"
+  },
+  {
+    "rank": 98,
+    "name": "HEROIC Academy",
+    "id": 13233,
+    "logo": "https://img-cdn.hltv.org/teamlogo/p-dHwSqwe_QYpES6Y3Qrj0.svg?ixlib=java-2.1.0&s=21075a8ce9a3aca28da018cb8cf72792"
+  },
+  {
+    "rank": 99,
+    "name": "HYPERSPIRIT",
+    "id": 13012,
+    "logo": "https://img-cdn.hltv.org/teamlogo/MdMPxRh2SX6Y3tOWO3Ok3M.png?ixlib=java-2.1.0&w=50&s=7ab5b1a592da8b9b944a10cff37b7a99"
+  },
+  {
+    "rank": 100,
+    "name": "Lavked",
+    "id": 12609,
+    "logo": "/dynamic-svg/teamplaceholder?letter=L"
+  },
+  {
+    "rank": 101,
+    "name": "ex-Zero Tenacity",
+    "id": 13573,
+    "logo": "/dynamic-svg/teamplaceholder?letter=e"
+  },
+  {
+    "rank": 102,
+    "name": "aimclub",
+    "id": 6810,
+    "logo": "https://img-cdn.hltv.org/teamlogo/PhNn8XgEQgZbp6ti-_IfFT.png?ixlib=java-2.1.0&w=50&s=846feccd98ac0b3b9cca3409929ed3e3"
+  },
+  {
+    "rank": 103,
+    "name": "WAZABI",
+    "id": 13575,
+    "logo": "https://img-cdn.hltv.org/teamlogo/oyDs3D92dmt93GFNZzrHAk.png?ixlib=java-2.1.0&w=50&s=7e2c14fec0b292aa547efb5ebf6cc5f5"
+  },
+  {
+    "rank": 104,
+    "name": "LAG",
+    "id": 11955,
+    "logo": "https://img-cdn.hltv.org/teamlogo/W30xfG1IVIUuOJnlsxtHMG.png?ixlib=java-2.1.0&w=50&s=7b86122252f70538d55be737b7e80c50"
+  },
+  {
+    "rank": 105,
+    "name": "Phantom",
+    "id": 13173,
+    "logo": "https://img-cdn.hltv.org/teamlogo/DzhUnKXRRy9yV2MILp29YH.png?ixlib=java-2.1.0&w=50&s=a856dc9cf0a2e9cb79c3166059885bed"
+  },
+  {
+    "rank": 106,
+    "name": "Falcons Force",
+    "id": 13321,
+    "logo": "https://img-cdn.hltv.org/teamlogo/YfOBM0ri-zSsx9Cc8q6nz-.png?ixlib=java-2.1.0&w=50&s=458ef7af43f0a705811f82722fc58f2d"
+  },
+  {
+    "rank": 107,
+    "name": "TNC",
+    "id": 13403,
+    "logo": "https://img-cdn.hltv.org/teamlogo/zj3NEnh2h29i_CvVAakQxn.png?invert=true&ixlib=java-2.1.0&sat=-100&w=50&s=42e526bd5323ed9d9cf40fb96cd078bf"
+  },
+  {
+    "rank": 108,
+    "name": "HAVU",
+    "id": 7865,
+    "logo": "https://img-cdn.hltv.org/teamlogo/_bpWybCQhDRnPq8Z2ZYO5h.png?ixlib=java-2.1.0&w=50&s=2e3c9e1a0a833d4d92ce10ec8adddf00"
+  },
+  {
+    "rank": 109,
+    "name": "FAVBET",
+    "id": 12818,
+    "logo": "https://img-cdn.hltv.org/teamlogo/4on2ywp0wcfk7vjUN3OjZk.png?ixlib=java-2.1.0&w=50&s=2bac9b7a976663386b297e8e5732c25e"
+  },
+  {
+    "rank": 110,
+    "name": "NEXVOID",
+    "id": 13667,
+    "logo": "https://img-cdn.hltv.org/teamlogo/zyy3eHTeRqdTqLKRIUJ9P-.png?ixlib=java-2.1.0&w=50&s=056b3b5aaa5520a3522d69954e992120"
+  },
+  {
+    "rank": 111,
+    "name": "DEPO",
+    "id": 12536,
+    "logo": "https://img-cdn.hltv.org/teamlogo/kQXnifxzhtreinKml3c2T4.png?ixlib=java-2.1.0&w=50&s=b41e7e06fa98c73110fc335c49a33fec"
+  },
+  {
+    "rank": 112,
+    "name": "UNO MILLE",
+    "id": 11555,
+    "logo": "/dynamic-svg/teamplaceholder?letter=U"
+  },
+  {
+    "rank": 113,
+    "name": "Isurus",
+    "id": 7653,
+    "logo": "https://img-cdn.hltv.org/teamlogo/VjHKZDxfmmvDKnlRMmxiNY.png?ixlib=java-2.1.0&w=50&s=80581e5cabf96feca782959829a3039f"
+  },
+  {
+    "rank": 114,
+    "name": "Alter Ego",
+    "id": 9958,
+    "logo": "https://img-cdn.hltv.org/teamlogo/rcVrbr1QiFUoakiO5jGExR.png?ixlib=java-2.1.0&w=50&s=81bf2c78f6ef16e4f315ef2024527fc6"
+  },
+  {
+    "rank": 115,
+    "name": "Keyd Stars",
+    "id": 6033,
+    "logo": "https://img-cdn.hltv.org/teamlogo/m-SA9fWSyBqRgsrDCDXCId.png?ixlib=java-2.1.0&w=50&s=5e9b55327740978fb8f425c27d2ba70a"
+  },
+  {
+    "rank": 116,
+    "name": "Leo",
+    "id": 11446,
+    "logo": "https://img-cdn.hltv.org/teamlogo/8W-UeGbtwFEzEz0RiPxxLS.png?ixlib=java-2.1.0&w=50&s=8e4a2a65e1aed01c87c1f317a81366ce"
+  },
+  {
+    "rank": 117,
+    "name": "KOLESIE",
+    "id": 13314,
+    "logo": "https://img-cdn.hltv.org/teamlogo/-7-6akNJ0_2bI2GrRGd6EW.png?ixlib=java-2.1.0&w=50&s=b8aee4a558dffb251918588deba6cf6f"
+  },
+  {
+    "rank": 118,
+    "name": "MOUZ NXT",
+    "id": 11176,
+    "logo": "https://img-cdn.hltv.org/teamlogo/RfR1zmFJ0eP08VmFb6UOu3.png?ixlib=java-2.1.0&w=50&s=051cbffad4d1c25468d83abee6f4fe23"
+  },
+  {
+    "rank": 119,
+    "name": "Young Ninjas",
+    "id": 10960,
+    "logo": "https://img-cdn.hltv.org/teamlogo/8k9HLAg6m5nbteHcqrMs6P.png?ixlib=java-2.1.0&w=50&s=f8704e29f7b7966365cb2418471ebfc9"
+  },
+  {
+    "rank": 120,
+    "name": "Morningstar",
+    "id": 13602,
+    "logo": "https://img-cdn.hltv.org/teamlogo/inXF-5NilS8a6Coi-GcFN8.png?ixlib=java-2.1.0&w=50&s=3c39874dd1ed2ed155ecc0a61b9cab5b"
+  },
+  {
+    "rank": 121,
+    "name": "BMZ",
+    "id": 13666,
+    "logo": "https://img-cdn.hltv.org/teamlogo/N_b1KJ9xbJH0DCAaGWsgqD.png?ixlib=java-2.1.0&w=50&s=1144f8d3a7db1e039caabdf597e8ce93"
+  },
+  {
+    "rank": 122,
+    "name": "GameHunters",
+    "id": 12988,
+    "logo": "https://img-cdn.hltv.org/teamlogo/kaJW-Rt4N4IVPApc1wKtTd.png?ixlib=java-2.1.0&w=50&s=67d9bb2642668856a55fdf2ba192605f"
+  },
+  {
+    "rank": 123,
+    "name": "The Last Resort",
+    "id": 6089,
+    "logo": "https://img-cdn.hltv.org/teamlogo/AI65hTB4kG_d6jJ8DiS4nZ.svg?ixlib=java-2.1.0&s=1bb2618494315b819daaf94547cca525"
+  },
+  {
+    "rank": 124,
+    "name": "RUSTEC",
+    "id": 12834,
+    "logo": "https://img-cdn.hltv.org/teamlogo/VMuaIpJpcqD5dv2p2z1cmN.png?ixlib=java-2.1.0&w=50&s=f2d3be3d8ebe4c2a3790d831665ad86d"
+  },
+  {
+    "rank": 125,
+    "name": "ENCE",
+    "id": 4869,
+    "logo": "https://img-cdn.hltv.org/teamlogo/-X8NoyWC_1gYqUHvZqcpkc.svg?ixlib=java-2.1.0&s=85bb9daa6f846fa097c5942f2565fdb8"
+  },
+  {
+    "rank": 126,
+    "name": "5star",
+    "id": 13724,
+    "logo": "https://img-cdn.hltv.org/teamlogo/DxfB_DH6Hhb1l1okhNQxxu.png?ixlib=java-2.1.0&w=50&s=4b5d0620de51193343d84d5247bc3fa5"
+  },
+  {
+    "rank": 127,
+    "name": "Lazer Cats",
+    "id": 12087,
+    "logo": "https://img-cdn.hltv.org/teamlogo/WldQs3KiJJFmGzdeOdibuw.png?ixlib=java-2.1.0&w=50&s=995bcbd5b240788cce88d211d26a47b1"
+  },
+  {
+    "rank": 128,
+    "name": "zajezdzacze",
+    "id": 13690,
+    "logo": "/dynamic-svg/teamplaceholder?letter=z"
+  },
+  {
+    "rank": 129,
+    "name": "Ground Zero",
+    "id": 8536,
+    "logo": "https://img-cdn.hltv.org/teamlogo/rGAB_PzwZbvmNy3V8Xrven.png?ixlib=java-2.1.0&w=50&s=09d53655350132af167d0b5471525cd0"
+  },
+  {
+    "rank": 130,
+    "name": "Rooster",
+    "id": 9881,
+    "logo": null
+  },
+  {
+    "rank": 131,
+    "name": "regain",
+    "id": 12554,
+    "logo": "https://img-cdn.hltv.org/teamlogo/-bjzyIYz1cnZSmS-8FE2fJ.png?ixlib=java-2.1.0&w=50&s=88b7b4f31c4a03bbc2310bb4c6624f03"
+  },
+  {
+    "rank": 132,
+    "name": "Yawara",
+    "id": 11933,
+    "logo": "https://img-cdn.hltv.org/teamlogo/JwKJz_nvCUbB5kvZGK6Ho5.png?invert=true&ixlib=java-2.1.0&sat=-100&w=50&s=bb750d9f5993bd3df97cf2a05aeef701"
+  },
+  {
+    "rank": 133,
+    "name": "F5",
+    "id": 13201,
+    "logo": "https://img-cdn.hltv.org/teamlogo/CPiWPjY-3ngmAAV0LxGvsb.png?invert=true&ixlib=java-2.1.0&sat=-100&w=50&s=85703a1849d02cfd66706f32bc62806a"
+  },
+  {
+    "rank": 134,
+    "name": "MIBR Academy",
+    "id": 3044,
+    "logo": "https://img-cdn.hltv.org/teamlogo/gFQKd48pLOvrtEDXhcHxkZ.png?ixlib=java-2.1.0&w=50&s=76693c9855cb7f3afa733ba3c4db0ac9"
+  },
+  {
+    "rank": 135,
+    "name": "QUAZAR",
+    "id": 11312,
+    "logo": "https://img-cdn.hltv.org/teamlogo/YiIFGuv43P9_fALVOSLJHh.png?ixlib=java-2.1.0&w=50&s=fb7fb2d19c66e04b89e883b0948ca78a"
+  },
+  {
+    "rank": 136,
+    "name": "FengDa",
+    "id": 12899,
+    "logo": "https://img-cdn.hltv.org/teamlogo/_Q3iz2MJXmpJp9QGv9jWnc.png?ixlib=java-2.1.0&w=50&s=3436ac6e2bc88b6ededfac64ab9bdcd5"
+  },
+  {
+    "rank": 137,
+    "name": "DONSTU",
+    "id": 13714,
+    "logo": null
+  },
+  {
+    "rank": 138,
+    "name": "aAa",
+    "id": 5639,
+    "logo": "https://img-cdn.hltv.org/teamlogo/HGmdk2iXUb3YresiJR1U6Q.svg?ixlib=java-2.1.0&s=b2be151eb6f1087ea1dff0e0b40dc269"
+  },
+  {
+    "rank": 139,
+    "name": "Change The Game",
+    "id": 13175,
+    "logo": "https://img-cdn.hltv.org/teamlogo/jhWUEqa0RW-EmcsND2lk2H.png?ixlib=java-2.1.0&w=50&s=913a3e88b56c9793f25a78b3f4db6e10"
+  },
+  {
+    "rank": 140,
+    "name": "CYBERSHOKE Prospects",
+    "id": 13594,
+    "logo": "https://img-cdn.hltv.org/teamlogo/SMf-lhuD18aFmRZBBcmkQp.png?ixlib=java-2.1.0&w=50&s=d33b9f24edb077b393a79c91335f8452"
+  },
+  {
+    "rank": 141,
+    "name": "UNiTY",
+    "id": 12267,
+    "logo": "https://img-cdn.hltv.org/teamlogo/coucDlsynd0Ujutb5o2SC-.png?ixlib=java-2.1.0&w=50&s=a5d9a7be6bddda8b8c01ab037786a465"
+  },
+  {
+    "rank": 142,
+    "name": "STATE",
+    "id": 13623,
+    "logo": "https://img-cdn.hltv.org/teamlogo/LS8KGRWQbtUTfn8nMk5UUT.png?ixlib=java-2.1.0&w=50&s=73c4422b095d7baa4873b2f6d7ef284b"
+  },
+  {
+    "rank": 143,
+    "name": "UR",
+    "id": 13116,
+    "logo": "https://img-cdn.hltv.org/teamlogo/trUMCjKhUkBk8OQb1jucIH.png?ixlib=java-2.1.0&w=50&s=ec8ee01b1a5c62413e5b85e9f4da2562"
+  },
+  {
+    "rank": 144,
+    "name": "Wave",
+    "id": 13014,
+    "logo": "https://img-cdn.hltv.org/teamlogo/xOYKGcKkRlcw1_fN1mF9Ap.png?ixlib=java-2.1.0&w=50&s=a7800b5d2623f51040593bf73c5a045e"
+  },
+  {
+    "rank": 145,
+    "name": "TNT",
+    "id": 13576,
+    "logo": null
+  },
+  {
+    "rank": 146,
+    "name": "Oxuji",
+    "id": 13553,
+    "logo": null
+  },
+  {
+    "rank": 147,
+    "name": "BIG Academy",
+    "id": 10254,
+    "logo": "https://img-cdn.hltv.org/teamlogo/jn7TgPjiSMAbYk0jeHNMqq.png?ixlib=java-2.1.0&w=50&s=c2bb5f09f9a0823fbd63e3def8dcfe11"
+  },
+  {
+    "rank": 148,
+    "name": "EMPIRE",
+    "id": 13729,
+    "logo": "https://img-cdn.hltv.org/teamlogo/sfoAswoJQ1ZYrdrHn8L7pk.png?ixlib=java-2.1.0&w=50&s=0f5d5e21be7b7413bcee65a5d6622ab4"
+  },
+  {
+    "rank": 149,
+    "name": "XDM",
+    "id": 13242,
+    "logo": "https://img-cdn.hltv.org/teamlogo/XDEZRO9QocdmNNAvlu6hxo.png?invert=true&ixlib=java-2.1.0&sat=-100&w=50&s=b48e4a7d795a70feddcbf20b8325ef76"
+  },
+  {
+    "rank": 150,
+    "name": "ALGO",
+    "id": 13163,
+    "logo": "https://img-cdn.hltv.org/teamlogo/CuxdvjW3vWmW0NxP2OKiWd.png?ixlib=java-2.1.0&w=50&s=e545b3bdbec345377cb5ba6007528a12"
+  },
+  {
+    "rank": 151,
+    "name": "Omega",
+    "id": 13479,
+    "logo": "https://img-cdn.hltv.org/teamlogo/Q9UB4lO8MMt_CQmtRkOKxQ.png?ixlib=java-2.1.0&w=50&s=aa17db8852f77ced212387620c9fef57"
+  },
+  {
+    "rank": 152,
+    "name": "CSDIILIT",
+    "id": 13340,
+    "logo": "https://img-cdn.hltv.org/teamlogo/I3M-o-QGognpO9kzaJiRbT.png?ixlib=java-2.1.0&w=50&s=ee60cae916f3c5e11d023401ba2148ea"
+  },
+  {
+    "rank": 153,
+    "name": "eLITenergy",
+    "id": 13568,
+    "logo": "/dynamic-svg/teamplaceholder?letter=e"
+  },
+  {
+    "rank": 154,
+    "name": "InControl",
+    "id": 7720,
+    "logo": null
+  },
+  {
+    "rank": 155,
+    "name": "Famalicão",
+    "id": 13364,
+    "logo": "https://img-cdn.hltv.org/teamlogo/nik7FOYWN7wLBcHyGlGqp5.png?ixlib=java-2.1.0&w=50&s=104dbf32c6f12fd06749ad34cbb2cd52"
+  },
+  {
+    "rank": 156,
+    "name": "SAW",
+    "id": 10567,
+    "logo": "https://img-cdn.hltv.org/teamlogo/9vOlYp2U_z0vXPb9aLK-4r.png?ixlib=java-2.1.0&w=50&s=22abd048c4d198e504696f27e8ff68d1"
+  },
+  {
+    "rank": 157,
+    "name": "Younglings",
+    "id": 13707,
+    "logo": "https://img-cdn.hltv.org/teamlogo/hf3-x87iazvEt0NLgf2kEZ.png?ixlib=java-2.1.0&w=50&s=3d87539d3ba09eb26b285ffd0cf829b5"
+  },
+  {
+    "rank": 158,
+    "name": "Abyssal",
+    "id": 13686,
+    "logo": "https://img-cdn.hltv.org/teamlogo/U7fek6lTSLbntoy7CPINPF.png?invert=true&ixlib=java-2.1.0&sat=-100&w=50&s=6a373faf166e038ba3c765bcf47133ee"
+  },
+  {
+    "rank": 159,
+    "name": "Beyond Limits",
+    "id": 13610,
+    "logo": "https://img-cdn.hltv.org/teamlogo/OsvBiDr6Plt-_PlwyJO_mc.png?ixlib=java-2.1.0&w=50&s=076e4329d73309082ec91c54cc1578d4"
+  },
+  {
+    "rank": 160,
+    "name": "BERG",
+    "id": 13747,
+    "logo": "https://img-cdn.hltv.org/teamlogo/90lCXlzTp513yANJ_DR30l.png?ixlib=java-2.1.0&w=50&s=9ce7a5cadb9b10fa875708c8f65d45d7"
+  },
+  {
+    "rank": 161,
+    "name": "Mindfreak",
+    "id": 11668,
+    "logo": null
+  },
+  {
+    "rank": 162,
+    "name": "NAVI Junior",
+    "id": 10371,
+    "logo": "https://img-cdn.hltv.org/teamlogo/v6HtbTihf7xoHF1YlAkJ87.svg?ixlib=java-2.1.0&s=42241b88f4ecffaba7cf57c937236809"
+  },
+  {
+    "rank": 163,
+    "name": "The QUBE",
+    "id": 12825,
+    "logo": "https://img-cdn.hltv.org/teamlogo/5jrof5mV8eGaTkb_RgkwMy.png?ixlib=java-2.1.0&w=50&s=ee5e57955bd4663c9d4373e97e175121"
+  },
+  {
+    "rank": 164,
+    "name": "Hashiras",
+    "id": 13715,
+    "logo": "/dynamic-svg/teamplaceholder?letter=H"
+  },
+  {
+    "rank": 165,
+    "name": "GenOne",
+    "id": 11609,
+    "logo": "https://img-cdn.hltv.org/teamlogo/DlMJrDmPA7qofO3HhP7Tbe.png?ixlib=java-2.1.0&w=50&s=5dedfb534782d2c3e00a5d476fc8fba9"
+  },
+  {
+    "rank": 166,
+    "name": "XI",
+    "id": 8947,
+    "logo": "https://img-cdn.hltv.org/teamlogo/ZLDnAZt-6zqU0mk0R2TK97.png?ixlib=java-2.1.0&w=50&s=235778c9f89ff38449b968769f113e17"
+  },
+  {
+    "rank": 167,
+    "name": "Arcade",
+    "id": 12363,
+    "logo": null
+  },
+  {
+    "rank": 168,
+    "name": "Procyon",
+    "id": 10997,
+    "logo": null
+  },
+  {
+    "rank": 169,
+    "name": "Sashi Academy",
+    "id": 12352,
+    "logo": "https://img-cdn.hltv.org/teamlogo/234QQOOtJe55NrBQNEgIMC.png?ixlib=java-2.1.0&w=50&s=2dfbd3deb9631ccccb1f48c99494b28d"
+  },
+  {
+    "rank": 170,
+    "name": "Matrix",
+    "id": 13746,
+    "logo": "https://img-cdn.hltv.org/teamlogo/j9ebI3ISGxSjFsXgPIgqHP.png?invert=true&ixlib=java-2.1.0&sat=-100&w=50&s=b917460694521b3fa484da049385863a"
+  },
+  {
+    "rank": 171,
+    "name": "Drama",
+    "id": 13704,
+    "logo": "https://img-cdn.hltv.org/teamlogo/J0n3Qe1dF_JXSikg6Wu7Vd.png?ixlib=java-2.1.0&w=50&s=87cb2bf8d200ac68215e1d7ebfb57de5"
+  },
+  {
+    "rank": 172,
+    "name": "GAMEHARMONY",
+    "id": 13698,
+    "logo": "https://img-cdn.hltv.org/teamlogo/oJ-v6jTDaZ97QUo89THPSC.png?ixlib=java-2.1.0&w=50&s=d15359b93e470a4f9552104f6c57640d"
+  },
+  {
+    "rank": 173,
+    "name": "FarmVille",
+    "id": 13665,
+    "logo": "/dynamic-svg/teamplaceholder?letter=F"
+  },
+  {
+    "rank": 174,
+    "name": "Crashers",
+    "id": 6788,
+    "logo": "https://img-cdn.hltv.org/teamlogo/VGJqPW_JcdN1vFXx-C3CU_.png?ixlib=java-2.1.0&w=50&s=5a1663b8eed8cdfa2341e0e99d913bb5"
+  },
+  {
+    "rank": 175,
+    "name": "G2 Ares",
+    "id": 12889,
+    "logo": "https://img-cdn.hltv.org/teamlogo/7s-UIVdwo4C6iV1zYq20Ou.png?ixlib=java-2.1.0&w=50&s=30beb08dcc7ff03452b4ab839828307a"
+  },
+  {
+    "rank": 176,
+    "name": "MASONIC",
+    "id": 10867,
+    "logo": "https://img-cdn.hltv.org/teamlogo/LXy16DLCLqmbZWSr4RxeQu.svg?ixlib=java-2.1.0&s=dcd79250b3b5e2e757a89b7c27c6770d"
+  },
+  {
+    "rank": 177,
+    "name": "Oramond",
+    "id": 13470,
+    "logo": "https://img-cdn.hltv.org/teamlogo/zjo04LDHH9is4hhmrPC9KO.png?ixlib=java-2.1.0&w=50&s=158552636c5c1292521d65a55cdbfdfb"
+  },
+  {
+    "rank": 178,
+    "name": "Wanted Goons",
+    "id": 12971,
+    "logo": "https://img-cdn.hltv.org/teamlogo/jgXPDKxRWNP3a5qGXUSRAT.png?ixlib=java-2.1.0&w=50&s=a4b4ec6b79da5b14fd5becaff8981489"
+  },
+  {
+    "rank": 179,
+    "name": "yngods",
+    "id": 13450,
+    "logo": "/dynamic-svg/teamplaceholder?letter=y"
+  },
+  {
+    "rank": 180,
+    "name": "WROTBERRY",
+    "id": 13683,
+    "logo": "https://img-cdn.hltv.org/teamlogo/ybQn_SSA6eQIQ7ulD_hafI.png?ixlib=java-2.1.0&w=50&s=61268464fb8b1862a7e5dd79a074c32d"
+  },
+  {
+    "rank": 181,
+    "name": "Persona Grata",
+    "id": 13792,
+    "logo": "/dynamic-svg/teamplaceholder?letter=P"
+  },
+  {
+    "rank": 182,
+    "name": "bankaPEPSI",
+    "id": 11129,
+    "logo": "https://img-cdn.hltv.org/teamlogo/9S2HT0_Ktdv8mJPn0KG0Pe.png?ixlib=java-2.1.0&w=50&s=11dd97a2e939e037345be130c13c0c6e"
+  },
+  {
+    "rank": 183,
+    "name": "megoshort",
+    "id": 11018,
+    "logo": "https://img-cdn.hltv.org/teamlogo/KZxIFGye1KNVn7Q6Zt6hiV.png?ixlib=java-2.1.0&w=50&s=55ddac5f2aaddb4510f3dad57779c859"
+  },
+  {
+    "rank": 184,
+    "name": "Akimbo",
+    "id": 12567,
+    "logo": null
+  },
+  {
+    "rank": 185,
+    "name": "Just Swing",
+    "id": 13053,
+    "logo": "https://img-cdn.hltv.org/teamlogo/QRyGrQj3EGLYIAjqiMGvFn.png?ixlib=java-2.1.0&w=50&s=4c8d020e08d6ac9f0ffe5b5b21cad90b"
+  },
+  {
+    "rank": 186,
+    "name": "M1X KS",
+    "id": 12846,
+    "logo": "/dynamic-svg/teamplaceholder?letter=M"
+  },
+  {
+    "rank": 187,
+    "name": "R2",
+    "id": 13327,
+    "logo": "https://img-cdn.hltv.org/teamlogo/fmCxWhySmGYH_51wRmTtal.png?ixlib=java-2.1.0&w=50&s=e7b74b13df206a1870d45694d2a34686"
+  },
+  {
+    "rank": 188,
+    "name": "Rune Eaters",
+    "id": 12194,
+    "logo": "https://img-cdn.hltv.org/teamlogo/sAUU1xlaHaJ7WtXCi7SOOi.png?ixlib=java-2.1.0&w=50&s=dcdcaaca153483919e2f74f582732cbb"
+  },
+  {
+    "rank": 189,
+    "name": "Lilmix",
+    "id": 9735,
+    "logo": "https://img-cdn.hltv.org/teamlogo/PivV1r_I1_8u2BoxMyd4zH.svg?ixlib=java-2.1.0&s=b11d58720f2279be14920d45887bb9dd"
+  },
+  {
+    "rank": 190,
+    "name": "Atreides",
+    "id": 13668,
+    "logo": "https://img-cdn.hltv.org/teamlogo/aUsDbFRUB5bFm9DLQh3Uhd.png?ixlib=java-2.1.0&w=50&s=7a95f912852547cb6ff354f9fc3a7767"
+  },
+  {
+    "rank": 191,
+    "name": "eternal premium",
+    "id": 13161,
+    "logo": "https://img-cdn.hltv.org/teamlogo/4r6jgwV8ATIbwgyxjRtibq.png?ixlib=java-2.1.0&w=50&s=403ff5c4fa8f4fb3701c9a34809f2b4f"
+  },
+  {
+    "rank": 192,
+    "name": "Basement Bobs",
+    "id": 13753,
+    "logo": "https://img-cdn.hltv.org/teamlogo/TLKMqZvObTBZryz36UIENt.png?ixlib=java-2.1.0&w=50&s=700cf9459da913437a72abc2178fdd5a"
+  },
+  {
+    "rank": 193,
+    "name": "Chicken Coop",
+    "id": 13107,
+    "logo": "https://img-cdn.hltv.org/teamlogo/b4BdjAEO0sntamT0gjZFx1.png?ixlib=java-2.1.0&w=50&s=40c84b4545e75a1729296ea6fbbb23ea"
+  },
+  {
+    "rank": 194,
+    "name": "Legion",
+    "id": 10287,
+    "logo": "https://img-cdn.hltv.org/teamlogo/E1Mbu8dLgT84ihEYQDnwGI.png?ixlib=java-2.1.0&w=50&s=7df326a514a027436133b3d42abc8845"
+  },
+  {
+    "rank": 195,
+    "name": "RED Canids Academy",
+    "id": 13029,
+    "logo": "https://img-cdn.hltv.org/teamlogo/cBbt6PRgyMMpkSLJWncEV3.png?ixlib=java-2.1.0&w=50&s=06898dac8e3dc1cc763c07a28d7b35a2"
+  },
+  {
+    "rank": 196,
+    "name": "Endless Journey",
+    "id": 13552,
+    "logo": "https://img-cdn.hltv.org/teamlogo/-VGJ9TgalwRy5escWx2rL2.png?ixlib=java-2.1.0&w=50&s=be4064de8c96bea264797616b0701aec"
+  },
+  {
+    "rank": 197,
+    "name": "LAGUNA",
+    "id": 13676,
+    "logo": "/dynamic-svg/teamplaceholder?letter=L"
+  },
+  {
+    "rank": 198,
+    "name": "Inner Circle Academy",
+    "id": 13681,
+    "logo": "https://img-cdn.hltv.org/teamlogo/OSTRarXkAV-3YTtk0Thf5N.png?ixlib=java-2.1.0&w=50&s=236205a4f2cafd4fd8943e36d037ab21"
+  },
+  {
+    "rank": 199,
+    "name": "NuTorious",
+    "id": 12973,
+    "logo": "https://img-cdn.hltv.org/teamlogo/iR0NNyulDkSuYiGj26Q3ma.png?ixlib=java-2.1.0&w=50&s=0ceba122423414b28d4b3ee72d6eb4d5"
+  },
+  {
+    "rank": 200,
+    "name": "Back to Back",
+    "id": 13691,
+    "logo": "/dynamic-svg/teamplaceholder?letter=B"
+  },
+  {
+    "rank": 201,
+    "name": "Partizan",
+    "id": 11838,
+    "logo": "https://img-cdn.hltv.org/teamlogo/y59RRaQNbpspDdGJoR1Xfr.png?ixlib=java-2.1.0&w=50&s=93d8ebe48627749bc23f35a3702dac70"
+  },
+  {
+    "rank": 202,
+    "name": "Diamant",
+    "id": 13563,
+    "logo": "https://img-cdn.hltv.org/teamlogo/_fM3le_bN4mqN68tp7LV7j.png?ixlib=java-2.1.0&w=50&s=b19d5e41aa67ea147281f826bbfefbf5"
+  },
+  {
+    "rank": 203,
+    "name": "Bushido Wildcats",
+    "id": 13281,
+    "logo": "https://img-cdn.hltv.org/teamlogo/TZknfdU8-79rJ1gw-_6qy5.png?ixlib=java-2.1.0&w=50&s=a0dc291e786acba7de26684befd56800"
+  },
+  {
+    "rank": 204,
+    "name": "OlyBet",
+    "id": 13551,
+    "logo": "https://img-cdn.hltv.org/teamlogo/FvnOaG5ilZPKNcxaCxUPme.png?ixlib=java-2.1.0&w=50&s=ad79e98d431a2824c4483474eea84c30"
+  },
+  {
+    "rank": 205,
+    "name": "BESTIA Academy",
+    "id": 13026,
+    "logo": "https://img-cdn.hltv.org/teamlogo/Z_R5K__qrvHmPjF66iCay-.png?ixlib=java-2.1.0&w=50&s=7e2afd72c2b3cabf53244ed6bc5142e3"
+  },
+  {
+    "rank": 206,
+    "name": "Phantom Academy",
+    "id": 13766,
+    "logo": "/dynamic-svg/teamplaceholder?letter=P"
+  },
+  {
+    "rank": 207,
+    "name": "METANOIA Wolves",
+    "id": 13726,
+    "logo": "https://img-cdn.hltv.org/teamlogo/7FOPKOQYNOwBLiPAMHa0MK.png?ixlib=java-2.1.0&w=50&s=7198c881eaa4f76a7f7c5a5bda1bb284"
+  },
+  {
+    "rank": 208,
+    "name": "ex-KRÜ",
+    "id": 13664,
+    "logo": "/dynamic-svg/teamplaceholder?letter=e"
+  },
+  {
+    "rank": 209,
+    "name": "Aurora Young Blud",
+    "id": 12366,
+    "logo": "https://img-cdn.hltv.org/teamlogo/lOg10XKxqTQlWWABIIGTEk.png?ixlib=java-2.1.0&w=50&s=12bd6e8ca003dbb53fce04ef0edf0cce"
+  },
+  {
+    "rank": 210,
+    "name": "Last Bullet",
+    "id": 13433,
+    "logo": "https://img-cdn.hltv.org/teamlogo/qBZTMpXgCA-WYv51peaFEP.png?ixlib=java-2.1.0&w=50&s=b50d7b793a02d858a18a30250c953213"
+  },
+  {
+    "rank": 211,
+    "name": "Zomblers",
+    "id": 12164,
+    "logo": "https://img-cdn.hltv.org/teamlogo/dzs1Ru_r0dAPURqi9Hldhj.png?ixlib=java-2.1.0&w=50&s=5f7336395fe481e9fea781589616b89b"
+  },
+  {
+    "rank": 212,
+    "name": "paiN Academy",
+    "id": 11905,
+    "logo": "https://img-cdn.hltv.org/teamlogo/DJqL2qlXf6Fi01v-8QxQP1.png?ixlib=java-2.1.0&w=50&s=0e2a00494324afe7b104b4c749b70697"
+  },
+  {
+    "rank": 213,
+    "name": "Aether",
+    "id": 12908,
+    "logo": "https://img-cdn.hltv.org/teamlogo/PwqtnH1XjoyqDFwh37YuYE.png?ixlib=java-2.1.0&w=50&s=014255619312d9cb2d640a3fbcde6986"
+  },
+  {
+    "rank": 214,
+    "name": "Misa",
+    "id": 13528,
+    "logo": "https://img-cdn.hltv.org/teamlogo/NZDgFz0RzIniP7zbNUoHuU.png?ixlib=java-2.1.0&w=50&s=f04ee2b4b27a2aa62a3aca91566e92f4"
+  },
+  {
+    "rank": 215,
+    "name": "BORING PLAYERS",
+    "id": 12948,
+    "logo": "https://img-cdn.hltv.org/teamlogo/o2z4oVTgRnF3UpoGlwIVgj.png?ixlib=java-2.1.0&w=50&s=bd7ed92a475f0cf20933931bd21d4789"
+  },
+  {
+    "rank": 216,
+    "name": "METANOIA",
+    "id": 13634,
+    "logo": "https://img-cdn.hltv.org/teamlogo/5z-aR7QNOGq1j-gwzyIWPe.png?ixlib=java-2.1.0&w=50&s=c2aca3ebd7a5c79e6319645963848528"
+  },
+  {
+    "rank": 217,
+    "name": "BRUTE",
+    "id": 9139,
+    "logo": "https://img-cdn.hltv.org/teamlogo/Bh8oZnAYofBgma_vPu55I7.svg?ixlib=java-2.1.0&s=98154a0be5a53ccadf51c17bdcd57536"
+  },
+  {
+    "rank": 218,
+    "name": "Enjoy",
+    "id": 4246,
+    "logo": "https://img-cdn.hltv.org/teamlogo/FXtaA3TkcW1-BMD3B-p1E7.png?ixlib=java-2.1.0&w=50&s=4cfdf5a6feba3bc93db929052dabb544"
+  },
+  {
+    "rank": 219,
+    "name": "okura",
+    "id": 11218,
+    "logo": "/dynamic-svg/teamplaceholder?letter=o"
+  },
+  {
+    "rank": 220,
+    "name": "Haunted House",
+    "id": 13735,
+    "logo": "https://img-cdn.hltv.org/teamlogo/6bmh57fYIPQ0qKj4nOi5qt.png?ixlib=java-2.1.0&w=50&s=ba6b26ffdc9c94d95a18b7215171f50b"
+  },
+  {
+    "rank": 221,
+    "name": "ScarX",
+    "id": 13217,
+    "logo": "https://img-cdn.hltv.org/teamlogo/6Dg7rDr-qSMARz-Y5HQjuf.png?ixlib=java-2.1.0&w=50&s=6f783503819c8dcb04d0b7b5d0b8fc4a"
+  },
+  {
+    "rank": 222,
+    "name": "NIC",
+    "id": 13582,
+    "logo": "https://img-cdn.hltv.org/teamlogo/mJDAMLOBKGWP85ZFFP13gs.png?invert=true&ixlib=java-2.1.0&sat=-100&w=50&s=3314d84181353d26341a12b3f61d6f87"
+  },
+  {
+    "rank": 223,
+    "name": "Fire Flux",
+    "id": 12960,
+    "logo": "https://img-cdn.hltv.org/teamlogo/dEkPG3QFLGo6xl9DtGPsm2.png?ixlib=java-2.1.0&w=50&s=9a9c4eeb77fd921baa804a425d4e2825"
+  },
+  {
+    "rank": 224,
+    "name": "Imperial Academy",
+    "id": 13705,
+    "logo": "https://img-cdn.hltv.org/teamlogo/sNeTZnLAJubDVd_J06bjG9.png?ixlib=java-2.1.0&w=50&s=35e3da66a29ac580971d90a631780969"
+  },
+  {
+    "rank": 225,
+    "name": "ALKA",
+    "id": 13756,
+    "logo": "https://img-cdn.hltv.org/teamlogo/hq6LKjaRVVjYVTOxQ1QFi3.png?ixlib=java-2.1.0&w=50&s=d12e76ed458b0098d3787cfe280d0b2a"
+  },
+  {
+    "rank": 226,
+    "name": "Eclipse",
+    "id": 13802,
+    "logo": "https://img-cdn.hltv.org/teamlogo/mqTgsz90r9F9T8ri6XUz_1.png?ixlib=java-2.1.0&w=50&s=5638390e1c8050f685974b73622547e0"
+  },
+  {
+    "rank": 227,
+    "name": "Players",
+    "id": 11711,
+    "logo": "/dynamic-svg/teamplaceholder?letter=P"
+  },
+  {
+    "rank": 228,
+    "name": "KUUSAMO",
+    "id": 13745,
+    "logo": "https://img-cdn.hltv.org/teamlogo/21tEZccvTsTBM264TzVYdz.png?ixlib=java-2.1.0&w=50&s=8cfff006ef89dec0d798b3ea5820ed8d"
+  },
+  {
+    "rank": 229,
+    "name": "Dripmen",
+    "id": 11553,
+    "logo": "/dynamic-svg/teamplaceholder?letter=D"
+  },
+  {
+    "rank": 230,
+    "name": "NSN",
+    "id": 11275,
+    "logo": "https://img-cdn.hltv.org/teamlogo/qazH2BZVRDTUafLAxKqmmm.png?invert=true&ixlib=java-2.1.0&sat=-100&w=50&s=11c6e30d20ce309ad397c8d139a6b6f7"
+  },
+  {
+    "rank": 231,
+    "name": "900FPSvsECO",
+    "id": 13794,
+    "logo": "/dynamic-svg/teamplaceholder?letter=9"
+  },
+  {
+    "rank": 232,
+    "name": "Vasco",
+    "id": 13413,
+    "logo": "https://img-cdn.hltv.org/teamlogo/8rWGnIe-BMnLbEEVsh0un5.png?ixlib=java-2.1.0&w=50&s=7579b9100ccb65093635438849a52cb8"
+  },
+  {
+    "rank": 233,
+    "name": "CTRL",
+    "id": 13695,
+    "logo": "https://img-cdn.hltv.org/teamlogo/DAEPwFYckiXCKhfjHOG2QO.png?ixlib=java-2.1.0&w=50&s=16747c2eae621aecbf945ea2a5756608"
+  },
+  {
+    "rank": 234,
+    "name": "DXA",
+    "id": 12276,
+    "logo": "https://img-cdn.hltv.org/teamlogo/iSnsGZx7NmjYY0GS-5xzLV.png?ixlib=java-2.1.0&w=50&s=a83e0ee3ebdb26d4cf7c558c654d1f73"
+  },
+  {
+    "rank": 235,
+    "name": "ALTAY",
+    "id": 13591,
+    "logo": "https://img-cdn.hltv.org/teamlogo/AhOLG6_tKyQCLrEUaO9YxV.png?ixlib=java-2.1.0&w=50&s=5d6f299831c957d4ecc9dcd7caffc199"
+  },
+  {
+    "rank": 236,
+    "name": "mouse",
+    "id": 13661,
+    "logo": "https://img-cdn.hltv.org/teamlogo/CwVghvEmQYxJiJZThn2bGb.png?ixlib=java-2.1.0&w=50&s=e6aabc0dca825d547d4643fde85c97b1"
+  },
+  {
+    "rank": 237,
+    "name": "Clutchain",
+    "id": 13798,
+    "logo": "https://img-cdn.hltv.org/teamlogo/2z1Fq-9FrrthKoTthrmhlO.png?ixlib=java-2.1.0&w=50&s=360df803871f836afa11a53b07eb82d4"
+  },
+  {
+    "rank": 238,
+    "name": "GUARA",
+    "id": 13725,
+    "logo": "https://img-cdn.hltv.org/teamlogo/t8771VdCMRk_FGmrmgBaZN.svg?ixlib=java-2.1.0&s=c9440f55a05c5e361cc3cedd656bffed"
+  },
+  {
+    "rank": 239,
+    "name": "JUMBO",
+    "id": 13238,
+    "logo": "https://img-cdn.hltv.org/teamlogo/568bCFHKBUnfzxRbFKoaMV.png?ixlib=java-2.1.0&w=50&s=fd73f269707aced36070bcecb5f34520"
+  },
+  {
+    "rank": 240,
+    "name": "ReThink",
+    "id": 13651,
+    "logo": "https://img-cdn.hltv.org/teamlogo/vJ73zN-81gNjTs8g36Sfjl.png?ixlib=java-2.1.0&w=50&s=37a6c597e34e9f032632eb699c0c5c65"
+  },
+  {
+    "rank": 241,
+    "name": "CarritoSpain",
+    "id": 9422,
+    "logo": "https://img-cdn.hltv.org/teamlogo/CtzJHR3UMtp783lfEYNMsB.png?ixlib=java-2.1.0&w=50&s=2f752087a88972798e55066aabf56d1f"
+  },
+  {
+    "rank": 242,
+    "name": "100RA",
+    "id": 13718,
+    "logo": "/dynamic-svg/teamplaceholder?letter=1"
+  },
+  {
+    "rank": 243,
+    "name": "The MongolZ Academy",
+    "id": 13731,
+    "logo": "https://img-cdn.hltv.org/teamlogo/NCgQAfG8sDO9Y9JKd7h_T_.png?ixlib=java-2.1.0&w=50&s=8b4a3af5af92356beb29c6b47560946c"
+  },
+  {
+    "rank": 244,
+    "name": "Prestige",
+    "id": 13159,
+    "logo": "https://img-cdn.hltv.org/teamlogo/_VIidkVVh0Rf4C8AoqcSgG.png?ixlib=java-2.1.0&w=50&s=cd540cfcdcf70371941633aaab0d6682"
+  },
+  {
+    "rank": 245,
+    "name": "brazylijski luz",
+    "id": 12745,
+    "logo": "https://img-cdn.hltv.org/teamlogo/p0fUtgmP2iEqj1E2MdAlR-.png?ixlib=java-2.1.0&w=50&s=df76f76be8ed0c2886b5be2de4039936"
+  },
+  {
+    "rank": 246,
+    "name": "Dziuseppe",
+    "id": 13465,
+    "logo": "/dynamic-svg/teamplaceholder?letter=D"
+  },
+  {
+    "rank": 247,
+    "name": "Reign Above",
+    "id": 13425,
+    "logo": "https://img-cdn.hltv.org/teamlogo/Vg3aWIrfY6ixZXYG2ShLpB.png?ixlib=java-2.1.0&w=50&s=5c140e6b499d9311da650f8e3fbed948"
+  },
+  {
+    "rank": 248,
+    "name": "HAVENs",
+    "id": 12855,
+    "logo": "https://img-cdn.hltv.org/teamlogo/ZtfmFwjp5wV5iDn6XZcyG_.png?ixlib=java-2.1.0&w=50&s=31b5def4b0f31de8d9fa8ca625bb1baa"
+  },
+  {
+    "rank": 249,
+    "name": "Hermine",
+    "id": 13687,
+    "logo": null
+  },
+  {
+    "rank": 250,
+    "name": "SINQU",
+    "id": 13571,
+    "logo": "https://img-cdn.hltv.org/teamlogo/0DHec218X_NPcSy00uOQqC.png?ixlib=java-2.1.0&w=50&s=6164651a8c8d3ba92796f52c7563e89b"
+  },
+  {
+    "rank": 251,
+    "name": "Fortress",
+    "id": 13646,
+    "logo": "https://img-cdn.hltv.org/teamlogo/CGKbvBaJmkIqMdb89VM5fX.png?ixlib=java-2.1.0&w=50&s=aab8d913fdd241967d8ff464fb751638"
+  },
+  {
+    "rank": 252,
+    "name": "FURIA fe",
+    "id": 10976,
+    "logo": "https://img-cdn.hltv.org/teamlogo/cZaGsN8yj6I2dEMfPsibLx.png?ixlib=java-2.1.0&w=50&s=b5481473462f811faf1c535778fcd20d"
+  },
+  {
+    "rank": 253,
+    "name": "Shimmer",
+    "id": 12190,
+    "logo": "https://img-cdn.hltv.org/teamlogo/5xPVZyurht_nZeokKOJoLt.png?ixlib=java-2.1.0&w=50&s=33c17e2db4f086206d24b0b540bac404"
+  },
+  {
+    "rank": 254,
+    "name": "The Continental",
+    "id": 13702,
+    "logo": "/dynamic-svg/teamplaceholder?letter=T"
+  },
+  {
+    "rank": 255,
+    "name": "MASQ",
+    "id": 13763,
+    "logo": "https://img-cdn.hltv.org/teamlogo/cNT_uSmZVT6_RiAbcrIGhE.png?ixlib=java-2.1.0&w=50&s=37eaed5929a3681c76b1477bcd64a707"
+  },
+  {
+    "rank": 256,
+    "name": "INFURITY",
+    "id": 8488,
+    "logo": "https://img-cdn.hltv.org/teamlogo/O7_8BAktLrHF0mbFRXzpHB.png?invert=true&ixlib=java-2.1.0&sat=-100&w=50&s=61f0d77bfb334f6e64a37ddeab895d0b"
+  },
+  {
+    "rank": 257,
+    "name": "Time Waves",
+    "id": 13543,
+    "logo": null
+  },
+  {
+    "rank": 258,
+    "name": "FOKUS REALITY",
+    "id": 13608,
+    "logo": "https://img-cdn.hltv.org/teamlogo/0WZPGMl12bu6oGpAL5e3OC.png?invert=true&ixlib=java-2.1.0&sat=-100&w=50&s=5db78b777c20fccc30755b425398e75b"
+  },
+  {
+    "rank": 259,
+    "name": "Clutchain fe",
+    "id": 13788,
+    "logo": "https://img-cdn.hltv.org/teamlogo/2z1Fq-9FrrthKoTthrmhlO.png?ixlib=java-2.1.0&w=50&s=360df803871f836afa11a53b07eb82d4"
+  },
+  {
+    "rank": 260,
+    "name": "ZOTIX",
+    "id": 13797,
+    "logo": "https://img-cdn.hltv.org/teamlogo/5_ylw7ZOs7c_SAyEg3Qp7V.png?invert=true&ixlib=java-2.1.0&sat=-100&w=50&s=988456843405a7cc93a101b86194d993"
+  },
+  {
+    "rank": 261,
+    "name": "Evo Novo",
+    "id": 13713,
+    "logo": "https://img-cdn.hltv.org/teamlogo/lqO_OnQ4FvRg__RF3M25cV.png?ixlib=java-2.1.0&w=50&s=59f66ce06f27559c0b49a9dcf10c0485"
+  },
+  {
+    "rank": 262,
+    "name": "OverKnight",
+    "id": 10901,
+    "logo": null
+  },
+  {
+    "rank": 263,
+    "name": "FlyQuest RED",
+    "id": 12301,
+    "logo": null
+  },
+  {
+    "rank": 264,
+    "name": "Mythic",
+    "id": 5479,
+    "logo": "https://img-cdn.hltv.org/teamlogo/giKWRtCUgQzLqqfLUgwPvv.png?ixlib=java-2.1.0&w=50&s=1f562a9c5d9bbb7aafcedeaf233a3837"
+  },
+  {
+    "rank": 265,
+    "name": "Young TigeRES",
+    "id": 13796,
+    "logo": "https://img-cdn.hltv.org/teamlogo/t-6ilVXdfIZyTDY9v0Rdwt.png?ixlib=java-2.1.0&w=50&s=7a13de726f82b614be33d9a38c549738"
+  },
+  {
+    "rank": 266,
+    "name": "THE UNIT",
+    "id": 13694,
+    "logo": "/dynamic-svg/teamplaceholder?letter=T"
+  },
+  {
+    "rank": 267,
+    "name": "Exilium",
+    "id": 13566,
+    "logo": null
+  },
+  {
+    "rank": 268,
+    "name": "Sicarios",
+    "id": 13733,
+    "logo": null
+  },
+  {
+    "rank": 269,
+    "name": "Skele",
+    "id": 13685,
+    "logo": null
+  },
+  {
+    "rank": 270,
+    "name": "EC BANGA",
+    "id": 12568,
+    "logo": "https://img-cdn.hltv.org/teamlogo/A-JW3udBuoh3qFSVb4yc00.png?ixlib=java-2.1.0&w=50&s=83dd8e4c19bcd8ee3f01804011995c5f"
+  },
+  {
+    "rank": 271,
+    "name": "VP.Prodigy",
+    "id": 10864,
+    "logo": "https://img-cdn.hltv.org/teamlogo/XeVFqoxRuwHgJKTL-BJfzH.png?ixlib=java-2.1.0&w=50&s=52dd4939e8b867d2e6778997cb0136a0"
+  },
+  {
+    "rank": 272,
+    "name": "VEXA",
+    "id": 13476,
+    "logo": "https://img-cdn.hltv.org/teamlogo/Z0XWrOv9H5W5kqYG2woXCH.png?invert=true&ixlib=java-2.1.0&sat=-100&w=50&s=1e869bb0f8c1b67accbd74083fb81b25"
+  },
+  {
+    "rank": 273,
+    "name": "ClayMakers",
+    "id": 12242,
+    "logo": "/dynamic-svg/teamplaceholder?letter=C"
+  },
+  {
+    "rank": 274,
+    "name": "ALZON",
+    "id": 13471,
+    "logo": null
+  },
+  {
+    "rank": 275,
+    "name": "MIBR fe",
+    "id": 10975,
+    "logo": "https://img-cdn.hltv.org/teamlogo/m_JQ624LNFHWiUY-25uuaE.png?invert=true&ixlib=java-2.1.0&sat=-100&w=50&s=6f521aaf8c039fc3f6f235a8a1b7dd40"
+  },
+  {
+    "rank": 276,
+    "name": "B8 Academy",
+    "id": 13732,
+    "logo": "https://img-cdn.hltv.org/teamlogo/2zjxUjZjyWOPcWuMRXi5Vf.png?invert=true&ixlib=java-2.1.0&sat=-100&w=50&s=a7acb335aabb31ef880b847bcc607947"
+  },
+  {
+    "rank": 277,
+    "name": "Hacha",
+    "id": 13722,
+    "logo": "https://img-cdn.hltv.org/teamlogo/2nErexNT3M48np8RuuJ2he.png?ixlib=java-2.1.0&w=50&s=fafcb0d41a8f7510bbac4eec95d0ddda"
+  },
+  {
+    "rank": 278,
+    "name": "AKA HERO KAJO",
+    "id": 13142,
+    "logo": "/dynamic-svg/teamplaceholder?letter=A"
+  },
+  {
+    "rank": 279,
+    "name": "ROUNDS",
+    "id": 12457,
+    "logo": "https://img-cdn.hltv.org/teamlogo/q3albaDcUxaM8R2x6VeX3b.png?ixlib=java-2.1.0&w=50&s=907dc9ed7ed8310ced04003265968fa6"
+  },
+  {
+    "rank": 280,
+    "name": "BIG EQUIPA",
+    "id": 11718,
+    "logo": "https://img-cdn.hltv.org/teamlogo/6UagLkzIYk5UVlCFmEYXt1.png?ixlib=java-2.1.0&w=50&s=d2655c1d0158cda2f0bdaaeced552421"
+  },
+  {
+    "rank": 281,
+    "name": "hindsight",
+    "id": 13395,
+    "logo": "/dynamic-svg/teamplaceholder?letter=h"
+  },
+  {
+    "rank": 282,
+    "name": "Atrix",
+    "id": 12533,
+    "logo": "https://img-cdn.hltv.org/teamlogo/K2VILjWtsdCwtW4NLwhmFA.png?ixlib=java-2.1.0&w=50&s=631ec1a889fa8ae96af4bf035a6030f6"
+  }
 ]
