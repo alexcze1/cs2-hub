@@ -2,6 +2,7 @@ import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
+import { attachTeamAutocomplete } from './team-autocomplete.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -231,6 +232,8 @@ if (isEdit) {
 }
 
 renderMaps()
+
+attachTeamAutocomplete(document.getElementById('f-opponent'), () => {})
 
 document.getElementById('add-map-btn').addEventListener('click', () => {
   saveActiveNotes()

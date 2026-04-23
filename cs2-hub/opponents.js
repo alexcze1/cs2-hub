@@ -2,6 +2,7 @@
 import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
+import { getTeamLogo, teamLogoEl } from './team-autocomplete.js'
 
 function esc(text) {
   const d = document.createElement('div')
@@ -31,11 +32,11 @@ if (error) {
 } else if (!opponents?.length) {
   el.innerHTML = `<div class="empty-state"><h3>No opponents yet</h3><p>Add a team before your next match.</p></div>`
 } else {
-  el.innerHTML = opponents.map(o => `
+  // Resolve logos for all opponents in parallel, then render
+  const logos = await Promise.all(opponents.map(o => getTeamLogo(o.name)))
+  el.innerHTML = opponents.map((o, i) => `
     <a class="list-row" href="opponent-detail.html?id=${o.id}">
-      <div style="width:40px;height:40px;background:var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:11px;font-weight:700;flex-shrink:0">
-        ${esc(o.name.slice(0,3).toUpperCase())}
-      </div>
+      ${teamLogoEl(logos[i], o.name, 40)}
       <div class="flex-1">
         <div class="row-name">${esc(o.name)}</div>
         ${o.favored_maps?.length

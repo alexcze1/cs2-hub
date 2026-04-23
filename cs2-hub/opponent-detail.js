@@ -2,6 +2,7 @@ import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
+import { attachTeamAutocomplete, getTeamLogo, teamLogoEl } from './team-autocomplete.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -274,6 +275,34 @@ if (isEdit) {
 
 renderMapSelector()
 renderAntistratSection()
+
+// ── Team autocomplete + live logo preview ───────────────────
+const nameInput  = document.getElementById('f-name')
+const logoWrap   = document.getElementById('opp-logo-wrap')
+
+function updateLogoPreview(logo, name) {
+  logoWrap.innerHTML = teamLogoEl(logo, name || '???', 44)
+}
+
+// Preload logo for existing opponents
+const initialName = nameInput.value.trim()
+if (initialName) {
+  const logo = await getTeamLogo(initialName)
+  updateLogoPreview(logo, initialName)
+} else {
+  updateLogoPreview(null, '')
+}
+
+attachTeamAutocomplete(nameInput, team => {
+  updateLogoPreview(team.logo, team.name)
+})
+
+nameInput.addEventListener('input', async () => {
+  const n = nameInput.value.trim()
+  if (!n) { updateLogoPreview(null, ''); return }
+  const logo = await getTeamLogo(n)
+  updateLogoPreview(logo, n)
+})
 
 // ── Save ────────────────────────────────────────────────────
 document.getElementById('save-btn').addEventListener('click', async () => {

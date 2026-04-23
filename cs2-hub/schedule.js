@@ -2,6 +2,7 @@ import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
+import { attachTeamAutocomplete } from './team-autocomplete.js'
 
 function esc(text) {
   const d = document.createElement('div')
@@ -142,6 +143,8 @@ function openModalOnDate(dateStr) {
 }
 
 function closeModal() { document.getElementById('modal').style.display = 'none'; editingId = null }
+
+attachTeamAutocomplete(document.getElementById('f-opponent'), () => {})
 
 document.getElementById('add-btn').addEventListener('click', () => openModal())
 document.getElementById('modal-close').addEventListener('click', closeModal)
