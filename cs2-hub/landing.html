@@ -8,27 +8,33 @@
   <title>MIDROUND — The CS2 Team Platform</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:         #05080f;
-      --surface:    #0a0e1a;
-      --border:     #151d33;
-      --accent:     #3b82f6;
+      --bg:         #030712;
+      --surface:    #0a0a0f;
+      --border:     rgba(255,255,255,0.07);
+      --accent:     #6666B7;
       --text:       #ffffff;
-      --muted:      #6b7280;
-      --muted-lt:   #9ca3af;
+      --muted:      #A1A1AA;
+      --muted-lt:   #c4c4cc;
+      --glass-bg:   rgba(0,0,0,0.4);
+      --glass-border: rgba(255,255,255,0.06);
     }
 
     html { scroll-behavior: smooth; }
 
     body {
-      background: var(--bg);
+      background:
+        radial-gradient(ellipse at 15% 35%, rgba(102,102,183,0.12) 0%, transparent 55%),
+        radial-gradient(ellipse at 85% 10%, rgba(166,102,193,0.08) 0%, transparent 45%),
+        var(--bg);
       color: var(--text);
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
       font-size: 15px;
+      letter-spacing: -0.012em;
       line-height: 1.6;
       overflow-x: hidden;
     }
@@ -57,10 +63,10 @@
       border-bottom: 1px solid transparent;
     }
     .site-nav.scrolled {
-      background: rgba(5,8,15,0.88);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-color: rgba(255,255,255,0.06);
+      background: rgba(3,7,18,0.90);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-color: rgba(255,255,255,0.07);
     }
     .nav-logo {
       width: 130px;
@@ -69,13 +75,13 @@
       display: block;
     }
     .nav-cta {
-      background: var(--accent);
-      color: #fff;
+      background: #ffffff;
+      color: #030712;
       text-decoration: none;
       padding: 9px 22px;
       border-radius: 100px;
       font-size: 13px;
-      font-weight: 600;
+      font-weight: 700;
       letter-spacing: 0.3px;
       transition: opacity 0.15s;
     }
@@ -96,15 +102,15 @@
     .hero-glow {
       position: absolute;
       inset: 0;
-      background: radial-gradient(ellipse 70% 55% at 50% 45%, rgba(59,130,246,0.13), transparent 70%);
+      background: radial-gradient(ellipse 70% 55% at 50% 45%, rgba(102,102,183,0.18), transparent 70%);
       pointer-events: none;
     }
     .hero-grid {
       position: absolute;
       inset: 0;
       background-image:
-        linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+        linear-gradient(rgba(102,102,183,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(102,102,183,0.05) 1px, transparent 1px);
       background-size: 44px 44px;
       pointer-events: none;
     }
@@ -134,8 +140,8 @@
     }
     .hero-cta {
       display: inline-block;
-      background: var(--accent);
-      color: #fff;
+      background: #ffffff;
+      color: #030712;
       text-decoration: none;
       padding: 15px 36px;
       border-radius: 8px;
@@ -160,7 +166,7 @@
 
     /* ── Feature sections (shared) ── */
     .feature-wrap { padding: 100px 0; }
-    .feature-wrap-alt { background: #060810; }
+    .feature-wrap-alt { background: rgba(0,0,0,0.2); }
 
     .feature {
       max-width: 1160px;
@@ -197,16 +203,19 @@
     }
 
     .feature-mock {
-      background: var(--surface);
-      border: 1px solid var(--border);
+      background: var(--glass-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
       border-radius: 14px;
       padding: 22px;
       position: relative;
+      box-shadow: rgba(0,0,0,0.5) 0px 25px 50px -12px;
     }
     .feature-mock-glow {
       position: absolute;
       top: -60px; left: -60px; right: -60px; bottom: -60px;
-      background: radial-gradient(ellipse 55% 55% at 35% 50%, rgba(59,130,246,0.08), transparent);
+      background: radial-gradient(ellipse 55% 55% at 35% 50%, rgba(102,102,183,0.08), transparent);
       pointer-events: none;
       z-index: -1;
     }
@@ -220,7 +229,7 @@
       border-left-width: 3px;
     }
     .mock-strat-card:last-child { margin-bottom: 0; }
-    .mock-strat-ct { border-left-color: #3b82f6; background: rgba(59,130,246,0.04); }
+    .mock-strat-ct { border-left-color: #6666B7; background: rgba(102,102,183,0.04); }
     .mock-strat-t  { border-left-color: #f87171; background: rgba(248,113,113,0.04); }
     .mock-strat-header {
       display: flex;
@@ -237,7 +246,7 @@
       text-transform: uppercase;
       flex-shrink: 0;
     }
-    .mock-badge-ct { background: rgba(59,130,246,0.15); color: #3b82f6; }
+    .mock-badge-ct { background: rgba(102,102,183,0.15); color: #6666B7; }
     .mock-badge-t  { background: rgba(248,113,113,0.15); color: #f87171; }
     .mock-strat-name { font-weight: 700; font-size: 13px; flex: 1; }
     .mock-map-chip {
@@ -276,8 +285,8 @@
       text-transform: uppercase;
       padding: 9px 14px;
     }
-    .mock-gp-title-ct { background: rgba(59,130,246,0.15); color: #3b82f6; }
-    .mock-gp-title-t  { background: rgba(167,139,250,0.15); color: #a78bfa; }
+    .mock-gp-title-ct { background: rgba(102,102,183,0.15); color: #6666B7; }
+    .mock-gp-title-t  { background: rgba(167,139,250,0.15); color: #A666C1; }
     .mock-gp-section-label {
       font-size: 9px;
       font-weight: 700;
@@ -286,9 +295,9 @@
       padding: 6px 14px;
       border-top: 1px solid var(--border);
     }
-    .mock-gp-label-positions { background: rgba(59,130,246,0.10); color: #3b82f6; }
+    .mock-gp-label-positions { background: rgba(102,102,183,0.10); color: #6666B7; }
     .mock-gp-label-pistols   { background: rgba(20,184,166,0.12); color: #2dd4bf; }
-    .mock-gp-label-tend      { background: rgba(167,139,250,0.12); color: #a78bfa; }
+    .mock-gp-label-tend      { background: rgba(167,139,250,0.12); color: #A666C1; }
     .mock-gp-label-solutions { background: rgba(34,197,94,0.12); color: #22c55e; }
     .mock-gp-text {
       font-size: 12px;
@@ -378,7 +387,7 @@
       display: inline-block;
       margin-bottom: 5px;
     }
-    .mock-review-ct { background: rgba(59,130,246,0.15); color: #3b82f6; }
+    .mock-review-ct { background: rgba(102,102,183,0.15); color: #6666B7; }
     .mock-review-t  { background: rgba(248,113,113,0.15); color: #f87171; }
     .mock-review-text { font-size: 12px; color: var(--muted-lt); line-height: 1.55; }
 
@@ -409,8 +418,10 @@
       margin-bottom: 28px;
     }
     .mock-week-col {
-      background: var(--surface);
-      border: 1px solid var(--border);
+      background: var(--glass-bg);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid var(--glass-border);
       border-radius: 8px;
       padding: 10px 8px;
       min-height: 100px;
@@ -443,9 +454,9 @@
       text-overflow: ellipsis;
       border-left: 3px solid;
     }
-    .mock-event-scrim    { background: rgba(59,130,246,0.14); color: #3b82f6; border-left-color: #3b82f6; }
+    .mock-event-scrim    { background: rgba(102,102,183,0.14); color: #6666B7; border-left-color: #6666B7; }
     .mock-event-vod      { background: rgba(249,115,22,0.14); color: #f97316; border-left-color: #f97316; }
-    .mock-event-meeting  { background: rgba(167,139,250,0.14); color: #a78bfa; border-left-color: #a78bfa; }
+    .mock-event-meeting  { background: rgba(167,139,250,0.14); color: #A666C1; border-left-color: #A666C1; }
     .mock-event-tourn    { background: rgba(34,197,94,0.14); color: #22c55e; border-left-color: #22c55e; }
     .mock-integrations {
       display: flex;
@@ -458,8 +469,10 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      background: var(--surface);
-      border: 1px solid var(--border);
+      background: var(--glass-bg);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid var(--glass-border);
       border-radius: 8px;
       padding: 10px 18px;
       font-size: 13px;
@@ -483,7 +496,7 @@
     .waitlist-glow {
       position: absolute;
       inset: 0;
-      background: radial-gradient(ellipse 60% 60% at 50% 50%, rgba(59,130,246,0.14), transparent 70%);
+      background: radial-gradient(ellipse 60% 60% at 50% 50%, rgba(102,102,183,0.20), transparent 70%);
       pointer-events: none;
     }
     .waitlist-content { position: relative; z-index: 1; }
@@ -508,20 +521,20 @@
     .waitlist-input {
       flex: 1;
       min-width: 220px;
-      background: var(--surface);
-      border: 1px solid var(--border);
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.09);
       border-radius: 8px;
       padding: 13px 16px;
       color: var(--text);
       font-size: 14px;
       font-family: inherit;
-      transition: border-color 0.15s;
+      transition: border-color 0.15s, box-shadow 0.15s;
       outline: none;
     }
-    .waitlist-input:focus { border-color: var(--accent); }
+    .waitlist-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(102,102,183,0.15); }
     .waitlist-btn {
-      background: var(--accent);
-      color: #fff;
+      background: #ffffff;
+      color: #030712;
       border: none;
       border-radius: 8px;
       padding: 13px 28px;
@@ -575,10 +588,13 @@
     }
 
     .mock-mv {
-      background: var(--surface);
-      border: 1px solid var(--border);
+      background: var(--glass-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
       border-radius: 12px;
       overflow: hidden;
+      box-shadow: rgba(0,0,0,0.5) 0px 25px 50px -12px;
     }
     .mock-mv-header {
       display: flex;
@@ -594,7 +610,7 @@
       padding: 3px 9px; border-radius: 4px; color: var(--muted);
       white-space: nowrap;
     }
-    .mock-mv-maptab.on { background: rgba(59,130,246,0.18); color: var(--accent); }
+    .mock-mv-maptab.on { background: rgba(102,102,183,0.18); color: var(--accent); }
     .mock-mv-sidetabs {
       display: flex; border: 1px solid var(--border); border-radius: 5px;
       overflow: hidden; flex-shrink: 0; margin-right: 8px;
@@ -616,7 +632,7 @@
       border-radius: 7px; padding: 9px 10px;
       border: 1px solid var(--border); border-left-width: 3px;
     }
-    .mock-mv-ct { border-left-color: #3b82f6; background: rgba(59,130,246,0.04); }
+    .mock-mv-ct { border-left-color: #6666B7; background: rgba(102,102,183,0.04); }
     .mock-mv-t  { border-left-color: #f87171; background: rgba(248,113,113,0.04); }
     .mock-mv-card-header { display: flex; align-items: center; gap: 5px; margin-bottom: 6px; }
     .mock-mv-card-name { font-weight: 700; font-size: 11px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -641,13 +657,13 @@
     .mock-panel-opp-arrow { font-size: 9px; color: var(--muted); }
     .mock-panel-maptabs { display: flex; gap: 2px; padding: 4px 8px; border-bottom: 1px solid var(--border); }
     .mock-panel-maptab { font-size: 8px; font-weight: 700; padding: 2px 6px; border-radius: 3px; color: var(--muted); }
-    .mock-panel-maptab.on { background: rgba(59,130,246,0.18); color: var(--accent); }
+    .mock-panel-maptab.on { background: rgba(102,102,183,0.18); color: var(--accent); }
     .mock-panel-side-header {
       font-size: 8px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
       padding: 5px 10px;
     }
-    .mock-panel-ct-head { background: rgba(59,130,246,0.12); color: #3b82f6; border-bottom: 1px solid var(--border); }
-    .mock-panel-t-head  { background: rgba(167,139,250,0.10); color: #a78bfa; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .mock-panel-ct-head { background: rgba(102,102,183,0.12); color: #6666B7; border-bottom: 1px solid var(--border); }
+    .mock-panel-t-head  { background: rgba(167,139,250,0.10); color: #A666C1; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
     .mock-panel-row { display: flex; border-bottom: 1px solid rgba(255,255,255,0.04); }
     .mock-panel-row-key {
       font-size: 7px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
@@ -683,7 +699,7 @@
       border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.12);
     }
     .mock-as-maptab { font-size: 9px; font-weight: 700; padding: 3px 9px; border-radius: 4px; color: var(--muted); }
-    .mock-as-maptab.on { background: rgba(59,130,246,0.18); color: var(--accent); }
+    .mock-as-maptab.on { background: rgba(102,102,183,0.18); color: var(--accent); }
     .mock-as-body { display: grid; grid-template-columns: 1fr 1fr; }
     .mock-as-side { border-right: 1px solid var(--border); }
     .mock-as-side:last-child { border-right: none; }
@@ -691,8 +707,8 @@
       font-size: 8px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
       padding: 7px 12px; border-bottom: 1px solid var(--border);
     }
-    .mock-as-ct-head { background: rgba(59,130,246,0.12); color: #3b82f6; }
-    .mock-as-t-head  { background: rgba(167,139,250,0.10); color: #a78bfa; }
+    .mock-as-ct-head { background: rgba(102,102,183,0.12); color: #6666B7; }
+    .mock-as-t-head  { background: rgba(167,139,250,0.10); color: #A666C1; }
     .mock-as-section { border-bottom: 1px solid rgba(255,255,255,0.04); }
     .mock-as-sec-label {
       font-size: 7px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
@@ -703,31 +719,31 @@
     /* ── Real app classes: Match View ── */
     .fs-header {
       display: flex; align-items: center; gap: 10px;
-      padding: 8px 14px; background: #0d1526;
-      border-bottom: 1px solid #1a2744;
+      padding: 8px 14px; background: #0a0a0f;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
       flex-shrink: 0; flex-wrap: wrap;
     }
     .fs-title {
       font-size: 11px; font-weight: 800; letter-spacing: .12em;
-      text-transform: uppercase; color: #3b82f6;
+      text-transform: uppercase; color: #6666B7;
       margin-right: 4px; white-space: nowrap;
     }
     .fs-map-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
     .fs-tab {
-      background: #080c14; border: 1px solid #1a2744;
-      border-radius: 5px; color: #9ca3af; cursor: default;
+      background: #030712; border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 5px; color: #c4c4cc; cursor: default;
       font-family: inherit; font-size: 11px; font-weight: 600;
       padding: 3px 10px; transition: none;
     }
-    .fs-tab.active   { background: #3b82f6; border-color: #3b82f6; color: #000; }
+    .fs-tab.active   { background: #6666B7; border-color: #6666B7; color: #000; }
     .fs-tab-t.active  { background: #f87171; border-color: #f87171; color: #000; }
-    .fs-tab-ct.active { background: #3b82f6; border-color: #3b82f6; color: #000; }
-    .fs-sep { width: 1px; height: 20px; background: #1a2744; margin: 0 4px; flex-shrink: 0; }
+    .fs-tab-ct.active { background: #6666B7; border-color: #6666B7; color: #000; }
+    .fs-sep { width: 1px; height: 20px; background: rgba(255,255,255,0.08); margin: 0 4px; flex-shrink: 0; }
     .fs-right { margin-left: auto; display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
-    .fs-count { font-size: 11px; color: #6b7280; }
+    .fs-count { font-size: 11px; color: #A1A1AA; }
     .fs-fullscreen-btn {
-      background: #1a2744; border: none; border-radius: 5px;
-      color: #9ca3af; cursor: default; font-size: 11px; font-weight: 600;
+      background: rgba(255,255,255,0.08); border: none; border-radius: 5px;
+      color: #c4c4cc; cursor: default; font-size: 11px; font-weight: 600;
       font-family: inherit; padding: 4px 10px;
     }
     .fs-main-split { display: flex; overflow: hidden; height: 380px; }
@@ -736,13 +752,13 @@
       column-count: 3; column-gap: 8px;
     }
     .fs-card {
-      display: inline-block; width: 100%; background: #0d1526;
-      border: 1px solid #1a2744; border-left: 3px solid #1a2744;
+      display: inline-block; width: 100%; background: #0a0a0f;
+      border: 1px solid rgba(255,255,255,0.08); border-left: 3px solid rgba(255,255,255,0.08);
       border-radius: 6px; padding: 7px 9px; margin-bottom: 6px;
       break-inside: avoid;
     }
     .fs-card-t  { border-left-color: #f87171; }
-    .fs-card-ct { border-left-color: #3b82f6; }
+    .fs-card-ct { border-left-color: #6666B7; }
     .fs-card-top {
       display: flex; align-items: center; justify-content: space-between;
       gap: 6px; margin-bottom: 5px;
@@ -757,66 +773,66 @@
       padding: 1px 5px; border-radius: 3px; text-transform: uppercase;
     }
     .fs-badge-t    { background: rgba(239,68,68,0.15);  color: #f87171; }
-    .fs-badge-ct   { background: rgba(59,130,246,0.15); color: #3b82f6; }
-    .fs-badge-type { background: #1a2744; color: #6b7280; }
+    .fs-badge-ct   { background: rgba(102,102,183,0.15); color: #6666B7; }
+    .fs-badge-type { background: rgba(255,255,255,0.08); color: #A1A1AA; }
     .fs-roles { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; }
     .fs-role-row { display: flex; gap: 5px; align-items: baseline; min-width: 0; }
     .fs-role-player {
-      font-size: 9px; color: #6b7280; font-weight: 700;
+      font-size: 9px; color: #A1A1AA; font-weight: 700;
       flex-shrink: 0; width: 22px; text-transform: uppercase;
     }
     .fs-role-name { font-size: 10px; color: #fff; min-width: 0; word-break: break-word; }
     .fs-antistrat-panel {
-      width: 340px; flex-shrink: 0; border-left: 1px solid #1a2744;
-      background: #0d1526; overflow-y: auto; padding: 12px 14px;
+      width: 340px; flex-shrink: 0; border-left: 1px solid rgba(255,255,255,0.08);
+      background: #0a0a0f; overflow-y: auto; padding: 12px 14px;
       display: flex; flex-direction: column; gap: 10px;
     }
     .fs-panel-title {
       font-size: 10px; font-weight: 800; letter-spacing: 2px;
-      color: #6b7280; text-transform: uppercase; margin-bottom: 2px;
+      color: #A1A1AA; text-transform: uppercase; margin-bottom: 2px;
     }
     .fs-form-select {
-      width: 100%; background: #080c14; border: 1px solid #1a2744;
+      width: 100%; background: #030712; border: 1px solid rgba(255,255,255,0.08);
       border-radius: 6px; padding: 5px 8px; color: #fff;
       font-size: 12px; font-family: inherit;
     }
     .fs-map-tab-row { display: flex; flex-wrap: wrap; gap: 4px; }
     .fs-panel-map-tab {
-      background: #0d1526; border: 1px solid #1a2744; border-radius: 7px;
-      color: #9ca3af; cursor: default; font-family: inherit;
+      background: #0a0a0f; border: 1px solid rgba(255,255,255,0.08); border-radius: 7px;
+      color: #c4c4cc; cursor: default; font-family: inherit;
       font-size: 10px; font-weight: 600; padding: 3px 8px;
     }
-    .fs-panel-map-tab.active { background: #3b82f6; border-color: #3b82f6; color: #000; }
+    .fs-panel-map-tab.active { background: #6666B7; border-color: #6666B7; color: #000; }
 
     /* ── Real app classes: Gameplan sheet ── */
-    .gameplan-sheet { border: 1px solid #1a2744; border-radius: 10px; overflow: hidden; }
+    .gameplan-sheet { border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; }
     .gameplan-sheet + .gameplan-sheet { margin-top: 8px; }
     .gameplan-title {
       font-size: 11px; font-weight: 700; letter-spacing: 2px;
       text-transform: uppercase; padding: 10px 16px;
     }
-    .ct-title { background: rgba(59,130,246,0.15); color: #3b82f6; }
-    .t-title  { background: rgba(167,139,250,0.15); color: #a78bfa; }
+    .ct-title { background: rgba(102,102,183,0.15); color: #6666B7; }
+    .t-title  { background: rgba(167,139,250,0.15); color: #A666C1; }
     .gameplan-split {
-      display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #1a2744;
+      display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid rgba(255,255,255,0.08);
     }
     .gameplan-block { padding: 0; }
-    .gameplan-block + .gameplan-block { border-left: 1px solid #1a2744; }
+    .gameplan-block + .gameplan-block { border-left: 1px solid rgba(255,255,255,0.08); }
     .gameplan-section-label {
       font-size: 10px; font-weight: 700; letter-spacing: 2px;
       text-transform: uppercase; padding: 7px 14px;
-      border-top: 1px solid #1a2744;
+      border-top: 1px solid rgba(255,255,255,0.08);
     }
     .pistols-label   { background: rgba(20,184,166,0.18); color: #2dd4bf; }
     .style-label     { background: rgba(251,113,133,0.18); color: #fb7185; }
     .antiecos-label  { background: rgba(20,184,166,0.18); color: #2dd4bf; }
     .forces-label    { background: rgba(236,72,153,0.18); color: #f472b6; }
-    .tendencies-label { background: rgba(167,139,250,0.18); color: #a78bfa; }
+    .tendencies-label { background: rgba(167,139,250,0.18); color: #A666C1; }
     .exploits-label  { background: rgba(251,191,36,0.18); color: #fbbf24; }
     .solutions-label { background: rgba(34,197,94,0.18);  color: #22c55e; }
     .gameplan-textarea-static {
       display: block; background: transparent; border: none;
-      border-top: 1px solid #1a2744; color: #fff; font-family: inherit;
+      border-top: 1px solid rgba(255,255,255,0.08); color: #fff; font-family: inherit;
       font-size: 13px; line-height: 1.75; padding: 8px 14px;
       width: 100%; min-height: 60px; white-space: pre-wrap; word-break: break-word;
     }
@@ -825,32 +841,32 @@
     /* ── Real app classes: Antistrat standalone ── */
     .app-page-header {
       display: flex; align-items: flex-start; justify-content: space-between;
-      padding: 18px 24px; background: #0d1526; border-bottom: 1px solid #1a2744;
+      padding: 18px 24px; background: #0a0a0f; border-bottom: 1px solid rgba(255,255,255,0.08);
     }
-    .app-page-back { color: #6b7280; font-size: 13px; margin-bottom: 8px; }
+    .app-page-back { color: #A1A1AA; font-size: 13px; margin-bottom: 8px; }
     .app-page-title { font-size: 21px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
     .app-btn {
       padding: 9px 18px; border-radius: 7px; font-size: 13px; font-weight: 600;
       cursor: default; border: none; font-family: inherit;
     }
-    .app-btn-primary { background: #3b82f6; color: #fff; }
-    .app-btn-secondary { background: #1a2744; color: #9ca3af; }
+    .app-btn-primary { background: #6666B7; color: #fff; }
+    .app-btn-secondary { background: rgba(255,255,255,0.08); color: #c4c4cc; }
     .app-section-label {
-      color: #3b82f6; font-size: 10px; letter-spacing: 2px;
+      color: #6666B7; font-size: 10px; letter-spacing: 2px;
       text-transform: uppercase; margin-bottom: 12px; margin-top: 0;
     }
     .app-map-toggle {
       padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600;
-      cursor: default; color: #6b7280; background: none;
-      border: 1px solid #1a2744; font-family: inherit;
+      cursor: default; color: #A1A1AA; background: none;
+      border: 1px solid rgba(255,255,255,0.08); font-family: inherit;
     }
-    .app-map-toggle.active { background: rgba(59,130,246,0.15); color: #fff; border-color: #3b82f6; }
+    .app-map-toggle.active { background: rgba(102,102,183,0.15); color: #fff; border-color: #6666B7; }
     .app-review-map-tab {
-      background: #0d1526; border: 1px solid #1a2744; border-radius: 7px;
-      color: #9ca3af; cursor: default; font-family: inherit;
+      background: #0a0a0f; border: 1px solid rgba(255,255,255,0.08); border-radius: 7px;
+      color: #c4c4cc; cursor: default; font-family: inherit;
       font-size: 12px; font-weight: 600; padding: 5px 14px;
     }
-    .app-review-map-tab.active { background: #3b82f6; border-color: #3b82f6; color: #000; }
+    .app-review-map-tab.active { background: #6666B7; border-color: #6666B7; color: #000; }
   </style>
 </head>
 <body>
@@ -882,7 +898,7 @@
       <div class="feature-eyebrow">Stratbook · Match View</div>
       <h2 class="feature-headline">EVERY STRAT. EVERY OPPONENT.<br>ONE FULLSCREEN VIEW.</h2>
       <p class="feature-body">Build your full tactical library by map and side. In Match View, pull every strat and the full antistrat sheet side-by-side on one screen — so nothing gets missed from pistol round to overtime.</p>
-      <div style="border:1px solid #1a2744;border-radius:10px;overflow:hidden;display:flex;flex-direction:column;">
+      <div style="border:1px solid rgba(255,255,255,0.08);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;">
         <!-- Real Match View header — exact app structure -->
         <div class="fs-header">
           <span class="fs-title">Match View</span>
@@ -1021,8 +1037,8 @@
             <div>
               <div class="gameplan-sheet">
                 <div class="gameplan-title ct-title">CT GAMEPLAN <span style="opacity:0.6;font-weight:400">— vs their T side</span></div>
-                <div style="padding:4px 10px 6px;font-size:10px;border-top:1px solid #1a2744">
-                  <div style="font-size:8px;font-weight:700;letter-spacing:1px;color:#6b7280;margin-bottom:3px">LINEUP</div>
+                <div style="padding:4px 10px 6px;font-size:10px;border-top:1px solid rgba(255,255,255,0.08)">
+                  <div style="font-size:8px;font-weight:700;letter-spacing:1px;color:#A1A1AA;margin-bottom:3px">LINEUP</div>
                   <div style="display:flex;flex-wrap:wrap;gap:4px;font-size:10px"><span><b>A</b>: anchor</span> · <span><b>B</b>: 2 banana</span> · <span><b>Mid</b>: IGL</span></div>
                 </div>
                 <div class="gameplan-split">
@@ -1074,7 +1090,7 @@
       <h2 class="feature-headline">KNOW YOUR ENEMY<br>BEFORE THE SERVER LOADS.</h2>
       <p class="feature-body">Build a complete antistrat sheet for every opponent — CT and T side positions, pistol tendencies, exploits, and solutions. When it's game day, print the full gameplan as a PDF and take it to the booth.</p>
       <!-- Full-width antistrat mock -->
-      <div style="border:1px solid #1a2744;border-radius:10px;overflow:hidden;background:#080c14;">
+      <div style="border:1px solid rgba(255,255,255,0.08);border-radius:10px;overflow:hidden;background:#030712;">
         <div class="app-page-header">
           <div>
             <div class="app-page-back">← Opponents</div>
@@ -1087,13 +1103,13 @@
               <button class="app-map-toggle">Inferno</button>
               <button class="app-map-toggle">Ancient</button>
             </div>
-            <div style="width:1px;height:20px;background:#1a2744;margin:0 4px"></div>
+            <div style="width:1px;height:20px;background:rgba(255,255,255,0.08);margin:0 4px"></div>
             <button class="app-btn app-btn-secondary" style="font-size:12px;padding:6px 14px">⎙ Print</button>
             <button class="app-btn app-btn-primary" style="font-size:12px;padding:6px 14px">Save</button>
           </div>
         </div>
         <!-- Antistrat map tabs -->
-        <div style="display:flex;gap:6px;padding:10px 18px;border-bottom:1px solid #1a2744;background:rgba(0,0,0,0.15)">
+        <div style="display:flex;gap:6px;padding:10px 18px;border-bottom:1px solid rgba(255,255,255,0.08);background:rgba(0,0,0,0.15)">
           <button class="app-review-map-tab active">Mirage</button>
           <button class="app-review-map-tab">Nuke</button>
           <button class="app-review-map-tab">Inferno</button>
@@ -1170,23 +1186,23 @@
       <p class="feature-body">Log match results and write structured post-match notes per side — what worked CT, what broke T, what to fix next session. Every map becomes a lesson your whole team can read before the next scrim.</p>
       <!-- Stats bar -->
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
-        <div style="background:#0a0e1a;border:1px solid #1a2744;border-top:3px solid #3b82f6;border-radius:8px;padding:14px 18px">
-          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280;margin-bottom:6px">Match Record</div>
+        <div style="background:#0a0a0f;border:1px solid rgba(255,255,255,0.08);border-top:3px solid #6666B7;border-radius:8px;padding:14px 18px">
+          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#A1A1AA;margin-bottom:6px">Match Record</div>
           <div style="font-size:18px;font-weight:800">7W — 3L</div>
-          <div style="font-size:11px;color:#6b7280;margin-top:2px">10 matches · 70% win rate</div>
+          <div style="font-size:11px;color:#A1A1AA;margin-top:2px">10 matches · 70% win rate</div>
         </div>
-        <div style="background:#0a0e1a;border:1px solid #1a2744;border-top:3px solid #22c55e;border-radius:8px;padding:14px 18px">
-          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280;margin-bottom:6px">Round Win Rate</div>
+        <div style="background:#0a0a0f;border:1px solid rgba(255,255,255,0.08);border-top:3px solid #22c55e;border-radius:8px;padding:14px 18px">
+          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#A1A1AA;margin-bottom:6px">Round Win Rate</div>
           <div style="font-size:22px;font-weight:800">58%</div>
-          <div style="font-size:11px;color:#6b7280;margin-top:2px">312W — 228L rounds</div>
+          <div style="font-size:11px;color:#A1A1AA;margin-top:2px">312W — 228L rounds</div>
         </div>
-        <div style="background:#0a0e1a;border:1px solid #1a2744;border-top:3px solid #a78bfa;border-radius:8px;padding:14px 18px">
-          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280;margin-bottom:6px">Best Map</div>
+        <div style="background:#0a0a0f;border:1px solid rgba(255,255,255,0.08);border-top:3px solid #A666C1;border-radius:8px;padding:14px 18px">
+          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#A1A1AA;margin-bottom:6px">Best Map</div>
           <div style="font-size:20px;font-weight:800">Mirage</div>
-          <div style="font-size:11px;color:#6b7280;margin-top:2px">78% win rate</div>
+          <div style="font-size:11px;color:#A1A1AA;margin-top:2px">78% win rate</div>
         </div>
-        <div style="background:#0a0e1a;border:1px solid #1a2744;border-top:3px solid #6b7280;border-radius:8px;padding:14px 18px">
-          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280;margin-bottom:6px">Recent Form</div>
+        <div style="background:#0a0a0f;border:1px solid rgba(255,255,255,0.08);border-top:3px solid #A1A1AA;border-radius:8px;padding:14px 18px">
+          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#A1A1AA;margin-bottom:6px">Recent Form</div>
           <div style="display:flex;gap:4px;margin-top:4px">
             <span style="background:rgba(34,197,94,0.15);color:#22c55e;border-radius:4px;padding:3px 8px;font-size:12px;font-weight:700">W</span>
             <span style="background:rgba(34,197,94,0.15);color:#22c55e;border-radius:4px;padding:3px 8px;font-size:12px;font-weight:700">W</span>
@@ -1194,13 +1210,13 @@
             <span style="background:rgba(34,197,94,0.15);color:#22c55e;border-radius:4px;padding:3px 8px;font-size:12px;font-weight:700">W</span>
             <span style="background:rgba(34,197,94,0.15);color:#22c55e;border-radius:4px;padding:3px 8px;font-size:12px;font-weight:700">W</span>
           </div>
-          <div style="font-size:11px;color:#6b7280;margin-top:6px">Last 5 matches</div>
+          <div style="font-size:11px;color:#A1A1AA;margin-top:6px">Last 5 matches</div>
         </div>
       </div>
       <!-- Match list -->
-      <div style="background:#0a0e1a;border:1px solid #1a2744;border-radius:10px;overflow:hidden">
+      <div style="background:#0a0a0f;border:1px solid rgba(255,255,255,0.08);border-radius:10px;overflow:hidden">
         <!-- Match row 1 — expanded -->
-        <div style="border-bottom:1px solid #1a2744">
+        <div style="border-bottom:1px solid rgba(255,255,255,0.08)">
           <div style="display:flex;align-items:center;gap:12px;padding:12px 16px">
             <span style="background:rgba(34,197,94,0.15);color:#22c55e;border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;flex-shrink:0">WIN</span>
             <div style="flex:1">
@@ -1209,56 +1225,56 @@
                 <div style="position:relative;overflow:hidden;border-radius:6px;width:72px;height:52px;border:1.5px solid rgba(34,197,94,0.5);flex-shrink:0">
                   <img src="images/maps/mirage.png" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.2;pointer-events:none">
                   <div style="position:relative;padding:5px 7px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
-                    <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:#6b7280">MIR</span>
+                    <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:#A1A1AA">MIR</span>
                     <span style="font-size:13px;font-weight:700;color:#22c55e">16–11</span>
                   </div>
                 </div>
                 <div style="position:relative;overflow:hidden;border-radius:6px;width:72px;height:52px;border:1.5px solid rgba(239,68,68,0.5);flex-shrink:0">
                   <img src="images/maps/inferno.png" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.2;pointer-events:none">
                   <div style="position:relative;padding:5px 7px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
-                    <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:#6b7280">INF</span>
+                    <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:#A1A1AA">INF</span>
                     <span style="font-size:13px;font-weight:700;color:#ef4444">13–16</span>
                   </div>
                 </div>
                 <div style="position:relative;overflow:hidden;border-radius:6px;width:72px;height:52px;border:1.5px solid rgba(34,197,94,0.5);flex-shrink:0">
                   <img src="images/maps/nuke.png" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.2;pointer-events:none">
                   <div style="position:relative;padding:5px 7px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
-                    <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:#6b7280">NUK</span>
+                    <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:#A1A1AA">NUK</span>
                     <span style="font-size:13px;font-weight:700;color:#22c55e">16–9</span>
                   </div>
                 </div>
               </div>
             </div>
-            <div style="color:#6b7280;font-size:12px;text-align:right;flex-shrink:0">
+            <div style="color:#A1A1AA;font-size:12px;text-align:right;flex-shrink:0">
               <div>Scrim</div>
               <div>Apr 21</div>
             </div>
           </div>
           <!-- Expanded review notes -->
-          <div style="background:rgba(0,0,0,0.25);border-top:1px solid #1a2744;padding:14px 16px">
+          <div style="background:rgba(0,0,0,0.25);border-top:1px solid rgba(255,255,255,0.08);padding:14px 16px">
             <div style="display:flex;gap:6px;margin-bottom:12px">
               <button class="app-review-map-tab active">Mirage</button>
               <button class="app-review-map-tab">Inferno</button>
               <button class="app-review-map-tab">Nuke</button>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-              <div style="background:#0a0e1a;border:1px solid #1a2744;border-radius:8px;padding:12px">
-                <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280;margin-bottom:8px">OVERVIEW</div>
-                <div style="font-size:12px;color:#9ca3af;line-height:1.6">Strong first half. AWP impact was high. Second half rotation timings cost us two rounds but held composure.</div>
+              <div style="background:#0a0a0f;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px">
+                <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#A1A1AA;margin-bottom:8px">OVERVIEW</div>
+                <div style="font-size:12px;color:#c4c4cc;line-height:1.6">Strong first half. AWP impact was high. Second half rotation timings cost us two rounds but held composure.</div>
               </div>
-              <div style="background:#0a0e1a;border:1px solid #1a2744;border-top:2px solid #3b82f6;border-radius:8px;padding:12px">
-                <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#3b82f6;margin-bottom:8px">CT SIDE</div>
-                <div style="font-size:12px;color:#9ca3af;line-height:1.6">Good banana control rounds 1–5. Lost A site discipline mid-half — anchor pushed too early twice.</div>
+              <div style="background:#0a0a0f;border:1px solid rgba(255,255,255,0.08);border-top:2px solid #6666B7;border-radius:8px;padding:12px">
+                <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#6666B7;margin-bottom:8px">CT SIDE</div>
+                <div style="font-size:12px;color:#c4c4cc;line-height:1.6">Good banana control rounds 1–5. Lost A site discipline mid-half — anchor pushed too early twice.</div>
               </div>
-              <div style="background:#0a0e1a;border:1px solid #1a2744;border-top:2px solid #f87171;border-radius:8px;padding:12px">
+              <div style="background:#0a0a0f;border:1px solid rgba(255,255,255,0.08);border-top:2px solid #f87171;border-radius:8px;padding:12px">
                 <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#f87171;margin-bottom:8px">T SIDE</div>
-                <div style="font-size:12px;color:#9ca3af;line-height:1.6">Mid control strong. B executes worked when we smoked CT. Stop defaulting to A split when B info is unclear.</div>
+                <div style="font-size:12px;color:#c4c4cc;line-height:1.6">Mid control strong. B executes worked when we smoked CT. Stop defaulting to A split when B info is unclear.</div>
               </div>
             </div>
           </div>
         </div>
         <!-- Match row 2 -->
-        <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid #1a2744">
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.08)">
           <span style="background:rgba(239,68,68,0.15);color:#ef4444;border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;flex-shrink:0">LOSS</span>
           <div style="flex:1">
             <div style="font-weight:700;font-size:14px;margin-bottom:6px">vs ASTRALIS</div>
@@ -1266,20 +1282,20 @@
               <div style="position:relative;overflow:hidden;border-radius:6px;width:72px;height:52px;border:1.5px solid rgba(34,197,94,0.5);flex-shrink:0">
                 <img src="images/maps/ancient.png" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.2;pointer-events:none">
                 <div style="position:relative;padding:5px 7px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
-                  <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:#6b7280">ANC</span>
+                  <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:#A1A1AA">ANC</span>
                   <span style="font-size:13px;font-weight:700;color:#22c55e">16–14</span>
                 </div>
               </div>
               <div style="position:relative;overflow:hidden;border-radius:6px;width:72px;height:52px;border:1.5px solid rgba(239,68,68,0.5);flex-shrink:0">
                 <img src="images/maps/overpass.png" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.2;pointer-events:none">
                 <div style="position:relative;padding:5px 7px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
-                  <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:#6b7280">OVP</span>
+                  <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:#A1A1AA">OVP</span>
                   <span style="font-size:13px;font-weight:700;color:#ef4444">10–16</span>
                 </div>
               </div>
             </div>
           </div>
-          <div style="color:#6b7280;font-size:12px;text-align:right;flex-shrink:0"><div>Tournament</div><div>Apr 18</div></div>
+          <div style="color:#A1A1AA;font-size:12px;text-align:right;flex-shrink:0"><div>Tournament</div><div>Apr 18</div></div>
         </div>
         <!-- Match row 3 -->
         <div style="display:flex;align-items:center;gap:12px;padding:12px 16px">
@@ -1290,20 +1306,20 @@
               <div style="position:relative;overflow:hidden;border-radius:6px;width:72px;height:52px;border:1.5px solid rgba(34,197,94,0.5);flex-shrink:0">
                 <img src="images/maps/mirage.png" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.2;pointer-events:none">
                 <div style="position:relative;padding:5px 7px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
-                  <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:#6b7280">MIR</span>
+                  <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:#A1A1AA">MIR</span>
                   <span style="font-size:13px;font-weight:700;color:#22c55e">16–8</span>
                 </div>
               </div>
               <div style="position:relative;overflow:hidden;border-radius:6px;width:72px;height:52px;border:1.5px solid rgba(34,197,94,0.5);flex-shrink:0">
                 <img src="images/maps/dust.png" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.2;pointer-events:none">
                 <div style="position:relative;padding:5px 7px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
-                  <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:#6b7280">D2</span>
+                  <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:#A1A1AA">D2</span>
                   <span style="font-size:13px;font-weight:700;color:#22c55e">16–12</span>
                 </div>
               </div>
             </div>
           </div>
-          <div style="color:#6b7280;font-size:12px;text-align:right;flex-shrink:0"><div>Scrim</div><div>Apr 15</div></div>
+          <div style="color:#A1A1AA;font-size:12px;text-align:right;flex-shrink:0"><div>Scrim</div><div>Apr 15</div></div>
         </div>
       </div>
     </div>
