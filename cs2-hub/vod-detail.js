@@ -15,61 +15,6 @@ let maps = []
 let activeMapTab = 0
 let autosaveTimer = null
 let scanTarget = null
-let _ocrWorker = null
-
-async function getOcrWorker() {
-  if (_ocrWorker) return _ocrWorker
-  _ocrWorker = await Tesseract.createWorker('eng', 1, { logger: () => {} })
-  await _ocrWorker.setParameters({
-    tessedit_char_whitelist: '0123456789:- ',
-    tessedit_pageseg_mode: '11', // sparse text — find numbers anywhere
-  })
-  return _ocrWorker
-}
-
-// Upscale 2x + hard black/white threshold for cleaner OCR
-function preprocessImage(file) {
-  return new Promise(resolve => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      const scale = 2
-      const canvas = document.createElement('canvas')
-      canvas.width  = img.naturalWidth  * scale
-      canvas.height = img.naturalHeight * scale
-      const ctx = canvas.getContext('2d')
-      ctx.imageSmoothingEnabled = true
-      ctx.imageSmoothingQuality = 'high'
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-      URL.revokeObjectURL(url)
-      const d = ctx.getImageData(0, 0, canvas.width, canvas.height)
-      for (let i = 0; i < d.data.length; i += 4) {
-        const g = 0.299 * d.data[i] + 0.587 * d.data[i+1] + 0.114 * d.data[i+2]
-        const v = g > 100 ? 255 : 0  // hard threshold — white text on black
-        d.data[i] = d.data[i+1] = d.data[i+2] = v
-      }
-      ctx.putImageData(d, 0, 0)
-      canvas.toBlob(resolve, 'image/png')
-    }
-    img.src = url
-  })
-}
-
-function parseScores(text) {
-  // Find number pairs separated by - : – etc.
-  const pairs = [...text.matchAll(/\b(\d{1,2})\s*[-:–—]\s*(\d{1,2})\b/g)]
-    .map(m => [+m[1], +m[2]])
-    .filter(([a, b]) => a <= 30 && b <= 30 && a + b > 0)
-  if (pairs.length) {
-    // Highest total = most likely the final score (not halftime)
-    pairs.sort((a, b) => (b[0] + b[1]) - (a[0] + a[1]))
-    return { score_a: pairs[0][0], score_b: pairs[0][1] }
-  }
-  // Fallback: any two numbers in range
-  const nums = [...text.matchAll(/\b(\d{1,2})\b/g)].map(m => +m[1]).filter(n => n <= 30)
-  if (nums.length >= 2) return { score_a: nums[0], score_b: nums[1] }
-  return null
-}
 
 // Shared hidden file input for scoreboard scans
 const scanInput = document.createElement('input')
@@ -87,17 +32,26 @@ scanInput.addEventListener('change', async () => {
   const scanBtn = document.querySelector(`.map-row-scan[data-i="${idx}"]`)
   if (scanBtn) { scanBtn.disabled = true; scanBtn.classList.add('scanning') }
   try {
-    const worker = await getOcrWorker()
-    const processed = await preprocessImage(file)
-    const { data: { text } } = await worker.recognize(processed)
-    const result = parseScores(text)
-    if (!result) throw new Error('no scores found')
-    maps[idx].score_us   = result.score_a
-    maps[idx].score_them = result.score_b
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result.split(',')[1])
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+    const res = await fetch('/api/scan-scoreboard', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ image: base64, mediaType: file.type || 'image/png' })
+    })
+    if (!res.ok) throw new Error(await res.text())
+    const { score_a, score_b, map } = await res.json()
+    maps[idx].score_us   = score_a ?? null
+    maps[idx].score_them = score_b ?? null
+    if (map && MAPS.includes(map)) maps[idx].map = map
     renderMaps()
-    toast(`Scores filled: ${result.score_a}–${result.score_b} — tap ⇄ to flip if reversed`)
+    toast(`Scores filled: ${score_a}–${score_b} — tap ⇄ to flip if reversed`)
   } catch {
-    toast('Could not read scores — try cropping tighter around the numbers', 'error')
+    toast('Could not read scoreboard', 'error')
   }
   if (scanBtn) { scanBtn.disabled = false; scanBtn.classList.remove('scanning') }
 })
