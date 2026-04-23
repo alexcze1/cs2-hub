@@ -1,6 +1,7 @@
 import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
+import { getTeamLogo, teamLogoEl } from './team-autocomplete.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -129,7 +130,9 @@ if (error) {
   `
 
   // ── Match list ────────────────────────────────────────────
-  el.innerHTML = vods.map(v => {
+  const logos = await Promise.all(vods.map(v => getTeamLogo(v.opponent ?? v.title)))
+
+  el.innerHTML = vods.map((v, vi) => {
     const maps = v.maps ?? []
     const mapsStr = maps.map(m => {
       const r = (m.score_us ?? 0) > (m.score_them ?? 0) ? 'win' : (m.score_them ?? 0) > (m.score_us ?? 0) ? 'loss' : 'draw'
@@ -143,11 +146,12 @@ if (error) {
         </div>
       </div>`
     }).join('')
+    const oppName = v.opponent ?? v.title
     return `
       <a class="list-row" href="vod-detail.html?id=${v.id}">
-        <span class="badge badge-${v.result ?? 'draw'}">${(v.result ?? '—').toUpperCase()}</span>
+        ${teamLogoEl(logos[vi], oppName, 40)}
         <div class="flex-1">
-          <div class="row-name">vs ${esc(v.opponent ?? v.title)}</div>
+          <div class="row-name">vs ${esc(oppName)}</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">${mapsStr}</div>
         </div>
         <div class="row-meta" style="text-align:right">
