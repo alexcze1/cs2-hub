@@ -600,7 +600,9 @@ body {
 
 .cal-event-time { font-weight: 700; opacity: 0.85; margin-right: 3px; }
 .cal-event-pracc { border-left: 3px solid var(--accent); }
+.cal-event-gcal  { border-left: 3px solid #4285f4; }
 .pracc-badge { font-size: 9px; font-weight: 800; letter-spacing: .06em; background: var(--accent); color: #000; padding: 1px 4px; border-radius: 3px; vertical-align: middle; margin-left: 4px; }
+.gcal-badge  { font-size: 9px; font-weight: 800; letter-spacing: .06em; background: #4285f4; color: #fff; padding: 1px 4px; border-radius: 3px; vertical-align: middle; margin-left: 4px; }
 .form-static { color: var(--text-primary); padding: 6px 0; }
 
 /* ── Info Panel (match info + maps) ── */

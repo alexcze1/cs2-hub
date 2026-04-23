@@ -27,13 +27,16 @@ currentMonth.setHours(0,0,0,0)
 // ── Load ───────────────────────────────────────────────────
 async function loadEvents() {
   const teamId = getTeamId()
-  const { data: teamRow } = await supabase.from('teams').select('pracc_url').eq('id', teamId).single()
+  const { data: teamRow } = await supabase.from('teams').select('pracc_url, gcal_url').eq('id', teamId).single()
 
-  const [{ data, error }, pracc] = await Promise.all([
+  const [{ data, error }, pracc, gcal] = await Promise.all([
     supabase.from('events').select('*').eq('team_id', teamId).order('date', { ascending: true }),
     teamRow?.pracc_url
       ? fetch(`/api/calendar?url=${encodeURIComponent(teamRow.pracc_url)}`).then(r => r.json()).catch(() => [])
-      : Promise.resolve([])
+      : Promise.resolve([]),
+    teamRow?.gcal_url
+      ? fetch(`/api/calendar?url=${encodeURIComponent(teamRow.gcal_url)}`).then(r => r.json()).catch(() => [])
+      : Promise.resolve([]),
   ])
 
   if (error) {
@@ -41,16 +44,19 @@ async function loadEvents() {
     return
   }
   const praccEvents = Array.isArray(pracc) ? pracc : []
+  const gcalEvents  = Array.isArray(gcal)  ? gcal.map(e => ({ ...e, source: 'gcal' })) : []
+  const externalEvents = [...praccEvents, ...gcalEvents]
+
   const filtered = data.filter(se => {
     const seStart = new Date(se.date).getTime()
     const seEnd   = se.end_date ? new Date(se.end_date).getTime() : seStart + 3600000
-    return !praccEvents.some(pe => {
+    return !externalEvents.some(pe => {
       const peStart = new Date(pe.date).getTime()
       const peEnd   = pe.end_date ? new Date(pe.end_date).getTime() : peStart + 3600000
       return seStart < peEnd && peStart < seEnd
     })
   })
-  allEvents = [...filtered, ...praccEvents].sort((a, b) => new Date(a.date) - new Date(b.date))
+  allEvents = [...filtered, ...externalEvents].sort((a, b) => new Date(a.date) - new Date(b.date))
   renderCalendar()
 }
 
@@ -89,7 +95,7 @@ function renderCalendar() {
       <div class="cal-cell ${!isCurrentMonth ? 'cal-other' : ''} ${isToday ? 'cal-today' : ''}" data-date="${dateStr}">
         <div class="cal-day-num">${d.getDate()}</div>
         ${dayEvents.map(e => `
-          <div class="cal-event cal-event-${e.type}${e.source === 'pracc' ? ' cal-event-pracc' : ''}" data-id="${esc(e.id)}"><span class="cal-event-time">${formatTime(e.date)}${e.end_date ? ' – ' + formatTime(e.end_date) : ''}</span> ${esc(e.title)}${e.source === 'pracc' ? ' <span class="pracc-badge">PRACC</span>' : ''}</div>
+          <div class="cal-event cal-event-${e.type}${e.source === 'pracc' ? ' cal-event-pracc' : e.source === 'gcal' ? ' cal-event-gcal' : ''}" data-id="${esc(e.id)}"><span class="cal-event-time">${formatTime(e.date)}${e.end_date ? ' – ' + formatTime(e.end_date) : ''}</span> ${esc(e.title)}${e.source === 'pracc' ? ' <span class="pracc-badge">PRACC</span>' : e.source === 'gcal' ? ' <span class="gcal-badge">GCAL</span>' : ''}</div>
         `).join('')}
       </div>
     `
@@ -100,6 +106,7 @@ function renderCalendar() {
       ev.stopPropagation()
       const event = allEvents.find(e => e.id === el.dataset.id)
       if (event?.source === 'pracc') openPraccModal(event)
+      else if (event?.source === 'gcal') openGcalEventModal(event)
       else openModal(el.dataset.id)
     })
   })
@@ -205,20 +212,58 @@ document.getElementById('pracc-modal-close').addEventListener('click', () => { d
 document.getElementById('pracc-cancel-btn').addEventListener('click', () => { document.getElementById('pracc-modal').style.display = 'none' })
 document.getElementById('pracc-modal').addEventListener('click', e => { if (e.target === document.getElementById('pracc-modal')) document.getElementById('pracc-modal').style.display = 'none' })
 
+// ── Google Calendar read-only event modal ──────────────────
+function openGcalEventModal(event) {
+  const formatDT = iso => new Date(iso).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  document.getElementById('gcal-event-body').innerHTML = `
+    <div class="form-group"><label class="form-label">Event</label><div class="form-static">${esc(event.title)}</div></div>
+    ${event.opponent ? `<div class="form-group"><label class="form-label">Opponent</label><div class="form-static">${esc(event.opponent)}</div></div>` : ''}
+    <div class="form-group"><label class="form-label">Start</label><div class="form-static">${formatDT(event.date)}</div></div>
+    ${event.end_date ? `<div class="form-group"><label class="form-label">End</label><div class="form-static">${formatDT(event.end_date)}</div></div>` : ''}
+    ${event.notes ? `<div class="form-group"><label class="form-label">Notes</label><div class="form-static">${esc(event.notes)}</div></div>` : ''}
+  `
+  document.getElementById('gcal-event-modal').style.display = 'flex'
+}
+
+document.getElementById('gcal-event-close').addEventListener('click', () => { document.getElementById('gcal-event-modal').style.display = 'none' })
+document.getElementById('gcal-event-cancel').addEventListener('click', () => { document.getElementById('gcal-event-modal').style.display = 'none' })
+document.getElementById('gcal-event-modal').addEventListener('click', e => { if (e.target === document.getElementById('gcal-event-modal')) document.getElementById('gcal-event-modal').style.display = 'none' })
+
 // ── Google Calendar ────────────────────────────────────────
 document.getElementById('gcal-btn').addEventListener('click', async () => {
-  const { data: team } = await supabase.from('teams').select('join_code').eq('id', getTeamId()).single()
+  const { data: team } = await supabase.from('teams').select('join_code, gcal_url').eq('id', getTeamId()).single()
   const base = window.location.origin
   const url = `${base}/api/export-calendar?team_id=${getTeamId()}&token=${team?.join_code ?? ''}`
   document.getElementById('gcal-url').value = url
+  document.getElementById('f-gcal-url').value = team?.gcal_url ?? ''
+  document.getElementById('gcal-import-error').style.display = 'none'
   document.getElementById('gcal-modal').style.display = 'flex'
 })
 document.getElementById('gcal-close').addEventListener('click', () => { document.getElementById('gcal-modal').style.display = 'none' })
 document.getElementById('gcal-cancel').addEventListener('click', () => { document.getElementById('gcal-modal').style.display = 'none' })
+document.getElementById('gcal-modal').addEventListener('click', e => { if (e.target === document.getElementById('gcal-modal')) document.getElementById('gcal-modal').style.display = 'none' })
 document.getElementById('gcal-copy').addEventListener('click', () => {
   navigator.clipboard.writeText(document.getElementById('gcal-url').value)
   document.getElementById('gcal-copy').textContent = 'Copied!'
   setTimeout(() => { document.getElementById('gcal-copy').textContent = 'Copy' }, 2000)
+})
+
+document.getElementById('gcal-import-save').addEventListener('click', async () => {
+  const gcal_url = document.getElementById('f-gcal-url').value.trim() || null
+  const errEl = document.getElementById('gcal-import-error')
+  const { error } = await supabase.from('teams').update({ gcal_url }).eq('id', getTeamId())
+  if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return }
+  document.getElementById('gcal-modal').style.display = 'none'
+  toast(gcal_url ? 'Google Calendar connected' : 'Google Calendar disconnected')
+  loadEvents()
+})
+
+document.getElementById('gcal-import-clear').addEventListener('click', async () => {
+  await supabase.from('teams').update({ gcal_url: null }).eq('id', getTeamId())
+  document.getElementById('f-gcal-url').value = ''
+  document.getElementById('gcal-modal').style.display = 'none'
+  toast('Google Calendar import cleared')
+  loadEvents()
 })
 
 // ── Pracc Settings ─────────────────────────────────────────
