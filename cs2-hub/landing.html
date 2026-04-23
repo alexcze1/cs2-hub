@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -27,16 +28,24 @@
     html { scroll-behavior: smooth; }
 
     body {
-      background:
-        radial-gradient(ellipse at 15% 35%, rgba(102,102,183,0.12) 0%, transparent 55%),
-        radial-gradient(ellipse at 85% 10%, rgba(166,102,193,0.08) 0%, transparent 45%),
-        var(--bg);
+      background: var(--bg);
       color: var(--text);
       font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-      font-size: 15px;
+      font-size: 14px;
+      font-weight: 300;
       letter-spacing: -0.012em;
       line-height: 1.6;
       overflow-x: hidden;
+    }
+
+    /* WebGL canvas background */
+    #bg-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
     }
 
     /* Grain overlay */
@@ -78,11 +87,12 @@
       background: #ffffff;
       color: #030712;
       text-decoration: none;
-      padding: 9px 22px;
-      border-radius: 100px;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.3px;
+      padding: 8px 20px;
+      border-radius: 2px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
       transition: opacity 0.15s;
     }
     .nav-cta:hover { opacity: 0.82; }
@@ -123,31 +133,33 @@
       margin: 0 auto 32px;
     }
     .hero-headline {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: clamp(40px, 6vw, 72px);
-      font-weight: 700;
-      letter-spacing: 1px;
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(52px, 7.5vw, 96px);
+      font-weight: 200;
+      letter-spacing: -0.05em;
       text-transform: uppercase;
-      line-height: 1.05;
-      margin-bottom: 22px;
+      line-height: 0.95;
+      margin-bottom: 28px;
     }
     .hero-sub {
-      color: var(--muted-lt);
-      font-size: 12px;
-      letter-spacing: 3.5px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.25em;
       text-transform: uppercase;
-      margin-bottom: 40px;
+      margin-bottom: 44px;
     }
     .hero-cta {
       display: inline-block;
       background: #ffffff;
       color: #030712;
       text-decoration: none;
-      padding: 15px 36px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
+      padding: 14px 32px;
+      border-radius: 2px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
       transition: opacity 0.15s, transform 0.15s;
     }
     .hero-cta:hover { opacity: 0.86; transform: translateY(-2px); }
@@ -181,24 +193,25 @@
 
     .feature-eyebrow {
       font-size: 10px;
-      letter-spacing: 3px;
+      font-weight: 500;
+      letter-spacing: 0.22em;
       text-transform: uppercase;
       color: var(--accent);
-      font-weight: 700;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
     }
     .feature-headline {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: clamp(30px, 3vw, 46px);
-      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(32px, 3.5vw, 52px);
+      font-weight: 200;
       text-transform: uppercase;
-      line-height: 1.1;
-      letter-spacing: 0.5px;
-      margin-bottom: 18px;
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+      margin-bottom: 20px;
     }
     .feature-body {
       color: var(--muted-lt);
-      font-size: 15px;
+      font-size: 14px;
+      font-weight: 300;
       line-height: 1.75;
     }
 
@@ -207,7 +220,7 @@
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border: 1px solid var(--glass-border);
-      border-radius: 14px;
+      border-radius: 2px;
       padding: 22px;
       position: relative;
       box-shadow: rgba(0,0,0,0.5) 0px 25px 50px -12px;
@@ -394,13 +407,13 @@
     /* ── Mock: Schedule week strip ── */
     .mock-schedule-section { text-align: center; max-width: 1160px; margin: 0 auto; padding: 0 60px; }
     .mock-schedule-headline {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: clamp(30px, 3vw, 46px);
-      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(30px, 3.5vw, 52px);
+      font-weight: 200;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      line-height: 1.1;
-      margin-bottom: 16px;
+      letter-spacing: -0.04em;
+      line-height: 0.95;
+      margin-bottom: 18px;
     }
     .mock-schedule-body {
       color: var(--muted-lt);
@@ -501,13 +514,13 @@
     }
     .waitlist-content { position: relative; z-index: 1; }
     .waitlist-headline {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: clamp(36px, 5vw, 58px);
-      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(36px, 5vw, 64px);
+      font-weight: 200;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      line-height: 1.08;
-      margin-bottom: 14px;
+      letter-spacing: -0.05em;
+      line-height: 0.95;
+      margin-bottom: 18px;
     }
     .waitlist-sub { color: var(--muted-lt); font-size: 15px; margin-bottom: 44px; }
     .waitlist-form {
@@ -523,7 +536,7 @@
       min-width: 220px;
       background: rgba(0,0,0,0.35);
       border: 1px solid rgba(255,255,255,0.09);
-      border-radius: 8px;
+      border-radius: 2px;
       padding: 13px 16px;
       color: var(--text);
       font-size: 14px;
@@ -536,15 +549,16 @@
       background: #ffffff;
       color: #030712;
       border: none;
-      border-radius: 8px;
+      border-radius: 2px;
       padding: 13px 28px;
-      font-size: 14px;
-      font-weight: 700;
+      font-size: 12px;
+      font-weight: 600;
       cursor: pointer;
       font-family: inherit;
       white-space: nowrap;
       transition: opacity 0.15s;
-      letter-spacing: 0.3px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
     .waitlist-btn:hover { opacity: 0.84; }
     .waitlist-note { color: var(--muted); font-size: 12px; letter-spacing: 0.3px; }
@@ -587,14 +601,19 @@
       margin: 0 auto 44px;
     }
 
+    /* Gradient border shell wrapper for main mocks */
+    .gradient-shell {
+      background: linear-gradient(to bottom, rgba(255,255,255,0.10), rgba(255,255,255,0.02));
+      padding: 1px;
+      border-radius: 2px;
+      box-shadow: rgba(0,0,0,0.6) 0px 30px 60px -12px;
+    }
     .mock-mv {
-      background: var(--glass-bg);
+      background: rgba(3,7,18,0.95);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      border: 1px solid var(--glass-border);
-      border-radius: 12px;
+      border-radius: 1px;
       overflow: hidden;
-      box-shadow: rgba(0,0,0,0.5) 0px 25px 50px -12px;
     }
     .mock-mv-header {
       display: flex;
@@ -870,6 +889,7 @@
   </style>
 </head>
 <body>
+  <canvas id="bg-canvas"></canvas>
   <div class="grain"></div>
 
   <nav class="site-nav" id="site-nav">
@@ -898,7 +918,8 @@
       <div class="feature-eyebrow">Stratbook · Match View</div>
       <h2 class="feature-headline">EVERY STRAT. EVERY OPPONENT.<br>ONE FULLSCREEN VIEW.</h2>
       <p class="feature-body">Build your full tactical library by map and side. In Match View, pull every strat and the full antistrat sheet side-by-side on one screen — so nothing gets missed from pistol round to overtime.</p>
-      <div style="border:1px solid rgba(255,255,255,0.08);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;">
+      <div class="gradient-shell">
+      <div style="border-radius:1px;overflow:hidden;display:flex;flex-direction:column;background:rgba(3,7,18,0.97);">
         <!-- Real Match View header — exact app structure -->
         <div class="fs-header">
           <span class="fs-title">Match View</span>
@@ -1081,6 +1102,7 @@
           </div>
         </div>
       </div>
+      </div><!-- /gradient-shell -->
     </div>
   </div>
 
@@ -1090,7 +1112,8 @@
       <h2 class="feature-headline">KNOW YOUR ENEMY<br>BEFORE THE SERVER LOADS.</h2>
       <p class="feature-body">Build a complete antistrat sheet for every opponent — CT and T side positions, pistol tendencies, exploits, and solutions. When it's game day, print the full gameplan as a PDF and take it to the booth.</p>
       <!-- Full-width antistrat mock -->
-      <div style="border:1px solid rgba(255,255,255,0.08);border-radius:10px;overflow:hidden;background:#030712;">
+      <div class="gradient-shell">
+      <div style="border-radius:1px;overflow:hidden;background:#030712;">
         <div class="app-page-header">
           <div>
             <div class="app-page-back">← Opponents</div>
@@ -1176,6 +1199,7 @@
           </div>
         </div>
       </div>
+      </div><!-- /gradient-shell -->
     </div>
   </div>
 
@@ -1214,7 +1238,8 @@
         </div>
       </div>
       <!-- Match list -->
-      <div style="background:#0a0a0f;border:1px solid rgba(255,255,255,0.08);border-radius:10px;overflow:hidden">
+      <div class="gradient-shell">
+      <div style="background:#0a0a0f;border-radius:1px;overflow:hidden">
         <!-- Match row 1 — expanded -->
         <div style="border-bottom:1px solid rgba(255,255,255,0.08)">
           <div style="display:flex;align-items:center;gap:12px;padding:12px 16px">
@@ -1322,6 +1347,7 @@
           <div style="color:#A1A1AA;font-size:12px;text-align:right;flex-shrink:0"><div>Scrim</div><div>Apr 15</div></div>
         </div>
       </div>
+      </div><!-- /gradient-shell -->
     </div>
   </div>
 
@@ -1397,6 +1423,123 @@
     <img src="images/logo-lettering.png" alt="MIDROUND" class="footer-logo"/>
     <span class="footer-copy">© MIDROUND 2026</span>
   </footer>
+
+  <script>
+  /* ── WebGL dot-matrix particle field ── */
+  (function() {
+    const canvas = document.getElementById('bg-canvas');
+    if (!canvas || typeof THREE === 'undefined') return;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x000000, 0);
+
+    const scene = new THREE.Scene();
+
+    /* Orthographic camera — flat 2D dot field */
+    const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+    cam.position.z = 1;
+
+    /* Build dot grid */
+    const COLS = 60, ROWS = 40;
+    const count = COLS * ROWS;
+    const positions = new Float32Array(count * 3);
+    const phases    = new Float32Array(count);
+    const speeds    = new Float32Array(count);
+
+    for (let i = 0; i < count; i++) {
+      const col = i % COLS;
+      const row = Math.floor(i / COLS);
+      positions[i * 3]     = (col / (COLS - 1)) * 2 - 1;
+      positions[i * 3 + 1] = (row / (ROWS - 1)) * 2 - 1;
+      positions[i * 3 + 2] = 0;
+      phases[i] = Math.random() * Math.PI * 2;
+      speeds[i] = 0.4 + Math.random() * 0.6;
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute('aPhase',   new THREE.BufferAttribute(phases, 1));
+    geo.setAttribute('aSpeed',   new THREE.BufferAttribute(speeds, 1));
+
+    const mat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      uniforms: {
+        uTime:    { value: 0 },
+        uMouse:   { value: new THREE.Vector2(0, 0) },
+        uAspect:  { value: 1 },
+      },
+      vertexShader: `
+        attribute float aPhase;
+        attribute float aSpeed;
+        uniform float uTime;
+        uniform vec2  uMouse;
+        uniform float uAspect;
+        varying float vAlpha;
+        void main() {
+          vec3 pos = position;
+
+          /* Aspect correction */
+          pos.x *= uAspect;
+
+          /* Breathing pulse — each dot has its own phase + speed */
+          float pulse = sin(uTime * aSpeed + aPhase) * 0.5 + 0.5;
+          vAlpha = 0.06 + pulse * 0.18;
+
+          /* Pointer drift — gentle repulsion */
+          vec2 mPos = uMouse * 2.0 - 1.0;
+          mPos.y = -mPos.y;
+          mPos.x *= uAspect;
+          float dist = length(pos.xy - mPos);
+          float repel = smoothstep(0.35, 0.0, dist);
+          vec2 dir = normalize(pos.xy - mPos + vec2(0.001));
+          pos.xy += dir * repel * 0.04;
+
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+          gl_PointSize = 1.8;
+        }
+      `,
+      fragmentShader: `
+        varying float vAlpha;
+        void main() {
+          /* Circular dot */
+          vec2 uv = gl_PointCoord - 0.5;
+          float d = length(uv);
+          if (d > 0.5) discard;
+          /* Purple-grey tint matching --accent #6666B7 */
+          gl_FragColor = vec4(0.60, 0.60, 0.72, vAlpha * (1.0 - d * 1.6));
+        }
+      `,
+    });
+
+    const points = new THREE.Points(geo, mat);
+    scene.add(points);
+
+    /* Resize */
+    function resize() {
+      const w = window.innerWidth, h = window.innerHeight;
+      renderer.setSize(w, h);
+      mat.uniforms.uAspect.value = w / h;
+    }
+    resize();
+    window.addEventListener('resize', resize, { passive: true });
+
+    /* Mouse */
+    window.addEventListener('mousemove', e => {
+      mat.uniforms.uMouse.value.set(e.clientX / window.innerWidth, e.clientY / window.innerHeight);
+    }, { passive: true });
+
+    /* Animate */
+    const clock = new THREE.Clock();
+    function tick() {
+      mat.uniforms.uTime.value = clock.getElapsedTime();
+      renderer.render(scene, cam);
+      requestAnimationFrame(tick);
+    }
+    tick();
+  })();
+  </script>
 
   <script>
   const nav = document.getElementById('site-nav');
