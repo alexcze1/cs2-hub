@@ -276,13 +276,28 @@ const [{ data }, { data: roster }] = await Promise.all([
 ])
 allStrats = data ?? []
 
-// Populate player filter from roster
+// Populate player filter: roster first, then any strat player names not in roster
 const playerSel = document.getElementById('player-filter')
+const rosterNames = new Set()
 ;(roster ?? []).forEach(p => {
   const name = p.nickname || p.username
+  rosterNames.add(name)
   const opt = document.createElement('option')
   opt.value = name
   opt.textContent = name + (p.role ? ` (${p.role})` : '')
+  playerSel.appendChild(opt)
+})
+// Add player names found in strats that aren't in the roster
+const stratPlayerNames = new Set()
+;(allStrats ?? []).forEach(s => {
+  ;(s.player_roles ?? []).forEach(r => {
+    if (r.player && r.role?.trim() && !rosterNames.has(r.player)) stratPlayerNames.add(r.player)
+  })
+})
+stratPlayerNames.forEach(name => {
+  const opt = document.createElement('option')
+  opt.value = name
+  opt.textContent = name
   playerSel.appendChild(opt)
 })
 playerSel.addEventListener('change', e => { activePlayer = e.target.value; render() })
