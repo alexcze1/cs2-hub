@@ -154,15 +154,31 @@ document.getElementById('save-btn').addEventListener('click', async () => {
 
   const payload = { title, type, date: new Date(date).toISOString(), end_date: end_date ? new Date(end_date).toISOString() : null, opponent, notes, team_id: getTeamId() }
 
-  let error
+  let error, vodId = null
   if (editingId) {
     ;({ error } = await supabase.from('events').update(payload).eq('id', editingId))
   } else {
     ;({ error } = await supabase.from('events').insert(payload))
+    if (!error && (type === 'scrim' || type === 'tournament')) {
+      const { data: vod } = await supabase.from('vods').insert({
+        team_id: getTeamId(),
+        opponent: opponent || title,
+        match_type: type,
+        match_date: new Date(date).toISOString().slice(0, 10),
+        maps: [],
+      }).select('id').single()
+      vodId = vod?.id ?? null
+    }
   }
   if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return }
   const wasEditing = !!editingId
-  closeModal(); toast(wasEditing ? 'Event updated' : 'Event added'); loadEvents()
+  closeModal()
+  if (vodId) {
+    toast(`Event added — <a href="vod-detail.html?id=${vodId}" style="color:inherit;font-weight:600;text-decoration:underline">Fill in results →</a>`, 'success', 5000)
+  } else {
+    toast(wasEditing ? 'Event updated' : 'Event added')
+  }
+  loadEvents()
 })
 
 document.getElementById('delete-btn').addEventListener('click', async () => {
