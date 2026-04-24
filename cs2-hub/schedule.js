@@ -2,7 +2,7 @@ import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
-import { attachTeamAutocomplete } from './team-autocomplete.js'
+import { attachTeamAutocomplete, getTeamLogo, teamLogoEl } from './team-autocomplete.js'
 
 function esc(text) {
   const d = document.createElement('div')
@@ -129,11 +129,13 @@ function openModal(id = null) {
   document.getElementById('f-type').value     = event?.type     ?? 'scrim'
   document.getElementById('f-date').value     = event?.date?.slice(0, 16)     ?? ''
   document.getElementById('f-end-date').value = event?.end_date?.slice(0, 16) ?? ''
-  document.getElementById('f-opponent').value = event?.opponent ?? ''
+  const opp = event?.opponent ?? ''
+  document.getElementById('f-opponent').value = opp
   document.getElementById('f-notes').value    = event?.notes    ?? ''
   document.getElementById('delete-btn').style.display = id ? 'block' : 'none'
   document.getElementById('modal-error').style.display = 'none'
   document.getElementById('modal').style.display = 'flex'
+  getTeamLogo(opp).then(logo => updateSchedLogo(logo, opp))
 }
 
 function openModalOnDate(dateStr) {
@@ -144,7 +146,19 @@ function openModalOnDate(dateStr) {
 
 function closeModal() { document.getElementById('modal').style.display = 'none'; editingId = null }
 
-attachTeamAutocomplete(document.getElementById('f-opponent'), () => {})
+const schedOppInput   = document.getElementById('f-opponent')
+const schedOppLogoWrap = document.getElementById('sched-opp-logo')
+
+function updateSchedLogo(logo, name) {
+  schedOppLogoWrap.innerHTML = logo || name ? teamLogoEl(logo, name, 36) : ''
+}
+
+attachTeamAutocomplete(schedOppInput, team => updateSchedLogo(team.logo, team.name))
+
+schedOppInput.addEventListener('input', async () => {
+  const n = schedOppInput.value.trim()
+  updateSchedLogo(n ? await getTeamLogo(n) : null, n)
+})
 
 document.getElementById('add-btn').addEventListener('click', () => openModal())
 document.getElementById('modal-close').addEventListener('click', closeModal)

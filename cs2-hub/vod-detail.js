@@ -2,7 +2,7 @@ import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
-import { attachTeamAutocomplete } from './team-autocomplete.js'
+import { attachTeamAutocomplete, getTeamLogo, teamLogoEl } from './team-autocomplete.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -233,7 +233,22 @@ if (isEdit) {
 
 renderMaps()
 
-attachTeamAutocomplete(document.getElementById('f-opponent'), () => {})
+const oppInput   = document.getElementById('f-opponent')
+const oppLogoWrap = document.getElementById('vod-opp-logo')
+
+function updateVodLogo(logo, name) {
+  oppLogoWrap.innerHTML = logo || name ? teamLogoEl(logo, name, 36) : ''
+}
+
+const initialOpp = oppInput.value.trim()
+if (initialOpp) updateVodLogo(await getTeamLogo(initialOpp), initialOpp)
+
+attachTeamAutocomplete(oppInput, team => updateVodLogo(team.logo, team.name))
+
+oppInput.addEventListener('input', async () => {
+  const n = oppInput.value.trim()
+  updateVodLogo(n ? await getTeamLogo(n) : null, n)
+})
 
 document.getElementById('add-map-btn').addEventListener('click', () => {
   saveActiveNotes()
