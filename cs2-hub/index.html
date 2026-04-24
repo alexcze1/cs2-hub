@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>MIDROUND</title>
+</head>
+<body>
+<script type="module">
+  import { supabase } from './supabase.js'
+
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (session) {
+      window.location.replace('dashboard.html')
+    } else {
+      window.location.replace('login.html')
+    }
+  })
+
+  const { data: { session } } = await supabase.auth.getSession()
+  if (session) {
+    window.location.replace('dashboard.html')
+  } else if (!window.location.hash.includes('access_token')) {
+    window.location.replace('login.html')
+  }
+</script>
+</body>
+</html>
