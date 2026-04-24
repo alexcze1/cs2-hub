@@ -23,7 +23,7 @@ function parseICS(text) {
       const m = dt.match(/(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})(Z?))?/)
       if (!m) return null
       const [, Y, M, D, h = '00', min = '00', s = '00', z = ''] = m
-      return `${Y}-${M}-${D}T${h}:${min}:${s}${z || 'Z'}`
+      return `${Y}-${M}-${D}T${h}:${min}:${s}${z}`
     }
 
     const title = summary || 'Pracc Match'
