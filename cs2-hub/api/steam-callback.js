@@ -60,7 +60,7 @@ async function generateMagicLink(email) {
     body: JSON.stringify({
       type: 'magiclink',
       email,
-      options: { redirectTo: `${APP_URL}/dashboard.html` },
+      options: { redirectTo: `${APP_URL}/login.html` },
     }),
   })
   const data = await res.json()
