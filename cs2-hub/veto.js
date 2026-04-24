@@ -2,6 +2,7 @@ import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
+import { attachTeamAutocomplete, getTeamLogo, teamLogoEl } from './team-autocomplete.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -91,13 +92,18 @@ async function loadVetos() {
   allVetos = data ?? []
   if (!allVetos.length) { el.innerHTML = `<div class="empty-state"><h3>No veto predictions yet</h3><p>Create one with the button above.</p></div>`; return }
 
-  el.innerHTML = allVetos.map(v => {
+  const logos = await Promise.all(allVetos.map(v => getTeamLogo(v.opponent ?? v.title)))
+
+  el.innerHTML = allVetos.map((v, vi) => {
     const steps = v.steps ?? []
     return `<div class="list-row" style="flex-direction:column;align-items:flex-start;gap:10px">
       <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
-        <div>
-          <div class="row-name">${esc(v.title)}</div>
-          <div class="row-meta">${v.opponent ? esc(v.opponent) + ' · ' : ''}<span class="badge badge-scrim">${v.format.toUpperCase()}</span></div>
+        <div style="display:flex;align-items:center;gap:12px">
+          ${teamLogoEl(logos[vi], v.opponent ?? v.title, 40)}
+          <div>
+            <div class="row-name">${esc(v.title)}</div>
+            <div class="row-meta">${v.opponent ? esc(v.opponent) + ' · ' : ''}<span class="badge badge-scrim">${v.format.toUpperCase()}</span></div>
+          </div>
         </div>
         <button class="btn btn-ghost" style="font-size:12px" data-edit="${v.id}">Edit</button>
       </div>
@@ -130,7 +136,9 @@ function openModal(id = null) {
   const v = id ? allVetos.find(x => x.id === id) : null
   document.getElementById('modal-title').textContent = id ? 'Edit Veto' : 'New Veto'
   document.getElementById('f-title').value    = v?.title    ?? ''
-  document.getElementById('f-opponent').value = v?.opponent ?? ''
+  const opp = v?.opponent ?? ''
+  document.getElementById('f-opponent').value = opp
+  getTeamLogo(opp).then(logo => updateVetoLogo(logo, opp))
   document.getElementById('f-format').value   = v?.format   ?? 'bo1'
   document.getElementById('f-notes').value    = v?.notes    ?? ''
   document.getElementById('f-home').value     = v?.home     ?? 'Us'
@@ -179,6 +187,20 @@ document.getElementById('delete-btn').addEventListener('click', async () => {
   const { error } = await supabase.from('veto_predictions').delete().eq('id', editingId)
   if (error) { document.getElementById('modal-error').textContent = error.message; document.getElementById('modal-error').style.display = 'block'; return }
   closeModal(); toast('Veto deleted'); loadVetos()
+})
+
+const vetoOppInput    = document.getElementById('f-opponent')
+const vetoOppLogoWrap = document.getElementById('veto-opp-logo')
+
+function updateVetoLogo(logo, name) {
+  vetoOppLogoWrap.innerHTML = logo || name ? teamLogoEl(logo, name, 36) : ''
+}
+
+attachTeamAutocomplete(vetoOppInput, team => updateVetoLogo(team.logo, team.name))
+
+vetoOppInput.addEventListener('input', async () => {
+  const n = vetoOppInput.value.trim()
+  updateVetoLogo(n ? await getTeamLogo(n) : null, n)
 })
 
 loadVetos()
