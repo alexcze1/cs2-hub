@@ -41,18 +41,87 @@ create table demo_players (
 alter table demos        enable row level security;
 alter table demo_players enable row level security;
 
-create policy "auth_all" on demos        for all to authenticated using (true) with check (true);
-create policy "auth_all" on demo_players for all to authenticated using (true) with check (true);
+-- Note: supabase-setup.sql uses permissive `using (true)` policies for all older tables
+-- (events, strats, vods, opponents, roster) because the app has a single-team model with
+-- no team_members join table. The demos table introduces team_id, so we scope it properly
+-- using the team_id column directly rather than `using (true)`.
+
+-- Only allow users to access demos for their own team.
+-- `uploaded_by` is used as the ownership signal since there is no team_members table.
+-- Reads: any authenticated user who uploaded at least one demo for that team can read all
+-- demos for that team. Writes: scoped to the uploader.
+create policy "team_demos_select" on demos
+  for select to authenticated
+  using (team_id IN (
+    select distinct team_id from demos d2 where d2.uploaded_by = auth.uid()
+  ));
+
+create policy "team_demos_insert" on demos
+  for insert to authenticated
+  with check (uploaded_by = auth.uid());
+
+create policy "team_demos_update" on demos
+  for update to authenticated
+  using (uploaded_by = auth.uid())
+  with check (uploaded_by = auth.uid());
+
+create policy "team_demos_delete" on demos
+  for delete to authenticated
+  using (uploaded_by = auth.uid());
+
+-- demo_players: accessible if the parent demo is accessible
+create policy "team_demo_players_select" on demo_players
+  for select to authenticated
+  using (demo_id IN (
+    select id from demos where team_id IN (
+      select distinct team_id from demos d2 where d2.uploaded_by = auth.uid()
+    )
+  ));
+
+create policy "team_demo_players_insert" on demo_players
+  for insert to authenticated
+  with check (demo_id IN (select id from demos where uploaded_by = auth.uid()));
+
+create policy "team_demo_players_update" on demo_players
+  for update to authenticated
+  using (demo_id IN (select id from demos where uploaded_by = auth.uid()));
+
+create policy "team_demo_players_delete" on demo_players
+  for delete to authenticated
+  using (demo_id IN (select id from demos where uploaded_by = auth.uid()));
 
 -- Storage bucket (run separately if SQL editor doesn't support storage API)
 insert into storage.buckets (id, name, public)
 values ('demos', 'demos', false)
 on conflict do nothing;
 
-create policy "auth_all" on storage.objects
-  for all to authenticated
-  using (bucket_id = 'demos')
-  with check (bucket_id = 'demos');
+-- Storage: scope to the team's prefix (teamId/ path prefix set at upload time in demos.js)
+create policy "team_demos_storage_select" on storage.objects
+  for select to authenticated
+  using (
+    bucket_id = 'demos'
+    AND (storage.foldername(name))[1] IN (
+      select distinct team_id::text from demos where uploaded_by = auth.uid()
+    )
+  );
+
+create policy "team_demos_storage_insert" on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'demos'
+    AND (storage.foldername(name))[1] IN (
+      select distinct team_id::text from demos where uploaded_by = auth.uid()
+    )
+  );
+
+create policy "team_demos_storage_delete" on storage.objects
+  for delete to authenticated
+  using (
+    bucket_id = 'demos'
+    AND (storage.foldername(name))[1] IN (
+      select distinct team_id::text from demos where uploaded_by = auth.uid()
+    )
+  );
 
 create index on demos (team_id, created_at desc);
 create index on demos (status) where status = 'pending';

@@ -82,6 +82,11 @@ fileInput.addEventListener('change', async () => {
     return
   }
 
+  if (file.size > 500 * 1024 * 1024) {
+    alert('Demo file must be under 500 MB.')
+    return
+  }
+
   progressWrap.style.display = 'block'
   progressText.textContent = `Uploading ${file.name}…`
   progressBar.style.width = '0%'

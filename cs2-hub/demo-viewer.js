@@ -39,6 +39,8 @@ if (error || !demo || demo.status !== 'ready') {
 }
 
 state.match = demo.match_data
+state.scoreCt = demo.score_ct ?? 0
+state.scoreT  = demo.score_t  ?? 0
 state.match.grenades = state.match.grenades ?? []
 state.match.kills    = state.match.kills    ?? []
 state.match.rounds   = state.match.rounds   ?? []
@@ -191,13 +193,12 @@ function buildPlayerCards() {
       </div>`
   }
 
-  const meta = state.match.meta
   document.getElementById('player-cards').innerHTML =
     ct.map(cardHtml).join('') +
     `<div class="score-card">
-       <div class="score-ct">${meta.ct_score}</div>
+       <div class="score-ct">${state.scoreCt}</div>
        <div class="score-vs">vs</div>
-       <div class="score-t">${meta.t_score}</div>
+       <div class="score-t">${state.scoreT}</div>
      </div>` +
     t.map(cardHtml).join('')
 }
