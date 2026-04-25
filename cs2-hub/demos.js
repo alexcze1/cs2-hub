@@ -9,6 +9,7 @@ function formatDate(d) { return new Date(d).toLocaleDateString('en-GB', { day: '
 await requireAuth()
 renderSidebar('demos')
 
+const VPS_URL = 'http://165.22.207.161:8100'
 const teamId = getTeamId()
 const listEl = document.getElementById('demos-list')
 const countEl = document.getElementById('demo-count-sub')
@@ -91,42 +92,46 @@ fileInput.addEventListener('change', async () => {
   progressText.textContent = `Uploading ${file.name}…`
   progressBar.style.width = '0%'
 
-  const { data: { user } } = await supabase.auth.getUser()
-  const demoId = crypto.randomUUID()
-  const storagePath = `${teamId}/${demoId}.dem`
+  const { data: { session } } = await supabase.auth.getSession()
+  const token = session?.access_token
 
-  const { error: uploadErr } = await supabase.storage
-    .from('demos')
-    .upload(storagePath, file, { upsert: false })
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('team_id', teamId)
 
-  if (uploadErr) {
-    progressText.textContent = `Upload failed: ${uploadErr.message}`
+  try {
+    await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      xhr.open('POST', `${VPS_URL}/upload`)
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const pct = Math.round((e.loaded / e.total) * 100)
+          progressBar.style.width = pct + '%'
+          progressText.textContent = `Uploading… ${pct}%`
+        }
+      }
+
+      xhr.onload = () => {
+        if (xhr.status === 200) resolve(JSON.parse(xhr.responseText))
+        else {
+          const msg = JSON.parse(xhr.responseText)?.detail || 'Upload failed'
+          reject(new Error(msg))
+        }
+      }
+      xhr.onerror = () => reject(new Error('Could not reach upload server'))
+      xhr.send(formData)
+    })
+
+    progressBar.style.width = '100%'
+    progressText.textContent = 'Uploaded — processing in background…'
+    setTimeout(() => { progressWrap.style.display = 'none' }, 3000)
+    loadDemos()
+  } catch (err) {
+    progressText.textContent = `Upload failed: ${err.message}`
     setTimeout(() => { progressWrap.style.display = 'none' }, 4000)
-    return
   }
-
-  progressBar.style.width = '60%'
-  progressText.textContent = 'Registering demo…'
-
-  const { error: insertErr } = await supabase.from('demos').insert({
-    id:           demoId,
-    team_id:      teamId,
-    uploaded_by:  user.id,
-    status:       'pending',
-    storage_path: storagePath,
-  })
-
-  if (insertErr) {
-    progressText.textContent = `Failed to register: ${insertErr.message}`
-    await supabase.storage.from('demos').remove([storagePath])
-    setTimeout(() => { progressWrap.style.display = 'none' }, 4000)
-    return
-  }
-
-  progressBar.style.width = '100%'
-  progressText.textContent = 'Uploaded — processing in background…'
-  setTimeout(() => { progressWrap.style.display = 'none' }, 3000)
-  loadDemos()
 })
 
 window.retryDemo = async (id) => {
