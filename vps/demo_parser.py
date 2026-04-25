@@ -1,4 +1,5 @@
-# vps/parser.py
+# vps/demo_parser.py
+import math
 from demoparser2 import DemoParser
 
 SAMPLE_RATE = 8  # store every 8th tick (~8-16 fps depending on tick rate)
@@ -12,7 +13,14 @@ WIN_REASONS = {
 }
 
 def _safe(val, default=0):
-    return val if val is not None else default
+    if val is None:
+        return default
+    try:
+        if math.isnan(val):
+            return default
+    except (TypeError, ValueError):
+        pass
+    return val
 
 def parse_demo(dem_path: str) -> dict:
     p = DemoParser(dem_path)
@@ -24,21 +32,21 @@ def parse_demo(dem_path: str) -> dict:
         "active_weapon_name", "is_alive", "cash",
         "team_num", "current_equip_value",
     ])
-    all_ticks = tick_df["tick"].unique().sort().to_list()
+    all_ticks = sorted(tick_df["tick"].unique().tolist())
 
     # --- events ---
-    kills_df   = p.parse_event("player_death",         player_props=["X", "Y"])
-    round_end  = p.parse_event("round_end")
+    kills_df    = p.parse_event("player_death",          player_props=["X", "Y"])
+    round_end   = p.parse_event("round_end")
     round_start = p.parse_event("round_start")
-    smoke_df   = p.parse_event("smokegrenade_detonate")
-    flash_df   = p.parse_event("flashbang_detonate")
-    he_df      = p.parse_event("hegrenade_detonate")
-    molotov_df = p.parse_event("inferno_startburn")
+    smoke_df    = p.parse_event("smokegrenade_detonate")
+    flash_df    = p.parse_event("flashbang_detonate")
+    he_df       = p.parse_event("hegrenade_detonate")
+    molotov_df  = p.parse_event("inferno_startburn")
 
     # --- rounds ---
-    starts = sorted(round_start["tick"].to_list()) if len(round_start) else []
+    starts = sorted(round_start["tick"].tolist()) if len(round_start) else []
     rounds = []
-    for i, row in enumerate(round_end.iter_rows(named=True)):
+    for i, row in enumerate(round_end.to_dict("records")):
         winner_val = row.get("winner", 2)
         rounds.append({
             "round_num":   i + 1,
@@ -52,9 +60,9 @@ def parse_demo(dem_path: str) -> dict:
     sampled = all_ticks[::SAMPLE_RATE]
     frames = []
     for tick in sampled:
-        rows = tick_df.filter(tick_df["tick"] == tick)
+        rows = tick_df[tick_df["tick"] == tick]
         players = []
-        for r in rows.iter_rows(named=True):
+        for r in rows.to_dict("records"):
             team_num = _safe(r.get("team_num"), 2)
             players.append({
                 "steam_id":  str(_safe(r.get("steamid"), "")),
@@ -72,7 +80,7 @@ def parse_demo(dem_path: str) -> dict:
 
     # --- kills ---
     kills = []
-    for r in kills_df.iter_rows(named=True):
+    for r in kills_df.to_dict("records"):
         kills.append({
             "tick":        int(r["tick"]),
             "killer_id":   str(_safe(r.get("attacker_steamid"), "")),
@@ -89,8 +97,10 @@ def parse_demo(dem_path: str) -> dict:
 
     # --- grenades ---
     def _nades(df, nade_type):
+        if df is None or len(df) == 0:
+            return []
         out = []
-        for r in df.iter_rows(named=True):
+        for r in df.to_dict("records"):
             thrower = r.get("userid_steamid") or r.get("attacker_steamid") or ""
             out.append({
                 "tick":       int(r["tick"]),
@@ -102,18 +112,18 @@ def parse_demo(dem_path: str) -> dict:
         return out
 
     grenades = (
-        _nades(smoke_df,    "smoke") +
-        _nades(flash_df,    "flash") +
-        _nades(he_df,       "he") +
-        _nades(molotov_df,  "molotov")
+        _nades(smoke_df,   "smoke") +
+        _nades(flash_df,   "flash") +
+        _nades(he_df,      "he") +
+        _nades(molotov_df, "molotov")
     )
 
     # --- economy (snapshot at each round start) ---
     economy = []
     for i, start_tick in enumerate(starts):
-        rows = tick_df.filter(tick_df["tick"] == start_tick)
+        rows = tick_df[tick_df["tick"] == start_tick]
         players_eco = []
-        for r in rows.iter_rows(named=True):
+        for r in rows.to_dict("records"):
             players_eco.append({
                 "steam_id":        str(_safe(r.get("steamid"), "")),
                 "money":           int(_safe(r.get("cash"), 0)),
