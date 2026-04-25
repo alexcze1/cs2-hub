@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+import httpx
 from supabase import create_client, Client
 from supabase.lib.client_options import ClientOptions
 
@@ -23,7 +24,7 @@ POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", "10"))
 STUCK_MINUTES = 2
 DEMOS_DIR     = Path("/opt/midround/demos")
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY, options=ClientOptions(postgrest_client_timeout=60))
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY, options=ClientOptions(timeout=httpx.Timeout(60.0)))
 
 
 @asynccontextmanager
