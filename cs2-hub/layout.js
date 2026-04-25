@@ -1,4 +1,4 @@
-import { signOut } from './auth.js'
+import { signOut, isAdmin } from './auth.js'
 import { supabase, getTeamId } from './supabase.js'
 
 const ICONS = {
@@ -27,6 +27,10 @@ export async function renderSidebar(activePage) {
     if (team) teamName = team.name.toUpperCase()
   }
 
+  const adminIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`
+
+  const { data: { user } } = await supabase.auth.getUser()
+
   const links = [
     { id: 'dashboard',  label: 'Dashboard',        href: 'dashboard.html',  icon: ICONS.dashboard,  section: 'MAIN' },
     { id: 'schedule',   label: 'Schedule',          href: 'schedule.html',   icon: ICONS.schedule },
@@ -38,6 +42,7 @@ export async function renderSidebar(activePage) {
     { id: 'goals',      label: 'Team Goals',        href: 'goals.html',      icon: ICONS.goals },
     { id: 'issues',     label: 'Issues',            href: 'issues.html',     icon: ICONS.issues },
     { id: 'roster',     label: 'Roster',            href: 'roster.html',     icon: ICONS.roster,     section: 'TEAM' },
+    ...(isAdmin(user) ? [{ id: 'admin', label: 'Admin', href: 'admin.html', icon: adminIcon, section: 'ADMIN' }] : []),
   ]
 
   let html = `

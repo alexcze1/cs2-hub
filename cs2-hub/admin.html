@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <link rel="icon" type="image/png" href="images/favicon.png">
+  <link rel="apple-touch-icon" href="images/favicon.png">
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Admin — MIDROUND</title>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    .admin-team-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:12px; overflow:hidden; }
+    .admin-team-header { display:flex; align-items:center; gap:14px; padding:16px 20px; cursor:pointer; }
+    .admin-team-header:hover { background:rgba(255,255,255,0.03); }
+    .admin-team-name { font-size:15px; font-weight:700; flex:1; }
+    .admin-team-meta { font-size:12px; color:var(--muted); }
+    .admin-team-code { font-family:monospace; font-size:12px; background:var(--bg); border:1px solid var(--border); border-radius:5px; padding:2px 8px; color:var(--accent); letter-spacing:1px; }
+    .admin-members { border-top:1px solid var(--border); padding:12px 20px; display:none; }
+    .admin-members.open { display:block; }
+    .admin-member-row { display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--border); }
+    .admin-member-row:last-child { border-bottom:none; }
+    .admin-member-name { font-size:13px; font-weight:600; flex:1; }
+    .admin-member-meta { font-size:11px; color:var(--muted); }
+    .admin-danger { color:var(--danger); border-color:var(--danger); }
+    .admin-danger:hover { background:rgba(239,68,68,0.1); }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">ADMIN</div>
+        <div class="page-subtitle">Manage all teams and members</div>
+      </div>
+      <button class="btn btn-primary" id="create-team-btn">+ New Team</button>
+    </div>
+
+    <div class="modal-backdrop" id="modal" style="display:none">
+      <div class="modal" style="max-width:400px;width:100%">
+        <div class="modal-header">
+          <div class="modal-title">Create Team</div>
+          <button class="modal-close" id="modal-close">×</button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Team Name</label>
+          <input class="form-input" id="f-team-name" placeholder="e.g. Team Liquid"/>
+        </div>
+        <div class="error-msg" id="modal-error" style="display:none"></div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" id="cancel-btn">Cancel</button>
+          <button class="btn btn-primary" id="save-btn">Create</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="teams-list"><div class="empty-state"><h3>Loading…</h3></div></div>
+  </main>
+</div>
+<script type="module" src="admin.js"></script>
+</body>
+</html>

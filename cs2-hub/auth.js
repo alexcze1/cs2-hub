@@ -37,3 +37,7 @@ export async function getUser() {
   const { data: { user } } = await supabase.auth.getUser()
   return user
 }
+
+export function isAdmin(user) {
+  return user?.user_metadata?.is_admin === true
+}
