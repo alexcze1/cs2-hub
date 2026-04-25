@@ -64,37 +64,51 @@ def parse_demo(dem_path: str) -> dict:
 
     print(f"[parser] round_end rows: {len(re_records)}  round_start rows: {len(rs_records)}")
     if re_records:
-        print(f"[parser] round_end[0] keys: {list(re_records[0].keys())}  sample: {re_records[0]}")
+        print(f"[parser] round_end[0] keys: {list(re_records[0].keys())}")
+        print(f"[parser] round_end[0] sample: {re_records[0]}")
+        print(f"[parser] round_end[1] sample: {re_records[1] if len(re_records) > 1 else 'n/a'}")
     if rs_records:
         print(f"[parser] round_start[0] sample: {rs_records[0]}")
 
     # --- rounds ---
     starts = sorted(int(r["tick"]) for r in rs_records) if rs_records else []
 
-    # Filter out warmup: ignore round_end events before the actual match starts.
-    # Strategy: keep only rounds where end_tick - start_tick > 200 ticks OR where
-    # the round_end tick is past the first real start tick.
-    # Simpler heuristic: skip any round_end whose tick <= 1.
+    MIN_ROUND_TICKS = 500  # skip warmup/zero-duration rounds (<4 sec at 128Hz)
+
     rounds = []
-    end_idx = 0  # index into starts list
     for row in re_records:
         end_tick = int(row["tick"])
-        # Match this round_end to the most recent round_start before it
+        # Find most recent round_start <= end_tick
         matched_start = 0
         for s in starts:
             if s <= end_tick:
                 matched_start = s
             else:
                 break
-        winner_val = row.get("winner") if hasattr(row, "get") else row.get("winner", 2)
+        duration = end_tick - matched_start
+        if duration < MIN_ROUND_TICKS:
+            print(f"[parser] skipping short round: start={matched_start} end={end_tick} duration={duration}")
+            continue
+        # winner: try common field names and value conventions
+        winner_val = row.get("winner")
         if winner_val is None:
-            winner_val = 2
+            winner_val = row.get("winner_team")
+        # CS2: winner==3 → CT, winner==2 → T  (some versions use 1/2)
+        if winner_val == 3 or winner_val == "CT":
+            winner_side = "ct"
+        elif winner_val == 2 or winner_val == "T":
+            winner_side = "t"
+        elif winner_val == 1:
+            winner_side = "t"   # some demos use 1=T, 2=CT
+        else:
+            winner_side = "t"   # fallback
+        reason_val = row.get("reason")
         rounds.append({
             "round_num":   len(rounds) + 1,
             "start_tick":  matched_start,
             "end_tick":    end_tick,
-            "winner_side": "ct" if winner_val == 3 else "t",
-            "win_reason":  WIN_REASONS.get(row.get("reason") if hasattr(row, "get") else None, "unknown"),
+            "winner_side": winner_side,
+            "win_reason":  WIN_REASONS.get(reason_val, "unknown"),
         })
 
     print(f"[parser] rounds built: {len(rounds)}")
