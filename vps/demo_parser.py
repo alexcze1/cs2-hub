@@ -35,7 +35,7 @@ def parse_demo(dem_path: str) -> dict:
     all_ticks = sorted(tick_df["tick"].unique().tolist())
 
     # --- events ---
-    kills_df    = p.parse_event("player_death",          player_props=["X", "Y"])
+    kills_df    = p.parse_event("player_death")
     round_end   = p.parse_event("round_end")
     round_start = p.parse_event("round_start")
     smoke_df    = p.parse_event("smokegrenade_detonate")
