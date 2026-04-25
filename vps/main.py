@@ -187,5 +187,3 @@ async def _process_one(demo: dict):
     finally:
         if tmp_path and not is_local:
             Path(tmp_path).unlink(missing_ok=True)
-        elif tmp_path and is_local:
-            Path(tmp_path).unlink(missing_ok=True)
