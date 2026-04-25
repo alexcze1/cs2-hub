@@ -65,10 +65,11 @@ const wrap    = document.getElementById('map-canvas-wrap')
 function resizeCanvas() {
   const { width, height } = wrap.getBoundingClientRect()
   const size = Math.min(width, height) - 16
+  if (size < 10) return
   canvas.width  = size
   canvas.height = size
 }
-resizeCanvas()
+requestAnimationFrame(resizeCanvas)
 new ResizeObserver(resizeCanvas).observe(wrap)
 
 // ── Round helpers ─────────────────────────────────────────
@@ -254,26 +255,29 @@ function updatePlayBtn() {
 
 // ── Animation loop ────────────────────────────────────────
 function loop(ts) {
-  if (state.playing) {
-    const dt         = ts - state.lastTs
-    const ticksPerMs = (state.match.meta.tick_rate * state.speed) / 1000
-    state.tick       = state.tick + dt * ticksPerMs
+  try {
+    if (state.playing) {
+      const dt         = ts - state.lastTs
+      const ticksPerMs = (state.match.meta.tick_rate * state.speed) / 1000
+      state.tick       = state.tick + dt * ticksPerMs
 
-    const round = currentRound()
-    if (state.tick >= round.end_tick) {
-      state.tick    = round.end_tick
-      state.playing = false
-      updatePlayBtn()
+      const round = currentRound()
+      if (state.tick >= round.end_tick) {
+        state.tick    = round.end_tick
+        state.playing = false
+        updatePlayBtn()
+      }
     }
+    state.lastTs = ts
+
+    render()
+    buildPlayerCards()
+    updateRoundTracker()
+    updateKillFeed()
+    updateTimeline()
+  } catch (e) {
+    console.error('Viewer loop error:', e)
   }
-  state.lastTs = ts
-
-  render()
-  buildPlayerCards()
-  updateRoundTracker()
-  updateKillFeed()
-  updateTimeline()
-
   rafId = requestAnimationFrame(loop)
 }
 
