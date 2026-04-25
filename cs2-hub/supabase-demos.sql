@@ -6,6 +6,7 @@ create table demos (
   team_id       uuid not null,
   uploaded_by   uuid references auth.users(id),
   created_at    timestamptz default now(),
+  updated_at    timestamptz default now(),
 
   -- set at upload time
   status        text not null default 'pending'
@@ -26,7 +27,7 @@ create table demos (
 
 create table demo_players (
   id         uuid primary key default gen_random_uuid(),
-  demo_id    uuid references demos(id) on delete cascade,
+  demo_id    uuid not null references demos(id) on delete cascade,
   steam_id   text,
   name       text,
   side       text check (side in ('ct','t')),
@@ -52,3 +53,6 @@ create policy "auth_all" on storage.objects
   for all to authenticated
   using (bucket_id = 'demos')
   with check (bucket_id = 'demos');
+
+create index on demos (team_id, created_at desc);
+create index on demos (status) where status = 'pending';
