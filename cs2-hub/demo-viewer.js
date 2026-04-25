@@ -38,6 +38,10 @@ if (error || !demo || demo.status !== 'ready') {
   throw new Error('not ready')
 }
 
+if (!demo.match_data || typeof demo.match_data !== 'object') {
+  document.getElementById('viewer-loading').textContent = 'Demo data missing — try re-uploading.'
+  throw new Error('no match_data')
+}
 state.match = demo.match_data
 state.scoreCt = demo.score_ct ?? 0
 state.scoreT  = demo.score_t  ?? 0
@@ -52,6 +56,26 @@ mapImg = new Image()
 mapImg.src = `images/maps/${demo.map}_radar.png`
 mapImg.onload  = () => { mapLoaded = true }
 mapImg.onerror = () => { mapLoaded = true }
+
+// Debug dump — remove once viewer is confirmed working
+const _m = state.match
+const _f0 = _m?.frames?.[0]
+const _r0 = _m?.rounds?.[0]
+const _dbg = `map: ${_m?.meta?.map ?? 'MISSING'}  tick_rate: ${_m?.meta?.tick_rate ?? 'MISSING'}
+rounds: ${_m?.rounds?.length ?? 0}  frames: ${_m?.frames?.length ?? 0}  kills: ${_m?.kills?.length ?? 0}
+round0: start=${_r0?.start_tick} end=${_r0?.end_tick}  players_in_frame0: ${_f0?.players?.length ?? 0}
+frame0_tick: ${_f0?.tick}  frame0_p0: ${JSON.stringify(_f0?.players?.[0])}`
+document.getElementById('debug-panel').textContent = _dbg
+console.log('[viewer] match_data structure:', { meta: _m?.meta, rounds: _m?.rounds?.length, frames: _m?.frames?.length, frame0: _f0, round0: _r0 })
+
+if (!state.match.rounds.length) {
+  document.getElementById('viewer-loading').textContent = 'No round data in demo — parsing may have failed.'
+  throw new Error('no rounds')
+}
+if (!state.match.frames.length) {
+  document.getElementById('viewer-loading').textContent = 'No frame data in demo — parsing may have failed.'
+  throw new Error('no frames')
+}
 
 // Show UI
 document.getElementById('viewer-loading').style.display = 'none'
