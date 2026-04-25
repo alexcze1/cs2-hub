@@ -1,6 +1,7 @@
 fastapi==0.115.0
 uvicorn==0.30.0
-demoparser2==4.5.0
+demoparser2==0.41.2
 supabase==2.9.0
 python-dotenv==1.0.1
 polars==0.20.31
+
