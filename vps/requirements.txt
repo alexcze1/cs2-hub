@@ -3,5 +3,6 @@ uvicorn==0.30.0
 demoparser2==0.41.2
 supabase==2.9.0
 python-dotenv==1.0.1
+python-multipart==0.0.20
 polars==0.20.31
 
