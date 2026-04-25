@@ -2,10 +2,15 @@
 import asyncio
 import os
 import shutil
+import socket
+import sys
 import uuid
 import datetime
 from pathlib import Path
 from contextlib import asynccontextmanager
+
+socket.setdefaulttimeout(30)  # all Supabase HTTP calls time out after 30s
+sys.stdout.reconfigure(line_buffering=True)  # flush every line in systemd
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
