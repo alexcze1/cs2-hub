@@ -9,7 +9,7 @@ function formatDate(d) { return new Date(d).toLocaleDateString('en-GB', { day: '
 await requireAuth()
 renderSidebar('demos')
 
-const VPS_URL = 'http://165.22.207.161:8100'
+const VPS_URL = 'https://vps.midround.pro'
 const teamId = getTeamId()
 const listEl = document.getElementById('demos-list')
 const countEl = document.getElementById('demo-count-sub')
