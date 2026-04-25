@@ -21,6 +21,7 @@ const state = {
 }
 let mapImg    = null
 let mapLoaded = false
+let rafId     = null
 
 // ── Load data ────────────────────────────────────────────
 const { data: demo, error } = await supabase
@@ -38,6 +39,10 @@ if (error || !demo || demo.status !== 'ready') {
 }
 
 state.match = demo.match_data
+state.match.grenades = state.match.grenades ?? []
+state.match.kills    = state.match.kills    ?? []
+state.match.rounds   = state.match.rounds   ?? []
+state.match.frames   = state.match.frames   ?? []
 document.title = `${demo.opponent_name ?? 'Demo'} — ${demo.map ?? ''} — MIDROUND`
 
 // Load map image
@@ -180,8 +185,8 @@ function buildPlayerCards() {
       <div class="player-card ${p.team}${p.is_alive ? '' : ' dead'}">
         <div class="player-card-name">${esc(p.name)}</div>
         <div class="player-card-kd">${k}/${d}</div>
-        <div class="player-card-weapon">${esc(p.weapon.replace('weapon_', ''))}</div>
-        <div class="player-card-money">$${p.money.toLocaleString()}</div>
+        <div class="player-card-weapon">${esc((p.weapon ?? '').replace('weapon_', ''))}</div>
+        <div class="player-card-money">$${(p.money ?? 0).toLocaleString()}</div>
         <div class="player-card-hp" style="width:${hpPct}%;background:${hpColor}"></div>
       </div>`
   }
@@ -235,7 +240,7 @@ function updateTimeline() {
   document.getElementById('timeline-thumb').style.left = clamped + '%'
 
   const tickRate = state.match.meta.tick_rate
-  const elapsed  = Math.floor((state.tick - round.start_tick) / tickRate)
+  const elapsed  = Math.floor(Math.max(0, state.tick - round.start_tick) / tickRate)
   const total    = Math.floor(span / tickRate)
   const fmt = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`
   document.getElementById('timeline-current').textContent = fmt(elapsed)
@@ -268,7 +273,7 @@ function loop(ts) {
   updateKillFeed()
   updateTimeline()
 
-  requestAnimationFrame(loop)
+  rafId = requestAnimationFrame(loop)
 }
 
 // ── Controls ──────────────────────────────────────────────
@@ -309,4 +314,4 @@ function esc(s) {
 
 // ── Kick off ──────────────────────────────────────────────
 jumpToRound(0)
-requestAnimationFrame(ts => { state.lastTs = ts; loop(ts) })
+rafId = requestAnimationFrame(ts => { state.lastTs = ts; loop(ts) })
