@@ -2,7 +2,7 @@
 <html>
 <body>
 <script type="module">
-import { worldToCanvas } from './demo-map-data.js'
+import { worldToCanvas, MAP_DATA } from './demo-map-data.js'
 
 function assert(condition, msg) {
   if (!condition) { console.error('FAIL:', msg); return; }
@@ -16,6 +16,11 @@ assert(mid.y > 150 && mid.y < 350, `mirage center y in range (got ${mid.y})`)
 const corner = worldToCanvas(-3200, 1700, 'de_mirage', 512, 512)
 assert(corner.x < 20, `mirage top-left x near 0 (got ${corner.x})`)
 assert(corner.y < 20, `mirage top-left y near 0 (got ${corner.y})`)
+
+// Spot-check MAP_DATA entries
+assert(MAP_DATA['de_mirage'].scale === 5.00, 'mirage scale is 5.00')
+assert(MAP_DATA['de_dust2'].pos_x === -2476, 'dust2 pos_x correct')
+assert(Object.keys(MAP_DATA).length === 8, '8 maps in MAP_DATA')
 
 console.log('All coordinate tests done')
 </script>

@@ -96,6 +96,7 @@ fileInput.addEventListener('change', async () => {
 
   if (uploadErr) {
     progressText.textContent = `Upload failed: ${uploadErr.message}`
+    setTimeout(() => { progressWrap.style.display = 'none' }, 4000)
     return
   }
 
@@ -112,6 +113,8 @@ fileInput.addEventListener('change', async () => {
 
   if (insertErr) {
     progressText.textContent = `Failed to register: ${insertErr.message}`
+    await supabase.storage.from('demos').remove([storagePath])
+    setTimeout(() => { progressWrap.style.display = 'none' }, 4000)
     return
   }
 

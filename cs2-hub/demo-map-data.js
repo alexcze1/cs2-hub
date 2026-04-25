@@ -10,6 +10,15 @@ export const MAP_DATA = {
   de_train:   { pos_x: -2477, pos_y:  2392, scale: 4.70 },
 }
 
+/**
+ * Convert CS2 world coordinates to canvas pixel coordinates.
+ * @param {number} wx - world X
+ * @param {number} wy - world Y
+ * @param {string} map - e.g. 'de_mirage'
+ * @param {number} cw - canvas width in pixels
+ * @param {number} ch - canvas height in pixels
+ * @returns {{ x: number, y: number }}
+ */
 export function worldToCanvas(wx, wy, map, cw, ch) {
   const m = MAP_DATA[map]
   if (!m) return { x: 0, y: 0 }
