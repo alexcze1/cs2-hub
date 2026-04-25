@@ -4,6 +4,7 @@ import os
 import tempfile
 import datetime
 from pathlib import Path
+from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
@@ -19,17 +20,19 @@ POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", "10"))
 STUCK_MINUTES = 10
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-app = FastAPI()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    asyncio.create_task(_poll_loop())
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
-
-
-@app.on_event("startup")
-async def start_poll():
-    asyncio.create_task(_poll_loop())
 
 
 async def _poll_loop():
@@ -64,12 +67,15 @@ async def _process_one(demo: dict):
     try:
         file_bytes = supabase.storage.from_("demos").download(storage_path)
 
-        with tempfile.NamedTemporaryFile(suffix=".dem", delete=False) as tmp:
-            tmp.write(file_bytes)
-            tmp_path = tmp.name
-
-        match_data = parse_demo(tmp_path)
-        Path(tmp_path).unlink(missing_ok=True)
+        tmp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".dem", delete=False) as tmp:
+                tmp.write(file_bytes)
+                tmp_path = tmp.name
+            match_data = parse_demo(tmp_path)
+        finally:
+            if tmp_path:
+                Path(tmp_path).unlink(missing_ok=True)
 
         meta   = match_data["meta"]
         ct_score = meta["ct_score"]
