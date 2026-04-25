@@ -22,6 +22,12 @@ from demo_parser import parse_demo
 socket.setdefaulttimeout(30)
 sys.stdout.reconfigure(line_buffering=True)
 
+# Force IPv4 — VPS has no IPv6 routing
+_orig_getaddrinfo = socket.getaddrinfo
+def _ipv4_getaddrinfo(host, port, family=0, *args, **kwargs):
+    return _orig_getaddrinfo(host, port, socket.AF_INET, *args, **kwargs)
+socket.getaddrinfo = _ipv4_getaddrinfo
+
 load_dotenv()
 
 SUPABASE_URL  = os.environ["SUPABASE_URL"]
