@@ -23,7 +23,7 @@ POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", "10"))
 STUCK_MINUTES = 2
 DEMOS_DIR     = Path("/opt/midround/demos")
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY, options=ClientOptions(postgrest_client_timeout=15))
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY, options=ClientOptions(postgrest_client_timeout=60))
 
 
 @asynccontextmanager
