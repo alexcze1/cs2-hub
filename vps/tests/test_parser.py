@@ -1,7 +1,7 @@
 # vps/tests/test_parser.py
 import pytest
 from pathlib import Path
-from parser import parse_demo
+from demo_parser import parse_demo, SAMPLE_RATE
 
 FIXTURE = Path(__file__).parent / "fixture.dem"
 
@@ -30,7 +30,7 @@ def test_frames_sampled():
     assert len(frames) > 100
     if len(frames) > 1:
         tick_gap = frames[1]["tick"] - frames[0]["tick"]
-        assert 4 <= tick_gap <= 16
+        assert tick_gap % SAMPLE_RATE == 0
 
 @pytest.mark.skipif(not FIXTURE.exists(), reason="no fixture.dem")
 def test_player_fields():

@@ -22,7 +22,7 @@ def parse_demo(dem_path: str) -> dict:
     tick_df = p.parse_ticks([
         "X", "Y", "health", "armor_value",
         "active_weapon_name", "is_alive", "cash",
-        "team_num",
+        "team_num", "current_equip_value",
     ])
     all_ticks = tick_df["tick"].unique().sort().to_list()
 
