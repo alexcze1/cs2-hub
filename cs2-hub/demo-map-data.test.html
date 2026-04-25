@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script type="module">
+import { worldToCanvas } from './demo-map-data.js'
+
+function assert(condition, msg) {
+  if (!condition) { console.error('FAIL:', msg); return; }
+  console.log('PASS:', msg);
+}
+
+const mid = worldToCanvas(-50, 100, 'de_mirage', 512, 512)
+assert(mid.x > 150 && mid.x < 350, `mirage center x in range (got ${mid.x})`)
+assert(mid.y > 150 && mid.y < 350, `mirage center y in range (got ${mid.y})`)
+
+const corner = worldToCanvas(-3200, 1700, 'de_mirage', 512, 512)
+assert(corner.x < 20, `mirage top-left x near 0 (got ${corner.x})`)
+assert(corner.y < 20, `mirage top-left y near 0 (got ${corner.y})`)
+
+console.log('All coordinate tests done')
+</script>
+</body>
+</html>
