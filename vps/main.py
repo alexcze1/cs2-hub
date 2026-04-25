@@ -28,8 +28,9 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     DEMOS_DIR.mkdir(parents=True, exist_ok=True)
-    asyncio.create_task(_poll_loop())
+    task = asyncio.create_task(_poll_loop())
     yield
+    task.cancel()
 
 app = FastAPI(lifespan=lifespan)
 
