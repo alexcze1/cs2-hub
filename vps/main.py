@@ -134,7 +134,8 @@ async def _process_one(demo: dict):
                 tmp.write(file_bytes)
                 tmp_path = tmp.name
 
-        match_data = parse_demo(tmp_path)
+        loop = asyncio.get_event_loop()
+        match_data = await loop.run_in_executor(None, parse_demo, tmp_path)
 
         meta     = match_data["meta"]
         ct_score = meta["ct_score"]
@@ -183,7 +184,7 @@ async def _process_one(demo: dict):
         print(f"Done: {demo_id} — {meta['map']} {ct_score}-{t_score}")
 
     except Exception as e:
-        print(f"Failed {demo_id}: {e}")
+        print(f"Failed {demo_id} ({type(e).__name__}): {e}")
         supabase.table("demos").update({
             "status":        "error",
             "updated_at":    datetime.datetime.utcnow().isoformat(),
