@@ -22,6 +22,20 @@ def _safe(val, default=0):
         pass
     return val
 
+def _to_records(df):
+    """Convert a DataFrame to list of row dicts (handles both polars and pandas)."""
+    try:
+        return df.to_dicts()          # polars native
+    except AttributeError:
+        return df.to_dict("records")  # pandas fallback
+
+def _col_to_list(col):
+    """Convert a Series/column to a plain Python list."""
+    try:
+        return col.to_list()   # polars
+    except AttributeError:
+        return col.tolist()    # pandas
+
 def parse_demo(dem_path: str) -> dict:
     p = DemoParser(dem_path)
     header = p.parse_header()
@@ -32,7 +46,9 @@ def parse_demo(dem_path: str) -> dict:
         "active_weapon_name", "is_alive", "cash",
         "team_num", "current_equip_value",
     ])
-    all_ticks = sorted(tick_df["tick"].unique().tolist())
+
+    all_ticks = sorted(set(_col_to_list(tick_df["tick"])))
+    print(f"[parser] tick range: {all_ticks[0] if all_ticks else 'none'} – {all_ticks[-1] if all_ticks else 'none'}  total unique ticks: {len(all_ticks)}")
 
     # --- events ---
     kills_df    = p.parse_event("player_death")
@@ -43,26 +59,62 @@ def parse_demo(dem_path: str) -> dict:
     he_df       = p.parse_event("hegrenade_detonate")
     molotov_df  = p.parse_event("inferno_startburn")
 
+    re_records = _to_records(round_end)
+    rs_records = _to_records(round_start)
+
+    print(f"[parser] round_end rows: {len(re_records)}  round_start rows: {len(rs_records)}")
+    if re_records:
+        print(f"[parser] round_end[0] keys: {list(re_records[0].keys())}  sample: {re_records[0]}")
+    if rs_records:
+        print(f"[parser] round_start[0] sample: {rs_records[0]}")
+
     # --- rounds ---
-    starts = sorted(round_start["tick"].tolist()) if len(round_start) else []
+    starts = sorted(int(r["tick"]) for r in rs_records) if rs_records else []
+
+    # Filter out warmup: ignore round_end events before the actual match starts.
+    # Strategy: keep only rounds where end_tick - start_tick > 200 ticks OR where
+    # the round_end tick is past the first real start tick.
+    # Simpler heuristic: skip any round_end whose tick <= 1.
     rounds = []
-    for i, row in enumerate(round_end.to_dict("records")):
-        winner_val = row.get("winner", 2)
+    end_idx = 0  # index into starts list
+    for row in re_records:
+        end_tick = int(row["tick"])
+        # Match this round_end to the most recent round_start before it
+        matched_start = 0
+        for s in starts:
+            if s <= end_tick:
+                matched_start = s
+            else:
+                break
+        winner_val = row.get("winner") if hasattr(row, "get") else row.get("winner", 2)
+        if winner_val is None:
+            winner_val = 2
         rounds.append({
-            "round_num":   i + 1,
-            "start_tick":  int(starts[i]) if i < len(starts) else 0,
-            "end_tick":    int(row["tick"]),
+            "round_num":   len(rounds) + 1,
+            "start_tick":  matched_start,
+            "end_tick":    end_tick,
             "winner_side": "ct" if winner_val == 3 else "t",
-            "win_reason":  WIN_REASONS.get(row.get("reason"), "unknown"),
+            "win_reason":  WIN_REASONS.get(row.get("reason") if hasattr(row, "get") else None, "unknown"),
         })
+
+    print(f"[parser] rounds built: {len(rounds)}")
+    if rounds:
+        print(f"[parser] round[0]: {rounds[0]}  round[-1]: {rounds[-1]}")
 
     # --- sampled frames ---
     sampled = all_ticks[::SAMPLE_RATE]
     frames = []
+
+    tick_records = _to_records(tick_df)
+    # Group tick_records by tick for fast lookup
+    from collections import defaultdict
+    by_tick = defaultdict(list)
+    for r in tick_records:
+        by_tick[int(r["tick"])].append(r)
+
     for tick in sampled:
-        rows = tick_df[tick_df["tick"] == tick]
         players = []
-        for r in rows.to_dict("records"):
+        for r in by_tick.get(tick, []):
             team_num = _safe(r.get("team_num"), 2)
             players.append({
                 "steam_id":  str(_safe(r.get("steamid"), "")),
@@ -78,9 +130,11 @@ def parse_demo(dem_path: str) -> dict:
             })
         frames.append({"tick": int(tick), "players": players})
 
+    print(f"[parser] frames: {len(frames)}  frame[0] players: {len(frames[0]['players']) if frames else 0}")
+
     # --- kills ---
     kills = []
-    for r in kills_df.to_dict("records"):
+    for r in _to_records(kills_df):
         kills.append({
             "tick":        int(r["tick"]),
             "killer_id":   str(_safe(r.get("attacker_steamid"), "")),
@@ -97,10 +151,13 @@ def parse_demo(dem_path: str) -> dict:
 
     # --- grenades ---
     def _nades(df, nade_type):
-        if df is None or len(df) == 0:
+        if df is None:
+            return []
+        rows = _to_records(df)
+        if not rows:
             return []
         out = []
-        for r in df.to_dict("records"):
+        for r in rows:
             thrower = r.get("userid_steamid") or r.get("attacker_steamid") or ""
             out.append({
                 "tick":       int(r["tick"]),
@@ -121,9 +178,8 @@ def parse_demo(dem_path: str) -> dict:
     # --- economy (snapshot at each round start) ---
     economy = []
     for i, start_tick in enumerate(starts):
-        rows = tick_df[tick_df["tick"] == start_tick]
         players_eco = []
-        for r in rows.to_dict("records"):
+        for r in by_tick.get(start_tick, []):
             players_eco.append({
                 "steam_id":        str(_safe(r.get("steamid"), "")),
                 "money":           int(_safe(r.get("cash"), 0)),
