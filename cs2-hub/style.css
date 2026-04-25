@@ -1171,3 +1171,12 @@ body {
   gap: 6px;
   margin-bottom: 12px;
 }
+
+/* demo library */
+.badge-success { background:rgba(76,175,80,.15);color:#4CAF50 }
+.badge-warning { background:rgba(255,193,7,.15);color:#FFC107 }
+.badge-error   { background:rgba(239,83,80,.15);color:#EF5350 }
+.list-row-icon { width:44px;height:44px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0 }
+.list-row-body { flex:1;min-width:0 }
+.list-row-title { font-weight:500;font-size:14px;color:var(--text) }
+.list-row-sub   { font-size:12px;color:var(--text-secondary);margin-top:2px }

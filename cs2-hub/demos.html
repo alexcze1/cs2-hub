@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <link rel="icon" type="image/png" href="images/favicon.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Demos — MIDROUND</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <main class="main-content">
+
+    <div class="page-header">
+      <div>
+        <div class="page-title">Demos</div>
+        <div class="page-sub" id="demo-count-sub">Loading…</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input type="file" id="demo-file-input" accept=".dem" style="display:none"/>
+        <button class="btn btn-primary" id="upload-btn">+ Upload Demo</button>
+      </div>
+    </div>
+
+    <div id="upload-progress" style="display:none;margin-bottom:16px" class="card">
+      <div id="upload-progress-text" style="margin-bottom:8px;font-size:14px;color:var(--text-secondary)">Uploading…</div>
+      <div style="height:4px;background:var(--border);border-radius:2px">
+        <div id="upload-progress-bar" style="height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width 0.2s"></div>
+      </div>
+    </div>
+
+    <div id="demos-list"></div>
+
+  </main>
+</div>
+<script type="module" src="demos.js"></script>
+</body>
+</html>
