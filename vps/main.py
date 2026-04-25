@@ -57,8 +57,13 @@ async def upload_demo(
         raise HTTPException(status_code=401, detail="Missing auth token")
     token = authorization[7:]
     try:
-        user_resp = supabase.auth.get_user(token)
+        user_resp = await asyncio.wait_for(
+            asyncio.get_event_loop().run_in_executor(None, lambda: supabase.auth.get_user(token)),
+            timeout=10,
+        )
         user_id = user_resp.user.id
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=503, detail="Auth service unavailable, try again")
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid auth token")
 
