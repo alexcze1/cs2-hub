@@ -114,11 +114,13 @@ function getFrame(tick) {
 
 // ── Death markers ─────────────────────────────────────────────
 function renderDeathMarkers(round, cw, dotR) {
+  ctx.save()
   const kills = state.match.kills
   const half  = dotR * 1.4
   ctx.lineWidth = 2
   for (const kill of kills) {
     if (kill.tick < round.start_tick || kill.tick > state.tick) continue
+    if (kill.victim_x == null || kill.victim_y == null) continue
     const { x, y } = worldToCanvas(kill.victim_x, kill.victim_y, mapName, cw, canvas.height)
     ctx.strokeStyle = kill.victim_team === 'ct' ? '#4FC3F7' : '#EF5350'
     ctx.beginPath()
@@ -130,6 +132,7 @@ function renderDeathMarkers(round, cw, dotR) {
     ctx.lineTo(x - half, y + half)
     ctx.stroke()
   }
+  ctx.restore()
 }
 
 // ── Render ────────────────────────────────────────────────────
@@ -217,8 +220,9 @@ function updatePlayerCards() {
 }
 
 function updateKillFeed() {
-  if (state.tick === _lastKillTick) return
-  _lastKillTick = state.tick
+  const frame = getFrame(state.tick)
+  if (!frame || frame.tick === _lastKillTick) return
+  _lastKillTick = frame.tick
 
   const round = currentRound()
   const kills = state.match.kills.filter(k =>
@@ -230,13 +234,15 @@ function updateKillFeed() {
   if (!el) return
 
   el.innerHTML = recent.map((k, i) => {
-    const borderCls = k.killer_team === 'ct' ? 'ct-kill' : 't-kill'
+    const killerName = k.killer_name ?? 'World'
+    const killerTeam = k.killer_team ?? 't'
+    const borderCls = killerTeam === 'ct' ? 'ct-kill' : 't-kill'
     const fadeCls   = i >= 2 ? ' faded' : ''
     const hs        = k.headshot === true ? `<span class="kf-hs">HS</span>` : ''
     const weapon    = esc(k.weapon || '')
     return `<div class="kf-row ${borderCls}${fadeCls}">
   <div class="kf-names">
-    <span class="kf-killer ${k.killer_team}">${esc(k.killer_name)}</span>
+    <span class="kf-killer ${killerTeam}">${esc(killerName)}</span>
     →
     <span class="kf-victim ${k.victim_team}">${esc(k.victim_name)}</span>
   </div>
