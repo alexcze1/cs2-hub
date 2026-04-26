@@ -132,18 +132,10 @@ def _add_throw_origins(grenades, shots_df, by_tick, sampled_sorted) -> None:
         print(f"[parser] throw origins error: {e}")
         return
 
-    print(f"[parser] throws by type: { {k: len(v) for k, v in throws_by_type.items()} }")
     for lst in throws_by_type.values():
         lst.sort(key=lambda t: t["tick"])
 
     sorted_grenades = sorted(grenades, key=lambda g: g["tick"])
-    # Debug: show tick delta between first throw and first detonation per type
-    for gtype in ["smoke", "flash", "he", "molotov"]:
-        t_list = throws_by_type.get(gtype, [])
-        g_list = [g for g in sorted_grenades if g["type"] == gtype]
-        if t_list and g_list:
-            delta = g_list[0]["tick"] - t_list[0]["tick"]
-            print(f"[parser] {gtype} tick delta (det-throw): {delta}  throw={t_list[0]['tick']} det={g_list[0]['tick']}")
     consumed: dict = {}  # gtype -> set of consumed indices (per-type to avoid cross-contamination)
 
     for g in sorted_grenades:
@@ -179,13 +171,6 @@ def _add_throw_origins(grenades, shots_df, by_tick, sampled_sorted) -> None:
             g["origin_y"]    = best["y"]
             g["origin_tick"] = best["tick"]
 
-    matched = {}
-    for g in grenades:
-        matched[g["type"]] = matched.get(g["type"], 0) + (1 if g.get("origin_x") is not None else 0)
-    total = {}
-    for g in grenades:
-        total[g["type"]] = total.get(g["type"], 0) + 1
-    print(f"[parser] origins matched: { {k: f'{matched.get(k,0)}/{total[k]}' for k in total} }")
 
 
 def _parse_grenades(p) -> list:
@@ -364,7 +349,6 @@ def parse_demo(dem_path: str) -> dict:
         ticks=sampled,
     )
 
-    print(f"[parser] tick_df columns: {list(tick_df.columns)}")
     tick_records = _to_records(tick_df)
     by_tick: dict = defaultdict(list)
     for r in tick_records:
