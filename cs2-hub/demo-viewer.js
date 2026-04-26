@@ -61,9 +61,6 @@ if (!state.match.rounds.length) {
 const mapName = state.match.meta?.map || demo.map || ''
 document.title = `${mapName} — MIDROUND`
 console.log('[viewer] map:', mapName, '| rounds:', state.match.rounds.length, '| frames:', state.match.frames.length)
-console.log('[viewer] kills:', state.match.kills.length, '| grenades:', state.match.grenades.length, '| bomb:', state.match.bomb.length)
-if (state.match.kills[0]) console.log('[viewer] kill[0]:', JSON.stringify(state.match.kills[0]))
-if (state.match.grenades[0]) console.log('[viewer] grenade[0]:', JSON.stringify(state.match.grenades[0]))
 
 mapImg     = new Image()
 mapImg.src = `images/maps/${mapName}_radar.png`
@@ -115,28 +112,6 @@ function getFrame(tick) {
   return frames[lo]
 }
 
-// ── Death markers ─────────────────────────────────────────────
-function renderDeathMarkers(round, cw, dotR) {
-  ctx.save()
-  const kills = state.match.kills
-  const half  = dotR * 1.4
-  ctx.lineWidth = 2
-  for (const kill of kills) {
-    if (kill.tick < round.start_tick || kill.tick > state.tick) continue
-    if (kill.victim_x == null || kill.victim_y == null) continue
-    const { x, y } = worldToCanvas(kill.victim_x, kill.victim_y, mapName, cw, canvas.height)
-    ctx.strokeStyle = kill.victim_team === 'ct' ? '#4FC3F7' : '#EF5350'
-    ctx.beginPath()
-    ctx.moveTo(x - half, y - half)
-    ctx.lineTo(x + half, y + half)
-    ctx.stroke()
-    ctx.beginPath()
-    ctx.moveTo(x + half, y - half)
-    ctx.lineTo(x - half, y + half)
-    ctx.stroke()
-  }
-  ctx.restore()
-}
 
 // ── Grenade overlays ──────────────────────────────────────────
 function renderGrenades(round, tick, cw, ch) {
@@ -245,7 +220,6 @@ function render() {
   const fontSize = Math.round(cw * 0.018)
 
   const round = currentRound()
-  renderDeathMarkers(round, cw, dotR)
   renderGrenades(round, state.tick, cw, ch)
   renderBomb(round, state.tick, cw, ch)
 

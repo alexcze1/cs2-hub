@@ -161,8 +161,24 @@ def _parse_grenades(p) -> list:
     return grenades
 
 
-def _parse_bomb(p) -> list:
+def _parse_bomb(p, by_tick, sampled) -> list:
+    """Parse bomb events. Derives position from planting player's frame position
+    because bomb_planted/defused events don't carry reliable world coords."""
+    sampled_sorted = sorted(sampled)
+
+    def player_pos(tick, steam_id):
+        import bisect
+        idx = bisect.bisect_left(sampled_sorted, tick)
+        for i in [idx, idx - 1, idx + 1]:
+            if 0 <= i < len(sampled_sorted):
+                for r in by_tick.get(sampled_sorted[i], []):
+                    if str(r.get("steamid") or "") == str(steam_id):
+                        return _safe_float(r.get("X")), _safe_float(r.get("Y"))
+        return 0.0, 0.0
+
     bomb_events = []
+    planted_pos = (0.0, 0.0)  # reuse for defused/exploded
+
     for event_name, event_type in [
         ("bomb_planted",  "planted"),
         ("bomb_defused",  "defused"),
@@ -170,10 +186,16 @@ def _parse_bomb(p) -> list:
     ]:
         try:
             for r in _to_records(p.parse_event(event_name)):
-                x, y = _event_pos(r)
                 tick = _safe_int(r.get("tick"))
                 if tick == 0:
                     continue
+                steam_id = r.get("user_steamid") or r.get("userid_steamid")
+                if event_type == "planted":
+                    x, y = player_pos(tick, steam_id) if steam_id else _event_pos(r)
+                    if x != 0 or y != 0:
+                        planted_pos = (x, y)
+                else:
+                    x, y = planted_pos  # bomb stays where it was planted
                 bomb_events.append({"tick": tick, "type": event_type, "x": x, "y": y})
         except Exception as e:
             print(f"[parser] {event_name} error: {e}")
@@ -288,7 +310,7 @@ def parse_demo(dem_path: str) -> dict:
     t_score   = sum(1 for r in rounds if r["winner_side"] == "t")
 
     grenades = _parse_grenades(p)
-    bomb     = _parse_bomb(p)
+    bomb     = _parse_bomb(p, by_tick, sampled)
     print(f"[parser] grenades: {len(grenades)}  bomb events: {len(bomb)}")
 
     return {
