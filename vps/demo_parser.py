@@ -158,7 +158,7 @@ def _parse_grenades(p) -> list:
             tick = _safe_int(r.get("tick"))
             if tick == 0:
                 continue
-            grenades.append({"tick": tick, "type": "smoke", "x": x, "y": y, "end_tick": tick + 2816})
+            grenades.append({"tick": tick, "type": "smoke", "x": x, "y": y, "end_tick": tick + 2816, "steam_id": str(r.get("user_steamid") or "")})
     except Exception as e:
         print(f"[parser] smokegrenade_detonate error: {e}")
 
@@ -179,7 +179,7 @@ def _parse_grenades(p) -> list:
             eid = _safe_int(r.get("entityid"))
             grenades.append({
                 "tick": tick, "type": "molotov", "x": x, "y": y,
-                "end_tick": tick + 896,
+                "end_tick": tick + 896, "steam_id": str(r.get("user_steamid") or ""),
             })
     except Exception as e:
         print(f"[parser] molotov error: {e}")
@@ -193,7 +193,7 @@ def _parse_grenades(p) -> list:
             tick = _safe_int(r.get("tick"))
             if tick == 0:
                 continue
-            grenades.append({"tick": tick, "type": "flash", "x": x, "y": y, "end_tick": tick + 64})
+            grenades.append({"tick": tick, "type": "flash", "x": x, "y": y, "end_tick": tick + 64, "steam_id": str(r.get("user_steamid") or "")})
     except Exception as e:
         print(f"[parser] flashbang error: {e}")
 
@@ -206,7 +206,7 @@ def _parse_grenades(p) -> list:
             tick = _safe_int(r.get("tick"))
             if tick == 0:
                 continue
-            grenades.append({"tick": tick, "type": "he", "x": x, "y": y, "end_tick": tick + 32})
+            grenades.append({"tick": tick, "type": "he", "x": x, "y": y, "end_tick": tick + 32, "steam_id": str(r.get("user_steamid") or "")})
     except Exception as e:
         print(f"[parser] he error: {e}")
 
@@ -316,7 +316,7 @@ def parse_demo(dem_path: str) -> dict:
 
     # Request only the sampled ticks from the parser — never loads the full DataFrame
     tick_df = p.parse_ticks(
-        ["X", "Y", "health", "is_alive", "team_num", "active_weapon_name", "cash", "armor_value", "yaw"],
+        ["X", "Y", "health", "is_alive", "team_num", "active_weapon_name", "account_balance", "armor_value", "yaw"],
         ticks=sampled,
     )
 
@@ -339,7 +339,7 @@ def parse_demo(dem_path: str) -> dict:
                 "hp":       _safe_int(r.get("health")),
                 "armor":    _safe_int(r.get("armor_value")),
                 "weapon":   str(r.get("active_weapon_name") or ""),
-                "money":    _safe_int(r.get("cash")),
+                "money":    _safe_int(r.get("account_balance")),
                 "is_alive": bool(r.get("is_alive") or False),
                 "yaw":      _safe_float(r.get("yaw")),
             })
