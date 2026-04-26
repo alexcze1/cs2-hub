@@ -139,8 +139,9 @@ def _add_throw_origins(grenades, shots_df, by_tick, sampled_sorted) -> None:
         candidates = [t for t in throws_by_type.get(g["type"], []) if t["tick"] < g["tick"]]
         if candidates:
             origin = candidates[-1]
-            g["origin_x"] = origin["x"]
-            g["origin_y"] = origin["y"]
+            g["origin_x"]    = origin["x"]
+            g["origin_y"]    = origin["y"]
+            g["origin_tick"] = origin["tick"]
 
 
 def _parse_grenades(p) -> list:

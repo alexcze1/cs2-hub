@@ -119,26 +119,45 @@ function renderGrenades(round, tick, cw, ch) {
   ctx.save()
   for (const g of state.match.grenades) {
     if (g.tick < round.start_tick) continue
-    if (g.tick > tick || g.end_tick < tick) continue
-    if (g.x === 0 && g.y === 0) continue
     if (g.end_tick == null) continue
+
+    const inFlight = g.origin_tick != null && g.origin_tick <= tick && tick < g.tick
+    const active   = g.tick <= tick && g.end_tick >= tick
+    if (!inFlight && !active) continue
+
     const { x, y } = worldToCanvas(g.x, g.y, mapName, cw, ch)
-    if (g.origin_x != null && g.origin_y != null && !(g.origin_x === 0 && g.origin_y === 0)) {
+    const typeColor = g.type === 'smoke'   ? 'rgba(200,200,200,0.6)'
+                    : g.type === 'molotov' ? 'rgba(255,140,0,0.6)'
+                    : g.type === 'flash'   ? 'rgba(255,255,255,0.5)'
+                    :                        'rgba(255,220,0,0.6)'
+
+    // Animated trajectory during flight
+    if (inFlight && g.origin_x != null && !(g.origin_x === 0 && g.origin_y === 0)) {
       const { x: ox, y: oy } = worldToCanvas(g.origin_x, g.origin_y, mapName, cw, ch)
+      const duration = g.tick - g.origin_tick
+      const progress = duration > 0 ? (tick - g.origin_tick) / duration : 1
+      const cx = ox + (x - ox) * progress
+      const cy = oy + (y - oy) * progress
       ctx.save()
       ctx.setLineDash([3, 5])
-      ctx.strokeStyle = g.type === 'smoke' ? 'rgba(200,200,200,0.5)'
-        : g.type === 'molotov' ? 'rgba(255,140,0,0.5)'
-        : g.type === 'flash'   ? 'rgba(255,255,255,0.4)'
-        : 'rgba(255,220,0,0.5)'
-      ctx.lineWidth = 1
+      ctx.strokeStyle = typeColor
+      ctx.lineWidth   = 1.5
+      ctx.globalAlpha = 0.75
       ctx.beginPath()
       ctx.moveTo(ox, oy)
-      ctx.lineTo(x, y)
+      ctx.lineTo(cx, cy)
       ctx.stroke()
       ctx.setLineDash([])
+      // Small moving dot for in-flight grenade
+      ctx.beginPath()
+      ctx.arc(cx, cy, cw * 0.008, 0, Math.PI * 2)
+      ctx.fillStyle = typeColor
+      ctx.fill()
       ctx.restore()
+      continue  // don't draw effect while in flight
     }
+
+    if (g.x === 0 && g.y === 0) continue
     if (g.type === 'smoke') {
       ctx.beginPath()
       const r = cw * 0.055
@@ -218,23 +237,29 @@ function renderBomb(round, tick, cw, ch) {
   ctx.restore()
 }
 
-// ── Shot flash ────────────────────────────────────────────────
+// ── Shot beam ─────────────────────────────────────────────────
 function renderShots(round, tick, frame, cw, ch) {
-  const FLASH_DURATION = 8
+  const BEAM_DURATION = 5
   ctx.save()
   for (const shot of state.match.shots) {
-    if (shot.tick < round.start_tick || shot.tick > tick || tick - shot.tick > FLASH_DURATION) continue
+    if (shot.tick < round.start_tick || shot.tick > tick || tick - shot.tick > BEAM_DURATION) continue
     const player = frame.players.find(p => p.steam_id === shot.steam_id)
-    if (!player || !player.is_alive) continue
+    if (!player || !player.is_alive || player.yaw == null) continue
     const { x, y } = worldToCanvas(player.x, player.y, mapName, cw, ch)
-    const age = tick - shot.tick
-    const alpha = 1 - age / FLASH_DURATION
-    const r = cw * 0.022 + (age / FLASH_DURATION) * cw * 0.012
+    const age      = tick - shot.tick
+    const alpha    = 1 - age / BEAM_DURATION
+    const yawRad   = player.yaw * Math.PI / 180
+    const { x: bx, y: by } = worldToCanvas(
+      player.x + Math.cos(yawRad) * 400,
+      player.y + Math.sin(yawRad) * 400,
+      mapName, cw, ch
+    )
     ctx.beginPath()
-    ctx.arc(x, y, r, 0, Math.PI * 2)
-    ctx.strokeStyle = player.team === 'ct' ? '#4FC3F7' : '#EF5350'
-    ctx.lineWidth = 2
-    ctx.globalAlpha = alpha * 0.9
+    ctx.moveTo(x, y)
+    ctx.lineTo(bx, by)
+    ctx.strokeStyle = '#fff'
+    ctx.lineWidth   = Math.max(0.5, 2 - age * 0.35)
+    ctx.globalAlpha = alpha * 0.85
     ctx.stroke()
   }
   ctx.restore()
@@ -284,7 +309,7 @@ function render() {
       const dist = 120  // world units
       const { x: tx, y: ty } = worldToCanvas(
         p.x + Math.cos(yawRad) * dist,
-        p.y - Math.sin(yawRad) * dist,  // -sin because yaw clockwise = south = -Y in world
+        p.y + Math.sin(yawRad) * dist,
         mapName, cw, ch
       )
       ctx.save()
