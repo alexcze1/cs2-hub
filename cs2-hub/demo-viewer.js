@@ -61,6 +61,9 @@ if (!state.match.rounds.length) {
 const mapName = state.match.meta?.map || demo.map || ''
 document.title = `${mapName} — MIDROUND`
 console.log('[viewer] map:', mapName, '| rounds:', state.match.rounds.length, '| frames:', state.match.frames.length)
+console.log('[viewer] kills:', state.match.kills.length, '| grenades:', state.match.grenades.length, '| bomb:', state.match.bomb.length)
+if (state.match.kills[0]) console.log('[viewer] kill[0]:', JSON.stringify(state.match.kills[0]))
+if (state.match.grenades[0]) console.log('[viewer] grenade[0]:', JSON.stringify(state.match.grenades[0]))
 
 mapImg     = new Image()
 mapImg.src = `images/maps/${mapName}_radar.png`
