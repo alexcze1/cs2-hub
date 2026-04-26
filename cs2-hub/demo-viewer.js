@@ -494,8 +494,13 @@ function esc(s) {
 }
 
 function playerCardHTML(p) {
-  const hpPct = p.is_alive ? Math.max(0, Math.min(100, p.hp)) : 0
+  const hpPct  = p.is_alive ? Math.max(0, Math.min(100, p.hp)) : 0
   const weapon = (p.weapon || '').replace('weapon_', '')
+  const iconEl = weapon
+    ? `<img src="images/weapons/${esc(weapon)}.svg" width="16" height="16"
+            style="object-fit:contain;vertical-align:middle;opacity:0.85"
+            onerror="this.style.display='none'">`
+    : ''
   return `<div class="player-card${p.is_alive ? '' : ' dead'}">
     <div class="player-card-top">
       <span class="player-card-name">${esc(p.name.slice(0, 13))}</span>
@@ -506,7 +511,7 @@ function playerCardHTML(p) {
     </div>
     <div class="player-card-bottom">
       <span>${p.is_alive ? p.hp + ' HP' : 'Dead'}</span>
-      <span>${esc(weapon)}</span>
+      <span style="display:flex;align-items:center;gap:3px">${iconEl}</span>
     </div>
   </div>`
 }
