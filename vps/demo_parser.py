@@ -92,6 +92,57 @@ def _event_pos(r) -> tuple:
     return _safe_float(_first("x", "user_X", "X")), _safe_float(_first("y", "user_Y", "Y"))
 
 
+def _add_throw_origins(grenades, shots_df, by_tick, sampled_sorted) -> None:
+    """Add origin_x/origin_y to each grenade from weapon_fire events."""
+    import bisect
+
+    WEAPON_TO_TYPE = {
+        "weapon_smokegrenade": "smoke",
+        "weapon_flashbang":    "flash",
+        "weapon_hegrenade":    "he",
+        "weapon_molotov":      "molotov",
+        "weapon_incgrenade":   "molotov",
+    }
+
+    def nearest_player_pos(tick, steam_id):
+        idx = bisect.bisect_left(sampled_sorted, tick)
+        for i in [idx, idx - 1, idx + 1]:
+            if 0 <= i < len(sampled_sorted):
+                for r in by_tick.get(sampled_sorted[i], []):
+                    if str(r.get("steamid") or "") == str(steam_id):
+                        return _safe_float(r.get("X")), _safe_float(r.get("Y"))
+        return None, None
+
+    throws_by_type: dict = {}
+    try:
+        for r in _to_records(shots_df):
+            weapon = str(r.get("weapon") or "")
+            gtype = WEAPON_TO_TYPE.get(weapon)
+            if not gtype:
+                continue
+            tick = _safe_int(r.get("tick"))
+            if tick == 0:
+                continue
+            steam_id = str(r.get("user_steamid") or "")
+            x, y = nearest_player_pos(tick, steam_id)
+            if x is None:
+                continue
+            throws_by_type.setdefault(gtype, []).append({"tick": tick, "x": x, "y": y})
+    except Exception as e:
+        print(f"[parser] throw origins error: {e}")
+        return
+
+    for lst in throws_by_type.values():
+        lst.sort(key=lambda t: t["tick"])
+
+    for g in grenades:
+        candidates = [t for t in throws_by_type.get(g["type"], []) if t["tick"] < g["tick"]]
+        if candidates:
+            origin = candidates[-1]
+            g["origin_x"] = origin["x"]
+            g["origin_y"] = origin["y"]
+
+
 def _parse_grenades(p) -> list:
     grenades = []
 
@@ -208,6 +259,7 @@ def parse_demo(dem_path: str) -> dict:
 
     # Parse round events first (cheap) so we can compute sampled ticks before loading tick data
     kills_df       = p.parse_event("player_death")
+    shots_df       = p.parse_event("weapon_fire")
     round_end_df   = p.parse_event("round_end")
     round_start_df = p.parse_event("round_start")
 
@@ -248,7 +300,7 @@ def parse_demo(dem_path: str) -> dict:
 
     # Request only the sampled ticks from the parser — never loads the full DataFrame
     tick_df = p.parse_ticks(
-        ["X", "Y", "health", "is_alive", "team_num", "active_weapon_name", "cash", "armor_value"],
+        ["X", "Y", "health", "is_alive", "team_num", "active_weapon_name", "cash", "armor_value", "yaw"],
         ticks=sampled,
     )
 
@@ -273,10 +325,24 @@ def parse_demo(dem_path: str) -> dict:
                 "weapon":   str(r.get("active_weapon_name") or ""),
                 "money":    _safe_int(r.get("cash")),
                 "is_alive": bool(r.get("is_alive") or False),
+                "yaw":      _safe_float(r.get("yaw")),
             })
         frames.append({"tick": int(tick), "players": players})
 
     print(f"[parser] frames: {len(frames)}  frame[0] players: {len(frames[0]['players']) if frames else 0}")
+
+    shots = []
+    try:
+        for r in _to_records(shots_df):
+            tick = _safe_int(r.get("tick"))
+            if tick == 0:
+                continue
+            shots.append({
+                "tick":     tick,
+                "steam_id": str(r.get("user_steamid") or ""),
+            })
+    except Exception as e:
+        print(f"[parser] weapon_fire error: {e}")
 
     def _team(val) -> str:
         v = str(val or "").upper()
@@ -310,6 +376,7 @@ def parse_demo(dem_path: str) -> dict:
     t_score   = sum(1 for r in rounds if r["winner_side"] == "t")
 
     grenades = _parse_grenades(p)
+    _add_throw_origins(grenades, shots_df, by_tick, sorted(sampled))
     bomb     = _parse_bomb(p, by_tick, sampled)
     print(f"[parser] grenades: {len(grenades)}  bomb events: {len(bomb)}")
 
@@ -326,4 +393,5 @@ def parse_demo(dem_path: str) -> dict:
         "kills":  kills,
         "grenades": grenades,
         "bomb": bomb,
+        "shots": shots,
     }
