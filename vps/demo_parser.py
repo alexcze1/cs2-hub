@@ -127,7 +127,7 @@ def _add_throw_origins(grenades, shots_df, by_tick, sampled_sorted) -> None:
             x, y = nearest_player_pos(tick, steam_id)
             if x is None:
                 continue
-            throws_by_type.setdefault(gtype, []).append({"tick": tick, "x": x, "y": y})
+            throws_by_type.setdefault(gtype, []).append({"tick": tick, "x": x, "y": y, "steam_id": steam_id})
     except Exception as e:
         print(f"[parser] throw origins error: {e}")
         return
@@ -135,13 +135,39 @@ def _add_throw_origins(grenades, shots_df, by_tick, sampled_sorted) -> None:
     for lst in throws_by_type.values():
         lst.sort(key=lambda t: t["tick"])
 
-    for g in grenades:
-        candidates = [t for t in throws_by_type.get(g["type"], []) if t["tick"] < g["tick"]]
-        if candidates:
-            origin = candidates[-1]
-            g["origin_x"]    = origin["x"]
-            g["origin_y"]    = origin["y"]
-            g["origin_tick"] = origin["tick"]
+    sorted_grenades = sorted(grenades, key=lambda g: g["tick"])
+    consumed: set = set()
+
+    for g in sorted_grenades:
+        candidates = throws_by_type.get(g["type"], [])
+        g_sid = g.get("steam_id", "")
+
+        # Prefer same-player throw (most recent unconsumed before detonation)
+        best = None
+        best_idx = None
+        for i, t in enumerate(candidates):
+            if i in consumed or t["tick"] >= g["tick"]:
+                continue
+            if g_sid and t.get("steam_id") != g_sid:
+                continue
+            if best is None or t["tick"] > best["tick"]:
+                best = t
+                best_idx = i
+
+        # Fallback: any most-recent unconsumed throw of same type
+        if best is None:
+            for i, t in enumerate(candidates):
+                if i in consumed or t["tick"] >= g["tick"]:
+                    continue
+                if best is None or t["tick"] > best["tick"]:
+                    best = t
+                    best_idx = i
+
+        if best is not None:
+            consumed.add(best_idx)
+            g["origin_x"]    = best["x"]
+            g["origin_y"]    = best["y"]
+            g["origin_tick"] = best["tick"]
 
 
 def _parse_grenades(p) -> list:
