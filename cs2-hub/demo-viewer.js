@@ -135,6 +135,89 @@ function renderDeathMarkers(round, cw, dotR) {
   ctx.restore()
 }
 
+// ── Grenade overlays ──────────────────────────────────────────
+function renderGrenades(round, tick, cw, ch) {
+  ctx.save()
+  for (const g of state.match.grenades) {
+    if (g.tick < round.start_tick) continue
+    if (g.tick > tick || g.end_tick < tick) continue
+    if (g.x === 0 && g.y === 0) continue
+    const { x, y } = worldToCanvas(g.x, g.y, mapName, cw, ch)
+    ctx.beginPath()
+    if (g.type === 'smoke') {
+      const r = cw * 0.055
+      ctx.arc(x, y, r, 0, Math.PI * 2)
+      ctx.fillStyle   = 'rgba(180,180,180,0.35)'
+      ctx.strokeStyle = 'rgba(200,200,200,0.5)'
+      ctx.lineWidth   = 1.5
+      ctx.fill()
+      ctx.stroke()
+    } else if (g.type === 'molotov') {
+      const r = cw * 0.04
+      ctx.arc(x, y, r, 0, Math.PI * 2)
+      ctx.fillStyle   = 'rgba(255,100,0,0.3)'
+      ctx.strokeStyle = 'rgba(255,140,0,0.6)'
+      ctx.lineWidth   = 1.5
+      ctx.fill()
+      ctx.stroke()
+    } else if (g.type === 'flash') {
+      const duration = g.end_tick - g.tick
+      const progress = duration > 0 ? (tick - g.tick) / duration : 1
+      const r = cw * 0.03 * (1 - progress)
+      if (r > 0) {
+        ctx.arc(x, y, r, 0, Math.PI * 2)
+        ctx.fillStyle = 'rgba(255,255,255,0.5)'
+        ctx.fill()
+      }
+    } else if (g.type === 'he') {
+      const r = cw * 0.025
+      ctx.arc(x, y, r, 0, Math.PI * 2)
+      ctx.strokeStyle = 'rgba(255,220,0,0.7)'
+      ctx.lineWidth   = 2
+      ctx.stroke()
+    }
+  }
+  ctx.restore()
+}
+
+// ── Bomb tracking ─────────────────────────────────────────────
+function renderBomb(round, tick, cw, ch) {
+  ctx.save()
+  const tickRate = state.match.meta.tick_rate
+  const fontSize = Math.round(cw * 0.018)
+  let latest = null
+  for (const event of state.match.bomb) {
+    if (event.tick < round.start_tick || event.tick > tick) continue
+    if (latest === null || event.tick > latest.tick) latest = event
+  }
+  if (!latest) { ctx.restore(); return }
+  const { x, y } = worldToCanvas(latest.x, latest.y, mapName, cw, ch)
+  if (latest.type === 'planted') {
+    const r = cw * 0.018 + Math.sin(tick / 8) * cw * 0.006
+    ctx.beginPath()
+    ctx.arc(x, y, r, 0, Math.PI * 2)
+    ctx.fillStyle = 'rgba(255,50,50,0.7)'
+    ctx.fill()
+    const seconds = Math.max(0, (latest.tick + 5120 - tick) / tickRate)
+    ctx.fillStyle    = '#fff'
+    ctx.font         = `${fontSize}px sans-serif`
+    ctx.textAlign    = 'center'
+    ctx.textBaseline = 'bottom'
+    ctx.fillText(Math.ceil(seconds), x, y - r - 2)
+  } else if (latest.type === 'defused') {
+    ctx.beginPath()
+    ctx.arc(x, y, cw * 0.018, 0, Math.PI * 2)
+    ctx.fillStyle = '#4CAF50'
+    ctx.fill()
+  } else if (latest.type === 'exploded') {
+    ctx.beginPath()
+    ctx.arc(x, y, cw * 0.025, 0, Math.PI * 2)
+    ctx.fillStyle = 'rgba(255,140,0,0.8)'
+    ctx.fill()
+  }
+  ctx.restore()
+}
+
 // ── Render ────────────────────────────────────────────────────
 function render() {
   const { width: cw, height: ch } = canvas
@@ -155,6 +238,8 @@ function render() {
 
   const round = currentRound()
   renderDeathMarkers(round, cw, dotR)
+  renderGrenades(round, state.tick, cw, ch)
+  renderBomb(round, state.tick, cw, ch)
 
   for (const p of frame.players) {
     const { x, y } = worldToCanvas(p.x, p.y, mapName, cw, ch)
