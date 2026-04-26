@@ -287,7 +287,7 @@ function renderBomb(round, tick, cw, ch) {
     ctx.fill()
     const seconds = Math.max(0, 40 - (tick - latest.tick) / tickRate)
     ctx.fillStyle    = '#fff'
-    ctx.font         = `${fontSize}px sans-serif`
+    ctx.font         = `700 ${fontSize}px Inter, system-ui, sans-serif`
     ctx.textAlign    = 'center'
     ctx.textBaseline = 'bottom'
     ctx.fillText(Math.ceil(seconds), x, y - r - 2)
@@ -382,10 +382,16 @@ function drawPlayerPill(x, dotTopY, label, color, pillFont, pillFontSz) {
   const pw  = tw + 12
   const px  = x - pw / 2
   const py  = dotTopY - ph - 2
+  // Dark glass background
   drawRoundRect(ctx, px, py, pw, ph, ph / 2)
-  ctx.fillStyle   = color
-  ctx.globalAlpha = 0.88
+  ctx.fillStyle   = 'rgba(3,7,18,0.82)'
   ctx.fill()
+  // Team-color outline
+  drawRoundRect(ctx, px, py, pw, ph, ph / 2)
+  ctx.strokeStyle = color
+  ctx.globalAlpha = 0.75
+  ctx.lineWidth   = 1
+  ctx.stroke()
   ctx.globalAlpha = 1
   ctx.fillStyle    = '#fff'
   ctx.textAlign    = 'center'
@@ -397,8 +403,9 @@ function drawPlayerPill(x, dotTopY, label, color, pillFont, pillFontSz) {
 function drawCountdownText(x, y, r, remaining, textColor) {
   if (remaining <= 0) return
   ctx.save()
+
   ctx.fillStyle    = textColor
-  ctx.font         = `700 ${Math.round(r * 0.55)}px sans-serif`
+  ctx.font         = `700 ${Math.round(r * 0.55)}px Inter, system-ui, sans-serif`
   ctx.textAlign    = 'center'
   ctx.textBaseline = 'middle'
   ctx.fillText(remaining, x, y)
@@ -428,7 +435,7 @@ function render() {
 
   const dotR     = Math.round(cw * 0.009)
   const pillFontSz = Math.round(cw * 0.011)
-  const pillFont   = `600 ${pillFontSz}px sans-serif`
+  const pillFont   = `600 ${pillFontSz}px Inter, system-ui, sans-serif`
 
   const round = currentRound()
   renderGrenades(round, state.tick, frame, cw, ch)
@@ -562,50 +569,30 @@ function render() {
     timerColor = '#ffffff'
   }
 
-  const tFontSz = Math.round(cw * 0.036)
+  const tFontSz = Math.round(cw * 0.034)
   ctx.save()
-  ctx.font      = `700 ${tFontSz}px "SF Mono", "Consolas", monospace`
+  ctx.font      = `700 ${tFontSz}px Inter, "SF Mono", monospace`
   ctx.textAlign = 'center'
   const tw      = ctx.measureText(timeStr).width
   const pillW   = tw + 28
   const pillH   = tFontSz + 14
   const pillX   = cw / 2 - pillW / 2
   const pillY   = 10
-  // Pill background
-  drawRoundRect(ctx, pillX, pillY, pillW, pillH, pillH / 2)
-  ctx.fillStyle   = 'rgba(8,8,12,0.78)'
+  // Glass background
+  drawRoundRect(ctx, pillX, pillY, pillW, pillH, 8)
+  ctx.fillStyle   = 'rgba(3,7,18,0.82)'
   ctx.fill()
-  drawRoundRect(ctx, pillX, pillY, pillW, pillH, pillH / 2)
-  ctx.strokeStyle = 'rgba(255,255,255,0.18)'
+  // Border — accent for normal, team-color tint for bomb
+  drawRoundRect(ctx, pillX, pillY, pillW, pillH, 8)
+  ctx.strokeStyle = plantEvent && !bombEnded
+    ? (timerColor === '#FF5252' ? 'rgba(255,82,82,0.6)' : 'rgba(255,183,77,0.5)')
+    : 'rgba(102,102,183,0.35)'
   ctx.lineWidth   = 1
   ctx.stroke()
   // Timer text
   ctx.fillStyle    = timerColor
   ctx.textBaseline = 'middle'
   ctx.fillText(timeStr, cw / 2, pillY + pillH / 2)
-  ctx.restore()
-
-  // Score display — CT score | — | T score below timer pill
-  const ctScore = state.match.rounds.slice(0, state.roundIdx).filter(r => r.winner_side === 'ct').length
-  const tScore  = state.match.rounds.slice(0, state.roundIdx).filter(r => r.winner_side === 't').length
-  const scoreFontSz = Math.round(cw * 0.022)
-  const scoreY      = pillY + pillH + 4
-  const scoreParts  = [
-    { text: String(ctScore), color: CT_COLOR },
-    { text: ' — ',           color: 'rgba(255,255,255,0.4)' },
-    { text: String(tScore),  color: T_COLOR },
-  ]
-  ctx.save()
-  ctx.font         = `700 ${scoreFontSz}px "SF Mono", "Consolas", monospace`
-  ctx.textBaseline = 'top'
-  ctx.textAlign    = 'left'
-  const scoreW = scoreParts.reduce((s, { text }) => s + ctx.measureText(text).width, 0)
-  let sx = cw / 2 - scoreW / 2
-  for (const { text, color } of scoreParts) {
-    ctx.fillStyle = color
-    ctx.fillText(text, sx, scoreY)
-    sx += ctx.measureText(text).width
-  }
   ctx.restore()
 }
 
