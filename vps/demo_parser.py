@@ -83,9 +83,13 @@ def _safe_int(val) -> int:
 
 def _event_pos(r) -> tuple:
     """Extract (x, y) from an event row, trying multiple column name variants."""
-    x = _safe_float(r.get("x") or r.get("user_X") or r.get("X"))
-    y = _safe_float(r.get("y") or r.get("user_Y") or r.get("Y"))
-    return x, y
+    def _first(*keys):
+        for k in keys:
+            v = r.get(k)
+            if v is not None:
+                return v
+        return None
+    return _safe_float(_first("x", "user_X", "X")), _safe_float(_first("y", "user_Y", "Y"))
 
 
 def _parse_grenades(p) -> list:
@@ -97,7 +101,9 @@ def _parse_grenades(p) -> list:
             x, y = _event_pos(r)
             if x == 0 and y == 0:
                 continue
-            tick = int(r["tick"])
+            tick = _safe_int(r.get("tick"))
+            if tick == 0:
+                continue
             grenades.append({"tick": tick, "type": "smoke", "x": x, "y": y, "end_tick": tick + 2304})
     except Exception:
         pass
@@ -105,15 +111,18 @@ def _parse_grenades(p) -> list:
     # Molotov / incendiary — match start→end by entityid
     try:
         end_by_id = {
-            int(r.get("entityid", 0)): int(r["tick"])
+            _safe_int(r.get("entityid")): _safe_int(r.get("tick"))
             for r in _to_records(p.parse_event("inferno_expire"))
+            if _safe_int(r.get("tick")) > 0
         }
         for r in _to_records(p.parse_event("inferno_startburn")):
             x, y = _event_pos(r)
             if x == 0 and y == 0:
                 continue
-            tick = int(r["tick"])
-            eid  = int(r.get("entityid", 0))
+            tick = _safe_int(r.get("tick"))
+            if tick == 0:
+                continue
+            eid = _safe_int(r.get("entityid"))
             grenades.append({
                 "tick": tick, "type": "molotov", "x": x, "y": y,
                 "end_tick": end_by_id.get(eid, tick + 896),
@@ -127,7 +136,9 @@ def _parse_grenades(p) -> list:
             x, y = _event_pos(r)
             if x == 0 and y == 0:
                 continue
-            tick = int(r["tick"])
+            tick = _safe_int(r.get("tick"))
+            if tick == 0:
+                continue
             grenades.append({"tick": tick, "type": "flash", "x": x, "y": y, "end_tick": tick + 64})
     except Exception:
         pass
@@ -138,7 +149,9 @@ def _parse_grenades(p) -> list:
             x, y = _event_pos(r)
             if x == 0 and y == 0:
                 continue
-            tick = int(r["tick"])
+            tick = _safe_int(r.get("tick"))
+            if tick == 0:
+                continue
             grenades.append({"tick": tick, "type": "he", "x": x, "y": y, "end_tick": tick + 32})
     except Exception:
         pass
@@ -156,7 +169,10 @@ def _parse_bomb(p) -> list:
         try:
             for r in _to_records(p.parse_event(event_name)):
                 x, y = _event_pos(r)
-                bomb_events.append({"tick": int(r["tick"]), "type": event_type, "x": x, "y": y})
+                tick = _safe_int(r.get("tick"))
+                if tick == 0:
+                    continue
+                bomb_events.append({"tick": tick, "type": event_type, "x": x, "y": y})
         except Exception:
             pass
     return bomb_events
