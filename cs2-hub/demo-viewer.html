@@ -11,9 +11,10 @@
     .viewer-shell {
       display: flex;
       flex-direction: column;
-      height: calc(100vh - 40px);
-      gap: 6px;
-      padding: 8px 14px;
+      height: 100vh;
+      gap: 5px;
+      padding: 6px 10px;
+      box-sizing: border-box;
     }
 
     /* ── Match header ───────────────────────────────────────── */
@@ -387,7 +388,7 @@
 <body>
 <div class="app-shell">
   <nav class="sidebar" id="sidebar"></nav>
-  <main class="main-content" style="padding:0;overflow:hidden;position:relative">
+  <main class="main-content" style="padding:0;overflow:hidden;position:relative;height:100vh">
 
     <div id="viewer-loading">Loading demo…</div>
 

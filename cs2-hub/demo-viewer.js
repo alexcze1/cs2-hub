@@ -873,7 +873,8 @@ canvas.addEventListener('wheel', e => {
   const ratio   = newZoom / mapZoom
   mapPanX = (mouseX - cw / 2) * (1 - ratio) + mapPanX * ratio
   mapPanY = (mouseY - ch / 2) * (1 - ratio) + mapPanY * ratio
-  mapZoom  = newZoom
+  mapZoom = newZoom
+  if (mapZoom <= ZOOM_MIN) { mapPanX = 0; mapPanY = 0 }
 }, { passive: false })
 
 canvas.addEventListener('dblclick', () => {
