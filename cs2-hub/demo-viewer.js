@@ -158,7 +158,7 @@ function renderGrenades(round, tick, cw, ch) {
 
     const tickRate   = state.match.meta.tick_rate
     const GAME_HZ    = 128
-    const TRAJ_TICKS = { smoke: tickRate * 7, molotov: tickRate * 6, he: tickRate * 2, flash: tickRate * 1 }
+    const TRAJ_TICKS = { smoke: tickRate * 7, molotov: tickRate * 6, he: tickRate * 5, flash: tickRate * 4 }
     const trajTicks  = TRAJ_TICKS[g.type] ?? tickRate * 3
 
     // Canonical durations (seconds) override stored end_tick which can be wrong due to
@@ -250,27 +250,13 @@ function renderGrenades(round, tick, cw, ch) {
       }
     } else if (g.type === 'he') {
       const progress = totalS > 0 ? Math.min(1, elapsedS / totalS) : 1
-      ctx.save()
-      ctx.beginPath()
-      ctx.arc(x, y, cw * 0.01 + cw * 0.035 * progress, 0, Math.PI * 2)
-      ctx.strokeStyle = 'rgba(255,220,0,1)'
-      ctx.lineWidth   = 2
-      ctx.globalAlpha = 0.8 * (1 - progress)
-      ctx.stroke()
-      ctx.beginPath()
-      ctx.arc(x, y, cw * 0.01 + cw * 0.018 * progress, 0, Math.PI * 2)
-      ctx.strokeStyle = 'rgba(255,255,255,1)'
-      ctx.lineWidth   = 1.5
-      ctx.globalAlpha = 0.9 * (1 - progress)
-      ctx.stroke()
-      if (progress < 0.2) {
-        ctx.globalAlpha = 1 - progress / 0.2
+      const r = cw * 0.03 * (1 - progress)
+      if (r > 0) {
         ctx.beginPath()
-        ctx.arc(x, y, cw * 0.008 * (1 - progress / 0.2), 0, Math.PI * 2)
-        ctx.fillStyle = '#fff'
+        ctx.arc(x, y, r, 0, Math.PI * 2)
+        ctx.fillStyle = 'rgba(220,50,50,0.6)'
         ctx.fill()
       }
-      ctx.restore()
     }
   }
   ctx.restore()
@@ -466,7 +452,7 @@ function render() {
     if (p.hp != null && p.hp > 0) {
       const arcR = dotR + 3
       ctx.save()
-      ctx.lineWidth = 2.5
+      ctx.lineWidth = 1.5
       ctx.beginPath()
       ctx.arc(x, y, arcR, 0, Math.PI * 2)
       ctx.strokeStyle = 'rgba(0,0,0,0.4)'
