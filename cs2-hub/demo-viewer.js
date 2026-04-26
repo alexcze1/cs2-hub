@@ -252,7 +252,7 @@ function renderBomb(round, tick, cw, ch) {
     ctx.arc(x, y, r, 0, Math.PI * 2)
     ctx.fillStyle = 'rgba(255,50,50,0.7)'
     ctx.fill()
-    const seconds = Math.max(0, (latest.tick + 5120 - tick) / tickRate)
+    const seconds = Math.max(0, 40 - (tick - latest.tick) / tickRate)
     ctx.fillStyle    = '#fff'
     ctx.font         = `${fontSize}px sans-serif`
     ctx.textAlign    = 'center'
@@ -370,10 +370,33 @@ function render() {
   renderShots(round, state.tick, frame, cw, ch)
 
   // Round timer overlay — top center
-  const fe      = freezeEnd(round)
-  const elapsed = Math.max(0, (state.tick - fe) / state.match.meta.tick_rate)
-  const timeSec = Math.floor(elapsed)
-  const timeStr = `${Math.floor(timeSec / 60)}:${String(timeSec % 60).padStart(2, '0')}`
+  const tickRate = state.match.meta.tick_rate
+  const fe       = freezeEnd(round)
+  const elapsed  = Math.max(0, (state.tick - fe) / tickRate)
+
+  // Check for active bomb plant (no subsequent defuse/explode yet)
+  let plantEvent = null
+  let bombEnded  = false
+  for (const ev of state.match.bomb) {
+    if (ev.tick < round.start_tick || ev.tick > state.tick) continue
+    if (ev.type === 'planted')  plantEvent = ev
+    if (ev.type === 'defused' || ev.type === 'exploded') bombEnded = true
+  }
+
+  let timeStr, timerColor
+  if (plantEvent && !bombEnded) {
+    const bombElapsed  = Math.max(0, (state.tick - plantEvent.tick) / tickRate)
+    const bombRemain   = Math.max(0, 40 - bombElapsed)
+    const remSec       = Math.ceil(bombRemain)
+    timeStr   = `0:${String(remSec).padStart(2, '0')}`
+    timerColor = bombRemain < 10 ? '#FF5252' : '#FFB74D'
+  } else {
+    const remain = Math.max(0, 115 - elapsed)
+    const remSec = Math.floor(remain)
+    timeStr   = `${Math.floor(remSec / 60)}:${String(remSec % 60).padStart(2, '0')}`
+    timerColor = '#ffffff'
+  }
+
   const tFontSz = Math.round(cw * 0.042)
   ctx.save()
   ctx.font         = `700 ${tFontSz}px "SF Mono", "Consolas", monospace`
@@ -381,7 +404,7 @@ function render() {
   ctx.textBaseline = 'top'
   ctx.fillStyle    = 'rgba(0,0,0,0.55)'
   ctx.fillText(timeStr, cw / 2 + 1, 11)
-  ctx.fillStyle = '#ffffff'
+  ctx.fillStyle = timerColor
   ctx.fillText(timeStr, cw / 2, 10)
   ctx.restore()
 }
@@ -467,11 +490,7 @@ function updateRoundRow() {
   for (let i = 0; i < rounds.length; i++) {
     if (i === halfAt) html += '<div class="round-halftime"></div>'
     const r   = rounds[i]
-    const cls = i < state.roundIdx
-      ? r.winner_side
-      : i === state.roundIdx
-        ? `${r.winner_side} current`
-        : 'unplayed'
+    const cls = i === state.roundIdx ? `${r.winner_side} current` : r.winner_side
     html += `<div class="round-sq ${cls}" title="Round ${i + 1}" data-ridx="${i}">${i + 1}</div>`
   }
   rowEl.innerHTML = html
