@@ -14,19 +14,24 @@ _WIN_REASONS = {
 
 
 def _pair_rounds(start_ticks: list, end_rows: list) -> list:
-    """Pair round_start ticks with round_end rows by sorted position."""
-    start_ticks = sorted(int(t) for t in start_ticks)
-    end_rows = sorted(end_rows, key=lambda r: int(r["tick"]))
-    n = min(len(start_ticks), len(end_rows))
-    return [
-        {
-            "start_tick": start_ticks[i],
-            "end_tick":   int(end_rows[i]["tick"]),
-            "winner":     end_rows[i].get("winner"),
-            "reason":     end_rows[i].get("reason"),
-        }
-        for i in range(n)
-    ]
+    """Pair each round_start with the next round_end that follows it."""
+    starts = sorted(int(t) for t in start_ticks)
+    ends   = sorted(end_rows, key=lambda r: int(r["tick"]))
+    pairs  = []
+    ei     = 0
+    for start in starts:
+        while ei < len(ends) and int(ends[ei]["tick"]) <= start:
+            ei += 1
+        if ei >= len(ends):
+            break
+        pairs.append({
+            "start_tick": start,
+            "end_tick":   int(ends[ei]["tick"]),
+            "winner":     ends[ei].get("winner"),
+            "reason":     ends[ei].get("reason"),
+        })
+        ei += 1
+    return pairs
 
 
 def _winner_side(winner_val) -> str | None:
