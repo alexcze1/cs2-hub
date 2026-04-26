@@ -366,7 +366,7 @@ function render() {
   renderGrenades(round, state.tick, cw, ch)
   renderBomb(round, state.tick, cw, ch)
 
-  // Pass 1: view cones (behind dots)
+  // Pass 1: direction arrows (behind dots)
   ctx.save()
   for (const p of frame.players) {
     if (!p.is_alive || p.yaw == null) continue
@@ -378,15 +378,19 @@ function render() {
       p.y + Math.sin(yawRad) * 300,
       mapName, cw, ch
     )
-    const canvasAngle = Math.atan2(tipY - y, tipX - x)
-    const halfAngle   = 22 * Math.PI / 180
-    const coneLen     = cw * 0.075
+    const angle    = Math.atan2(tipY - y, tipX - x)
+    const arrowLen = cw * 0.042
+    const baseHalf = 7 * Math.PI / 180   // 14° total base width — narrow arrow
+    const tip  = { x: x + Math.cos(angle) * (dotR + arrowLen),       y: y + Math.sin(angle) * (dotR + arrowLen) }
+    const left = { x: x + Math.cos(angle - baseHalf) * (dotR + 1),   y: y + Math.sin(angle - baseHalf) * (dotR + 1) }
+    const rght = { x: x + Math.cos(angle + baseHalf) * (dotR + 1),   y: y + Math.sin(angle + baseHalf) * (dotR + 1) }
     ctx.beginPath()
-    ctx.moveTo(x, y)
-    ctx.arc(x, y, coneLen, canvasAngle - halfAngle, canvasAngle + halfAngle)
+    ctx.moveTo(tip.x, tip.y)
+    ctx.lineTo(left.x, left.y)
+    ctx.lineTo(rght.x, rght.y)
     ctx.closePath()
     ctx.fillStyle   = color
-    ctx.globalAlpha = 0.2
+    ctx.globalAlpha = 0.75
     ctx.fill()
   }
   ctx.restore()
