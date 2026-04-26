@@ -61,7 +61,7 @@ if (!state.match.rounds.length) {
 // Use meta.map from parsed data as source of truth; fall back to DB column
 const mapName = state.match.meta?.map || demo.map || ''
 document.title = `${mapName} — MIDROUND`
-console.log('[viewer] map:', mapName, '| rounds:', state.match.rounds.length, '| frames:', state.match.frames.length)
+console.log('[viewer] map:', mapName, '| rounds:', state.match.rounds.length, '| frames:', state.match.frames.length, '| tick_rate:', state.match.meta.tick_rate)
 
 mapImg     = new Image()
 mapImg.src = `images/maps/${mapName}_radar.png`
