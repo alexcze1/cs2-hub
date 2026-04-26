@@ -124,7 +124,7 @@ function getInterpolatedFrame(tick) {
   }
   const prev = frames[lo]
   const next = frames[lo + 1]
-  if (!next || next.tick <= prev.tick) return prev
+  if (!next || next.tick <= prev.tick || next.tick - prev.tick > 48) return prev
   const t = Math.min(1, (tick - prev.tick) / (next.tick - prev.tick))
   if (t <= 0) return prev
   const players = prev.players.map(prevP => {
