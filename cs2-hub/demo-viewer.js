@@ -312,29 +312,66 @@ function renderBomb(round, tick, cw, ch) {
 
 // ── Shot beam ─────────────────────────────────────────────────
 function renderShots(round, tick, frame, cw, ch) {
-  const BEAM_DURATION = 5
+  const BEAM_DURATION = 9
   ctx.save()
+  ctx.lineCap = 'round'
+
   for (const shot of state.match.shots) {
-    if (shot.tick < round.start_tick || shot.tick > tick || tick - shot.tick > BEAM_DURATION) continue
+    if (shot.tick < round.start_tick || shot.tick > tick) continue
+    const age = tick - shot.tick
+    if (age > BEAM_DURATION) continue
+
     const player = frame.players.find(p => p.steam_id === shot.steam_id)
     if (!player || !player.is_alive || player.yaw == null) continue
-    const { x, y } = worldToCanvas(player.x, player.y, mapName, cw, ch)
-    const age      = tick - shot.tick
-    const alpha    = 1 - age / BEAM_DURATION
-    const yawRad   = player.yaw * Math.PI / 180
+
+    const { x, y }   = worldToCanvas(player.x, player.y, mapName, cw, ch)
+    const fade        = 1 - age / BEAM_DURATION
+    const yawRad      = player.yaw * Math.PI / 180
     const { x: bx, y: by } = worldToCanvas(
-      player.x + Math.cos(yawRad) * 400,
-      player.y + Math.sin(yawRad) * 400,
+      player.x + Math.cos(yawRad) * 520,
+      player.y + Math.sin(yawRad) * 520,
       mapName, cw, ch
     )
-    ctx.beginPath()
-    ctx.moveTo(x, y)
-    ctx.lineTo(bx, by)
-    ctx.strokeStyle = '#fff'
-    ctx.lineWidth   = Math.max(0.5, 2 - age * 0.35)
-    ctx.globalAlpha = alpha * 0.85
-    ctx.stroke()
+    const isct   = player.team === 'ct'
+    const teamRgb = isct ? '79,195,247' : '255,149,0'
+    const teamHex = isct ? CT_COLOR : T_COLOR
+
+    // Outer glow — team-colored, soft
+    const glowGrad = ctx.createLinearGradient(x, y, bx, by)
+    glowGrad.addColorStop(0,    `rgba(${teamRgb},${(fade * 0.35).toFixed(2)})`)
+    glowGrad.addColorStop(0.55, `rgba(${teamRgb},${(fade * 0.15).toFixed(2)})`)
+    glowGrad.addColorStop(1,    `rgba(${teamRgb},0)`)
+    ctx.globalAlpha = 1
+    ctx.strokeStyle = glowGrad
+    ctx.lineWidth   = 5.5
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(bx, by); ctx.stroke()
+
+    // Core beam — white, fades along length then over time
+    const coreGrad = ctx.createLinearGradient(x, y, bx, by)
+    coreGrad.addColorStop(0,    `rgba(255,255,255,${(fade * 0.95).toFixed(2)})`)
+    coreGrad.addColorStop(0.45, `rgba(255,255,255,${(fade * 0.55).toFixed(2)})`)
+    coreGrad.addColorStop(1,    'rgba(255,255,255,0)')
+    ctx.strokeStyle = coreGrad
+    ctx.lineWidth   = 1.3
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(bx, by); ctx.stroke()
+
+    // Muzzle flash — expanding ring + shrinking white dot for first 3 ticks
+    if (age <= 3) {
+      const ft = age / 3
+      ctx.globalAlpha = (1 - ft) * 0.85
+      ctx.beginPath()
+      ctx.arc(x, y, cw * 0.005 + cw * 0.015 * ft, 0, Math.PI * 2)
+      ctx.strokeStyle = teamHex
+      ctx.lineWidth   = 1.5
+      ctx.stroke()
+      ctx.globalAlpha = (1 - ft) * 0.75
+      ctx.beginPath()
+      ctx.arc(x, y, cw * 0.0045 * (1 - ft * 0.6), 0, Math.PI * 2)
+      ctx.fillStyle = '#fff'
+      ctx.fill()
+    }
   }
+
   ctx.restore()
 }
 
