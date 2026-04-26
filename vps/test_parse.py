@@ -32,14 +32,21 @@ if __name__ == "__main__":
         sys.exit(1)
 
     path = sys.argv[1]
+    if not os.path.exists(path):
+        print(f"Error: file not found: {path}")
+        sys.exit(1)
     print(f"Parsing {path} …\n")
-    data = parse_demo(path)
+    try:
+        data = parse_demo(path)
+    except Exception as e:
+        print(f"Parse failed: {e}")
+        sys.exit(1)
 
     map_name  = data["meta"]["map"]
     tick_rate = data["meta"]["tick_rate"]
 
     print("── META ──────────────────────────────────────────────────")
-    print(f"  Map: {map_name}   Tick rate: {tick_rate}")
+    print(f"  Map: {map_name}   Tick rate: {tick_rate}   Total ticks: {data['meta']['total_ticks']}")
     print(f"  CT {data['meta']['ct_score']} – {data['meta']['t_score']} T")
 
     print(f"\n── ROUNDS ({len(data['rounds'])}) ────────────────────────────────────")
@@ -53,9 +60,10 @@ if __name__ == "__main__":
     if data["frames"]:
         f0 = data["frames"][0]
         print(f"  Frame 0  tick={f0['tick']}  players={len(f0['players'])}")
-        for p in f0["players"][:10]:
+        alive = [p for p in f0["players"] if p["is_alive"]]
+        for p in alive[:10]:
             flag = "✓" if _in_bounds(p["x"], p["y"], map_name) else "⚠ OUT OF BOUNDS"
-            print(f"    {p['name'][:15]:15}  {p['team'].upper()}  x={p['x']:8.0f}  y={p['y']:8.0f}  alive={p['is_alive']}  {flag}")
+            print(f"    {p['name'][:15]:15}  {p['team'].upper()}  x={p['x']:8.0f}  y={p['y']:8.0f}  {flag}")
 
     print(f"\n── KILLS ({len(data['kills'])}) ─────────────────────────────────────")
     for k in data["kills"][:5]:
