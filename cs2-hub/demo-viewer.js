@@ -394,8 +394,8 @@ function render() {
         mapName, cw, ch
       )
       const angle      = Math.atan2(dirY - y, dirX - x)
-      const notchAngle = 36 * Math.PI / 180   // half-angle of the gap in the circle
-      const tipDist    = dotR * 1.85           // how far the tip extends past the circle edge
+      const notchAngle = 26 * Math.PI / 180   // half-angle of the gap in the circle
+      const tipDist    = dotR * 0.9           // how far the tip extends past the circle edge
 
       // Single path: arc the long way round + converge to tip
       ctx.save()
