@@ -64,9 +64,14 @@ document.title = `${mapName} — MIDROUND`
 console.log('[viewer] map:', mapName, '| rounds:', state.match.rounds.length, '| frames:', state.match.frames.length, '| tick_rate:', state.match.meta.tick_rate)
 
 mapImg     = new Image()
-mapImg.src = `images/maps/${mapName}_radar.png`
-mapImg.onload  = () => { console.log('[viewer] radar loaded:', mapImg.src); mapLoaded = true }
-mapImg.onerror = () => { console.warn('[viewer] radar 404:', mapImg.src); mapLoaded = true }
+mapImg.src = `images/maps/${mapName}_viewer.png`
+mapImg.onload  = () => { console.log('[viewer] viewer map loaded'); mapLoaded = true }
+mapImg.onerror = () => {
+  console.warn('[viewer] _viewer.png not found, falling back to _radar.png')
+  mapImg.src     = `images/maps/${mapName}_radar.png`
+  mapImg.onload  = () => { mapLoaded = true }
+  mapImg.onerror = () => { mapLoaded = true }
+}
 
 loadingEl.style.display = 'none'
 document.getElementById('viewer-shell').style.display = 'flex'
