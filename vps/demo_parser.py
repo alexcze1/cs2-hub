@@ -137,6 +137,13 @@ def _add_throw_origins(grenades, shots_df, by_tick, sampled_sorted) -> None:
         lst.sort(key=lambda t: t["tick"])
 
     sorted_grenades = sorted(grenades, key=lambda g: g["tick"])
+    # Debug: show tick delta between first throw and first detonation per type
+    for gtype in ["smoke", "flash", "he", "molotov"]:
+        t_list = throws_by_type.get(gtype, [])
+        g_list = [g for g in sorted_grenades if g["type"] == gtype]
+        if t_list and g_list:
+            delta = g_list[0]["tick"] - t_list[0]["tick"]
+            print(f"[parser] {gtype} tick delta (det-throw): {delta}  throw={t_list[0]['tick']} det={g_list[0]['tick']}")
     consumed: set = set()
 
     for g in sorted_grenades:
