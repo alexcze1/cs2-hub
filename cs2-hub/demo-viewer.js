@@ -661,25 +661,27 @@ new Set(Object.values(WEAPON_ICON_MAP)).forEach(name => {
 })
 
 function playerCardHTML(p) {
-  const hpPct  = p.is_alive ? Math.max(0, Math.min(100, p.hp)) : 0
-  const weapon = (p.weapon || '').replace('weapon_', '')
+  const hpPct    = p.is_alive ? Math.max(0, Math.min(100, p.hp)) : 0
+  const weapon   = (p.weapon || '').replace('weapon_', '')
   const iconName = WEAPON_ICON_MAP[weapon] ?? weapon
-  const iconEl = weapon
-    ? `<img src="images/weapons/${esc(iconName)}.svg" width="16" height="16"
-            style="object-fit:contain;vertical-align:middle;opacity:0.85"
-            onerror="this.style.display='none'">`
+  const wIconEl  = weapon
+    ? `<img src="images/weapons/${esc(iconName)}.svg" class="weapon-icon" onerror="this.style.display='none'">`
     : ''
+  const moneyStr = `$${(p.money ?? 0).toLocaleString()}`
   return `<div class="player-card${p.is_alive ? '' : ' dead'}">
-    <div class="player-card-top">
-      <span class="player-card-name">${esc(p.name.slice(0, 13))}</span>
-      <span class="player-card-money">$${p.money ?? 0}</span>
-    </div>
-    <div class="player-hp-bar">
-      <div class="player-hp-fill" style="width:${hpPct}%"></div>
-    </div>
-    <div class="player-card-bottom">
-      <span>${p.is_alive ? p.hp + ' HP' : 'Dead'}</span>
-      <span style="display:flex;align-items:center;gap:3px">${iconEl}</span>
+    <div class="card-accent-bar"></div>
+    <div class="card-body">
+      <div class="card-top">
+        <span class="player-name">${esc(p.name.slice(0, 13))}</span>
+        <span class="player-money">${moneyStr}</span>
+      </div>
+      <div class="hp-row">
+        <div class="hp-bar-wrap"><div class="hp-fill" style="width:${hpPct}%"></div></div>
+        <span class="hp-val">${p.is_alive ? p.hp : '—'}</span>
+      </div>
+      <div class="card-bottom">
+        ${wIconEl}<span class="weapon-name">${esc(weapon)}</span>
+      </div>
     </div>
   </div>`
 }
@@ -715,21 +717,38 @@ function updateKillFeed() {
   el.innerHTML = recent.map((k, i) => {
     const killerName = k.killer_name ?? 'World'
     const killerTeam = k.killer_team ?? 't'
-    const borderCls = killerTeam === 'ct' ? 'ct-kill' : 't-kill'
-    const fadeCls   = i >= 2 ? ' faded' : ''
-    const hs        = k.headshot === true ? `<span class="kf-hs">HS</span>` : ''
-    const weapon    = esc(k.weapon || '')
+    const borderCls  = killerTeam === 'ct' ? 'ct-kill' : 't-kill'
+    const fadeCls    = i >= 2 ? ' faded' : ''
+    const hs         = k.headshot === true ? `<span class="kf-hs">HS</span>` : ''
+    const wRaw       = (k.weapon || '').replace('weapon_', '')
+    const wIcon      = WEAPON_ICON_MAP[wRaw] ?? wRaw
+    const wIconEl    = wRaw
+      ? `<img src="images/weapons/${esc(wIcon)}.svg" class="kf-weapon-icon" onerror="this.style.display='none'">`
+      : ''
     return `<div class="kf-row ${borderCls}${fadeCls}">
   <div class="kf-names">
     <span class="kf-killer ${killerTeam}">${esc(killerName)}</span>
-    →
+    <span class="kf-arrow">›</span>
     <span class="kf-victim ${k.victim_team}">${esc(k.victim_name)}</span>
   </div>
-  <div class="kf-meta">
-    <span>${weapon}</span>${hs}
-  </div>
+  <div class="kf-meta">${wIconEl}${hs}</div>
 </div>`
   }).join('')
+}
+
+function updateMatchHeader() {
+  const ctScore = state.match.rounds.slice(0, state.roundIdx).filter(r => r.winner_side === 'ct').length
+  const tScore  = state.match.rounds.slice(0, state.roundIdx).filter(r => r.winner_side === 't').length
+  const totalR  = state.match.rounds.length
+  const mapEl   = document.getElementById('vh-map')
+  const ctEl    = document.getElementById('vh-ct-score')
+  const tEl     = document.getElementById('vh-t-score')
+  const rndEl   = document.getElementById('vh-round')
+  if (!mapEl) return
+  mapEl.textContent = mapName.replace(/^de_/, '').toUpperCase()
+  ctEl.textContent  = ctScore
+  tEl.textContent   = tScore
+  rndEl.textContent = `Round ${state.roundIdx + 1} / ${totalR}`
 }
 
 // ── UI updates ────────────────────────────────────────────────
@@ -820,6 +839,7 @@ function loop(ts) {
     }
     state.lastTs = ts
     render()
+    updateMatchHeader()
     updateRoundRow()
     updateTimeline()
     updatePlayerCards()
