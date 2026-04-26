@@ -342,7 +342,7 @@ def parse_demo(dem_path: str) -> dict:
 
     # Request only the sampled ticks from the parser — never loads the full DataFrame
     tick_df = p.parse_ticks(
-        ["X", "Y", "health", "is_alive", "team_num", "active_weapon_name", "account_balance", "armor_value", "yaw"],
+        ["X", "Y", "health", "is_alive", "team_num", "active_weapon_name", "m_iAccount", "armor_value", "yaw"],
         ticks=sampled,
     )
 
@@ -366,7 +366,7 @@ def parse_demo(dem_path: str) -> dict:
                 "hp":       _safe_int(r.get("health")),
                 "armor":    _safe_int(r.get("armor_value")),
                 "weapon":   str(r.get("active_weapon_name") or ""),
-                "money":    _safe_int(r.get("account_balance")),
+                "money":    _safe_int(r.get("m_iAccount")),
                 "is_alive": bool(r.get("is_alive") or False),
                 "yaw":      _safe_float(r.get("yaw")),
             })
