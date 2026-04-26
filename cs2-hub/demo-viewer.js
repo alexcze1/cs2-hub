@@ -50,12 +50,15 @@ if (!state.match.rounds.length) {
   throw new Error('no rounds')
 }
 
-document.title = `${demo.map ?? ''} — MIDROUND`
+// Use meta.map from parsed data as source of truth; fall back to DB column
+const mapName = state.match.meta?.map || demo.map || ''
+document.title = `${mapName} — MIDROUND`
+console.log('[viewer] map:', mapName, '| rounds:', state.match.rounds.length, '| frames:', state.match.frames.length)
 
 mapImg     = new Image()
-mapImg.src = `images/maps/${demo.map}_radar.png`
-mapImg.onload  = () => { mapLoaded = true }
-mapImg.onerror = () => { mapLoaded = true }
+mapImg.src = `images/maps/${mapName}_radar.png`
+mapImg.onload  = () => { console.log('[viewer] radar loaded:', mapImg.src); mapLoaded = true }
+mapImg.onerror = () => { console.warn('[viewer] radar 404:', mapImg.src); mapLoaded = true }
 
 loadingEl.style.display = 'none'
 document.getElementById('viewer-shell').style.display = 'flex'
@@ -102,7 +105,6 @@ function getFrame(tick) {
 // ── Render ────────────────────────────────────────────────────
 function render() {
   const { width: cw, height: ch } = canvas
-  const map = state.match.meta.map
   ctx.clearRect(0, 0, cw, ch)
 
   if (mapLoaded && mapImg.complete && mapImg.naturalWidth) {
@@ -119,7 +121,7 @@ function render() {
   const fontSize = Math.round(cw * 0.018)
 
   for (const p of frame.players) {
-    const { x, y } = worldToCanvas(p.x, p.y, map, cw, ch)
+    const { x, y } = worldToCanvas(p.x, p.y, mapName, cw, ch)
 
     ctx.beginPath()
     ctx.arc(x, y, dotR, 0, Math.PI * 2)
