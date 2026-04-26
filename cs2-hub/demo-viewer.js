@@ -142,9 +142,10 @@ function renderGrenades(round, tick, cw, ch) {
     if (g.tick < round.start_tick) continue
     if (g.tick > tick || g.end_tick < tick) continue
     if (g.x === 0 && g.y === 0) continue
+    if (g.end_tick == null) continue
     const { x, y } = worldToCanvas(g.x, g.y, mapName, cw, ch)
-    ctx.beginPath()
     if (g.type === 'smoke') {
+      ctx.beginPath()
       const r = cw * 0.055
       ctx.arc(x, y, r, 0, Math.PI * 2)
       ctx.fillStyle   = 'rgba(180,180,180,0.35)'
@@ -153,6 +154,7 @@ function renderGrenades(round, tick, cw, ch) {
       ctx.fill()
       ctx.stroke()
     } else if (g.type === 'molotov') {
+      ctx.beginPath()
       const r = cw * 0.04
       ctx.arc(x, y, r, 0, Math.PI * 2)
       ctx.fillStyle   = 'rgba(255,100,0,0.3)'
@@ -165,11 +167,13 @@ function renderGrenades(round, tick, cw, ch) {
       const progress = duration > 0 ? (tick - g.tick) / duration : 1
       const r = cw * 0.03 * (1 - progress)
       if (r > 0) {
+        ctx.beginPath()
         ctx.arc(x, y, r, 0, Math.PI * 2)
         ctx.fillStyle = 'rgba(255,255,255,0.5)'
         ctx.fill()
       }
     } else if (g.type === 'he') {
+      ctx.beginPath()
       const r = cw * 0.025
       ctx.arc(x, y, r, 0, Math.PI * 2)
       ctx.strokeStyle = 'rgba(255,220,0,0.7)'
@@ -191,6 +195,7 @@ function renderBomb(round, tick, cw, ch) {
     if (latest === null || event.tick > latest.tick) latest = event
   }
   if (!latest) { ctx.restore(); return }
+  if (latest.x == null || latest.y == null) { ctx.restore(); return }
   const { x, y } = worldToCanvas(latest.x, latest.y, mapName, cw, ch)
   if (latest.type === 'planted') {
     const r = cw * 0.018 + Math.sin(tick / 8) * cw * 0.006
