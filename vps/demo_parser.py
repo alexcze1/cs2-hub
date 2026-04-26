@@ -144,17 +144,19 @@ def _add_throw_origins(grenades, shots_df, by_tick, sampled_sorted) -> None:
         if t_list and g_list:
             delta = g_list[0]["tick"] - t_list[0]["tick"]
             print(f"[parser] {gtype} tick delta (det-throw): {delta}  throw={t_list[0]['tick']} det={g_list[0]['tick']}")
-    consumed: set = set()
+    consumed: dict = {}  # gtype -> set of consumed indices (per-type to avoid cross-contamination)
 
     for g in sorted_grenades:
-        candidates = throws_by_type.get(g["type"], [])
+        gtype = g["type"]
+        candidates = throws_by_type.get(gtype, [])
+        type_consumed = consumed.setdefault(gtype, set())
         g_sid = g.get("steam_id", "")
 
         # Prefer same-player throw (most recent unconsumed before detonation)
         best = None
         best_idx = None
         for i, t in enumerate(candidates):
-            if i in consumed or t["tick"] >= g["tick"]:
+            if i in type_consumed or t["tick"] >= g["tick"]:
                 continue
             if g_sid and t.get("steam_id") != g_sid:
                 continue
@@ -165,14 +167,14 @@ def _add_throw_origins(grenades, shots_df, by_tick, sampled_sorted) -> None:
         # Fallback: any most-recent unconsumed throw of same type
         if best is None:
             for i, t in enumerate(candidates):
-                if i in consumed or t["tick"] >= g["tick"]:
+                if i in type_consumed or t["tick"] >= g["tick"]:
                     continue
                 if best is None or t["tick"] > best["tick"]:
                     best = t
                     best_idx = i
 
         if best is not None:
-            consumed.add(best_idx)
+            type_consumed.add(best_idx)
             g["origin_x"]    = best["x"]
             g["origin_y"]    = best["y"]
             g["origin_tick"] = best["tick"]
