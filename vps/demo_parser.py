@@ -2,7 +2,7 @@ import math
 from collections import defaultdict
 from demoparser2 import DemoParser
 
-SAMPLE_RATE = 8
+SAMPLE_RATE = 16
 
 _WIN_REASONS = {
     1: "t_eliminated",
@@ -119,6 +119,13 @@ def parse_demo(dem_path: str) -> dict:
     # Only keep ticks that fall within an actual round — skips warmup/halftime/etc.
     sampled = [t for t in sampled_all if any(r["start_tick"] <= t <= r["end_tick"] for r in rounds)]
     print(f"[parser] tick range: {all_ticks[0] if all_ticks else 'none'}–{all_ticks[-1] if all_ticks else 'none'}  sampled all: {len(sampled_all)}  in-round: {len(sampled)}")
+
+    # Filter DataFrame to only sampled ticks BEFORE converting to Python — avoids OOM on full ~1.9M row DataFrame
+    sampled_set = set(sampled)
+    try:
+        tick_df = tick_df.filter(tick_df["tick"].is_in(sampled_set))   # polars
+    except AttributeError:
+        tick_df = tick_df[tick_df["tick"].isin(sampled_set)]           # pandas
 
     tick_records = _to_records(tick_df)
     by_tick: dict = defaultdict(list)
