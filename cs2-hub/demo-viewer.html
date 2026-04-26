@@ -67,17 +67,9 @@
     }
 
     /* ── Map canvas ─────────────────────────────────────────── */
-    .map-canvas-shell {
-      flex: 1;
-      min-width: 0;
-      padding: 1px;
-      border-radius: 12px;
-      background: radial-gradient(ellipse at 50% 0%, rgba(102,102,183,0.22) 0%, rgba(255,255,255,0.04) 60%, transparent 100%);
-      display: flex;
-    }
     .map-canvas-wrap {
       background: #08080d;
-      border-radius: 11px;
+      border-radius: 8px;
       flex: 1;
       min-width: 0;
       display: flex;
@@ -85,6 +77,8 @@
       justify-content: center;
       overflow: hidden;
       position: relative;
+      border: 1px solid rgba(255,255,255,0.07);
+      box-shadow: 0 0 0 1px rgba(102,102,183,0.07), 0 8px 32px rgba(0,0,0,0.45);
     }
     #map-canvas { display: block; max-width: 100%; max-height: 100%; }
 
@@ -413,11 +407,9 @@
       <div class="viewer-mid">
         <div class="player-panel ct-panel" id="ct-panel"></div>
 
-        <div class="map-canvas-shell">
-          <div class="map-canvas-wrap" id="map-canvas-wrap">
-            <canvas id="map-canvas"></canvas>
-            <div class="killfeed" id="killfeed"></div>
-          </div>
+        <div class="map-canvas-wrap" id="map-canvas-wrap">
+          <canvas id="map-canvas"></canvas>
+          <div class="killfeed" id="killfeed"></div>
         </div>
 
         <div class="player-panel t-panel" id="t-panel"></div>

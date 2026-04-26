@@ -19,6 +19,11 @@ let _lastRoundIdx  = -1
 let _lastKillTick  = -1
 const _prevHp     = {}  // steam_id → last rendered hp
 const _flashUntil = {}  // steam_id → Date.now() ms when flash expires
+let mapZoom = 1
+let mapPanX = 0
+let mapPanY = 0
+const ZOOM_MIN = 1
+const ZOOM_MAX = 6
 
 // ── Load ──────────────────────────────────────────────────────
 const loadingEl = document.getElementById('viewer-loading')
@@ -417,6 +422,12 @@ function render() {
   const { width: cw, height: ch } = canvas
   ctx.clearRect(0, 0, cw, ch)
 
+  // ── Zoomed map layer ──────────────────────────────────────
+  ctx.save()
+  ctx.translate(cw / 2 + mapPanX, ch / 2 + mapPanY)
+  ctx.scale(mapZoom, mapZoom)
+  ctx.translate(-cw / 2, -ch / 2)
+
   if (mapLoaded && mapImg.complete && mapImg.naturalWidth) {
     ctx.drawImage(mapImg, 0, 0, cw, ch)
     ctx.fillStyle = 'rgba(0,0,0,0.18)'
@@ -425,175 +436,169 @@ function render() {
     ctx.fillStyle = '#111318'
     ctx.fillRect(0, 0, cw, ch)
   }
-  // Outline so map edge doesn't bleed into background
   ctx.strokeStyle = 'rgba(255,255,255,0.07)'
   ctx.lineWidth   = 1
   ctx.strokeRect(0.5, 0.5, cw - 1, ch - 1)
 
   const frame = getInterpolatedFrame(state.tick)
-  if (!frame) return
+  if (frame) {
+    const dotR       = Math.round(cw * 0.009)
+    const pillFontSz = Math.round(cw * 0.011)
+    const pillFont   = `600 ${pillFontSz}px Inter, system-ui, sans-serif`
+    const round      = currentRound()
 
-  const dotR     = Math.round(cw * 0.009)
-  const pillFontSz = Math.round(cw * 0.011)
-  const pillFont   = `600 ${pillFontSz}px Inter, system-ui, sans-serif`
+    renderGrenades(round, state.tick, frame, cw, ch)
+    renderBomb(round, state.tick, cw, ch)
 
-  const round = currentRound()
-  renderGrenades(round, state.tick, frame, cw, ch)
-  renderBomb(round, state.tick, cw, ch)
+    for (const p of frame.players) {
+      const { x, y } = worldToCanvas(p.x, p.y, mapName, cw, ch)
 
-  // Player icons: unified circle + integrated direction pointer
-  for (const p of frame.players) {
-    const { x, y } = worldToCanvas(p.x, p.y, mapName, cw, ch)
+      if (!p.is_alive) {
+        ctx.save()
+        ctx.globalAlpha = 0.28
+        ctx.beginPath()
+        ctx.arc(x, y, dotR * 0.75, 0, Math.PI * 2)
+        ctx.fillStyle   = '#777'
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)'
+        ctx.lineWidth   = 1
+        ctx.fill()
+        ctx.stroke()
+        ctx.restore()
+        continue
+      }
 
-    if (!p.is_alive) {
-      ctx.save()
-      ctx.globalAlpha = 0.28
-      ctx.beginPath()
-      ctx.arc(x, y, dotR * 0.75, 0, Math.PI * 2)
-      ctx.fillStyle   = '#777'
-      ctx.strokeStyle = 'rgba(255,255,255,0.25)'
-      ctx.lineWidth   = 1
-      ctx.fill()
-      ctx.stroke()
-      ctx.restore()
-      continue
+      if (p.hp != null && p.hp > 0) {
+        const arcR = dotR + 3
+        ctx.save()
+        ctx.lineWidth = 1.5
+        ctx.beginPath()
+        ctx.arc(x, y, arcR, 0, Math.PI * 2)
+        ctx.strokeStyle = 'rgba(0,0,0,0.4)'
+        ctx.stroke()
+        ctx.beginPath()
+        ctx.arc(x, y, arcR, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, Math.min(1, p.hp / 100)))
+        ctx.strokeStyle = hpToColor(p.hp)
+        ctx.stroke()
+        ctx.restore()
+      }
+
+      const id = p.steam_id
+      if (state.playing && _prevHp[id] != null && p.hp < _prevHp[id]) {
+        _flashUntil[id] = Date.now() + 350
+      }
+      _prevHp[id] = p.hp
+      const color = (Date.now() < (_flashUntil[id] ?? 0)) ? '#FF1744' : playerColor(p.team)
+
+      if (p.yaw != null) {
+        const yawRad = p.yaw * Math.PI / 180
+        const { x: dirX, y: dirY } = worldToCanvas(
+          p.x + Math.cos(yawRad) * 300,
+          p.y + Math.sin(yawRad) * 300,
+          mapName, cw, ch
+        )
+        const angle      = Math.atan2(dirY - y, dirX - x)
+        const notchAngle = 22 * Math.PI / 180
+        const tipDist    = dotR * 0.45
+        ctx.save()
+        ctx.beginPath()
+        ctx.arc(x, y, dotR, angle + notchAngle, angle - notchAngle)
+        ctx.lineTo(x + Math.cos(angle) * (dotR + tipDist), y + Math.sin(angle) * (dotR + tipDist))
+        ctx.closePath()
+        ctx.fillStyle   = color
+        ctx.strokeStyle = 'rgba(255,255,255,0.88)'
+        ctx.lineWidth   = 1.5
+        ctx.fill()
+        ctx.stroke()
+        ctx.beginPath()
+        ctx.arc(x, y, dotR * 0.28, 0, Math.PI * 2)
+        ctx.fillStyle = 'rgba(255,255,255,0.82)'
+        ctx.fill()
+        ctx.restore()
+      } else {
+        ctx.save()
+        ctx.beginPath()
+        ctx.arc(x, y, dotR, 0, Math.PI * 2)
+        ctx.fillStyle   = color
+        ctx.strokeStyle = 'rgba(255,255,255,0.88)'
+        ctx.lineWidth   = 1.5
+        ctx.fill()
+        ctx.stroke()
+        ctx.restore()
+      }
     }
 
-    // HP arc — drawn behind the circle
-    if (p.hp != null && p.hp > 0) {
-      const arcR = dotR + 3
-      ctx.save()
-      ctx.lineWidth = 1.5
-      ctx.beginPath()
-      ctx.arc(x, y, arcR, 0, Math.PI * 2)
-      ctx.strokeStyle = 'rgba(0,0,0,0.4)'
-      ctx.stroke()
-      ctx.beginPath()
-      ctx.arc(x, y, arcR, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, Math.min(1, p.hp / 100)))
-      ctx.strokeStyle = hpToColor(p.hp)
-      ctx.stroke()
-      ctx.restore()
+    for (const p of frame.players) {
+      if (!p.is_alive) continue
+      const { x, y } = worldToCanvas(p.x, p.y, mapName, cw, ch)
+      drawPlayerPill(x, y - dotR, p.name.slice(0, 13), playerColor(p.team), pillFont, pillFontSz)
+
+      const rawWeapon = (p.weapon || '').replace('weapon_', '')
+      const iconName  = WEAPON_ICON_MAP[rawWeapon] ?? rawWeapon
+      const wIcon     = WEAPON_CANVAS_ICONS[iconName]
+      if (wIcon && wIcon.complete && wIcon.naturalWidth) {
+        const sz = Math.round(cw * 0.018)
+        const ph = pillFontSz + 5
+        const py = (y - dotR) - ph - 2
+        ctx.save()
+        ctx.drawImage(wIcon, x - sz / 2, py - sz - 2, sz, sz)
+        ctx.restore()
+      }
     }
 
-    const id = p.steam_id
-    if (state.playing && _prevHp[id] != null && p.hp < _prevHp[id]) {
-      _flashUntil[id] = Date.now() + 350
+    renderShots(round, state.tick, frame, cw, ch)
+  }
+
+  ctx.restore() // end zoom transform
+
+  // ── Fixed HUD — timer pill (not zoomed) ──────────────────
+  if (frame) {
+    const round    = currentRound()
+    const tickRate = state.match.meta.tick_rate
+    const fe       = freezeEnd(round)
+    const elapsed  = Math.max(0, (state.tick - fe) / tickRate)
+
+    let plantEvent = null, bombEnded = false
+    for (const ev of state.match.bomb) {
+      if (ev.tick < round.start_tick || ev.tick > state.tick) continue
+      if (ev.type === 'planted')  plantEvent = ev
+      if (ev.type === 'defused' || ev.type === 'exploded') bombEnded = true
     }
-    _prevHp[id] = p.hp
-    const color = (Date.now() < (_flashUntil[id] ?? 0)) ? '#FF1744' : playerColor(p.team)
 
-    if (p.yaw != null) {
-      const yawRad = p.yaw * Math.PI / 180
-      const { x: dirX, y: dirY } = worldToCanvas(
-        p.x + Math.cos(yawRad) * 300,
-        p.y + Math.sin(yawRad) * 300,
-        mapName, cw, ch
-      )
-      const angle      = Math.atan2(dirY - y, dirX - x)
-      const notchAngle = 22 * Math.PI / 180   // half-angle of the gap in the circle
-      const tipDist    = dotR * 0.45          // how far the tip extends past the circle edge
-
-      // Single path: arc the long way round + converge to tip
-      ctx.save()
-      ctx.beginPath()
-      ctx.arc(x, y, dotR, angle + notchAngle, angle - notchAngle)  // clockwise long arc
-      ctx.lineTo(x + Math.cos(angle) * (dotR + tipDist), y + Math.sin(angle) * (dotR + tipDist))
-      ctx.closePath()
-      ctx.fillStyle   = color
-      ctx.strokeStyle = 'rgba(255,255,255,0.88)'
-      ctx.lineWidth   = 1.5
-      ctx.fill()
-      ctx.stroke()
-      // Inner white center
-      ctx.beginPath()
-      ctx.arc(x, y, dotR * 0.28, 0, Math.PI * 2)
-      ctx.fillStyle = 'rgba(255,255,255,0.82)'
-      ctx.fill()
-      ctx.restore()
+    let timeStr, timerColor
+    if (plantEvent && !bombEnded) {
+      const bombRemain = Math.max(0, 40 - (state.tick - plantEvent.tick) / tickRate)
+      const remSec     = Math.ceil(bombRemain)
+      timeStr    = `0:${String(remSec).padStart(2, '0')}`
+      timerColor = bombRemain < 10 ? '#FF5252' : '#FFB74D'
     } else {
-      ctx.save()
-      ctx.beginPath()
-      ctx.arc(x, y, dotR, 0, Math.PI * 2)
-      ctx.fillStyle   = color
-      ctx.strokeStyle = 'rgba(255,255,255,0.88)'
-      ctx.lineWidth   = 1.5
-      ctx.fill()
-      ctx.stroke()
-      ctx.restore()
+      const remSec = Math.floor(Math.max(0, 115 - elapsed))
+      timeStr    = `${Math.floor(remSec / 60)}:${String(remSec % 60).padStart(2, '0')}`
+      timerColor = '#ffffff'
     }
+
+    const tFontSz = Math.round(cw * 0.034)
+    ctx.save()
+    ctx.font      = `700 ${tFontSz}px Inter, "SF Mono", monospace`
+    ctx.textAlign = 'center'
+    const tw      = ctx.measureText(timeStr).width
+    const pillW   = tw + 28
+    const pillH   = tFontSz + 14
+    const pillX   = cw / 2 - pillW / 2
+    const pillY   = 10
+    drawRoundRect(ctx, pillX, pillY, pillW, pillH, 8)
+    ctx.fillStyle = 'rgba(3,7,18,0.82)'
+    ctx.fill()
+    drawRoundRect(ctx, pillX, pillY, pillW, pillH, 8)
+    ctx.strokeStyle = plantEvent && !bombEnded
+      ? (timerColor === '#FF5252' ? 'rgba(255,82,82,0.6)' : 'rgba(255,183,77,0.5)')
+      : 'rgba(102,102,183,0.35)'
+    ctx.lineWidth   = 1
+    ctx.stroke()
+    ctx.fillStyle    = timerColor
+    ctx.textBaseline = 'middle'
+    ctx.fillText(timeStr, cw / 2, pillY + pillH / 2)
+    ctx.restore()
   }
-
-  // Pass 3: name pills (topmost)
-  for (const p of frame.players) {
-    if (!p.is_alive) continue
-    const { x, y } = worldToCanvas(p.x, p.y, mapName, cw, ch)
-    drawPlayerPill(x, y - dotR, p.name.slice(0, 13), playerColor(p.team), pillFont, pillFontSz)
-
-    // Weapon icon above the pill
-    const rawWeapon = (p.weapon || '').replace('weapon_', '')
-    const iconName  = WEAPON_ICON_MAP[rawWeapon] ?? rawWeapon
-    const wIcon     = WEAPON_CANVAS_ICONS[iconName]
-    if (wIcon && wIcon.complete && wIcon.naturalWidth) {
-      const sz  = Math.round(cw * 0.018)
-      const ph  = pillFontSz + 5
-      const py  = (y - dotR) - ph - 2
-      ctx.save()
-      ctx.drawImage(wIcon, x - sz / 2, py - sz - 2, sz, sz)
-      ctx.restore()
-    }
-  }
-
-  renderShots(round, state.tick, frame, cw, ch)
-
-  // ── Round timer pill — top center ──────────────────────────
-  const tickRate = state.match.meta.tick_rate
-  const fe       = freezeEnd(round)
-  const elapsed  = Math.max(0, (state.tick - fe) / tickRate)
-
-  let plantEvent = null, bombEnded = false
-  for (const ev of state.match.bomb) {
-    if (ev.tick < round.start_tick || ev.tick > state.tick) continue
-    if (ev.type === 'planted')  plantEvent = ev
-    if (ev.type === 'defused' || ev.type === 'exploded') bombEnded = true
-  }
-
-  let timeStr, timerColor
-  if (plantEvent && !bombEnded) {
-    const bombRemain = Math.max(0, 40 - (state.tick - plantEvent.tick) / tickRate)
-    const remSec     = Math.ceil(bombRemain)
-    timeStr    = `0:${String(remSec).padStart(2, '0')}`
-    timerColor = bombRemain < 10 ? '#FF5252' : '#FFB74D'
-  } else {
-    const remSec = Math.floor(Math.max(0, 115 - elapsed))
-    timeStr    = `${Math.floor(remSec / 60)}:${String(remSec % 60).padStart(2, '0')}`
-    timerColor = '#ffffff'
-  }
-
-  const tFontSz = Math.round(cw * 0.034)
-  ctx.save()
-  ctx.font      = `700 ${tFontSz}px Inter, "SF Mono", monospace`
-  ctx.textAlign = 'center'
-  const tw      = ctx.measureText(timeStr).width
-  const pillW   = tw + 28
-  const pillH   = tFontSz + 14
-  const pillX   = cw / 2 - pillW / 2
-  const pillY   = 10
-  // Glass background
-  drawRoundRect(ctx, pillX, pillY, pillW, pillH, 8)
-  ctx.fillStyle   = 'rgba(3,7,18,0.82)'
-  ctx.fill()
-  // Border — accent for normal, team-color tint for bomb
-  drawRoundRect(ctx, pillX, pillY, pillW, pillH, 8)
-  ctx.strokeStyle = plantEvent && !bombEnded
-    ? (timerColor === '#FF5252' ? 'rgba(255,82,82,0.6)' : 'rgba(255,183,77,0.5)')
-    : 'rgba(102,102,183,0.35)'
-  ctx.lineWidth   = 1
-  ctx.stroke()
-  // Timer text
-  ctx.fillStyle    = timerColor
-  ctx.textBaseline = 'middle'
-  ctx.fillText(timeStr, cw / 2, pillY + pillH / 2)
-  ctx.restore()
 }
 
 function esc(s) {
@@ -852,6 +857,27 @@ document.querySelectorAll('.speed-btn').forEach(btn => {
       b.classList.toggle('active', b === btn)
     )
   })
+})
+
+// ── Scroll zoom ───────────────────────────────────────────────
+canvas.addEventListener('wheel', e => {
+  e.preventDefault()
+  const rect   = canvas.getBoundingClientRect()
+  const scaleX = canvas.width  / rect.width
+  const scaleY = canvas.height / rect.height
+  const mouseX = (e.clientX - rect.left) * scaleX
+  const mouseY = (e.clientY - rect.top)  * scaleY
+  const { width: cw, height: ch } = canvas
+  const factor  = e.deltaY < 0 ? 1.12 : (1 / 1.12)
+  const newZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, mapZoom * factor))
+  const ratio   = newZoom / mapZoom
+  mapPanX = (mouseX - cw / 2) * (1 - ratio) + mapPanX * ratio
+  mapPanY = (mouseY - ch / 2) * (1 - ratio) + mapPanY * ratio
+  mapZoom  = newZoom
+}, { passive: false })
+
+canvas.addEventListener('dblclick', () => {
+  mapZoom = 1; mapPanX = 0; mapPanY = 0
 })
 
 const track = document.getElementById('timeline-track')
