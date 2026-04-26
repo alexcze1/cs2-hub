@@ -17,6 +17,8 @@ let mapLoaded = false
 let _lastFrameTick = -1
 let _lastRoundIdx  = -1
 let _lastKillTick  = -1
+const _prevHp     = {}  // steam_id → last rendered hp
+const _flashUntil = {}  // steam_id → Date.now() ms when flash expires
 
 // ── Load ──────────────────────────────────────────────────────
 const loadingEl = document.getElementById('viewer-loading')
@@ -103,6 +105,8 @@ function jumpToRound(idx) {
   _lastFrameTick  = -1
   _lastRoundIdx   = -1
   _lastKillTick   = -1
+  Object.keys(_prevHp).forEach(k => delete _prevHp[k])
+  Object.keys(_flashUntil).forEach(k => delete _flashUntil[k])
   updatePlayBtn()
   updateRoundRow()
   updateTimelineKills()
@@ -458,7 +462,12 @@ function render() {
       ctx.restore()
     }
 
-    const color = playerColor(p.team)
+    const id = p.steam_id
+    if (state.playing && _prevHp[id] != null && p.hp < _prevHp[id]) {
+      _flashUntil[id] = Date.now() + 350
+    }
+    _prevHp[id] = p.hp
+    const color = (Date.now() < (_flashUntil[id] ?? 0)) ? '#FF1744' : playerColor(p.team)
 
     if (p.yaw != null) {
       const yawRad = p.yaw * Math.PI / 180
