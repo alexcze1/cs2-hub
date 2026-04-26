@@ -41,6 +41,7 @@ state.match.frames  = state.match.frames ?? []
 state.match.kills    = state.match.kills     ?? []
 state.match.grenades = state.match.grenades ?? []
 state.match.bomb     = state.match.bomb     ?? []
+state.match.shots    = state.match.shots    ?? []
 if (!state.match.meta) state.match.meta = {}
 state.match.meta.tick_rate = state.match.meta.tick_rate || 64
 
@@ -122,6 +123,22 @@ function renderGrenades(round, tick, cw, ch) {
     if (g.x === 0 && g.y === 0) continue
     if (g.end_tick == null) continue
     const { x, y } = worldToCanvas(g.x, g.y, mapName, cw, ch)
+    if (g.origin_x != null && g.origin_y != null && !(g.origin_x === 0 && g.origin_y === 0)) {
+      const { x: ox, y: oy } = worldToCanvas(g.origin_x, g.origin_y, mapName, cw, ch)
+      ctx.save()
+      ctx.setLineDash([3, 5])
+      ctx.strokeStyle = g.type === 'smoke' ? 'rgba(200,200,200,0.5)'
+        : g.type === 'molotov' ? 'rgba(255,140,0,0.5)'
+        : g.type === 'flash'   ? 'rgba(255,255,255,0.4)'
+        : 'rgba(255,220,0,0.5)'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.moveTo(ox, oy)
+      ctx.lineTo(x, y)
+      ctx.stroke()
+      ctx.setLineDash([])
+      ctx.restore()
+    }
     if (g.type === 'smoke') {
       ctx.beginPath()
       const r = cw * 0.055
@@ -201,6 +218,28 @@ function renderBomb(round, tick, cw, ch) {
   ctx.restore()
 }
 
+// ── Shot flash ────────────────────────────────────────────────
+function renderShots(round, tick, frame, cw, ch) {
+  const FLASH_DURATION = 8
+  ctx.save()
+  for (const shot of state.match.shots) {
+    if (shot.tick < round.start_tick || shot.tick > tick || tick - shot.tick > FLASH_DURATION) continue
+    const player = frame.players.find(p => p.steam_id === shot.steam_id)
+    if (!player || !player.is_alive) continue
+    const { x, y } = worldToCanvas(player.x, player.y, mapName, cw, ch)
+    const age = tick - shot.tick
+    const alpha = 1 - age / FLASH_DURATION
+    const r = cw * 0.022 + (age / FLASH_DURATION) * cw * 0.012
+    ctx.beginPath()
+    ctx.arc(x, y, r, 0, Math.PI * 2)
+    ctx.strokeStyle = player.team === 'ct' ? '#4FC3F7' : '#EF5350'
+    ctx.lineWidth = 2
+    ctx.globalAlpha = alpha * 0.9
+    ctx.stroke()
+  }
+  ctx.restore()
+}
+
 // ── Render ────────────────────────────────────────────────────
 function render() {
   const { width: cw, height: ch } = canvas
@@ -240,6 +279,25 @@ function render() {
     ctx.stroke()
     ctx.globalAlpha = 1
 
+    if (p.is_alive && p.yaw != null) {
+      const yawRad = p.yaw * Math.PI / 180
+      const dist = 120  // world units
+      const { x: tx, y: ty } = worldToCanvas(
+        p.x + Math.cos(yawRad) * dist,
+        p.y - Math.sin(yawRad) * dist,  // -sin because yaw clockwise = south = -Y in world
+        mapName, cw, ch
+      )
+      ctx.save()
+      ctx.strokeStyle = p.team === 'ct' ? '#4FC3F7' : '#EF5350'
+      ctx.lineWidth = 1.5
+      ctx.globalAlpha = 0.8
+      ctx.beginPath()
+      ctx.moveTo(x, y)
+      ctx.lineTo(tx, ty)
+      ctx.stroke()
+      ctx.restore()
+    }
+
     if (p.is_alive) {
       ctx.fillStyle    = '#fff'
       ctx.font         = `${fontSize}px sans-serif`
@@ -248,6 +306,8 @@ function render() {
       ctx.fillText(p.name.slice(0, 10), x, y + dotR + 2)
     }
   }
+
+  renderShots(round, state.tick, frame, cw, ch)
 }
 
 function esc(s) {
