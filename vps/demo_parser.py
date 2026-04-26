@@ -52,6 +52,20 @@ def _safe_float(val) -> float:
         return 0.0
 
 
+def _to_records(df) -> list:
+    try:
+        return df.to_dicts()
+    except AttributeError:
+        return df.to_dict("records")
+
+
+def _col_to_list(col) -> list:
+    try:
+        return col.to_list()
+    except AttributeError:
+        return list(col)
+
+
 def _safe_int(val) -> int:
     if val is None:
         return 0
@@ -75,8 +89,8 @@ def parse_demo(dem_path: str) -> dict:
     round_end_df  = p.parse_event("round_end")
     round_start_df = p.parse_event("round_start")
 
-    start_ticks = round_start_df["tick"].to_list()
-    end_rows    = round_end_df.to_dicts()
+    start_ticks = _col_to_list(round_start_df["tick"])
+    end_rows    = _to_records(round_end_df)
 
     pairs = _pair_rounds(start_ticks, end_rows)
     print(f"[parser] pairs: {len(pairs)}  starts: {len(start_ticks)}  ends: {len(end_rows)}")
@@ -100,11 +114,11 @@ def parse_demo(dem_path: str) -> dict:
 
     print(f"[parser] rounds built: {len(rounds)}")
 
-    all_ticks = sorted(tick_df["tick"].unique().to_list())
+    all_ticks = sorted(_col_to_list(tick_df["tick"].unique()))
     sampled   = all_ticks[::SAMPLE_RATE]
     print(f"[parser] tick range: {all_ticks[0] if all_ticks else 'none'}–{all_ticks[-1] if all_ticks else 'none'}  sampled: {len(sampled)}")
 
-    tick_records = tick_df.to_dicts()
+    tick_records = _to_records(tick_df)
     by_tick: dict = defaultdict(list)
     for r in tick_records:
         by_tick[int(r["tick"])].append(r)
@@ -131,7 +145,7 @@ def parse_demo(dem_path: str) -> dict:
     print(f"[parser] frames: {len(frames)}  frame[0] players: {len(frames[0]['players']) if frames else 0}")
 
     kills = []
-    for r in kills_df.to_dicts():
+    for r in _to_records(kills_df):
         kills.append({
             "tick":        int(r["tick"]),
             "killer_id":   str(r.get("attacker_steamid") or ""),
