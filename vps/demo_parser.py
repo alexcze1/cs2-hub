@@ -347,12 +347,13 @@ def parse_demo(dem_path: str) -> dict:
     )
 
     print(f"[parser] tick_df columns: {list(tick_df.columns)}")
-    for _mc in ["account_balance", "m_iAccount", "cash", "money", "player_money", "CCSPlayerController_m_iAccount"]:
-        try:
-            _t = p.parse_ticks([_mc], ticks=sampled[:5])
-            print(f"[parser] money probe {_mc}: {'IN' if _mc in _t.columns else 'NOT IN'} cols → {list(_t.columns)}")
-        except Exception as _e:
-            print(f"[parser] money probe {_mc}: error {_e}")
+    try:
+        _all = p.parse_ticks(ticks=sampled[:1])
+        _money_cols = [c for c in _all.columns if any(k in c.lower() for k in ["money", "account", "cash", "equip", "iAccount"])]
+        print(f"[parser] all-props money-related: {_money_cols}")
+        print(f"[parser] all-props full list: {sorted(_all.columns.tolist())}")
+    except Exception as _e:
+        print(f"[parser] all-props error: {_e}")
     tick_records = _to_records(tick_df)
     by_tick: dict = defaultdict(list)
     for r in tick_records:
