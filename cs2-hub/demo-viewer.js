@@ -146,10 +146,13 @@ function render() {
 }
 
 // ── UI updates ────────────────────────────────────────────────
+let _lastRoundIdx = -1
 function updateRoundTracker() {
   const rounds = state.match.rounds
   document.getElementById('round-num').textContent   = state.roundIdx + 1
   document.getElementById('round-total').textContent = rounds.length
+  if (state.roundIdx === _lastRoundIdx) return
+  _lastRoundIdx = state.roundIdx
   document.getElementById('round-squares').innerHTML = rounds.map((r, i) => {
     const cls = i < state.roundIdx
       ? r.winner_side
@@ -190,9 +193,15 @@ function loop(ts) {
 
       const round = currentRound()
       if (state.tick >= round.end_tick) {
-        state.tick    = round.end_tick
-        state.playing = false
-        updatePlayBtn()
+        const nextIdx = state.roundIdx + 1
+        if (nextIdx < state.match.rounds.length) {
+          state.roundIdx = nextIdx
+          state.tick     = currentRound().start_tick
+        } else {
+          state.tick    = round.end_tick
+          state.playing = false
+          updatePlayBtn()
+        }
       }
     }
     state.lastTs = ts
