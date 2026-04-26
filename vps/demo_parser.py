@@ -132,6 +132,7 @@ def _add_throw_origins(grenades, shots_df, by_tick, sampled_sorted) -> None:
         print(f"[parser] throw origins error: {e}")
         return
 
+    print(f"[parser] throws by type: { {k: len(v) for k, v in throws_by_type.items()} }")
     for lst in throws_by_type.values():
         lst.sort(key=lambda t: t["tick"])
 

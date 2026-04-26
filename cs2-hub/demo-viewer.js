@@ -150,7 +150,9 @@ function getInterpolatedFrame(tick) {
 
 
 // ── Grenade overlays ──────────────────────────────────────────
-function renderGrenades(round, tick, cw, ch) {
+function renderGrenades(round, tick, frame, cw, ch) {
+  const teamBySid = {}
+  for (const p of (frame?.players ?? [])) teamBySid[p.steam_id] = p.team
   ctx.save()
   for (const g of state.match.grenades) {
     if (g.tick < round.start_tick) continue
@@ -217,13 +219,15 @@ function renderGrenades(round, tick, cw, ch) {
     if (!active) continue
 
     if (g.x === 0 && g.y === 0) continue
+    const throwerTeam = teamBySid[g.steam_id] ?? null
+    const teamOutline = throwerTeam === 'ct' ? CT_COLOR : throwerTeam === 't' ? T_COLOR : null
     if (g.type === 'smoke') {
       ctx.beginPath()
       const r = cw * 0.032
       ctx.arc(x, y, r, 0, Math.PI * 2)
       ctx.fillStyle   = 'rgba(180,180,180,0.35)'
-      ctx.strokeStyle = 'rgba(200,200,200,0.5)'
-      ctx.lineWidth   = 1.5
+      ctx.strokeStyle = teamOutline ?? 'rgba(200,200,200,0.5)'
+      ctx.lineWidth   = 2
       ctx.fill()
       ctx.stroke()
       drawCountdownText(x, y, r, Math.ceil(totalS - elapsedS), 'rgba(255,255,255,0.9)')
@@ -232,8 +236,8 @@ function renderGrenades(round, tick, cw, ch) {
       const r = cw * 0.028
       ctx.arc(x, y, r, 0, Math.PI * 2)
       ctx.fillStyle   = 'rgba(255,100,0,0.3)'
-      ctx.strokeStyle = 'rgba(255,140,0,0.6)'
-      ctx.lineWidth   = 1.5
+      ctx.strokeStyle = teamOutline ?? 'rgba(255,140,0,0.6)'
+      ctx.lineWidth   = 2
       ctx.fill()
       ctx.stroke()
       drawCountdownText(x, y, r, Math.ceil(totalS - elapsedS), '#FF9500')
@@ -427,7 +431,7 @@ function render() {
   const pillFont   = `600 ${pillFontSz}px sans-serif`
 
   const round = currentRound()
-  renderGrenades(round, state.tick, cw, ch)
+  renderGrenades(round, state.tick, frame, cw, ch)
   renderBomb(round, state.tick, cw, ch)
 
   // Player icons: unified circle + integrated direction pointer
