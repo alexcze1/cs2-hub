@@ -16,6 +16,7 @@ let mapImg    = null
 let mapLoaded = false
 let _lastFrameTick = -1
 let _lastRoundIdx  = -1
+let _lastKillTick  = -1
 
 // ── Load ──────────────────────────────────────────────────────
 const loadingEl = document.getElementById('viewer-loading')
@@ -37,7 +38,9 @@ if (error || !demo || demo.status !== 'ready') {
 state.match         = demo.match_data
 state.match.rounds  = state.match.rounds ?? []
 state.match.frames  = state.match.frames ?? []
-state.match.kills   = state.match.kills  ?? []
+state.match.kills    = state.match.kills     ?? []
+state.match.grenades = state.match.grenades ?? []
+state.match.bomb     = state.match.bomb     ?? []
 if (!state.match.meta) state.match.meta = {}
 state.match.meta.tick_rate = state.match.meta.tick_rate || 64
 
@@ -91,6 +94,7 @@ function jumpToRound(idx) {
   state.playing   = false
   _lastFrameTick  = -1
   _lastRoundIdx   = -1
+  _lastKillTick   = -1
   updatePlayBtn()
   updateRoundTracker()
 }
@@ -106,6 +110,26 @@ function getFrame(tick) {
     else hi = mid - 1
   }
   return frames[lo]
+}
+
+// ── Death markers ─────────────────────────────────────────────
+function renderDeathMarkers(round, cw, dotR) {
+  const kills = state.match.kills
+  const half  = dotR * 1.4
+  ctx.lineWidth = 2
+  for (const kill of kills) {
+    if (kill.tick < round.start_tick || kill.tick > state.tick) continue
+    const { x, y } = worldToCanvas(kill.victim_x, kill.victim_y, mapName, cw, canvas.height)
+    ctx.strokeStyle = kill.victim_team === 'ct' ? '#4FC3F7' : '#EF5350'
+    ctx.beginPath()
+    ctx.moveTo(x - half, y - half)
+    ctx.lineTo(x + half, y + half)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(x + half, y - half)
+    ctx.lineTo(x - half, y + half)
+    ctx.stroke()
+  }
 }
 
 // ── Render ────────────────────────────────────────────────────
@@ -125,6 +149,9 @@ function render() {
 
   const dotR     = Math.round(cw * 0.012)
   const fontSize = Math.round(cw * 0.018)
+
+  const round = currentRound()
+  renderDeathMarkers(round, cw, dotR)
 
   for (const p of frame.players) {
     const { x, y } = worldToCanvas(p.x, p.y, mapName, cw, ch)
@@ -187,6 +214,37 @@ function updatePlayerCards() {
     sort(frame.players.filter(p => p.team === 'ct')).map(playerCardHTML).join('')
   document.getElementById('t-panel').innerHTML =
     sort(frame.players.filter(p => p.team === 't')).map(playerCardHTML).join('')
+}
+
+function updateKillFeed() {
+  if (state.tick === _lastKillTick) return
+  _lastKillTick = state.tick
+
+  const round = currentRound()
+  const kills = state.match.kills.filter(k =>
+    k.tick >= round.start_tick && k.tick <= state.tick
+  )
+  const recent = kills.slice(-5).reverse()
+
+  const el = document.getElementById('killfeed')
+  if (!el) return
+
+  el.innerHTML = recent.map((k, i) => {
+    const borderCls = k.killer_team === 'ct' ? 'ct-kill' : 't-kill'
+    const fadeCls   = i >= 2 ? ' faded' : ''
+    const hs        = k.headshot === true ? `<span class="kf-hs">HS</span>` : ''
+    const weapon    = esc(k.weapon || '')
+    return `<div class="kf-row ${borderCls}${fadeCls}">
+  <div class="kf-names">
+    <span class="kf-killer ${k.killer_team}">${esc(k.killer_name)}</span>
+    →
+    <span class="kf-victim ${k.victim_team}">${esc(k.victim_name)}</span>
+  </div>
+  <div class="kf-meta">
+    <span>${weapon}</span>${hs}
+  </div>
+</div>`
+  }).join('')
 }
 
 // ── UI updates ────────────────────────────────────────────────
@@ -252,6 +310,7 @@ function loop(ts) {
     updateRoundTracker()
     updateTimeline()
     updatePlayerCards()
+    updateKillFeed()
   } catch (e) {
     console.error('Viewer loop error:', e)
   }
