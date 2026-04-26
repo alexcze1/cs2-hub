@@ -182,8 +182,15 @@ function renderGrenades(round, tick, cw, ch) {
         ctx.globalAlpha = 0.75
         ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(cx, cy); ctx.stroke()
         ctx.setLineDash([])
-        ctx.beginPath(); ctx.arc(cx, cy, cw * 0.008, 0, Math.PI * 2)
-        ctx.fillStyle = typeColor; ctx.fill()
+        const icon = GRENADE_ICONS[g.type]
+        if (icon && icon.complete && icon.naturalWidth) {
+          const iconSz = cw * 0.022
+          ctx.globalAlpha = 0.9
+          ctx.drawImage(icon, cx - iconSz / 2, cy - iconSz / 2, iconSz, iconSz)
+        } else {
+          ctx.beginPath(); ctx.arc(cx, cy, cw * 0.008, 0, Math.PI * 2)
+          ctx.fillStyle = typeColor; ctx.fill()
+        }
         ctx.restore()
         continue
       } else if (showTraj) {
@@ -310,6 +317,15 @@ const CT_COLOR = '#4FC3F7'
 const T_COLOR  = '#FF9500'
 
 function playerColor(team) { return team === 'ct' ? CT_COLOR : T_COLOR }
+
+// Grenade icons — preloaded at init, drawn on trajectory during flight
+const GRENADE_ICONS = {}
+;['smoke:smokegrenade', 'flash:flashbang', 'he:hegrenade', 'molotov:molotov'].forEach(entry => {
+  const [type, filename] = entry.split(':')
+  const img = new Image()
+  img.src = `images/weapons/${filename}.svg`
+  GRENADE_ICONS[type] = img
+})
 
 function drawRoundRect(ctx, x, y, w, h, r) {
   ctx.beginPath()
