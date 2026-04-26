@@ -366,74 +366,66 @@ function render() {
   renderGrenades(round, state.tick, cw, ch)
   renderBomb(round, state.tick, cw, ch)
 
-  // Pass 1: direction arrows (behind dots)
-  ctx.save()
+  // Player icons: unified circle + integrated direction pointer
   for (const p of frame.players) {
-    if (!p.is_alive || p.yaw == null) continue
     const { x, y } = worldToCanvas(p.x, p.y, mapName, cw, ch)
-    const color  = playerColor(p.team)
-    const yawRad = p.yaw * Math.PI / 180
-    const { x: tipX, y: tipY } = worldToCanvas(
-      p.x + Math.cos(yawRad) * 300,
-      p.y + Math.sin(yawRad) * 300,
-      mapName, cw, ch
-    )
-    const angle    = Math.atan2(tipY - y, tipX - x)
-    const arrowLen = cw * 0.042
-    const baseHalf = 7 * Math.PI / 180   // 14° total base width — narrow arrow
-    const tip  = { x: x + Math.cos(angle) * (dotR + arrowLen),       y: y + Math.sin(angle) * (dotR + arrowLen) }
-    const left = { x: x + Math.cos(angle - baseHalf) * (dotR + 1),   y: y + Math.sin(angle - baseHalf) * (dotR + 1) }
-    const rght = { x: x + Math.cos(angle + baseHalf) * (dotR + 1),   y: y + Math.sin(angle + baseHalf) * (dotR + 1) }
-    ctx.beginPath()
-    ctx.moveTo(tip.x, tip.y)
-    ctx.lineTo(left.x, left.y)
-    ctx.lineTo(rght.x, rght.y)
-    ctx.closePath()
-    ctx.fillStyle   = color
-    ctx.globalAlpha = 0.75
-    ctx.fill()
-  }
-  ctx.restore()
 
-  // Pass 2: player dots
-  ctx.save()
-  for (const p of frame.players) {
-    const { x, y } = worldToCanvas(p.x, p.y, mapName, cw, ch)
     if (!p.is_alive) {
-      ctx.globalAlpha = 0.3
+      ctx.save()
+      ctx.globalAlpha = 0.28
       ctx.beginPath()
       ctx.arc(x, y, dotR * 0.75, 0, Math.PI * 2)
-      ctx.fillStyle   = '#666'
-      ctx.strokeStyle = 'rgba(255,255,255,0.3)'
+      ctx.fillStyle   = '#777'
+      ctx.strokeStyle = 'rgba(255,255,255,0.25)'
       ctx.lineWidth   = 1
       ctx.fill()
       ctx.stroke()
-      ctx.globalAlpha = 1
+      ctx.restore()
       continue
     }
+
     const color = playerColor(p.team)
-    // Outer glow ring
-    ctx.beginPath()
-    ctx.arc(x, y, dotR + 2, 0, Math.PI * 2)
-    ctx.fillStyle   = color
-    ctx.globalAlpha = 0.25
-    ctx.fill()
-    ctx.globalAlpha = 1
-    // Main dot
-    ctx.beginPath()
-    ctx.arc(x, y, dotR, 0, Math.PI * 2)
-    ctx.fillStyle   = color
-    ctx.strokeStyle = 'rgba(255,255,255,0.9)'
-    ctx.lineWidth   = 1.5
-    ctx.fill()
-    ctx.stroke()
-    // Inner white center
-    ctx.beginPath()
-    ctx.arc(x, y, dotR * 0.32, 0, Math.PI * 2)
-    ctx.fillStyle = 'rgba(255,255,255,0.8)'
-    ctx.fill()
+
+    if (p.yaw != null) {
+      const yawRad = p.yaw * Math.PI / 180
+      const { x: dirX, y: dirY } = worldToCanvas(
+        p.x + Math.cos(yawRad) * 300,
+        p.y + Math.sin(yawRad) * 300,
+        mapName, cw, ch
+      )
+      const angle      = Math.atan2(dirY - y, dirX - x)
+      const notchAngle = 36 * Math.PI / 180   // half-angle of the gap in the circle
+      const tipDist    = dotR * 1.85           // how far the tip extends past the circle edge
+
+      // Single path: arc the long way round + converge to tip
+      ctx.save()
+      ctx.beginPath()
+      ctx.arc(x, y, dotR, angle + notchAngle, angle - notchAngle)  // clockwise long arc
+      ctx.lineTo(x + Math.cos(angle) * (dotR + tipDist), y + Math.sin(angle) * (dotR + tipDist))
+      ctx.closePath()
+      ctx.fillStyle   = color
+      ctx.strokeStyle = 'rgba(255,255,255,0.88)'
+      ctx.lineWidth   = 1.5
+      ctx.fill()
+      ctx.stroke()
+      // Inner white center
+      ctx.beginPath()
+      ctx.arc(x, y, dotR * 0.28, 0, Math.PI * 2)
+      ctx.fillStyle = 'rgba(255,255,255,0.82)'
+      ctx.fill()
+      ctx.restore()
+    } else {
+      ctx.save()
+      ctx.beginPath()
+      ctx.arc(x, y, dotR, 0, Math.PI * 2)
+      ctx.fillStyle   = color
+      ctx.strokeStyle = 'rgba(255,255,255,0.88)'
+      ctx.lineWidth   = 1.5
+      ctx.fill()
+      ctx.stroke()
+      ctx.restore()
+    }
   }
-  ctx.restore()
 
   // Pass 3: name pills (topmost)
   for (const p of frame.players) {
