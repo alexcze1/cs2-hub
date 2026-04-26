@@ -69,7 +69,7 @@
 
     /* ── Map canvas ─────────────────────────────────────────── */
     .map-canvas-wrap {
-      background: #08080d;
+      background: transparent;
       border-radius: 8px;
       flex: 1;
       min-width: 0;
@@ -78,8 +78,6 @@
       justify-content: center;
       overflow: hidden;
       position: relative;
-      border: 1px solid rgba(255,255,255,0.07);
-      box-shadow: 0 0 0 1px rgba(102,102,183,0.07), 0 8px 32px rgba(0,0,0,0.45);
     }
     #map-canvas { display: block; max-width: 100%; max-height: 100%; }
 
@@ -169,6 +167,13 @@
       color: var(--text-secondary, #A1A1AA);
       min-width: 18px;
       text-align: right;
+    }
+    .dead-label {
+      font-size: 8px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.18);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
     }
     .card-bottom {
       display: flex;
@@ -330,9 +335,9 @@
     .timeline-track {
       flex: 1;
       position: relative;
-      height: 5px;
+      height: 8px;
       background: rgba(255,255,255,0.07);
-      border-radius: 3px;
+      border-radius: 4px;
       cursor: pointer;
     }
     .timeline-fill {
@@ -346,12 +351,12 @@
       position: absolute;
       top: 50%;
       transform: translate(-50%, -50%);
-      width: 11px;
-      height: 11px;
+      width: 16px;
+      height: 16px;
       background: #fff;
       border-radius: 50%;
       pointer-events: none;
-      box-shadow: 0 0 6px rgba(102,102,183,0.6);
+      box-shadow: 0 0 8px rgba(102,102,183,0.7);
     }
     .tl-kill-mark {
       position: absolute;

@@ -25,6 +25,13 @@ let mapPanY = 0
 const ZOOM_MIN = 1
 const ZOOM_MAX = 6
 
+// ── Drawing tool ──────────────────────────────────────────────
+let drawingMode  = false
+let drawPaths    = []
+let currentPath  = null
+const DRAW_COLORS = ['#ffffff', '#FF1744', '#4FC3F7', '#FF9500', '#69F0AE', '#FFEA00', '#CE93D8']
+let drawColorIdx = 0
+
 // ── Load ──────────────────────────────────────────────────────
 const loadingEl = document.getElementById('viewer-loading')
 
@@ -158,25 +165,42 @@ function getInterpolatedFrame(tick) {
 function renderGrenades(round, tick, frame, cw, ch) {
   const teamBySid = {}
   for (const p of (frame?.players ?? [])) teamBySid[p.steam_id] = p.team
+
+  const tickRate = state.match.meta.tick_rate
+  const GAME_HZ  = 128
+  const TRAJ_TICKS       = { smoke: tickRate * 7, molotov: tickRate * 6, he: tickRate * 5, flash: tickRate * 2 }
+  const GRENADE_DURATION_S = { smoke: 22, molotov: 7 }
+
+  // Deduplicate grenades by (type, tick, steam_id) — parser can emit duplicate rows
+  const seen = new Set()
+  const grenades = state.match.grenades.filter(g => {
+    const key = `${g.type}:${g.tick}:${g.steam_id}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+
+  // Helper: quadratic bezier arc control point for trajectory
+  function arcCP(ox, oy, ex, ey) {
+    const dx = ex - ox, dy = ey - oy
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1
+    const h    = Math.min(dist * 0.32, cw * 0.1)
+    return { cpx: (ox + ex) / 2 + dy / dist * h, cpy: (oy + ey) / 2 - dx / dist * h }
+  }
+
   ctx.save()
-  for (const g of state.match.grenades) {
+  for (const g of grenades) {
     if (g.tick < round.start_tick) continue
     if (g.end_tick == null) continue
 
-    const tickRate   = state.match.meta.tick_rate
-    const GAME_HZ    = 128
-    const TRAJ_TICKS = { smoke: tickRate * 7, molotov: tickRate * 6, he: tickRate * 5, flash: tickRate * 4 }
-    const trajTicks  = TRAJ_TICKS[g.type] ?? tickRate * 3
-
-    // Canonical durations (seconds) override stored end_tick which can be wrong due to
-    // CS2 sub-tick: smoke always 22s, molotov 7s from inferno_startburn
-    const GRENADE_DURATION_S = { smoke: 22, molotov: 7 }
+    const trajTicks = TRAJ_TICKS[g.type] ?? tickRate * 3
     const totalS    = GRENADE_DURATION_S[g.type] ?? ((g.end_tick - g.tick) / GAME_HZ)
     const elapsedS  = (tick - g.tick) / tickRate
 
-    const inFlight  = g.origin_tick != null && g.origin_tick <= tick && tick < g.tick
-    const active    = g.tick <= tick && elapsedS < totalS
-    const showTraj  = g.tick <= tick && (tick - g.tick) < trajTicks
+    const inFlight = g.origin_tick != null && g.origin_tick <= tick && tick < g.tick
+    const active   = g.tick <= tick && elapsedS < totalS
+    // Flash: hide trajectory while white circle is still visible (avoids "thrown twice" look)
+    const showTraj = g.tick <= tick && (tick - g.tick) < trajTicks && !(g.type === 'flash' && active)
     if (!inFlight && !active && !showTraj) continue
 
     const { x, y } = worldToCanvas(g.x, g.y, mapName, cw, ch)
@@ -185,86 +209,122 @@ function renderGrenades(round, tick, frame, cw, ch) {
                     : g.type === 'flash'   ? 'rgba(255,255,255,0.5)'
                     :                        'rgba(255,220,0,0.6)'
 
-    // Trajectory: animated during flight, fading static line after landing
+    // ── Trajectory (arc) ──────────────────────────────────────
     if (g.origin_x != null && !(g.origin_x === 0 && g.origin_y === 0)) {
       const { x: ox, y: oy } = worldToCanvas(g.origin_x, g.origin_y, mapName, cw, ch)
       ctx.save()
       ctx.setLineDash([3, 5])
-      ctx.lineWidth = 1.5
+      ctx.lineWidth   = 1.5
 
       if (inFlight) {
         const duration = g.tick - g.origin_tick
         const progress = duration > 0 ? (tick - g.origin_tick) / duration : 1
-        const cx = ox + (x - ox) * progress
-        const cy = oy + (y - oy) * progress
+        // Animate icon along a linear path (arc is only for the full static trajectory)
+        const iconX = ox + (x - ox) * progress
+        const iconY = oy + (y - oy) * progress
         ctx.strokeStyle = typeColor
         ctx.globalAlpha = 0.75
-        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(cx, cy); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(iconX, iconY); ctx.stroke()
         ctx.setLineDash([])
         const icon = GRENADE_ICONS[g.type]
         if (icon && icon.complete && icon.naturalWidth) {
           const iconSz = cw * 0.022
           ctx.globalAlpha = 0.9
-          ctx.drawImage(icon, cx - iconSz / 2, cy - iconSz / 2, iconSz, iconSz)
+          ctx.drawImage(icon, iconX - iconSz / 2, iconY - iconSz / 2, iconSz, iconSz)
         } else {
-          ctx.beginPath(); ctx.arc(cx, cy, cw * 0.008, 0, Math.PI * 2)
+          ctx.beginPath(); ctx.arc(iconX, iconY, cw * 0.008, 0, Math.PI * 2)
           ctx.fillStyle = typeColor; ctx.fill()
         }
         ctx.restore()
         continue
       } else if (showTraj) {
+        // Curved arc trajectory — approximates the throw parabola in top-down view
         const alpha = 1 - (tick - g.tick) / trajTicks
+        const { cpx, cpy } = arcCP(ox, oy, x, y)
         ctx.strokeStyle = typeColor
         ctx.globalAlpha = alpha * 0.65
-        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(x, y); ctx.stroke()
+        ctx.beginPath()
+        ctx.moveTo(ox, oy)
+        ctx.quadraticCurveTo(cpx, cpy, x, y)
+        ctx.stroke()
+        // Small dot at throw origin
+        ctx.setLineDash([])
+        ctx.globalAlpha = alpha * 0.5
+        ctx.beginPath(); ctx.arc(ox, oy, cw * 0.005, 0, Math.PI * 2)
+        ctx.fillStyle = typeColor; ctx.fill()
       }
       ctx.restore()
     }
 
     if (!active) continue
-
     if (g.x === 0 && g.y === 0) continue
+
     const throwerTeam = teamBySid[g.steam_id] ?? null
     const teamOutline = throwerTeam === 'ct' ? CT_COLOR : throwerTeam === 't' ? T_COLOR : null
+
     if (g.type === 'smoke') {
-      ctx.beginPath()
       const r = cw * 0.032
-      ctx.arc(x, y, r, 0, Math.PI * 2)
+      // Check for nearby HE reveals
+      const heReveals = grenades.filter(h =>
+        h.type === 'he' && h.tick >= round.start_tick &&
+        tick >= h.tick && tick < h.tick + tickRate * 4 &&
+        (h.x - g.x) ** 2 + (h.y - g.y) ** 2 < 200 * 200
+      )
+      ctx.save()
+      if (heReveals.length > 0) {
+        // Clip: smoke circle minus HE holes (evenodd rule)
+        ctx.beginPath()
+        ctx.arc(x, y, r, 0, Math.PI * 2)
+        for (const he of heReveals) {
+          const { x: hx, y: hy } = worldToCanvas(he.x, he.y, mapName, cw, ch)
+          const heAge  = (tick - he.tick) / tickRate
+          const holeR  = cw * 0.008 + cw * 0.02 * Math.min(1, heAge / 0.4)
+          ctx.arc(hx, hy, holeR, 0, Math.PI * 2)
+        }
+        ctx.clip('evenodd')
+      }
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2)
       ctx.fillStyle   = 'rgba(180,180,180,0.35)'
       ctx.strokeStyle = teamOutline ?? 'rgba(200,200,200,0.5)'
       ctx.lineWidth   = 2
-      ctx.fill()
-      ctx.stroke()
+      ctx.fill(); ctx.stroke()
       drawCountdownText(x, y, r, Math.ceil(totalS - elapsedS), 'rgba(255,255,255,0.9)')
+      ctx.restore()
+
     } else if (g.type === 'molotov') {
-      ctx.beginPath()
+      // Extinguished by overlapping active smoke
+      const smoked = grenades.some(s => {
+        if (s.type !== 'smoke' || s.tick > tick) return false
+        const sElapsed = (tick - s.tick) / tickRate
+        if (sElapsed > 22) return false
+        return (s.x - g.x) ** 2 + (s.y - g.y) ** 2 < 180 * 180
+      })
+      if (smoked) continue
+
       const r = cw * 0.028
-      ctx.arc(x, y, r, 0, Math.PI * 2)
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2)
       ctx.fillStyle   = 'rgba(255,100,0,0.3)'
       ctx.strokeStyle = teamOutline ?? 'rgba(255,140,0,0.6)'
       ctx.lineWidth   = 2
-      ctx.fill()
-      ctx.stroke()
+      ctx.fill(); ctx.stroke()
       drawCountdownText(x, y, r, Math.ceil(totalS - elapsedS), '#FF9500')
+
     } else if (g.type === 'flash') {
       const durationSec = (g.end_tick - g.tick) / GAME_HZ
       const elapsedSec  = (tick - g.tick) / tickRate
       const progress    = durationSec > 0 ? Math.min(1, elapsedSec / durationSec) : 1
       const r = cw * 0.03 * (1 - progress)
       if (r > 0) {
-        ctx.beginPath()
-        ctx.arc(x, y, r, 0, Math.PI * 2)
-        ctx.fillStyle = 'rgba(255,255,255,0.5)'
-        ctx.fill()
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2)
+        ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fill()
       }
+
     } else if (g.type === 'he') {
       const progress = totalS > 0 ? Math.min(1, elapsedS / totalS) : 1
       const r = cw * 0.03 * (1 - progress)
       if (r > 0) {
-        ctx.beginPath()
-        ctx.arc(x, y, r, 0, Math.PI * 2)
-        ctx.fillStyle = 'rgba(220,50,50,0.6)'
-        ctx.fill()
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2)
+        ctx.fillStyle = 'rgba(220,50,50,0.6)'; ctx.fill()
       }
     }
   }
@@ -473,10 +533,6 @@ function render() {
     ctx.fillStyle = '#111318'
     ctx.fillRect(0, 0, cw, ch)
   }
-  ctx.strokeStyle = 'rgba(255,255,255,0.07)'
-  ctx.lineWidth   = 1
-  ctx.strokeRect(0.5, 0.5, cw - 1, ch - 1)
-
   const frame = getInterpolatedFrame(state.tick)
   if (frame) {
     const dotR       = Math.round(cw * 0.009)
@@ -636,6 +692,47 @@ function render() {
     ctx.fillText(timeStr, cw / 2, pillY + pillH / 2)
     ctx.restore()
   }
+
+  // ── Drawing overlay (zoomed, anchored to map) ─────────────
+  if (drawPaths.length > 0 || currentPath) {
+    ctx.save()
+    ctx.translate(cw / 2 + mapPanX, ch / 2 + mapPanY)
+    ctx.scale(mapZoom, mapZoom)
+    ctx.translate(-cw / 2, -ch / 2)
+    ctx.lineCap  = 'round'
+    ctx.lineJoin = 'round'
+    for (const path of [...drawPaths, ...(currentPath ? [currentPath] : [])]) {
+      if (path.points.length < 2) continue
+      ctx.beginPath()
+      ctx.strokeStyle = path.color
+      ctx.lineWidth   = 3 / mapZoom
+      ctx.moveTo(path.points[0].x, path.points[0].y)
+      for (let i = 1; i < path.points.length; i++) ctx.lineTo(path.points[i].x, path.points[i].y)
+      ctx.stroke()
+    }
+    ctx.restore()
+  }
+
+  // ── Draw mode indicator (top-left) ───────────────────────
+  if (drawingMode) {
+    const indColor = DRAW_COLORS[drawColorIdx]
+    ctx.save()
+    ctx.font         = `600 11px Inter, system-ui, sans-serif`
+    ctx.textBaseline = 'top'
+    ctx.textAlign    = 'left'
+    const label      = '✏  DRAW  [D] exit  [C] color  [R] clear'
+    const lw         = ctx.measureText(label).width
+    drawRoundRect(ctx, 10, 10, lw + 20, 26, 6)
+    ctx.fillStyle = 'rgba(3,7,18,0.82)'
+    ctx.fill()
+    drawRoundRect(ctx, 10, 10, lw + 20, 26, 6)
+    ctx.strokeStyle = indColor
+    ctx.lineWidth   = 1.5
+    ctx.stroke()
+    ctx.fillStyle = indColor
+    ctx.fillText(label, 20, 17)
+    ctx.restore()
+  }
 }
 
 function esc(s) {
@@ -690,23 +787,33 @@ new Set(Object.values(WEAPON_ICON_MAP)).forEach(name => {
 })
 
 function playerCardHTML(p) {
-  const hpPct    = p.is_alive ? Math.max(0, Math.min(100, p.hp)) : 0
+  if (!p.is_alive) {
+    return `<div class="player-card dead">
+      <div class="card-accent-bar"></div>
+      <div class="card-body">
+        <div class="card-top">
+          <span class="player-name">${esc(p.name.slice(0, 13))}</span>
+          <span class="dead-label">dead</span>
+        </div>
+      </div>
+    </div>`
+  }
+  const hpPct    = Math.max(0, Math.min(100, p.hp))
   const weapon   = (p.weapon || '').replace('weapon_', '')
   const iconName = WEAPON_ICON_MAP[weapon] ?? weapon
   const wIconEl  = weapon
     ? `<img src="images/weapons/${esc(iconName)}.svg" class="weapon-icon" onerror="this.style.display='none'">`
     : ''
-  const moneyStr = `$${(p.money ?? 0).toLocaleString()}`
-  return `<div class="player-card${p.is_alive ? '' : ' dead'}">
+  return `<div class="player-card">
     <div class="card-accent-bar"></div>
     <div class="card-body">
       <div class="card-top">
         <span class="player-name">${esc(p.name.slice(0, 13))}</span>
-        <span class="player-money">${moneyStr}</span>
+        <span class="player-money">$${(p.money ?? 0).toLocaleString()}</span>
       </div>
       <div class="hp-row">
         <div class="hp-bar-wrap"><div class="hp-fill" style="width:${hpPct}%"></div></div>
-        <span class="hp-val">${p.is_alive ? p.hp : '—'}</span>
+        <span class="hp-val">${p.hp}</span>
       </div>
       <div class="card-bottom">
         ${wIconEl}<span class="weapon-name">${esc(weapon)}</span>
@@ -894,6 +1001,65 @@ document.querySelectorAll('.speed-btn').forEach(btn => {
       b.classList.toggle('active', b === btn)
     )
   })
+})
+
+// ── Keyboard shortcuts ────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+
+  if (e.code === 'Space') {
+    e.preventDefault()
+    const round = currentRound()
+    if (state.tick >= round.end_tick) state.tick = freezeEnd(round)
+    state.playing = !state.playing
+    updatePlayBtn()
+    return
+  }
+
+  if (e.code === 'KeyD') {
+    drawingMode = !drawingMode
+    canvas.style.cursor = drawingMode ? 'crosshair' : ''
+    return
+  }
+  if (e.code === 'KeyC' && drawingMode) {
+    drawColorIdx = (drawColorIdx + 1) % DRAW_COLORS.length
+    return
+  }
+  if (e.code === 'KeyR') {
+    drawPaths    = []
+    currentPath  = null
+    return
+  }
+})
+
+// ── Drawing mouse events ──────────────────────────────────────
+function getMapPos(e) {
+  const rect = canvas.getBoundingClientRect()
+  const sx   = (e.clientX - rect.left) * (canvas.width  / rect.width)
+  const sy   = (e.clientY - rect.top)  * (canvas.height / rect.height)
+  return {
+    x: (sx - canvas.width  / 2 - mapPanX) / mapZoom + canvas.width  / 2,
+    y: (sy - canvas.height / 2 - mapPanY) / mapZoom + canvas.height / 2,
+  }
+}
+
+canvas.addEventListener('mousedown', e => {
+  if (!drawingMode) return
+  currentPath = { color: DRAW_COLORS[drawColorIdx], points: [getMapPos(e)] }
+})
+canvas.addEventListener('mousemove', e => {
+  if (!drawingMode || !currentPath) return
+  currentPath.points.push(getMapPos(e))
+})
+canvas.addEventListener('mouseup', () => {
+  if (!drawingMode || !currentPath) return
+  if (currentPath.points.length > 1) drawPaths.push(currentPath)
+  currentPath = null
+})
+canvas.addEventListener('mouseleave', () => {
+  if (!drawingMode || !currentPath) return
+  if (currentPath.points.length > 1) drawPaths.push(currentPath)
+  currentPath = null
 })
 
 // ── Scroll zoom ───────────────────────────────────────────────
