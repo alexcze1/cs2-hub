@@ -81,6 +81,87 @@ def _safe_int(val) -> int:
         return 0
 
 
+def _event_pos(r) -> tuple:
+    """Extract (x, y) from an event row, trying multiple column name variants."""
+    x = _safe_float(r.get("x") or r.get("user_X") or r.get("X"))
+    y = _safe_float(r.get("y") or r.get("user_Y") or r.get("Y"))
+    return x, y
+
+
+def _parse_grenades(p) -> list:
+    grenades = []
+
+    # Smokes
+    try:
+        for r in _to_records(p.parse_event("smokegrenade_detonate")):
+            x, y = _event_pos(r)
+            if x == 0 and y == 0:
+                continue
+            tick = int(r["tick"])
+            grenades.append({"tick": tick, "type": "smoke", "x": x, "y": y, "end_tick": tick + 2304})
+    except Exception:
+        pass
+
+    # Molotov / incendiary — match start→end by entityid
+    try:
+        end_by_id = {
+            int(r.get("entityid", 0)): int(r["tick"])
+            for r in _to_records(p.parse_event("inferno_expire"))
+        }
+        for r in _to_records(p.parse_event("inferno_startburn")):
+            x, y = _event_pos(r)
+            if x == 0 and y == 0:
+                continue
+            tick = int(r["tick"])
+            eid  = int(r.get("entityid", 0))
+            grenades.append({
+                "tick": tick, "type": "molotov", "x": x, "y": y,
+                "end_tick": end_by_id.get(eid, tick + 896),
+            })
+    except Exception:
+        pass
+
+    # Flash
+    try:
+        for r in _to_records(p.parse_event("flashbang_detonate")):
+            x, y = _event_pos(r)
+            if x == 0 and y == 0:
+                continue
+            tick = int(r["tick"])
+            grenades.append({"tick": tick, "type": "flash", "x": x, "y": y, "end_tick": tick + 64})
+    except Exception:
+        pass
+
+    # HE
+    try:
+        for r in _to_records(p.parse_event("hegrenade_detonate")):
+            x, y = _event_pos(r)
+            if x == 0 and y == 0:
+                continue
+            tick = int(r["tick"])
+            grenades.append({"tick": tick, "type": "he", "x": x, "y": y, "end_tick": tick + 32})
+    except Exception:
+        pass
+
+    return grenades
+
+
+def _parse_bomb(p) -> list:
+    bomb_events = []
+    for event_name, event_type in [
+        ("bomb_planted",  "planted"),
+        ("bomb_defused",  "defused"),
+        ("bomb_exploded", "exploded"),
+    ]:
+        try:
+            for r in _to_records(p.parse_event(event_name)):
+                x, y = _event_pos(r)
+                bomb_events.append({"tick": int(r["tick"]), "type": event_type, "x": x, "y": y})
+        except Exception:
+            pass
+    return bomb_events
+
+
 def parse_demo(dem_path: str) -> dict:
     p = DemoParser(dem_path)
     header = p.parse_header()
@@ -176,6 +257,10 @@ def parse_demo(dem_path: str) -> dict:
     ct_score  = sum(1 for r in rounds if r["winner_side"] == "ct")
     t_score   = sum(1 for r in rounds if r["winner_side"] == "t")
 
+    grenades = _parse_grenades(p)
+    bomb     = _parse_bomb(p)
+    print(f"[parser] grenades: {len(grenades)}  bomb events: {len(bomb)}")
+
     return {
         "meta": {
             "map":         header.get("map_name", ""),
@@ -187,4 +272,6 @@ def parse_demo(dem_path: str) -> dict:
         "rounds": rounds,
         "frames": frames,
         "kills":  kills,
+        "grenades": grenades,
+        "bomb": bomb,
     }
