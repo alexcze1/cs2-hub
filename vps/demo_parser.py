@@ -173,6 +173,41 @@ def _add_throw_origins(grenades, shots_df, by_tick, sampled_sorted) -> None:
 
 
 
+def _build_grenade_paths(p, grenades) -> None:
+    """Attach real bounce-path to each grenade using grenade_bounce game events."""
+    try:
+        bounce_df = p.parse_event("grenade_bounce")
+        bounces_by_sid: dict = {}
+        for r in _to_records(bounce_df):
+            sid  = str(r.get("user_steamid") or "")
+            tick = _safe_int(r.get("tick"))
+            x, y = _event_pos(r)
+            if tick > 0 and (x != 0 or y != 0):
+                bounces_by_sid.setdefault(sid, []).append({"tick": tick, "x": x, "y": y})
+        for sid in bounces_by_sid:
+            bounces_by_sid[sid].sort(key=lambda b: b["tick"])
+    except Exception as e:
+        print(f"[parser] grenade_bounce error: {e}")
+        # If event unavailable, build straight-line paths from origin → detonation
+        for g in grenades:
+            if g.get("origin_x") is not None:
+                g["path"] = [[g["origin_x"], g["origin_y"]], [g["x"], g["y"]]]
+        return
+
+    for g in grenades:
+        if g.get("origin_x") is None or g.get("origin_tick") is None:
+            continue
+        sid = g.get("steam_id", "")
+        in_flight = [
+            b for b in bounces_by_sid.get(sid, [])
+            if g["origin_tick"] <= b["tick"] < g["tick"]
+        ]
+        path = [[g["origin_x"], g["origin_y"]]]
+        path += [[b["x"], b["y"]] for b in in_flight]
+        path.append([g["x"], g["y"]])
+        g["path"] = path
+
+
 def _parse_grenades(p) -> list:
     grenades = []
 
@@ -421,6 +456,7 @@ def parse_demo(dem_path: str) -> dict:
 
     grenades = _parse_grenades(p)
     _add_throw_origins(grenades, shots_df, by_tick, sorted(sampled))
+    _build_grenade_paths(p, grenades)
     bomb     = _parse_bomb(p, by_tick, sampled)
     print(f"[parser] grenades: {len(grenades)}  bomb events: {len(bomb)}")
 

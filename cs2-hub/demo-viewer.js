@@ -180,12 +180,7 @@ function renderGrenades(round, tick, frame, cw, ch) {
     return true
   })
 
-  // Helper: quadratic bezier arc control point for trajectory
-  function arcCP(ox, oy, ex, ey) {
-    const dx = ex - ox, dy = ey - oy
-    const dist = Math.sqrt(dx * dx + dy * dy) || 1
-    const h    = Math.min(dist * 0.32, cw * 0.1)
-    return { cpx: (ox + ex) / 2 + dy / dist * h, cpy: (oy + ey) / 2 - dx / dist * h }
+
   }
 
   ctx.save()
@@ -209,22 +204,34 @@ function renderGrenades(round, tick, frame, cw, ch) {
                     : g.type === 'flash'   ? 'rgba(255,255,255,0.5)'
                     :                        'rgba(255,220,0,0.6)'
 
-    // ── Trajectory (arc) ──────────────────────────────────────
-    if (g.origin_x != null && !(g.origin_x === 0 && g.origin_y === 0)) {
-      const { x: ox, y: oy } = worldToCanvas(g.origin_x, g.origin_y, mapName, cw, ch)
+    // ── Trajectory (real path) ────────────────────────────────
+    const pathPts = g.path  // [[wx,wy], ...] from parser bounce events
+    if (pathPts && pathPts.length >= 2) {
+      const canvasPts = pathPts.map(([wx, wy]) => worldToCanvas(wx, wy, mapName, cw, ch))
       ctx.save()
       ctx.setLineDash([3, 5])
-      ctx.lineWidth   = 1.5
+      ctx.lineWidth = 1.5
 
       if (inFlight) {
-        const duration = g.tick - g.origin_tick
-        const progress = duration > 0 ? (tick - g.origin_tick) / duration : 1
-        // Animate icon along a linear path (arc is only for the full static trajectory)
-        const iconX = ox + (x - ox) * progress
-        const iconY = oy + (y - oy) * progress
+        // Animate icon along the real path segments
+        const duration  = g.tick - g.origin_tick
+        const progress  = duration > 0 ? Math.min(1, (tick - g.origin_tick) / duration) : 1
+        const totalSegs = canvasPts.length - 1
+        const rawT      = progress * totalSegs
+        const seg       = Math.min(Math.floor(rawT), totalSegs - 1)
+        const t         = rawT - seg
+        const p0        = canvasPts[seg]
+        const p1        = canvasPts[seg + 1]
+        const iconX     = p0.x + (p1.x - p0.x) * t
+        const iconY     = p0.y + (p1.y - p0.y) * t
+        // Draw travelled path so far
         ctx.strokeStyle = typeColor
         ctx.globalAlpha = 0.75
-        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(iconX, iconY); ctx.stroke()
+        ctx.beginPath()
+        ctx.moveTo(canvasPts[0].x, canvasPts[0].y)
+        for (let i = 1; i <= seg; i++) ctx.lineTo(canvasPts[i].x, canvasPts[i].y)
+        ctx.lineTo(iconX, iconY)
+        ctx.stroke()
         ctx.setLineDash([])
         const icon = GRENADE_ICONS[g.type]
         if (icon && icon.complete && icon.naturalWidth) {
@@ -238,16 +245,47 @@ function renderGrenades(round, tick, frame, cw, ch) {
         ctx.restore()
         continue
       } else if (showTraj) {
-        // Curved arc trajectory — approximates the throw parabola in top-down view
         const alpha = 1 - (tick - g.tick) / trajTicks
-        const { cpx, cpy } = arcCP(ox, oy, x, y)
         ctx.strokeStyle = typeColor
         ctx.globalAlpha = alpha * 0.65
         ctx.beginPath()
-        ctx.moveTo(ox, oy)
-        ctx.quadraticCurveTo(cpx, cpy, x, y)
+        ctx.moveTo(canvasPts[0].x, canvasPts[0].y)
+        for (let i = 1; i < canvasPts.length; i++) ctx.lineTo(canvasPts[i].x, canvasPts[i].y)
         ctx.stroke()
-        // Small dot at throw origin
+        // Dot at throw origin
+        ctx.setLineDash([])
+        ctx.globalAlpha = alpha * 0.5
+        ctx.beginPath(); ctx.arc(canvasPts[0].x, canvasPts[0].y, cw * 0.005, 0, Math.PI * 2)
+        ctx.fillStyle = typeColor; ctx.fill()
+      }
+      ctx.restore()
+    } else if (g.origin_x != null && !(g.origin_x === 0 && g.origin_y === 0)) {
+      // Fallback: no path data — straight line
+      const { x: ox, y: oy } = worldToCanvas(g.origin_x, g.origin_y, mapName, cw, ch)
+      ctx.save()
+      ctx.setLineDash([3, 5])
+      ctx.lineWidth = 1.5
+      if (inFlight) {
+        const duration = g.tick - g.origin_tick
+        const progress = duration > 0 ? (tick - g.origin_tick) / duration : 1
+        const iconX = ox + (x - ox) * progress
+        const iconY = oy + (y - oy) * progress
+        ctx.strokeStyle = typeColor; ctx.globalAlpha = 0.75
+        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(iconX, iconY); ctx.stroke()
+        ctx.setLineDash([])
+        const icon = GRENADE_ICONS[g.type]
+        if (icon && icon.complete && icon.naturalWidth) {
+          const iconSz = cw * 0.022; ctx.globalAlpha = 0.9
+          ctx.drawImage(icon, iconX - iconSz / 2, iconY - iconSz / 2, iconSz, iconSz)
+        } else {
+          ctx.beginPath(); ctx.arc(iconX, iconY, cw * 0.008, 0, Math.PI * 2)
+          ctx.fillStyle = typeColor; ctx.fill()
+        }
+        ctx.restore(); continue
+      } else if (showTraj) {
+        const alpha = 1 - (tick - g.tick) / trajTicks
+        ctx.strokeStyle = typeColor; ctx.globalAlpha = alpha * 0.65
+        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(x, y); ctx.stroke()
         ctx.setLineDash([])
         ctx.globalAlpha = alpha * 0.5
         ctx.beginPath(); ctx.arc(ox, oy, cw * 0.005, 0, Math.PI * 2)
