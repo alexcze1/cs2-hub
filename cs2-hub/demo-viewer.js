@@ -249,12 +249,28 @@ function renderGrenades(round, tick, cw, ch) {
         ctx.fill()
       }
     } else if (g.type === 'he') {
+      const progress = totalS > 0 ? Math.min(1, elapsedS / totalS) : 1
+      ctx.save()
       ctx.beginPath()
-      const r = cw * 0.025
-      ctx.arc(x, y, r, 0, Math.PI * 2)
-      ctx.strokeStyle = 'rgba(255,220,0,0.7)'
+      ctx.arc(x, y, cw * 0.01 + cw * 0.035 * progress, 0, Math.PI * 2)
+      ctx.strokeStyle = 'rgba(255,220,0,1)'
       ctx.lineWidth   = 2
+      ctx.globalAlpha = 0.8 * (1 - progress)
       ctx.stroke()
+      ctx.beginPath()
+      ctx.arc(x, y, cw * 0.01 + cw * 0.018 * progress, 0, Math.PI * 2)
+      ctx.strokeStyle = 'rgba(255,255,255,1)'
+      ctx.lineWidth   = 1.5
+      ctx.globalAlpha = 0.9 * (1 - progress)
+      ctx.stroke()
+      if (progress < 0.2) {
+        ctx.globalAlpha = 1 - progress / 0.2
+        ctx.beginPath()
+        ctx.arc(x, y, cw * 0.008 * (1 - progress / 0.2), 0, Math.PI * 2)
+        ctx.fillStyle = '#fff'
+        ctx.fill()
+      }
+      ctx.restore()
     }
   }
   ctx.restore()
@@ -352,6 +368,13 @@ const GRENADE_ICONS = {}
   const img = new Image()
   img.src = `images/weapons/${filename}.svg`
   GRENADE_ICONS[type] = img
+})
+
+const WEAPON_CANVAS_ICONS = {}
+new Set(Object.values(WEAPON_ICON_MAP)).forEach(name => {
+  const img = new Image()
+  img.src = `images/weapons/${name}.svg`
+  WEAPON_CANVAS_ICONS[name] = img
 })
 
 function drawRoundRect(ctx, x, y, w, h, r) {
@@ -515,6 +538,19 @@ function render() {
     if (!p.is_alive) continue
     const { x, y } = worldToCanvas(p.x, p.y, mapName, cw, ch)
     drawPlayerPill(x, y - dotR, p.name.slice(0, 13), playerColor(p.team), pillFont, pillFontSz)
+
+    // Weapon icon above the pill
+    const rawWeapon = (p.weapon || '').replace('weapon_', '')
+    const iconName  = WEAPON_ICON_MAP[rawWeapon] ?? rawWeapon
+    const wIcon     = WEAPON_CANVAS_ICONS[iconName]
+    if (wIcon && wIcon.complete && wIcon.naturalWidth) {
+      const sz  = Math.round(cw * 0.018)
+      const ph  = pillFontSz + 5
+      const py  = (y - dotR) - ph - 2
+      ctx.save()
+      ctx.drawImage(wIcon, x - sz / 2, py - sz - 2, sz, sz)
+      ctx.restore()
+    }
   }
 
   renderShots(round, state.tick, frame, cw, ch)
