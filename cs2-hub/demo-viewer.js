@@ -214,16 +214,7 @@ function renderGrenades(round, tick, cw, ch) {
       ctx.lineWidth   = 1.5
       ctx.fill()
       ctx.stroke()
-      const remaining = Math.ceil((g.end_tick - tick) / tickRate)
-      if (remaining > 0) {
-        ctx.save()
-        ctx.fillStyle    = 'rgba(255,255,255,0.9)'
-        ctx.font         = `700 ${Math.round(r * 0.55)}px sans-serif`
-        ctx.textAlign    = 'center'
-        ctx.textBaseline = 'middle'
-        ctx.fillText(remaining, x, y)
-        ctx.restore()
-      }
+      drawCountdownText(x, y, r, Math.ceil((g.end_tick - tick) / tickRate), 'rgba(255,255,255,0.9)')
     } else if (g.type === 'molotov') {
       ctx.beginPath()
       const r = cw * 0.04
@@ -233,16 +224,7 @@ function renderGrenades(round, tick, cw, ch) {
       ctx.lineWidth   = 1.5
       ctx.fill()
       ctx.stroke()
-      const remaining = Math.ceil((g.end_tick - tick) / tickRate)
-      if (remaining > 0) {
-        ctx.save()
-        ctx.fillStyle    = '#FF9500'
-        ctx.font         = `700 ${Math.round(r * 0.55)}px sans-serif`
-        ctx.textAlign    = 'center'
-        ctx.textBaseline = 'middle'
-        ctx.fillText(remaining, x, y)
-        ctx.restore()
-      }
+      drawCountdownText(x, y, r, Math.ceil((g.end_tick - tick) / tickRate), '#FF9500')
     } else if (g.type === 'flash') {
       const duration = g.end_tick - g.tick
       const progress = duration > 0 ? (tick - g.tick) / duration : 1
@@ -378,6 +360,17 @@ function drawPlayerPill(x, dotTopY, label, color, pillFont, pillFontSz) {
   ctx.textAlign    = 'center'
   ctx.textBaseline = 'middle'
   ctx.fillText(label, x, py + ph / 2)
+  ctx.restore()
+}
+
+function drawCountdownText(x, y, r, remaining, textColor) {
+  if (remaining <= 0) return
+  ctx.save()
+  ctx.fillStyle    = textColor
+  ctx.font         = `700 ${Math.round(r * 0.55)}px sans-serif`
+  ctx.textAlign    = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(remaining, x, y)
   ctx.restore()
 }
 
