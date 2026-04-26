@@ -516,6 +516,29 @@ function render() {
   ctx.textBaseline = 'middle'
   ctx.fillText(timeStr, cw / 2, pillY + pillH / 2)
   ctx.restore()
+
+  // Score display — CT score | — | T score below timer pill
+  const ctScore = state.match.rounds.slice(0, state.roundIdx).filter(r => r.winner_side === 'ct').length
+  const tScore  = state.match.rounds.slice(0, state.roundIdx).filter(r => r.winner_side === 't').length
+  const scoreFontSz = Math.round(cw * 0.022)
+  const scoreY      = pillY + pillH + 4
+  const scoreParts  = [
+    { text: String(ctScore), color: CT_COLOR },
+    { text: ' — ',           color: 'rgba(255,255,255,0.4)' },
+    { text: String(tScore),  color: T_COLOR },
+  ]
+  ctx.save()
+  ctx.font         = `700 ${scoreFontSz}px "SF Mono", "Consolas", monospace`
+  ctx.textBaseline = 'top'
+  ctx.textAlign    = 'left'
+  const scoreW = scoreParts.reduce((s, { text }) => s + ctx.measureText(text).width, 0)
+  let sx = cw / 2 - scoreW / 2
+  for (const { text, color } of scoreParts) {
+    ctx.fillStyle = color
+    ctx.fillText(text, sx, scoreY)
+    sx += ctx.measureText(text).width
+  }
+  ctx.restore()
 }
 
 function esc(s) {
