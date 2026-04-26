@@ -267,6 +267,15 @@ def parse_demo(dem_path: str) -> dict:
     start_ticks = _col_to_list(round_start_df["tick"])
     end_rows    = _to_records(round_end_df)
 
+    try:
+        freeze_end_ticks = sorted(
+            _safe_int(r.get("tick"))
+            for r in _to_records(p.parse_event("round_freeze_end"))
+            if _safe_int(r.get("tick")) > 0
+        )
+    except Exception:
+        freeze_end_ticks = []
+
     pairs = _pair_rounds(start_ticks, end_rows)
     print(f"[parser] pairs: {len(pairs)}  starts: {len(start_ticks)}  ends: {len(end_rows)}")
 
@@ -279,12 +288,18 @@ def parse_demo(dem_path: str) -> dict:
         if winner is None:
             print(f"[parser] skip unknown winner={pair['winner']} at tick {pair['end_tick']}")
             continue
+        freeze_end_tick = pair["start_tick"]
+        for fe in freeze_end_ticks:
+            if fe > pair["start_tick"] and fe < pair["end_tick"]:
+                freeze_end_tick = fe
+                break
         rounds.append({
-            "round_num":   len(rounds) + 1,
-            "winner_side": winner,
-            "win_reason":  _WIN_REASONS.get(pair["reason"], "unknown"),
-            "start_tick":  pair["start_tick"],
-            "end_tick":    pair["end_tick"],
+            "round_num":      len(rounds) + 1,
+            "winner_side":    winner,
+            "win_reason":     _WIN_REASONS.get(pair["reason"], "unknown"),
+            "start_tick":     pair["start_tick"],
+            "end_tick":       pair["end_tick"],
+            "freeze_end_tick": freeze_end_tick,
         })
 
     print(f"[parser] rounds built: {len(rounds)}")

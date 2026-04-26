@@ -88,16 +88,18 @@ new ResizeObserver(resizeCanvas).observe(wrap)
 
 // ── Round helpers ─────────────────────────────────────────────
 function currentRound() { return state.match.rounds[state.roundIdx] }
+function freezeEnd(round) { return round.freeze_end_tick ?? round.start_tick }
 
 function jumpToRound(idx) {
   state.roundIdx  = Math.max(0, Math.min(idx, state.match.rounds.length - 1))
-  state.tick      = currentRound().start_tick
+  state.tick      = freezeEnd(currentRound())
   state.playing   = false
   _lastFrameTick  = -1
   _lastRoundIdx   = -1
   _lastKillTick   = -1
   updatePlayBtn()
-  updateRoundTracker()
+  updateRoundRow()
+  updateTimelineKills()
 }
 
 // ── Frame lookup (binary search) ──────────────────────────────
@@ -366,6 +368,22 @@ function render() {
   }
 
   renderShots(round, state.tick, frame, cw, ch)
+
+  // Round timer overlay — top center
+  const fe      = freezeEnd(round)
+  const elapsed = Math.max(0, (state.tick - fe) / state.match.meta.tick_rate)
+  const timeSec = Math.floor(elapsed)
+  const timeStr = `${Math.floor(timeSec / 60)}:${String(timeSec % 60).padStart(2, '0')}`
+  const tFontSz = Math.round(cw * 0.042)
+  ctx.save()
+  ctx.font         = `700 ${tFontSz}px "SF Mono", "Consolas", monospace`
+  ctx.textAlign    = 'center'
+  ctx.textBaseline = 'top'
+  ctx.fillStyle    = 'rgba(0,0,0,0.55)'
+  ctx.fillText(timeStr, cw / 2 + 1, 11)
+  ctx.fillStyle = '#ffffff'
+  ctx.fillText(timeStr, cw / 2, 10)
+  ctx.restore()
 }
 
 function esc(s) {
@@ -439,33 +457,63 @@ function updateKillFeed() {
 }
 
 // ── UI updates ────────────────────────────────────────────────
-function updateRoundTracker() {
-  const rounds = state.match.rounds
-  document.getElementById('round-num').textContent   = state.roundIdx + 1
-  document.getElementById('round-total').textContent = rounds.length
+function updateRoundRow() {
   if (state.roundIdx === _lastRoundIdx) return
   _lastRoundIdx = state.roundIdx
-  document.getElementById('round-squares').innerHTML = rounds.map((r, i) => {
+  const rounds   = state.match.rounds
+  const halfAt   = rounds.length >= 16 ? Math.ceil(rounds.length / 2) : -1
+  const rowEl    = document.getElementById('round-row')
+  let html = '<span class="round-row-label">Rounds</span>'
+  for (let i = 0; i < rounds.length; i++) {
+    if (i === halfAt) html += '<div class="round-halftime"></div>'
+    const r   = rounds[i]
     const cls = i < state.roundIdx
       ? r.winner_side
       : i === state.roundIdx
         ? `${r.winner_side} current`
         : 'unplayed'
-    return `<div class="round-sq ${cls}" title="Round ${i + 1}" onclick="jumpToRound(${i})"></div>`
-  }).join('')
+    html += `<div class="round-sq ${cls}" title="Round ${i + 1}" data-ridx="${i}">${i + 1}</div>`
+  }
+  rowEl.innerHTML = html
+  rowEl.querySelectorAll('.round-sq').forEach(el => {
+    el.addEventListener('click', () => jumpToRound(Number(el.dataset.ridx)))
+  })
+  // Scroll current round into view
+  const cur = rowEl.querySelector('.current')
+  if (cur) cur.scrollIntoView({ inline: 'nearest', block: 'nearest' })
+}
+
+function updateTimelineKills() {
+  const round    = currentRound()
+  const fe       = freezeEnd(round)
+  const span     = round.end_tick - fe
+  const track    = document.getElementById('timeline-track')
+  // Remove old markers
+  track.querySelectorAll('.tl-kill-mark').forEach(el => el.remove())
+  if (span <= 0) return
+  for (const k of state.match.kills) {
+    if (k.tick < round.start_tick || k.tick > round.end_tick) continue
+    const pct = ((k.tick - fe) / span) * 100
+    if (pct < 0 || pct > 100) continue
+    const el = document.createElement('div')
+    el.className = `tl-kill-mark ${k.killer_team === 'ct' ? 'ct' : 't'}`
+    el.style.left = pct + '%'
+    track.appendChild(el)
+  }
 }
 
 function updateTimeline() {
   const round    = currentRound()
-  const span     = round.end_tick - round.start_tick
-  const pct      = span > 0 ? ((state.tick - round.start_tick) / span) * 100 : 0
+  const fe       = freezeEnd(round)
+  const span     = round.end_tick - fe
+  const pct      = span > 0 ? ((state.tick - fe) / span) * 100 : 0
   const clamped  = Math.max(0, Math.min(100, pct))
   document.getElementById('timeline-fill').style.width = clamped + '%'
   document.getElementById('timeline-thumb').style.left = clamped + '%'
 
   const tickRate = state.match.meta.tick_rate
-  const elapsed  = Math.floor(Math.max(0, state.tick - round.start_tick) / tickRate)
-  const total    = Math.floor(span / tickRate)
+  const elapsed  = Math.floor(Math.max(0, state.tick - fe) / tickRate)
+  const total    = Math.floor(Math.max(0, span) / tickRate)
   const fmt = s  => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
   document.getElementById('timeline-current').textContent = fmt(elapsed)
   document.getElementById('timeline-end').textContent     = fmt(total)
@@ -488,7 +536,9 @@ function loop(ts) {
         const nextIdx = state.roundIdx + 1
         if (nextIdx < state.match.rounds.length) {
           state.roundIdx = nextIdx
-          state.tick     = currentRound().start_tick
+          state.tick     = freezeEnd(currentRound())
+          updateRoundRow()
+          updateTimelineKills()
         } else {
           state.tick    = round.end_tick
           state.playing = false
@@ -498,7 +548,7 @@ function loop(ts) {
     }
     state.lastTs = ts
     render()
-    updateRoundTracker()
+    updateRoundRow()
     updateTimeline()
     updatePlayerCards()
     updateKillFeed()
@@ -511,7 +561,7 @@ function loop(ts) {
 // ── Controls ──────────────────────────────────────────────────
 document.getElementById('play-btn').addEventListener('click', () => {
   const round = currentRound()
-  if (state.tick >= round.end_tick) state.tick = round.start_tick
+  if (state.tick >= round.end_tick) state.tick = freezeEnd(round)
   state.playing = !state.playing
   updatePlayBtn()
 })
@@ -531,7 +581,8 @@ function seekFromEvent(e) {
   const { left, width } = track.getBoundingClientRect()
   const pct   = Math.max(0, Math.min(1, (e.clientX - left) / width))
   const round = currentRound()
-  state.tick  = round.start_tick + pct * (round.end_tick - round.start_tick)
+  const fe    = freezeEnd(round)
+  state.tick  = fe + pct * (round.end_tick - fe)
 }
 track.addEventListener('mousedown', e => { dragging = true; seekFromEvent(e) })
 window.addEventListener('mousemove', e => { if (dragging) seekFromEvent(e) })
@@ -541,4 +592,5 @@ window.jumpToRound = jumpToRound
 
 // ── Kick off ──────────────────────────────────────────────────
 jumpToRound(0)
+updateTimelineKills()
 requestAnimationFrame(ts => { state.lastTs = ts; loop(ts) })
