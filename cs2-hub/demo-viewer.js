@@ -370,13 +370,6 @@ const GRENADE_ICONS = {}
   GRENADE_ICONS[type] = img
 })
 
-const WEAPON_CANVAS_ICONS = {}
-new Set(Object.values(WEAPON_ICON_MAP)).forEach(name => {
-  const img = new Image()
-  img.src = `images/weapons/${name}.svg`
-  WEAPON_CANVAS_ICONS[name] = img
-})
-
 function drawRoundRect(ctx, x, y, w, h, r) {
   ctx.beginPath()
   ctx.moveTo(x + r, y)
@@ -669,6 +662,13 @@ const WEAPON_ICON_MAP = {
   // Internal names (weapon_ stripped) — fallback for any old parsed demos
   'm4a4': 'm4a1', 'knifegg': 'knife', 'hkp2000': 'hkp2000',
 }
+
+const WEAPON_CANVAS_ICONS = {}
+new Set(Object.values(WEAPON_ICON_MAP)).forEach(name => {
+  const img = new Image()
+  img.src = `images/weapons/${name}.svg`
+  WEAPON_CANVAS_ICONS[name] = img
+})
 
 function playerCardHTML(p) {
   const hpPct  = p.is_alive ? Math.max(0, Math.min(100, p.hp)) : 0
