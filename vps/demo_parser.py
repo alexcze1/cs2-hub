@@ -1,10 +1,10 @@
-# vps/demo_parser.py
 import math
+from collections import defaultdict
 from demoparser2 import DemoParser
 
-SAMPLE_RATE = 8  # store every 8th tick (~8-16 fps depending on tick rate)
+SAMPLE_RATE = 8
 
-WIN_REASONS = {
+_WIN_REASONS = {
     1: "t_eliminated",
     7: "bomb_defused",
     8: "ct_eliminated",
@@ -12,212 +12,152 @@ WIN_REASONS = {
     12: "time_ran_out",
 }
 
-def _safe(val, default=0):
+
+def _pair_rounds(start_ticks: list, end_rows: list) -> list:
+    """Pair round_start ticks with round_end rows by sorted position."""
+    start_ticks = sorted(int(t) for t in start_ticks)
+    end_rows = sorted(end_rows, key=lambda r: int(r["tick"]))
+    n = min(len(start_ticks), len(end_rows))
+    return [
+        {
+            "start_tick": start_ticks[i],
+            "end_tick":   int(end_rows[i]["tick"]),
+            "winner":     end_rows[i].get("winner"),
+            "reason":     end_rows[i].get("reason"),
+        }
+        for i in range(n)
+    ]
+
+
+def _winner_side(winner_val) -> str | None:
+    """Return 'ct', 't', or None. CS2: winner==3 → CT, winner==2 → T."""
+    if winner_val == 3:
+        return "ct"
+    if winner_val == 2:
+        return "t"
+    return None
+
+
+def _is_warmup(start_tick: int, end_tick: int, min_ticks: int = 500) -> bool:
+    return (end_tick - start_tick) < min_ticks
+
+
+def _safe_float(val) -> float:
     if val is None:
-        return default
+        return 0.0
     try:
-        if math.isnan(val):
-            return default
+        f = float(val)
+        return 0.0 if math.isnan(f) else f
     except (TypeError, ValueError):
-        pass
-    return val
+        return 0.0
 
-def _to_records(df):
-    """Convert a DataFrame to list of row dicts (handles both polars and pandas)."""
-    try:
-        return df.to_dicts()          # polars native
-    except AttributeError:
-        return df.to_dict("records")  # pandas fallback
 
-def _col_to_list(col):
-    """Convert a Series/column to a plain Python list."""
+def _safe_int(val) -> int:
+    if val is None:
+        return 0
     try:
-        return col.to_list()   # polars
-    except AttributeError:
-        return col.tolist()    # pandas
+        f = float(val)
+        return 0 if math.isnan(f) else int(f)
+    except (TypeError, ValueError):
+        return 0
+
 
 def parse_demo(dem_path: str) -> dict:
     p = DemoParser(dem_path)
     header = p.parse_header()
 
-    # --- tick data ---
     tick_df = p.parse_ticks([
-        "X", "Y", "health", "armor_value",
-        "active_weapon_name", "is_alive", "cash",
-        "team_num", "current_equip_value",
+        "X", "Y", "health", "is_alive", "team_num",
+        "active_weapon_name", "cash", "armor_value",
     ])
 
-    all_ticks = sorted(set(_col_to_list(tick_df["tick"])))
-    print(f"[parser] tick range: {all_ticks[0] if all_ticks else 'none'} – {all_ticks[-1] if all_ticks else 'none'}  total unique ticks: {len(all_ticks)}")
+    kills_df      = p.parse_event("player_death")
+    round_end_df  = p.parse_event("round_end")
+    round_start_df = p.parse_event("round_start")
 
-    # --- events ---
-    kills_df    = p.parse_event("player_death")
-    round_end   = p.parse_event("round_end")
-    round_start = p.parse_event("round_start")
-    smoke_df    = p.parse_event("smokegrenade_detonate")
-    flash_df    = p.parse_event("flashbang_detonate")
-    he_df       = p.parse_event("hegrenade_detonate")
-    molotov_df  = p.parse_event("inferno_startburn")
+    start_ticks = round_start_df["tick"].to_list()
+    end_rows    = round_end_df.to_dicts()
 
-    re_records = _to_records(round_end)
-    rs_records = _to_records(round_start)
-
-    print(f"[parser] round_end rows: {len(re_records)}  round_start rows: {len(rs_records)}")
-    if re_records:
-        print(f"[parser] round_end[0] keys: {list(re_records[0].keys())}")
-        print(f"[parser] round_end[0] sample: {re_records[0]}")
-        print(f"[parser] round_end[1] sample: {re_records[1] if len(re_records) > 1 else 'n/a'}")
-    if rs_records:
-        print(f"[parser] round_start[0] sample: {rs_records[0]}")
-
-    # --- rounds ---
-    starts = sorted(int(r["tick"]) for r in rs_records) if rs_records else []
-
-    MIN_ROUND_TICKS = 500  # skip warmup/zero-duration rounds (<4 sec at 128Hz)
+    pairs = _pair_rounds(start_ticks, end_rows)
+    print(f"[parser] pairs: {len(pairs)}  starts: {len(start_ticks)}  ends: {len(end_rows)}")
 
     rounds = []
-    for row in re_records:
-        end_tick = int(row["tick"])
-        # Find most recent round_start <= end_tick
-        matched_start = 0
-        for s in starts:
-            if s <= end_tick:
-                matched_start = s
-            else:
-                break
-        duration = end_tick - matched_start
-        if duration < MIN_ROUND_TICKS:
-            print(f"[parser] skipping short round: start={matched_start} end={end_tick} duration={duration}")
+    for pair in pairs:
+        if _is_warmup(pair["start_tick"], pair["end_tick"]):
+            print(f"[parser] skip warmup: {pair['start_tick']}→{pair['end_tick']}")
             continue
-        # winner: try common field names and value conventions
-        winner_val = row.get("winner")
-        if winner_val is None:
-            winner_val = row.get("winner_team")
-        # CS2: winner==3 → CT, winner==2 → T  (some versions use 1/2)
-        if winner_val == 3 or winner_val == "CT":
-            winner_side = "ct"
-        elif winner_val == 2 or winner_val == "T":
-            winner_side = "t"
-        elif winner_val == 1:
-            winner_side = "t"   # some demos use 1=T, 2=CT
-        else:
-            winner_side = "t"   # fallback
-        reason_val = row.get("reason")
+        winner = _winner_side(pair["winner"])
+        if winner is None:
+            print(f"[parser] skip unknown winner={pair['winner']} at tick {pair['end_tick']}")
+            continue
         rounds.append({
             "round_num":   len(rounds) + 1,
-            "start_tick":  matched_start,
-            "end_tick":    end_tick,
-            "winner_side": winner_side,
-            "win_reason":  WIN_REASONS.get(reason_val, "unknown"),
+            "winner_side": winner,
+            "win_reason":  _WIN_REASONS.get(pair["reason"], "unknown"),
+            "start_tick":  pair["start_tick"],
+            "end_tick":    pair["end_tick"],
         })
 
     print(f"[parser] rounds built: {len(rounds)}")
-    if rounds:
-        print(f"[parser] round[0]: {rounds[0]}  round[-1]: {rounds[-1]}")
 
-    # --- sampled frames ---
-    sampled = all_ticks[::SAMPLE_RATE]
-    frames = []
+    all_ticks = sorted(tick_df["tick"].unique().to_list())
+    sampled   = all_ticks[::SAMPLE_RATE]
+    print(f"[parser] tick range: {all_ticks[0] if all_ticks else 'none'}–{all_ticks[-1] if all_ticks else 'none'}  sampled: {len(sampled)}")
 
-    tick_records = _to_records(tick_df)
-    # Group tick_records by tick for fast lookup
-    from collections import defaultdict
-    by_tick = defaultdict(list)
+    tick_records = tick_df.to_dicts()
+    by_tick: dict = defaultdict(list)
     for r in tick_records:
         by_tick[int(r["tick"])].append(r)
 
+    frames = []
     for tick in sampled:
         players = []
         for r in by_tick.get(tick, []):
-            team_num = _safe(r.get("team_num"), 2)
+            team_num = _safe_int(r.get("team_num")) or 2
             players.append({
-                "steam_id":  str(_safe(r.get("steamid"), "")),
-                "name":      str(_safe(r.get("name"), "")),
-                "team":      "ct" if team_num == 3 else "t",
-                "x":         float(_safe(r.get("X"), 0)),
-                "y":         float(_safe(r.get("Y"), 0)),
-                "hp":        int(_safe(r.get("health"), 0)),
-                "armor":     int(_safe(r.get("armor_value"), 0)),
-                "weapon":    str(_safe(r.get("active_weapon_name"), "")),
-                "money":     int(_safe(r.get("cash"), 0)),
-                "is_alive":  bool(_safe(r.get("is_alive"), False)),
+                "steam_id": str(r.get("steamid") or ""),
+                "name":     str(r.get("name") or ""),
+                "team":     "ct" if team_num == 3 else "t",
+                "x":        _safe_float(r.get("X")),
+                "y":        _safe_float(r.get("Y")),
+                "hp":       _safe_int(r.get("health")),
+                "armor":    _safe_int(r.get("armor_value")),
+                "weapon":   str(r.get("active_weapon_name") or ""),
+                "money":    _safe_int(r.get("cash")),
+                "is_alive": bool(r.get("is_alive") or False),
             })
         frames.append({"tick": int(tick), "players": players})
 
     print(f"[parser] frames: {len(frames)}  frame[0] players: {len(frames[0]['players']) if frames else 0}")
 
-    # --- kills ---
     kills = []
-    for r in _to_records(kills_df):
+    for r in kills_df.to_dicts():
         kills.append({
             "tick":        int(r["tick"]),
-            "killer_id":   str(_safe(r.get("attacker_steamid"), "")),
-            "killer_name": str(_safe(r.get("attacker_name"), "")),
-            "victim_id":   str(_safe(r.get("user_steamid"), "")),
-            "victim_name": str(_safe(r.get("user_name"), "")),
-            "weapon":      str(_safe(r.get("weapon"), "")),
-            "headshot":    bool(_safe(r.get("headshot"), False)),
-            "killer_x":    float(_safe(r.get("attacker_X"), 0)),
-            "killer_y":    float(_safe(r.get("attacker_Y"), 0)),
-            "victim_x":    float(_safe(r.get("user_X"), 0)),
-            "victim_y":    float(_safe(r.get("user_Y"), 0)),
+            "killer_id":   str(r.get("attacker_steamid") or ""),
+            "killer_name": str(r.get("attacker_name") or ""),
+            "victim_id":   str(r.get("user_steamid") or ""),
+            "victim_name": str(r.get("user_name") or ""),
+            "weapon":      str(r.get("weapon") or ""),
+            "headshot":    bool(r.get("headshot") or False),
+            "victim_x":    _safe_float(r.get("user_X")),
+            "victim_y":    _safe_float(r.get("user_Y")),
         })
 
-    # --- grenades ---
-    def _nades(df, nade_type):
-        if df is None:
-            return []
-        rows = _to_records(df)
-        if not rows:
-            return []
-        out = []
-        for r in rows:
-            thrower = r.get("userid_steamid") or r.get("attacker_steamid") or ""
-            out.append({
-                "tick":       int(r["tick"]),
-                "type":       nade_type,
-                "thrower_id": str(_safe(thrower, "")),
-                "x":          float(_safe(r.get("x"), 0)),
-                "y":          float(_safe(r.get("y"), 0)),
-            })
-        return out
-
-    grenades = (
-        _nades(smoke_df,   "smoke") +
-        _nades(flash_df,   "flash") +
-        _nades(he_df,      "he") +
-        _nades(molotov_df, "molotov")
-    )
-
-    # --- economy (snapshot at each round start) ---
-    economy = []
-    for i, start_tick in enumerate(starts):
-        players_eco = []
-        for r in by_tick.get(start_tick, []):
-            players_eco.append({
-                "steam_id":        str(_safe(r.get("steamid"), "")),
-                "money":           int(_safe(r.get("cash"), 0)),
-                "equipment_value": int(_safe(r.get("current_equip_value"), 0)),
-            })
-        economy.append({"round_num": i + 1, "players": players_eco})
-
-    # --- meta ---
     raw_rate = header.get("playback_ticks", 128) / max(header.get("playback_time", 1), 0.001)
     tick_rate = 64 if raw_rate < 100 else 128
-    ct_score = sum(1 for r in rounds if r["winner_side"] == "ct")
-    t_score  = sum(1 for r in rounds if r["winner_side"] == "t")
+    ct_score  = sum(1 for r in rounds if r["winner_side"] == "ct")
+    t_score   = sum(1 for r in rounds if r["winner_side"] == "t")
 
     return {
         "meta": {
             "map":         header.get("map_name", ""),
             "tick_rate":   tick_rate,
-            "total_ticks": int(_safe(header.get("playback_ticks"), 0)),
+            "total_ticks": _safe_int(header.get("playback_ticks")),
             "ct_score":    ct_score,
             "t_score":     t_score,
         },
-        "rounds":   rounds,
-        "frames":   frames,
-        "kills":    kills,
-        "grenades": grenades,
-        "economy":  economy,
+        "rounds": rounds,
+        "frames": frames,
+        "kills":  kills,
     }
