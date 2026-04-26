@@ -113,6 +113,29 @@ function getFrame(tick) {
   return frames[lo]
 }
 
+function getInterpolatedFrame(tick) {
+  const frames = state.match.frames
+  if (!frames.length) return null
+  let lo = 0, hi = frames.length - 1
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1
+    if (frames[mid].tick <= tick) lo = mid
+    else hi = mid - 1
+  }
+  const prev = frames[lo]
+  const next = frames[lo + 1]
+  if (!next || next.tick <= prev.tick) return prev
+  const t = Math.min(1, (tick - prev.tick) / (next.tick - prev.tick))
+  if (t <= 0) return prev
+  const players = prev.players.map(prevP => {
+    const nextP = next.players.find(n => n.steam_id === prevP.steam_id)
+    if (!nextP || !prevP.is_alive || !nextP.is_alive) return prevP
+    const dyaw = (nextP.yaw - prevP.yaw + 540) % 360 - 180
+    return { ...prevP, x: prevP.x + (nextP.x - prevP.x) * t, y: prevP.y + (nextP.y - prevP.y) * t, yaw: prevP.yaw + dyaw * t }
+  })
+  return { tick, players }
+}
+
 
 // ── Grenade overlays ──────────────────────────────────────────
 function renderGrenades(round, tick, cw, ch) {
@@ -287,7 +310,7 @@ function render() {
     ctx.fillRect(0, 0, cw, ch)
   }
 
-  const frame = getFrame(state.tick)
+  const frame = getInterpolatedFrame(state.tick)
   if (!frame) return
 
   const dotR     = Math.round(cw * 0.012)
