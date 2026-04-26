@@ -121,9 +121,14 @@ function renderGrenades(round, tick, cw, ch) {
     if (g.tick < round.start_tick) continue
     if (g.end_tick == null) continue
 
-    const inFlight = g.origin_tick != null && g.origin_tick <= tick && tick < g.tick
-    const active   = g.tick <= tick && g.end_tick >= tick
-    if (!inFlight && !active) continue
+    const tickRate   = state.match.meta.tick_rate
+    const TRAJ_TICKS = { smoke: tickRate * 7, molotov: tickRate * 6, he: tickRate * 2, flash: tickRate * 1 }
+    const trajTicks  = TRAJ_TICKS[g.type] ?? tickRate * 3
+
+    const inFlight  = g.origin_tick != null && g.origin_tick <= tick && tick < g.tick
+    const active    = g.tick <= tick && g.end_tick >= tick
+    const showTraj  = g.tick <= tick && (tick - g.tick) < trajTicks
+    if (!inFlight && !active && !showTraj) continue
 
     const { x, y } = worldToCanvas(g.x, g.y, mapName, cw, ch)
     const typeColor = g.type === 'smoke'   ? 'rgba(200,200,200,0.6)'
@@ -131,31 +136,36 @@ function renderGrenades(round, tick, cw, ch) {
                     : g.type === 'flash'   ? 'rgba(255,255,255,0.5)'
                     :                        'rgba(255,220,0,0.6)'
 
-    // Animated trajectory during flight
-    if (inFlight && g.origin_x != null && !(g.origin_x === 0 && g.origin_y === 0)) {
+    // Trajectory: animated during flight, fading static line after landing
+    if (g.origin_x != null && !(g.origin_x === 0 && g.origin_y === 0)) {
       const { x: ox, y: oy } = worldToCanvas(g.origin_x, g.origin_y, mapName, cw, ch)
-      const duration = g.tick - g.origin_tick
-      const progress = duration > 0 ? (tick - g.origin_tick) / duration : 1
-      const cx = ox + (x - ox) * progress
-      const cy = oy + (y - oy) * progress
       ctx.save()
       ctx.setLineDash([3, 5])
-      ctx.strokeStyle = typeColor
-      ctx.lineWidth   = 1.5
-      ctx.globalAlpha = 0.75
-      ctx.beginPath()
-      ctx.moveTo(ox, oy)
-      ctx.lineTo(cx, cy)
-      ctx.stroke()
-      ctx.setLineDash([])
-      // Small moving dot for in-flight grenade
-      ctx.beginPath()
-      ctx.arc(cx, cy, cw * 0.008, 0, Math.PI * 2)
-      ctx.fillStyle = typeColor
-      ctx.fill()
+      ctx.lineWidth = 1.5
+
+      if (inFlight) {
+        const duration = g.tick - g.origin_tick
+        const progress = duration > 0 ? (tick - g.origin_tick) / duration : 1
+        const cx = ox + (x - ox) * progress
+        const cy = oy + (y - oy) * progress
+        ctx.strokeStyle = typeColor
+        ctx.globalAlpha = 0.75
+        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(cx, cy); ctx.stroke()
+        ctx.setLineDash([])
+        ctx.beginPath(); ctx.arc(cx, cy, cw * 0.008, 0, Math.PI * 2)
+        ctx.fillStyle = typeColor; ctx.fill()
+        ctx.restore()
+        continue
+      } else if (showTraj) {
+        const alpha = 1 - (tick - g.tick) / trajTicks
+        ctx.strokeStyle = typeColor
+        ctx.globalAlpha = alpha * 0.65
+        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(x, y); ctx.stroke()
+      }
       ctx.restore()
-      continue  // don't draw effect while in flight
     }
+
+    if (!active) continue
 
     if (g.x === 0 && g.y === 0) continue
     if (g.type === 'smoke') {
