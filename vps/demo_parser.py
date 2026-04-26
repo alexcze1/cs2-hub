@@ -170,6 +170,14 @@ def _add_throw_origins(grenades, shots_df, by_tick, sampled_sorted) -> None:
             g["origin_y"]    = best["y"]
             g["origin_tick"] = best["tick"]
 
+    matched = {}
+    for g in grenades:
+        matched[g["type"]] = matched.get(g["type"], 0) + (1 if g.get("origin_x") is not None else 0)
+    total = {}
+    for g in grenades:
+        total[g["type"]] = total.get(g["type"], 0) + 1
+    print(f"[parser] origins matched: { {k: f'{matched.get(k,0)}/{total[k]}' for k in total} }")
+
 
 def _parse_grenades(p) -> list:
     grenades = []
