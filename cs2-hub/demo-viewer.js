@@ -14,6 +14,7 @@ if (!demoId) { location.href = 'demos.html'; throw new Error('no id') }
 const state = { match: null, playing: false, tick: 0, speed: 1, lastTs: 0, roundIdx: 0 }
 let mapImg    = null
 let mapLoaded = false
+let _lastFrameTick = -1
 
 // ── Load ──────────────────────────────────────────────────────
 const loadingEl = document.getElementById('viewer-loading')
@@ -82,9 +83,11 @@ new ResizeObserver(resizeCanvas).observe(wrap)
 function currentRound() { return state.match.rounds[state.roundIdx] }
 
 function jumpToRound(idx) {
-  state.roundIdx = Math.max(0, Math.min(idx, state.match.rounds.length - 1))
-  state.tick     = currentRound().start_tick
-  state.playing  = false
+  state.roundIdx  = Math.max(0, Math.min(idx, state.match.rounds.length - 1))
+  state.tick      = currentRound().start_tick
+  state.playing   = false
+  _lastFrameTick  = -1
+  _lastRoundIdx   = -1
   updatePlayBtn()
   updateRoundTracker()
 }
@@ -145,6 +148,38 @@ function render() {
       ctx.fillText(p.name.slice(0, 10), x, y + dotR + 2)
     }
   }
+}
+
+function playerCardHTML(p) {
+  const hpPct = p.is_alive ? Math.max(0, Math.min(100, p.hp)) : 0
+  const weapon = (p.weapon || '').replace('weapon_', '')
+  return `<div class="player-card${p.is_alive ? '' : ' dead'}">
+    <div class="player-card-top">
+      <span class="player-card-name">${p.name.slice(0, 13)}</span>
+      <span class="player-card-money">$${p.money ?? 0}</span>
+    </div>
+    <div class="player-hp-bar">
+      <div class="player-hp-fill" style="width:${hpPct}%"></div>
+    </div>
+    <div class="player-card-bottom">
+      <span>${p.is_alive ? p.hp + ' HP' : 'Dead'}</span>
+      <span>${weapon}</span>
+    </div>
+  </div>`
+}
+
+function updatePlayerCards() {
+  const frame = getFrame(state.tick)
+  if (!frame || frame.tick === _lastFrameTick) return
+  _lastFrameTick = frame.tick
+
+  const sort = arr => arr.slice().sort((a, b) =>
+    (b.is_alive - a.is_alive) || (b.hp - a.hp)
+  )
+  document.getElementById('ct-panel').innerHTML =
+    sort(frame.players.filter(p => p.team === 'ct')).map(playerCardHTML).join('')
+  document.getElementById('t-panel').innerHTML =
+    sort(frame.players.filter(p => p.team === 't')).map(playerCardHTML).join('')
 }
 
 // ── UI updates ────────────────────────────────────────────────
@@ -210,6 +245,7 @@ function loop(ts) {
     render()
     updateRoundTracker()
     updateTimeline()
+    updatePlayerCards()
   } catch (e) {
     console.error('Viewer loop error:', e)
   }
