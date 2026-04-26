@@ -158,7 +158,7 @@ def _parse_grenades(p) -> list:
             tick = _safe_int(r.get("tick"))
             if tick == 0:
                 continue
-            grenades.append({"tick": tick, "type": "smoke", "x": x, "y": y, "end_tick": tick + 2304})
+            grenades.append({"tick": tick, "type": "smoke", "x": x, "y": y, "end_tick": tick + 2816})
     except Exception as e:
         print(f"[parser] smokegrenade_detonate error: {e}")
 
@@ -179,7 +179,7 @@ def _parse_grenades(p) -> list:
             eid = _safe_int(r.get("entityid"))
             grenades.append({
                 "tick": tick, "type": "molotov", "x": x, "y": y,
-                "end_tick": end_by_id.get(eid, tick + 896),
+                "end_tick": tick + 896,
             })
     except Exception as e:
         print(f"[parser] molotov error: {e}")

@@ -157,8 +157,14 @@ function renderGrenades(round, tick, cw, ch) {
     const TRAJ_TICKS = { smoke: tickRate * 7, molotov: tickRate * 6, he: tickRate * 2, flash: tickRate * 1 }
     const trajTicks  = TRAJ_TICKS[g.type] ?? tickRate * 3
 
+    // Canonical durations (seconds) override stored end_tick which can be wrong due to
+    // CS2 sub-tick: smoke always 22s, molotov 7s from inferno_startburn
+    const GRENADE_DURATION_S = { smoke: 22, molotov: 7 }
+    const totalS    = GRENADE_DURATION_S[g.type] ?? ((g.end_tick - g.tick) / GAME_HZ)
+    const elapsedS  = (tick - g.tick) / tickRate
+
     const inFlight  = g.origin_tick != null && g.origin_tick <= tick && tick < g.tick
-    const active    = g.tick <= tick && (tick - g.tick) * GAME_HZ <= (g.end_tick - g.tick) * tickRate
+    const active    = g.tick <= tick && elapsedS < totalS
     const showTraj  = g.tick <= tick && (tick - g.tick) < trajTicks
     if (!inFlight && !active && !showTraj) continue
 
@@ -216,7 +222,7 @@ function renderGrenades(round, tick, cw, ch) {
       ctx.lineWidth   = 1.5
       ctx.fill()
       ctx.stroke()
-      drawCountdownText(x, y, r, Math.ceil((g.end_tick - g.tick) / GAME_HZ - (tick - g.tick) / tickRate), 'rgba(255,255,255,0.9)')
+      drawCountdownText(x, y, r, Math.ceil(totalS - elapsedS), 'rgba(255,255,255,0.9)')
     } else if (g.type === 'molotov') {
       ctx.beginPath()
       const r = cw * 0.028
@@ -226,7 +232,7 @@ function renderGrenades(round, tick, cw, ch) {
       ctx.lineWidth   = 1.5
       ctx.fill()
       ctx.stroke()
-      drawCountdownText(x, y, r, Math.ceil((g.end_tick - g.tick) / GAME_HZ - (tick - g.tick) / tickRate), '#FF9500')
+      drawCountdownText(x, y, r, Math.ceil(totalS - elapsedS), '#FF9500')
     } else if (g.type === 'flash') {
       const durationSec = (g.end_tick - g.tick) / GAME_HZ
       const elapsedSec  = (tick - g.tick) / tickRate
@@ -551,11 +557,20 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
 }
 
+// Weapon names from demoparser2 that don't match the SVG filename exactly
+const WEAPON_ICON_MAP = {
+  m4a4:           'm4a1',
+  m4a1:           'm4a1',
+  bayonet:        'knife',
+  knifegg:        'knife',
+}
+
 function playerCardHTML(p) {
   const hpPct  = p.is_alive ? Math.max(0, Math.min(100, p.hp)) : 0
   const weapon = (p.weapon || '').replace('weapon_', '')
+  const iconName = WEAPON_ICON_MAP[weapon] ?? weapon
   const iconEl = weapon
-    ? `<img src="images/weapons/${esc(weapon)}.svg" width="16" height="16"
+    ? `<img src="images/weapons/${esc(iconName)}.svg" width="16" height="16"
             style="object-fit:contain;vertical-align:middle;opacity:0.85"
             onerror="this.style.display='none'">`
     : ''
