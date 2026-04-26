@@ -97,7 +97,9 @@ def _parse_grenades(p) -> list:
 
     # Smokes
     try:
-        for r in _to_records(p.parse_event("smokegrenade_detonate")):
+        df = p.parse_event("smokegrenade_detonate")
+        print(f"[parser] smokegrenade_detonate cols: {list(df.columns)}")
+        for r in _to_records(df):
             x, y = _event_pos(r)
             if x == 0 and y == 0:
                 continue
@@ -105,8 +107,8 @@ def _parse_grenades(p) -> list:
             if tick == 0:
                 continue
             grenades.append({"tick": tick, "type": "smoke", "x": x, "y": y, "end_tick": tick + 2304})
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[parser] smokegrenade_detonate error: {e}")
 
     # Molotov / incendiary — match start→end by entityid
     try:
@@ -127,8 +129,8 @@ def _parse_grenades(p) -> list:
                 "tick": tick, "type": "molotov", "x": x, "y": y,
                 "end_tick": end_by_id.get(eid, tick + 896),
             })
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[parser] molotov error: {e}")
 
     # Flash
     try:
@@ -140,8 +142,8 @@ def _parse_grenades(p) -> list:
             if tick == 0:
                 continue
             grenades.append({"tick": tick, "type": "flash", "x": x, "y": y, "end_tick": tick + 64})
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[parser] flashbang error: {e}")
 
     # HE
     try:
@@ -153,8 +155,8 @@ def _parse_grenades(p) -> list:
             if tick == 0:
                 continue
             grenades.append({"tick": tick, "type": "he", "x": x, "y": y, "end_tick": tick + 32})
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[parser] he error: {e}")
 
     return grenades
 
@@ -173,8 +175,8 @@ def _parse_bomb(p) -> list:
                 if tick == 0:
                     continue
                 bomb_events.append({"tick": tick, "type": event_type, "x": x, "y": y})
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[parser] {event_name} error: {e}")
     return bomb_events
 
 
@@ -254,18 +256,30 @@ def parse_demo(dem_path: str) -> dict:
 
     print(f"[parser] frames: {len(frames)}  frame[0] players: {len(frames[0]['players']) if frames else 0}")
 
+    def _team(val) -> str:
+        v = str(val or "").upper()
+        if v in ("CT", "3"):      return "ct"
+        if v in ("T", "TERRORIST", "2"): return "t"
+        return "t"
+
+    kills_records = _to_records(kills_df)
+    if kills_records:
+        print(f"[parser] player_death cols: {list(kills_records[0].keys())}")
     kills = []
-    for r in _to_records(kills_df):
+    for r in kills_records:
+        vx, vy = _event_pos(r)
         kills.append({
             "tick":        int(r["tick"]),
             "killer_id":   str(r.get("attacker_steamid") or ""),
             "killer_name": str(r.get("attacker_name") or ""),
+            "killer_team": _team(r.get("attacker_team_name") or r.get("attacker_side")),
             "victim_id":   str(r.get("user_steamid") or ""),
             "victim_name": str(r.get("user_name") or ""),
+            "victim_team": _team(r.get("user_team_name") or r.get("user_side")),
             "weapon":      str(r.get("weapon") or ""),
             "headshot":    bool(r.get("headshot") or False),
-            "victim_x":    _safe_float(r.get("user_X")),
-            "victim_y":    _safe_float(r.get("user_Y")),
+            "victim_x":    vx,
+            "victim_y":    vy,
         })
 
     raw_rate = header.get("playback_ticks", 128) / max(header.get("playback_time", 1), 0.001)
