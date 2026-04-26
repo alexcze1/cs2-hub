@@ -320,11 +320,11 @@ function drawRoundRect(ctx, x, y, w, h, r) {
   ctx.closePath()
 }
 
-function drawPlayerPill(x, dotTopY, label, color, pillFont) {
+function drawPlayerPill(x, dotTopY, label, color, pillFont, pillFontSz) {
   ctx.save()
   ctx.font = pillFont
   const tw  = ctx.measureText(label).width
-  const ph  = parseInt(pillFont) + 5
+  const ph  = pillFontSz + 5
   const pw  = tw + 12
   const px  = x - pw / 2
   const py  = dotTopY - ph - 2
@@ -359,7 +359,8 @@ function render() {
   if (!frame) return
 
   const dotR     = Math.round(cw * 0.013)
-  const pillFont = `600 ${Math.round(cw * 0.016)}px sans-serif`
+  const pillFontSz = Math.round(cw * 0.016)
+  const pillFont   = `600 ${pillFontSz}px sans-serif`
 
   const round = currentRound()
   renderGrenades(round, state.tick, cw, ch)
@@ -434,7 +435,7 @@ function render() {
   for (const p of frame.players) {
     if (!p.is_alive) continue
     const { x, y } = worldToCanvas(p.x, p.y, mapName, cw, ch)
-    drawPlayerPill(x, y - dotR, p.name.slice(0, 13), playerColor(p.team), pillFont)
+    drawPlayerPill(x, y - dotR, p.name.slice(0, 13), playerColor(p.team), pillFont, pillFontSz)
   }
 
   renderShots(round, state.tick, frame, cw, ch)
