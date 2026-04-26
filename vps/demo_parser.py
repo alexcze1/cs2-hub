@@ -348,12 +348,21 @@ def parse_demo(dem_path: str) -> dict:
 
     print(f"[parser] tick_df columns: {list(tick_df.columns)}")
     try:
-        _all = p.parse_ticks(ticks=sampled[:1])
-        _money_cols = [c for c in _all.columns if any(k in c.lower() for k in ["money", "account", "cash", "equip", "iAccount"])]
-        print(f"[parser] all-props money-related: {_money_cols}")
-        print(f"[parser] all-props full list: {sorted(_all.columns.tolist())}")
+        import demoparser2 as _dp2
+        print(f"[parser] demoparser2 version: {getattr(_dp2, '__version__', 'unknown')}")
     except Exception as _e:
-        print(f"[parser] all-props error: {_e}")
+        print(f"[parser] version check error: {_e}")
+    for _mc in ["CCSPlayerController.m_iAccount", "m_pInGameMoneyServices.m_iAccount", "cs_player_controller.m_iAccount"]:
+        try:
+            _t = p.parse_ticks([_mc], ticks=sampled[:5])
+            print(f"[parser] dot-probe {_mc}: cols={list(_t.columns)}")
+        except Exception as _e:
+            print(f"[parser] dot-probe {_mc}: error {_e}")
+    try:
+        _sp = p.parse_event("player_spawn")
+        print(f"[parser] player_spawn cols: {list(_sp.columns)}")
+    except Exception as _e:
+        print(f"[parser] player_spawn error: {_e}")
     tick_records = _to_records(tick_df)
     by_tick: dict = defaultdict(list)
     for r in tick_records:
