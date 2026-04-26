@@ -63,9 +63,19 @@ const mapName = state.match.meta?.map || demo.map || ''
 document.title = `${mapName} — MIDROUND`
 console.log('[viewer] map:', mapName, '| rounds:', state.match.rounds.length, '| frames:', state.match.frames.length, '| tick_rate:', state.match.meta.tick_rate)
 
+let mapProcessed = null
 mapImg     = new Image()
 mapImg.src = `images/maps/${mapName}_radar.png`
-mapImg.onload  = () => { console.log('[viewer] radar loaded:', mapImg.src); mapLoaded = true }
+mapImg.onload = () => {
+  console.log('[viewer] radar loaded:', mapImg.src)
+  const mc = document.createElement('canvas')
+  mc.width = mc.height = 1024
+  const mctx = mc.getContext('2d')
+  mctx.filter = 'brightness(0.32) saturate(0.08) contrast(1.3)'
+  mctx.drawImage(mapImg, 0, 0, 1024, 1024)
+  mapProcessed = mc
+  mapLoaded = true
+}
 mapImg.onerror = () => { console.warn('[viewer] radar 404:', mapImg.src); mapLoaded = true }
 
 loadingEl.style.display = 'none'
@@ -140,95 +150,152 @@ function getInterpolatedFrame(tick) {
 
 
 // ── Grenade overlays ──────────────────────────────────────────
+const NADE_COLOR = {
+  smoke:   { stroke: 'rgba(210,215,220,0.55)', solid: '#C8CDD2' },
+  molotov: { stroke: 'rgba(255,140,30,0.65)',  solid: '#FF8C1E' },
+  flash:   { stroke: 'rgba(200,220,255,0.6)',  solid: '#C8DCFF' },
+  he:      { stroke: 'rgba(255,210,40,0.7)',   solid: '#FFD228' },
+}
+
+function drawNadeIcon(gx, gy, type, alpha) {
+  const nc = NADE_COLOR[type] ?? NADE_COLOR.he
+  const r  = Math.max(3, Math.round(gx > 0 ? 4 : 4))  // fixed small icon
+  ctx.save()
+  ctx.globalAlpha = alpha
+  ctx.beginPath()
+  ctx.arc(gx, gy, r, 0, Math.PI * 2)
+  ctx.fillStyle   = nc.solid
+  ctx.strokeStyle = 'rgba(255,255,255,0.75)'
+  ctx.lineWidth   = 1
+  ctx.fill()
+  ctx.stroke()
+  ctx.restore()
+}
+
 function renderGrenades(round, tick, cw, ch) {
+  const tickRate   = state.match.meta.tick_rate
+  const TRAJ_TICKS = { smoke: tickRate * 6, molotov: tickRate * 5, he: tickRate * 2, flash: tickRate * 1 }
+
   ctx.save()
   for (const g of state.match.grenades) {
-    if (g.tick < round.start_tick) continue
-    if (g.end_tick == null) continue
+    if (g.tick < round.start_tick || g.end_tick == null) continue
 
-    const tickRate   = state.match.meta.tick_rate
-    const TRAJ_TICKS = { smoke: tickRate * 7, molotov: tickRate * 6, he: tickRate * 2, flash: tickRate * 1 }
-    const trajTicks  = TRAJ_TICKS[g.type] ?? tickRate * 3
-
+    const trajTicks = TRAJ_TICKS[g.type] ?? tickRate * 2
     const inFlight  = g.origin_tick != null && g.origin_tick <= tick && tick < g.tick
     const active    = g.tick <= tick && g.end_tick >= tick
     const showTraj  = g.tick <= tick && (tick - g.tick) < trajTicks
     if (!inFlight && !active && !showTraj) continue
 
     const { x, y } = worldToCanvas(g.x, g.y, mapName, cw, ch)
-    const typeColor = g.type === 'smoke'   ? 'rgba(200,200,200,0.6)'
-                    : g.type === 'molotov' ? 'rgba(255,140,0,0.6)'
-                    : g.type === 'flash'   ? 'rgba(255,255,255,0.5)'
-                    :                        'rgba(255,220,0,0.6)'
+    const nc = NADE_COLOR[g.type] ?? NADE_COLOR.he
 
-    // Trajectory: animated during flight, fading static line after landing
+    // ── Trajectory line ─────────────────────────────────────
     if (g.origin_x != null && !(g.origin_x === 0 && g.origin_y === 0)) {
       const { x: ox, y: oy } = worldToCanvas(g.origin_x, g.origin_y, mapName, cw, ch)
-      ctx.save()
-      ctx.setLineDash([3, 5])
-      ctx.lineWidth = 1.5
 
       if (inFlight) {
         const duration = g.tick - g.origin_tick
         const progress = duration > 0 ? (tick - g.origin_tick) / duration : 1
-        const cx = ox + (x - ox) * progress
-        const cy = oy + (y - oy) * progress
-        ctx.strokeStyle = typeColor
-        ctx.globalAlpha = 0.75
-        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(cx, cy); ctx.stroke()
-        ctx.setLineDash([])
-        ctx.beginPath(); ctx.arc(cx, cy, cw * 0.008, 0, Math.PI * 2)
-        ctx.fillStyle = typeColor; ctx.fill()
+        const fx = ox + (x - ox) * progress
+        const fy = oy + (y - oy) * progress
+        ctx.save()
+        ctx.setLineDash([2, 4])
+        ctx.strokeStyle = nc.stroke
+        ctx.lineWidth   = 1.2
+        ctx.globalAlpha = 0.7
+        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(fx, fy); ctx.stroke()
         ctx.restore()
+        drawNadeIcon(fx, fy, g.type, 0.92)
         continue
-      } else if (showTraj) {
-        const alpha = 1 - (tick - g.tick) / trajTicks
-        ctx.strokeStyle = typeColor
-        ctx.globalAlpha = alpha * 0.65
-        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(x, y); ctx.stroke()
       }
-      ctx.restore()
+
+      if (showTraj) {
+        const alpha = (1 - (tick - g.tick) / trajTicks) * 0.55
+        ctx.save()
+        ctx.setLineDash([2, 4])
+        ctx.strokeStyle = nc.stroke
+        ctx.lineWidth   = 1
+        ctx.globalAlpha = alpha
+        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(x, y); ctx.stroke()
+        ctx.restore()
+      }
     }
 
-    if (!active) continue
+    if (!active || (g.x === 0 && g.y === 0)) continue
 
-    if (g.x === 0 && g.y === 0) continue
+    // ── Active effect ────────────────────────────────────────
+    ctx.save()
     if (g.type === 'smoke') {
-      ctx.beginPath()
-      const r = cw * 0.055
-      ctx.arc(x, y, r, 0, Math.PI * 2)
-      ctx.fillStyle   = 'rgba(180,180,180,0.35)'
-      ctx.strokeStyle = 'rgba(200,200,200,0.5)'
-      ctx.lineWidth   = 1.5
-      ctx.fill()
-      ctx.stroke()
+      const r   = cw * 0.026
+      const rem = Math.ceil(Math.max(0, (g.end_tick - tick) / tickRate))
+      const grad = ctx.createRadialGradient(x, y, 0, x, y, r)
+      grad.addColorStop(0,   'rgba(195,200,208,0.52)')
+      grad.addColorStop(0.65,'rgba(175,180,188,0.38)')
+      grad.addColorStop(1,   'rgba(155,160,168,0.04)')
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2)
+      ctx.fillStyle   = grad
+      ctx.strokeStyle = 'rgba(210,215,220,0.35)'
+      ctx.lineWidth   = 1
+      ctx.fill(); ctx.stroke()
+      // Timer inside
+      const fs = Math.max(9, Math.round(r * 0.52))
+      ctx.font         = `700 ${fs}px monospace`
+      ctx.fillStyle    = 'rgba(255,255,255,0.82)'
+      ctx.textAlign    = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(rem, x, y)
+
     } else if (g.type === 'molotov') {
-      ctx.beginPath()
-      const r = cw * 0.04
-      ctx.arc(x, y, r, 0, Math.PI * 2)
-      ctx.fillStyle   = 'rgba(255,100,0,0.3)'
-      ctx.strokeStyle = 'rgba(255,140,0,0.6)'
-      ctx.lineWidth   = 1.5
-      ctx.fill()
-      ctx.stroke()
+      const r     = cw * 0.020
+      const pulse = 1 + Math.sin(tick / 4) * 0.05
+      const rp    = r * pulse
+      const rem   = Math.ceil(Math.max(0, (g.end_tick - tick) / tickRate))
+      const grad  = ctx.createRadialGradient(x, y, 0, x, y, rp)
+      grad.addColorStop(0,   'rgba(255,200,50,0.68)')
+      grad.addColorStop(0.45,'rgba(255,110,20,0.50)')
+      grad.addColorStop(1,   'rgba(200,40,0,0.06)')
+      ctx.beginPath(); ctx.arc(x, y, rp, 0, Math.PI * 2)
+      ctx.fillStyle   = grad
+      ctx.strokeStyle = 'rgba(255,150,30,0.45)'
+      ctx.lineWidth   = 1
+      ctx.fill(); ctx.stroke()
+      // Timer inside
+      const fs = Math.max(9, Math.round(rp * 0.62))
+      ctx.font         = `700 ${fs}px monospace`
+      ctx.fillStyle    = 'rgba(255,255,255,0.9)'
+      ctx.textAlign    = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(rem, x, y)
+
     } else if (g.type === 'flash') {
       const duration = g.end_tick - g.tick
       const progress = duration > 0 ? (tick - g.tick) / duration : 1
-      const r = cw * 0.03 * (1 - progress)
-      if (r > 0) {
-        ctx.beginPath()
-        ctx.arc(x, y, r, 0, Math.PI * 2)
-        ctx.fillStyle = 'rgba(255,255,255,0.5)'
+      const r        = cw * 0.018 * (1 - progress)
+      if (r > 1) {
+        const grad = ctx.createRadialGradient(x, y, 0, x, y, r)
+        grad.addColorStop(0,   `rgba(255,255,255,${0.85 * (1 - progress)})`)
+        grad.addColorStop(0.55,`rgba(220,235,255,${0.4 * (1 - progress)})`)
+        grad.addColorStop(1,   'rgba(200,220,255,0)')
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2)
+        ctx.fillStyle = grad
         ctx.fill()
       }
+
     } else if (g.type === 'he') {
-      ctx.beginPath()
-      const r = cw * 0.025
-      ctx.arc(x, y, r, 0, Math.PI * 2)
-      ctx.strokeStyle = 'rgba(255,220,0,0.7)'
+      const duration = g.end_tick - g.tick
+      const progress = Math.min(1, duration > 0 ? (tick - g.tick) / duration : 1)
+      const r        = cw * 0.012 * (1 + progress * 1.2)
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2)
+      ctx.strokeStyle = `rgba(255,210,50,${0.85 * (1 - progress)})`
       ctx.lineWidth   = 2
       ctx.stroke()
+      if (progress < 0.35) {
+        ctx.beginPath(); ctx.arc(x, y, r * 0.45, 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(255,240,120,${0.55 * (1 - progress / 0.35)})`
+        ctx.fill()
+      }
     }
+    ctx.restore()
   }
   ctx.restore()
 }
@@ -345,20 +412,20 @@ function render() {
   const { width: cw, height: ch } = canvas
   ctx.clearRect(0, 0, cw, ch)
 
-  if (mapLoaded && mapImg.complete && mapImg.naturalWidth) {
-    ctx.drawImage(mapImg, 0, 0, cw, ch)
-    // Subtle dark overlay for contrast
-    ctx.fillStyle = 'rgba(0,0,0,0.18)'
-    ctx.fillRect(0, 0, cw, ch)
-  } else {
-    ctx.fillStyle = '#111318'
-    ctx.fillRect(0, 0, cw, ch)
+  ctx.fillStyle = '#080a12'
+  ctx.fillRect(0, 0, cw, ch)
+  if (mapLoaded) {
+    if (mapProcessed) {
+      ctx.drawImage(mapProcessed, 0, 0, cw, ch)
+      ctx.fillStyle = 'rgba(6,8,18,0.38)'
+      ctx.fillRect(0, 0, cw, ch)
+    }
   }
 
   const frame = getInterpolatedFrame(state.tick)
   if (!frame) return
 
-  const dotR     = Math.round(cw * 0.013)
+  const dotR     = Math.round(cw * 0.0095)
   const pillFontSz = Math.round(cw * 0.016)
   const pillFont   = `600 ${pillFontSz}px sans-serif`
 
@@ -481,6 +548,24 @@ function render() {
   ctx.fillStyle    = timerColor
   ctx.textBaseline = 'middle'
   ctx.fillText(timeStr, cw / 2, pillY + pillH / 2)
+
+  // Score below timer
+  const ctScore    = state.match.rounds.slice(0, state.roundIdx).filter(r => r.winner_side === 'ct').length
+  const tScore     = state.match.rounds.slice(0, state.roundIdx).filter(r => r.winner_side === 't').length
+  const scoreFontSz = Math.round(cw * 0.020)
+  ctx.font         = `700 ${scoreFontSz}px sans-serif`
+  ctx.textBaseline = 'top'
+  const scoreY     = pillY + pillH + 4
+  const gap        = scoreFontSz * 1.1
+  ctx.textAlign    = 'right'
+  ctx.fillStyle    = CT_COLOR
+  ctx.fillText(String(ctScore), cw / 2 - 5, scoreY)
+  ctx.textAlign    = 'center'
+  ctx.fillStyle    = 'rgba(255,255,255,0.3)'
+  ctx.fillText('–', cw / 2, scoreY)
+  ctx.textAlign    = 'left'
+  ctx.fillStyle    = T_COLOR
+  ctx.fillText(String(tScore), cw / 2 + 5, scoreY)
   ctx.restore()
 }
 
@@ -488,9 +573,31 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
 }
 
+const WEAPON_ICON_BASE = 'https://raw.githubusercontent.com/nicklvsa/csgo-weapon-icons/main/renders/'
+const WEAPON_ABBREV = {
+  ak47:'AK-47', m4a1_silencer:'M4A1-S', m4a4:'M4A4', awp:'AWP', deagle:'Deagle',
+  glock:'Glock', usp_silencer:'USP-S', p250:'P250', fiveseven:'Five-SeveN',
+  tec9:'Tec-9', cz75a:'CZ75', mp9:'MP9', mac10:'MAC-10', mp5sd:'MP5-SD',
+  ump45:'UMP-45', p90:'P90', bizon:'PP-Bizon', famas:'FAMAS', galil:'Galil',
+  sg556:'SG 556', aug:'AUG', ssg08:'Scout', g3sg1:'G3SG1', scar20:'SCAR-20',
+  m249:'M249', negev:'Negev', nova:'Nova', xm1014:'XM1014', mag7:'MAG-7',
+  sawedoff:'Sawed-Off', mp7:'MP7', smokegrenade:'Smoke', flashbang:'Flash',
+  hegrenade:'HE', molotov:'Molotov', incgrenade:'Molotov', decoy:'Decoy',
+  knife:'Knife', knife_t:'Knife',
+}
+
+function weaponImgHTML(raw) {
+  const key  = (raw || '').replace('weapon_', '')
+  const abbr = WEAPON_ABBREV[key] || key.replace(/_/g, ' ').toUpperCase().slice(0, 10)
+  const url  = `${WEAPON_ICON_BASE}${key}.png`
+  return `<img src="${url}" alt="${esc(abbr)}" title="${esc(abbr)}"
+    style="height:14px;object-fit:contain;max-width:60px;opacity:0.85;filter:brightness(1.1)"
+    onerror="this.style.display='none';this.nextSibling.style.display='inline'"
+  /><span style="display:none;font-size:9px;color:var(--text-secondary)">${esc(abbr)}</span>`
+}
+
 function playerCardHTML(p) {
   const hpPct = p.is_alive ? Math.max(0, Math.min(100, p.hp)) : 0
-  const weapon = (p.weapon || '').replace('weapon_', '')
   return `<div class="player-card${p.is_alive ? '' : ' dead'}">
     <div class="player-card-top">
       <span class="player-card-name">${esc(p.name.slice(0, 13))}</span>
@@ -501,7 +608,7 @@ function playerCardHTML(p) {
     </div>
     <div class="player-card-bottom">
       <span>${p.is_alive ? p.hp + ' HP' : 'Dead'}</span>
-      <span>${esc(weapon)}</span>
+      <span style="display:flex;align-items:center">${weaponImgHTML(p.weapon)}</span>
     </div>
   </div>`
 }
