@@ -1,90 +1,69 @@
-import { requireAuth } from './auth.js'
+import { requireAuth }   from './auth.js'
 import { renderSidebar } from './layout.js'
-import { supabase } from './supabase.js'
+import { supabase }      from './supabase.js'
 import { worldToCanvas } from './demo-map-data.js'
 
 await requireAuth()
 renderSidebar('demos')
 
-const params  = new URLSearchParams(location.search)
-const demoId  = params.get('id')
+const params = new URLSearchParams(location.search)
+const demoId = params.get('id')
 if (!demoId) { location.href = 'demos.html'; throw new Error('no id') }
 
-// ── State ────────────────────────────────────────────────
-const state = {
-  match:    null,
-  playing:  false,
-  tick:     0,
-  speed:    1,
-  lastTs:   0,
-  roundIdx: 0,
-}
+// ── State ─────────────────────────────────────────────────────
+const state = { match: null, playing: false, tick: 0, speed: 1, lastTs: 0, roundIdx: 0 }
 let mapImg    = null
 let mapLoaded = false
-let rafId     = null
 
-// ── Load data ────────────────────────────────────────────
+// ── Load ──────────────────────────────────────────────────────
+const loadingEl = document.getElementById('viewer-loading')
+
 const { data: demo, error } = await supabase
   .from('demos')
-  .select('match_data,map,opponent_name,played_at,score_ct,score_t,status')
+  .select('match_data,map,status')
   .eq('id', demoId)
   .single()
 
 if (error || !demo || demo.status !== 'ready') {
-  document.getElementById('viewer-loading').textContent =
+  loadingEl.textContent =
     demo?.status === 'processing' ? 'Demo is still processing…' :
-    demo?.status === 'error'      ? 'Demo processing failed.' :
+    demo?.status === 'error'      ? 'Demo processing failed.'   :
     'Demo not found.'
   throw new Error('not ready')
 }
 
-if (!demo.match_data || typeof demo.match_data !== 'object') {
-  document.getElementById('viewer-loading').textContent = 'Demo data missing — try re-uploading.'
-  throw new Error('no match_data')
-}
-state.match = demo.match_data
-state.scoreCt = demo.score_ct ?? 0
-state.scoreT  = demo.score_t  ?? 0
-state.match.grenades = state.match.grenades ?? []
-state.match.kills    = state.match.kills    ?? []
-state.match.rounds   = state.match.rounds   ?? []
-state.match.frames   = state.match.frames   ?? []
-document.title = `${demo.opponent_name ?? 'Demo'} — ${demo.map ?? ''} — MIDROUND`
+state.match         = demo.match_data
+state.match.rounds  = state.match.rounds ?? []
+state.match.frames  = state.match.frames ?? []
+state.match.kills   = state.match.kills  ?? []
 
-// Load map image
-mapImg = new Image()
+if (!state.match.frames.length) {
+  loadingEl.textContent = 'No frame data — try re-uploading.'
+  throw new Error('no frames')
+}
+if (!state.match.frames[0]?.players?.length) {
+  loadingEl.textContent = 'Parser returned no players — check server logs.'
+  throw new Error('no players in frame 0')
+}
+if (!state.match.rounds.length) {
+  loadingEl.textContent = 'No round data — try re-uploading.'
+  throw new Error('no rounds')
+}
+
+document.title = `${demo.map ?? ''} — MIDROUND`
+
+mapImg     = new Image()
 mapImg.src = `images/maps/${demo.map}_radar.png`
 mapImg.onload  = () => { mapLoaded = true }
 mapImg.onerror = () => { mapLoaded = true }
 
-// Debug dump — remove once viewer is confirmed working
-const _m = state.match
-const _f0 = _m?.frames?.[0]
-const _r0 = _m?.rounds?.[0]
-const _dbg = `map: ${_m?.meta?.map ?? 'MISSING'}  tick_rate: ${_m?.meta?.tick_rate ?? 'MISSING'}
-rounds: ${_m?.rounds?.length ?? 0}  frames: ${_m?.frames?.length ?? 0}  kills: ${_m?.kills?.length ?? 0}
-round0: start=${_r0?.start_tick} end=${_r0?.end_tick}  players_in_frame0: ${_f0?.players?.length ?? 0}
-frame0_tick: ${_f0?.tick}  frame0_p0: ${JSON.stringify(_f0?.players?.[0])}`
-document.getElementById('debug-panel').textContent = _dbg
-console.log('[viewer] match_data structure:', { meta: _m?.meta, rounds: _m?.rounds?.length, frames: _m?.frames?.length, frame0: _f0, round0: _r0 })
-
-if (!state.match.rounds.length) {
-  document.getElementById('viewer-loading').textContent = 'No round data in demo — parsing may have failed.'
-  throw new Error('no rounds')
-}
-if (!state.match.frames.length) {
-  document.getElementById('viewer-loading').textContent = 'No frame data in demo — parsing may have failed.'
-  throw new Error('no frames')
-}
-
-// Show UI
-document.getElementById('viewer-loading').style.display = 'none'
+loadingEl.style.display = 'none'
 document.getElementById('viewer-shell').style.display = 'flex'
 
-// ── Canvas setup ──────────────────────────────────────────
+// ── Canvas ────────────────────────────────────────────────────
 const canvas = document.getElementById('map-canvas')
-const ctx     = canvas.getContext('2d')
-const wrap    = document.getElementById('map-canvas-wrap')
+const ctx    = canvas.getContext('2d')
+const wrap   = document.getElementById('map-canvas-wrap')
 
 function resizeCanvas() {
   const { width, height } = wrap.getBoundingClientRect()
@@ -96,7 +75,7 @@ function resizeCanvas() {
 requestAnimationFrame(resizeCanvas)
 new ResizeObserver(resizeCanvas).observe(wrap)
 
-// ── Round helpers ─────────────────────────────────────────
+// ── Round helpers ─────────────────────────────────────────────
 function currentRound() { return state.match.rounds[state.roundIdx] }
 
 function jumpToRound(idx) {
@@ -107,7 +86,7 @@ function jumpToRound(idx) {
   updateRoundTracker()
 }
 
-// ── Frame lookup (binary search) ─────────────────────────
+// ── Frame lookup (binary search) ──────────────────────────────
 function getFrame(tick) {
   const frames = state.match.frames
   if (!frames.length) return null
@@ -120,7 +99,7 @@ function getFrame(tick) {
   return frames[lo]
 }
 
-// ── Canvas render ─────────────────────────────────────────
+// ── Render ────────────────────────────────────────────────────
 function render() {
   const { width: cw, height: ch } = canvas
   const map = state.match.meta.map
@@ -133,142 +112,66 @@ function render() {
     ctx.fillRect(0, 0, cw, ch)
   }
 
-  const tick     = state.tick
-  const tickRate = state.match.meta.tick_rate
-
-  // Grenade blasts (show for 2 seconds around detonation tick)
-  const NADE_DURATION = tickRate * 2
-  for (const g of state.match.grenades) {
-    if (tick < g.tick || tick > g.tick + NADE_DURATION) continue
-    const { x, y } = worldToCanvas(g.x, g.y, map, cw, ch)
-    const alpha = 1 - (tick - g.tick) / NADE_DURATION
-    ctx.globalAlpha = alpha * 0.7
-    ctx.beginPath()
-    ctx.arc(x, y, 14, 0, Math.PI * 2)
-    ctx.fillStyle = { smoke: '#aaa', flash: '#ffe', molotov: '#f60', he: '#fc0' }[g.type] ?? '#fff'
-    ctx.fill()
-    ctx.globalAlpha = 1
-  }
-
-  // Kill markers (show for 3 seconds, fade out)
-  const KILL_DURATION = tickRate * 3
-  for (const k of state.match.kills) {
-    if (tick < k.tick || tick > k.tick + KILL_DURATION) continue
-    const { x, y } = worldToCanvas(k.victim_x, k.victim_y, map, cw, ch)
-    const age = (tick - k.tick) / KILL_DURATION
-    ctx.globalAlpha = 1 - age
-    ctx.fillStyle = '#ff4444'
-    ctx.font = `bold ${Math.round(cw * 0.025)}px sans-serif`
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText('✕', x, y)
-    ctx.globalAlpha = 1
-  }
-
-  // Players
-  const frame = getFrame(tick)
+  const frame = getFrame(state.tick)
   if (!frame) return
-  const dotR = Math.round(cw * 0.012)
+
+  const dotR     = Math.round(cw * 0.012)
+  const fontSize = Math.round(cw * 0.018)
+
   for (const p of frame.players) {
     const { x, y } = worldToCanvas(p.x, p.y, map, cw, ch)
+
     ctx.beginPath()
     ctx.arc(x, y, dotR, 0, Math.PI * 2)
     if (!p.is_alive) {
       ctx.globalAlpha = 0.3
-      ctx.fillStyle = '#888'
+      ctx.fillStyle   = '#888'
     } else {
       ctx.fillStyle = p.team === 'ct' ? '#4FC3F7' : '#EF5350'
     }
     ctx.strokeStyle = '#fff'
-    ctx.lineWidth = 1.5
+    ctx.lineWidth   = 1.5
     ctx.fill()
     ctx.stroke()
     ctx.globalAlpha = 1
+
+    if (p.is_alive) {
+      ctx.fillStyle    = '#fff'
+      ctx.font         = `${fontSize}px sans-serif`
+      ctx.textAlign    = 'center'
+      ctx.textBaseline = 'top'
+      ctx.fillText(p.name.slice(0, 10), x, y + dotR + 2)
+    }
   }
 }
 
-// ── UI updates ────────────────────────────────────────────
-function buildPlayerCards() {
-  const frame = getFrame(state.tick)
-  if (!frame) return
-
-  const ct = frame.players.filter(p => p.team === 'ct')
-  const t  = frame.players.filter(p => p.team === 't')
-
-  const killMap  = {}
-  const deathMap = {}
-  for (const k of state.match.kills) {
-    if (k.tick > state.tick) continue
-    killMap[k.killer_id]  = (killMap[k.killer_id]  ?? 0) + 1
-    deathMap[k.victim_id] = (deathMap[k.victim_id] ?? 0) + 1
-  }
-
-  function cardHtml(p) {
-    const k = killMap[p.steam_id]  ?? 0
-    const d = deathMap[p.steam_id] ?? 0
-    const hpPct  = Math.max(0, Math.min(100, p.hp))
-    const hpColor = hpPct > 50 ? '#4CAF50' : hpPct > 25 ? '#FFC107' : '#EF5350'
-    return `
-      <div class="player-card ${p.team}${p.is_alive ? '' : ' dead'}">
-        <div class="player-card-name">${esc(p.name)}</div>
-        <div class="player-card-kd">${k}/${d}</div>
-        <div class="player-card-weapon">${esc((p.weapon ?? '').replace('weapon_', ''))}</div>
-        <div class="player-card-money">$${(p.money ?? 0).toLocaleString()}</div>
-        <div class="player-card-hp" style="width:${hpPct}%;background:${hpColor}"></div>
-      </div>`
-  }
-
-  document.getElementById('player-cards').innerHTML =
-    ct.map(cardHtml).join('') +
-    `<div class="score-card">
-       <div class="score-ct">${state.scoreCt}</div>
-       <div class="score-vs">vs</div>
-       <div class="score-t">${state.scoreT}</div>
-     </div>` +
-    t.map(cardHtml).join('')
-}
-
+// ── UI updates ────────────────────────────────────────────────
 function updateRoundTracker() {
   const rounds = state.match.rounds
   document.getElementById('round-num').textContent   = state.roundIdx + 1
   document.getElementById('round-total').textContent = rounds.length
-
   document.getElementById('round-squares').innerHTML = rounds.map((r, i) => {
-    const cls = i < state.roundIdx ? r.winner_side : i === state.roundIdx ? `${r.winner_side} current` : 'unplayed'
-    return `<div class="round-sq ${cls}" title="Round ${i+1}" onclick="jumpToRound(${i})"></div>`
+    const cls = i < state.roundIdx
+      ? r.winner_side
+      : i === state.roundIdx
+        ? `${r.winner_side} current`
+        : 'unplayed'
+    return `<div class="round-sq ${cls}" title="Round ${i + 1}" onclick="jumpToRound(${i})"></div>`
   }).join('')
 }
 
-function updateKillFeed() {
-  const tick     = state.tick
-  const tickRate = state.match.meta.tick_rate
-  const recent = state.match.kills
-    .filter(k => tick - k.tick >= 0 && tick - k.tick < tickRate * 8)
-    .slice(-5)
-    .reverse()
-
-  document.getElementById('kill-feed-rows').innerHTML = recent.map(k =>
-    `<div class="kill-row">
-       <span class="kname">${esc(k.killer_name)}</span>
-       <span>→</span>
-       <span class="vname">${esc(k.victim_name)}</span>
-       <span class="kweapon">${esc(k.weapon.replace('weapon_',''))}${k.headshot ? ' hs' : ''}</span>
-     </div>`
-  ).join('')
-}
-
 function updateTimeline() {
-  const round = currentRound()
-  const span  = round.end_tick - round.start_tick
-  const pct   = span > 0 ? ((state.tick - round.start_tick) / span) * 100 : 0
-  const clamped = Math.max(0, Math.min(100, pct))
+  const round    = currentRound()
+  const span     = round.end_tick - round.start_tick
+  const pct      = span > 0 ? ((state.tick - round.start_tick) / span) * 100 : 0
+  const clamped  = Math.max(0, Math.min(100, pct))
   document.getElementById('timeline-fill').style.width = clamped + '%'
   document.getElementById('timeline-thumb').style.left = clamped + '%'
 
   const tickRate = state.match.meta.tick_rate
   const elapsed  = Math.floor(Math.max(0, state.tick - round.start_tick) / tickRate)
   const total    = Math.floor(span / tickRate)
-  const fmt = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`
+  const fmt = s  => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
   document.getElementById('timeline-current').textContent = fmt(elapsed)
   document.getElementById('timeline-end').textContent     = fmt(total)
 }
@@ -277,13 +180,13 @@ function updatePlayBtn() {
   document.getElementById('play-btn').textContent = state.playing ? '⏸' : '▶'
 }
 
-// ── Animation loop ────────────────────────────────────────
+// ── Loop ──────────────────────────────────────────────────────
 function loop(ts) {
   try {
     if (state.playing) {
-      const dt         = ts - state.lastTs
+      const dt        = ts - state.lastTs
       const ticksPerMs = (state.match.meta.tick_rate * state.speed) / 1000
-      state.tick       = state.tick + dt * ticksPerMs
+      state.tick      += dt * ticksPerMs
 
       const round = currentRound()
       if (state.tick >= round.end_tick) {
@@ -293,19 +196,16 @@ function loop(ts) {
       }
     }
     state.lastTs = ts
-
     render()
-    buildPlayerCards()
     updateRoundTracker()
-    updateKillFeed()
     updateTimeline()
   } catch (e) {
     console.error('Viewer loop error:', e)
   }
-  rafId = requestAnimationFrame(loop)
+  requestAnimationFrame(loop)
 }
 
-// ── Controls ──────────────────────────────────────────────
+// ── Controls ──────────────────────────────────────────────────
 document.getElementById('play-btn').addEventListener('click', () => {
   const round = currentRound()
   if (state.tick >= round.end_tick) state.tick = round.start_tick
@@ -316,31 +216,26 @@ document.getElementById('play-btn').addEventListener('click', () => {
 document.querySelectorAll('.speed-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     state.speed = Number(btn.dataset.speed)
-    document.querySelectorAll('.speed-btn').forEach(b => b.classList.toggle('active', b === btn))
+    document.querySelectorAll('.speed-btn').forEach(b =>
+      b.classList.toggle('active', b === btn)
+    )
   })
 })
 
 const track = document.getElementById('timeline-track')
+let dragging = false
 function seekFromEvent(e) {
   const { left, width } = track.getBoundingClientRect()
   const pct   = Math.max(0, Math.min(1, (e.clientX - left) / width))
   const round = currentRound()
   state.tick  = round.start_tick + pct * (round.end_tick - round.start_tick)
 }
-let dragging = false
 track.addEventListener('mousedown', e => { dragging = true; seekFromEvent(e) })
 window.addEventListener('mousemove', e => { if (dragging) seekFromEvent(e) })
-window.addEventListener('mouseup',   () => { dragging = false })
+window.addEventListener('mouseup',   ()  => { dragging = false })
 
 window.jumpToRound = jumpToRound
 
-// ── XSS helper ───────────────────────────────────────────
-function esc(s) {
-  const d = document.createElement('div')
-  d.textContent = s ?? ''
-  return d.innerHTML
-}
-
-// ── Kick off ──────────────────────────────────────────────
+// ── Kick off ──────────────────────────────────────────────────
 jumpToRound(0)
-rafId = requestAnimationFrame(ts => { state.lastTs = ts; loop(ts) })
+requestAnimationFrame(ts => { state.lastTs = ts; loop(ts) })
