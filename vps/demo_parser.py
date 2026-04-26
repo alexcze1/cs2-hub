@@ -346,6 +346,7 @@ def parse_demo(dem_path: str) -> dict:
         ticks=sampled,
     )
 
+    print(f"[parser] tick_df columns: {list(tick_df.columns)}")
     tick_records = _to_records(tick_df)
     by_tick: dict = defaultdict(list)
     for r in tick_records:
