@@ -45,6 +45,13 @@ state.match.shots    = state.match.shots    ?? []
 if (!state.match.meta) state.match.meta = {}
 state.match.meta.tick_rate = state.match.meta.tick_rate || 64
 
+// Parser stamps grenade end_ticks using real 128Hz game ticks; scale to viewer tick rate
+const _tickScale = state.match.meta.tick_rate / 128
+state.match.grenades.forEach(g => {
+  if (g.end_tick != null && g.tick != null)
+    g.end_tick = Math.round(g.tick + (g.end_tick - g.tick) * _tickScale)
+})
+
 if (!state.match.frames.length) {
   loadingEl.textContent = 'No frame data — try re-uploading.'
   throw new Error('no frames')
@@ -207,7 +214,7 @@ function renderGrenades(round, tick, cw, ch) {
     if (g.x === 0 && g.y === 0) continue
     if (g.type === 'smoke') {
       ctx.beginPath()
-      const r = cw * 0.055
+      const r = cw * 0.038
       ctx.arc(x, y, r, 0, Math.PI * 2)
       ctx.fillStyle   = 'rgba(180,180,180,0.35)'
       ctx.strokeStyle = 'rgba(200,200,200,0.5)'
@@ -217,7 +224,7 @@ function renderGrenades(round, tick, cw, ch) {
       drawCountdownText(x, y, r, Math.ceil((g.end_tick - tick) / tickRate), 'rgba(255,255,255,0.9)')
     } else if (g.type === 'molotov') {
       ctx.beginPath()
-      const r = cw * 0.04
+      const r = cw * 0.028
       ctx.arc(x, y, r, 0, Math.PI * 2)
       ctx.fillStyle   = 'rgba(255,100,0,0.3)'
       ctx.strokeStyle = 'rgba(255,140,0,0.6)'
@@ -381,18 +388,21 @@ function render() {
 
   if (mapLoaded && mapImg.complete && mapImg.naturalWidth) {
     ctx.drawImage(mapImg, 0, 0, cw, ch)
-    // Subtle dark overlay for contrast
     ctx.fillStyle = 'rgba(0,0,0,0.18)'
     ctx.fillRect(0, 0, cw, ch)
   } else {
     ctx.fillStyle = '#111318'
     ctx.fillRect(0, 0, cw, ch)
   }
+  // Outline so map edge doesn't bleed into background
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)'
+  ctx.lineWidth   = 1
+  ctx.strokeRect(0.5, 0.5, cw - 1, ch - 1)
 
   const frame = getInterpolatedFrame(state.tick)
   if (!frame) return
 
-  const dotR     = Math.round(cw * 0.013)
+  const dotR     = Math.round(cw * 0.009)
   const pillFontSz = Math.round(cw * 0.016)
   const pillFont   = `600 ${pillFontSz}px sans-serif`
 
