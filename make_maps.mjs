@@ -7,13 +7,15 @@ const MAPS_DIR = 'cs2-hub/images/maps'
 const WALL_THRESHOLD      = 80
 const HIGHLIGHT_THRESHOLD = 200
 
-// Target palette: near-black walls, dark floor, slightly lighter ledges
-const WALL_COLOR      = [20,  20,  23 ]
-const FLOOR_COLOR     = [30,  30,  34 ]
-const HIGHLIGHT_COLOR = [46,  46,  52 ]
+// Axiom palette: cool blue-grey dark mode inspired by #9CA3AF / #A69DB9
+const WALL_COLOR      = [12,  13,  17 ]   // #0c0d11 — near-black with blue tint
+const FLOOR_COLOR     = [26,  30,  40 ]   // #1a1e28 — dark blue-grey (9CA3AF family)
+const HIGHLIGHT_COLOR = [46,  53,  69 ]   // #2e3545 — medium cool blue-grey
+
+const TARGET_MAP = 'de_dust2_radar.png'   // remove this line to regenerate all maps
 
 const files  = await readdir(MAPS_DIR)
-const radars = files.filter(f => f.startsWith('de_') && f.endsWith('_radar.png'))
+const radars = files.filter(f => f === TARGET_MAP)
 
 if (!radars.length) {
   console.error('No de_*_radar.png files found in', MAPS_DIR)
