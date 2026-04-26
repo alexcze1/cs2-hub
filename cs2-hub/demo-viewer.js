@@ -45,12 +45,6 @@ state.match.shots    = state.match.shots    ?? []
 if (!state.match.meta) state.match.meta = {}
 state.match.meta.tick_rate = state.match.meta.tick_rate || 64
 
-// Parser stamps grenade end_ticks using real 128Hz game ticks; scale to viewer tick rate
-const _tickScale = state.match.meta.tick_rate / 128
-state.match.grenades.forEach(g => {
-  if (g.end_tick != null && g.tick != null)
-    g.end_tick = Math.round(g.tick + (g.end_tick - g.tick) * _tickScale)
-})
 
 if (!state.match.frames.length) {
   loadingEl.textContent = 'No frame data — try re-uploading.'
@@ -159,11 +153,12 @@ function renderGrenades(round, tick, cw, ch) {
     if (g.end_tick == null) continue
 
     const tickRate   = state.match.meta.tick_rate
+    const GAME_HZ    = 128
     const TRAJ_TICKS = { smoke: tickRate * 7, molotov: tickRate * 6, he: tickRate * 2, flash: tickRate * 1 }
     const trajTicks  = TRAJ_TICKS[g.type] ?? tickRate * 3
 
     const inFlight  = g.origin_tick != null && g.origin_tick <= tick && tick < g.tick
-    const active    = g.tick <= tick && g.end_tick >= tick
+    const active    = g.tick <= tick && (tick - g.tick) * GAME_HZ <= (g.end_tick - g.tick) * tickRate
     const showTraj  = g.tick <= tick && (tick - g.tick) < trajTicks
     if (!inFlight && !active && !showTraj) continue
 
@@ -214,14 +209,14 @@ function renderGrenades(round, tick, cw, ch) {
     if (g.x === 0 && g.y === 0) continue
     if (g.type === 'smoke') {
       ctx.beginPath()
-      const r = cw * 0.038
+      const r = cw * 0.032
       ctx.arc(x, y, r, 0, Math.PI * 2)
       ctx.fillStyle   = 'rgba(180,180,180,0.35)'
       ctx.strokeStyle = 'rgba(200,200,200,0.5)'
       ctx.lineWidth   = 1.5
       ctx.fill()
       ctx.stroke()
-      drawCountdownText(x, y, r, Math.ceil((g.end_tick - tick) / tickRate), 'rgba(255,255,255,0.9)')
+      drawCountdownText(x, y, r, Math.ceil((g.end_tick - g.tick) / GAME_HZ - (tick - g.tick) / tickRate), 'rgba(255,255,255,0.9)')
     } else if (g.type === 'molotov') {
       ctx.beginPath()
       const r = cw * 0.028
@@ -231,10 +226,11 @@ function renderGrenades(round, tick, cw, ch) {
       ctx.lineWidth   = 1.5
       ctx.fill()
       ctx.stroke()
-      drawCountdownText(x, y, r, Math.ceil((g.end_tick - tick) / tickRate), '#FF9500')
+      drawCountdownText(x, y, r, Math.ceil((g.end_tick - g.tick) / GAME_HZ - (tick - g.tick) / tickRate), '#FF9500')
     } else if (g.type === 'flash') {
-      const duration = g.end_tick - g.tick
-      const progress = duration > 0 ? (tick - g.tick) / duration : 1
+      const durationSec = (g.end_tick - g.tick) / GAME_HZ
+      const elapsedSec  = (tick - g.tick) / tickRate
+      const progress    = durationSec > 0 ? Math.min(1, elapsedSec / durationSec) : 1
       const r = cw * 0.03 * (1 - progress)
       if (r > 0) {
         ctx.beginPath()
