@@ -557,12 +557,44 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
 }
 
-// Weapon names from demoparser2 that don't match the SVG filename exactly
+// demoparser2 returns display names ("Butterfly Knife") not internal names ("knife_butterfly")
 const WEAPON_ICON_MAP = {
-  m4a4:           'm4a1',
-  m4a1:           'm4a1',
-  bayonet:        'knife',
-  knifegg:        'knife',
+  // Pistols
+  'Glock-18': 'glock', 'P2000': 'p2000', 'USP-S': 'usp_silencer',
+  'Dual Berettas': 'elite', 'P250': 'p250', 'Five-SeveN': 'fiveseven',
+  'Tec-9': 'tec9', 'CZ75-Auto': 'cz75a', 'Desert Eagle': 'deagle',
+  'R8 Revolver': 'revolver',
+  // Rifles
+  'AK-47': 'ak47', 'Galil AR': 'galilar', 'FAMAS': 'famas',
+  'M4A4': 'm4a1', 'M4A1-S': 'm4a1_silencer', 'AUG': 'aug',
+  'SG 553': 'sg556', 'SSG 08': 'ssg08', 'AWP': 'awp',
+  'G3SG1': 'g3sg1', 'SCAR-20': 'scar20',
+  // SMGs
+  'MAC-10': 'mac10', 'MP9': 'mp9', 'MP7': 'mp7', 'MP5-SD': 'mp5sd',
+  'UMP-45': 'ump45', 'PP-Bizon': 'bizon', 'P90': 'p90',
+  // Heavy
+  'Nova': 'nova', 'XM1014': 'xm1014', 'Sawed-Off': 'sawedoff',
+  'MAG-7': 'mag7', 'M249': 'm249', 'Negev': 'negev',
+  // Grenades
+  'Smoke Grenade': 'smokegrenade', 'HE Grenade': 'hegrenade',
+  'Flashbang': 'flashbang', 'Molotov': 'molotov',
+  'Incendiary Grenade': 'incgrenade', 'Decoy Grenade': 'decoy',
+  // Equipment
+  'Zeus x27': 'taser', 'C4': 'c4',
+  // Knives
+  'Knife': 'knife', 'Bayonet': 'bayonet',
+  'Butterfly Knife': 'knife_butterfly', 'Karambit': 'knife_karambit',
+  'M9 Bayonet': 'knife_m9_bayonet', 'Flip Knife': 'knife_flip',
+  'Gut Knife': 'knife_gut', 'Falchion Knife': 'knife_falchion',
+  'Bowie Knife': 'knife_bowie', 'Shadow Daggers': 'knife_push',
+  'Huntsman Knife': 'knife_tactical', 'Stiletto Knife': 'knife_stiletto',
+  'Skeleton Knife': 'knife_skeleton', 'Ursus Knife': 'knife_ursus',
+  'Talon Knife': 'knife_tactical', 'Paracord Knife': 'knife_cord',
+  'Navaja Knife': 'knife_gypsy_jackknife', 'Classic Knife': 'knife_css',
+  'Nomad Knife': 'knife_outdoor', 'Survival Knife': 'knife_outdoor',
+  'Kukri Knife': 'knife',
+  // Internal names (weapon_ stripped) — fallback for any old parsed demos
+  'm4a4': 'm4a1', 'knifegg': 'knife', 'hkp2000': 'hkp2000',
 }
 
 function playerCardHTML(p) {
