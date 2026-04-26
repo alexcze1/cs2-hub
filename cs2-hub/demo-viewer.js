@@ -329,6 +329,18 @@ const T_COLOR  = '#FF9500'
 
 function playerColor(team) { return team === 'ct' ? CT_COLOR : T_COLOR }
 
+function hpToColor(hp) {
+  if (hp > 50) {
+    const t = (hp - 50) / 50
+    return `rgb(${Math.round(76 + (255 - 76) * (1 - t))},${Math.round(175 + (215 - 175) * (1 - t))},${Math.round(80 * t)})`
+  }
+  if (hp > 25) {
+    const t = (hp - 25) / 25
+    return `rgb(255,${Math.round(215 * t)},0)`
+  }
+  return '#F44336'
+}
+
 // Grenade icons — preloaded at init, drawn on trajectory during flight
 const GRENADE_ICONS = {}
 ;['smoke:smokegrenade', 'flash:flashbang', 'he:hegrenade', 'molotov:molotov'].forEach(entry => {
@@ -405,7 +417,7 @@ function render() {
   if (!frame) return
 
   const dotR     = Math.round(cw * 0.009)
-  const pillFontSz = Math.round(cw * 0.016)
+  const pillFontSz = Math.round(cw * 0.011)
   const pillFont   = `600 ${pillFontSz}px sans-serif`
 
   const round = currentRound()
@@ -428,6 +440,22 @@ function render() {
       ctx.stroke()
       ctx.restore()
       continue
+    }
+
+    // HP arc — drawn behind the circle
+    if (p.hp != null && p.hp > 0) {
+      const arcR = dotR + 3
+      ctx.save()
+      ctx.lineWidth = 2.5
+      ctx.beginPath()
+      ctx.arc(x, y, arcR, 0, Math.PI * 2)
+      ctx.strokeStyle = 'rgba(0,0,0,0.4)'
+      ctx.stroke()
+      ctx.beginPath()
+      ctx.arc(x, y, arcR, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, Math.min(1, p.hp / 100)))
+      ctx.strokeStyle = hpToColor(p.hp)
+      ctx.stroke()
+      ctx.restore()
     }
 
     const color = playerColor(p.team)
