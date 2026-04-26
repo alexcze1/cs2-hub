@@ -15,6 +15,7 @@ const state = { match: null, playing: false, tick: 0, speed: 1, lastTs: 0, round
 let mapImg    = null
 let mapLoaded = false
 let _lastFrameTick = -1
+let _lastRoundIdx  = -1
 
 // ── Load ──────────────────────────────────────────────────────
 const loadingEl = document.getElementById('viewer-loading')
@@ -37,6 +38,8 @@ state.match         = demo.match_data
 state.match.rounds  = state.match.rounds ?? []
 state.match.frames  = state.match.frames ?? []
 state.match.kills   = state.match.kills  ?? []
+if (!state.match.meta) state.match.meta = {}
+state.match.meta.tick_rate = state.match.meta.tick_rate || 64
 
 if (!state.match.frames.length) {
   loadingEl.textContent = 'No frame data — try re-uploading.'
@@ -150,12 +153,16 @@ function render() {
   }
 }
 
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+}
+
 function playerCardHTML(p) {
   const hpPct = p.is_alive ? Math.max(0, Math.min(100, p.hp)) : 0
   const weapon = (p.weapon || '').replace('weapon_', '')
   return `<div class="player-card${p.is_alive ? '' : ' dead'}">
     <div class="player-card-top">
-      <span class="player-card-name">${p.name.slice(0, 13)}</span>
+      <span class="player-card-name">${esc(p.name.slice(0, 13))}</span>
       <span class="player-card-money">$${p.money ?? 0}</span>
     </div>
     <div class="player-hp-bar">
@@ -163,7 +170,7 @@ function playerCardHTML(p) {
     </div>
     <div class="player-card-bottom">
       <span>${p.is_alive ? p.hp + ' HP' : 'Dead'}</span>
-      <span>${weapon}</span>
+      <span>${esc(weapon)}</span>
     </div>
   </div>`
 }
@@ -183,7 +190,6 @@ function updatePlayerCards() {
 }
 
 // ── UI updates ────────────────────────────────────────────────
-let _lastRoundIdx = -1
 function updateRoundTracker() {
   const rounds = state.match.rounds
   document.getElementById('round-num').textContent   = state.roundIdx + 1
