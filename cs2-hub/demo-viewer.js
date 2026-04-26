@@ -11,7 +11,7 @@ const demoId = params.get('id')
 if (!demoId) { location.href = 'demos.html'; throw new Error('no id') }
 
 // ── State ─────────────────────────────────────────────────────
-const state = { match: null, playing: false, tick: 0, speed: 1, lastTs: 0, roundIdx: 0 }
+const state = { match: null, playing: false, tick: 0, speed: 0.75, lastTs: 0, roundIdx: 0 }
 let mapImg    = null
 let mapLoaded = false
 let _lastFrameTick = -1
