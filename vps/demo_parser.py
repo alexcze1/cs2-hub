@@ -115,8 +115,10 @@ def parse_demo(dem_path: str) -> dict:
     print(f"[parser] rounds built: {len(rounds)}")
 
     all_ticks = sorted(_col_to_list(tick_df["tick"].unique()))
-    sampled   = all_ticks[::SAMPLE_RATE]
-    print(f"[parser] tick range: {all_ticks[0] if all_ticks else 'none'}–{all_ticks[-1] if all_ticks else 'none'}  sampled: {len(sampled)}")
+    sampled_all = all_ticks[::SAMPLE_RATE]
+    # Only keep ticks that fall within an actual round — skips warmup/halftime/etc.
+    sampled = [t for t in sampled_all if any(r["start_tick"] <= t <= r["end_tick"] for r in rounds)]
+    print(f"[parser] tick range: {all_ticks[0] if all_ticks else 'none'}–{all_ticks[-1] if all_ticks else 'none'}  sampled all: {len(sampled_all)}  in-round: {len(sampled)}")
 
     tick_records = _to_records(tick_df)
     by_tick: dict = defaultdict(list)
