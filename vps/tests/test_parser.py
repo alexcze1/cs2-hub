@@ -1,6 +1,6 @@
 import pytest
 from pathlib import Path
-from demo_parser import parse_demo, _pair_rounds, _winner_side, _is_warmup, SAMPLE_RATE
+from demo_parser import parse_demo, _pair_rounds, _winner_side, _is_warmup
 
 FIXTURE = Path(__file__).parent / "fixture.dem"
 
@@ -115,7 +115,7 @@ def test_player_fields():
     assert "players" in frame
     if frame["players"]:
         p = frame["players"][0]
-        for key in ("steam_id", "name", "team", "x", "y", "hp", "is_alive"):
+        for key in ("steam_id", "name", "team", "x", "y", "hp", "armor", "weapon", "money", "is_alive"):
             assert key in p, f"missing key: {key}"
         assert p["team"] in ("ct", "t")
 
