@@ -80,13 +80,9 @@ def parse_demo(dem_path: str) -> dict:
     p = DemoParser(dem_path)
     header = p.parse_header()
 
-    tick_df = p.parse_ticks([
-        "X", "Y", "health", "is_alive", "team_num",
-        "active_weapon_name", "cash", "armor_value",
-    ])
-
-    kills_df      = p.parse_event("player_death")
-    round_end_df  = p.parse_event("round_end")
+    # Parse round events first (cheap) so we can compute sampled ticks before loading tick data
+    kills_df       = p.parse_event("player_death")
+    round_end_df   = p.parse_event("round_end")
     round_start_df = p.parse_event("round_start")
 
     start_ticks = _col_to_list(round_start_df["tick"])
@@ -114,18 +110,21 @@ def parse_demo(dem_path: str) -> dict:
 
     print(f"[parser] rounds built: {len(rounds)}")
 
-    all_ticks = sorted(_col_to_list(tick_df["tick"].unique()))
-    sampled_all = all_ticks[::SAMPLE_RATE]
-    # Only keep ticks that fall within an actual round — skips warmup/halftime/etc.
-    sampled = [t for t in sampled_all if any(r["start_tick"] <= t <= r["end_tick"] for r in rounds)]
-    print(f"[parser] tick range: {all_ticks[0] if all_ticks else 'none'}–{all_ticks[-1] if all_ticks else 'none'}  sampled all: {len(sampled_all)}  in-round: {len(sampled)}")
+    # Build sampled tick list from round boundaries — avoids loading full DataFrame into memory
+    if rounds:
+        min_tick = rounds[0]["start_tick"]
+        max_tick = rounds[-1]["end_tick"]
+        candidate = list(range(min_tick, max_tick + 1, SAMPLE_RATE))
+        sampled = [t for t in candidate if any(r["start_tick"] <= t <= r["end_tick"] for r in rounds)]
+    else:
+        sampled = []
+    print(f"[parser] sampled ticks: {len(sampled)}")
 
-    # Filter DataFrame to only sampled ticks BEFORE converting to Python — avoids OOM on full ~1.9M row DataFrame
-    sampled_set = set(sampled)
-    try:
-        tick_df = tick_df.filter(tick_df["tick"].is_in(sampled_set))   # polars
-    except AttributeError:
-        tick_df = tick_df[tick_df["tick"].isin(sampled_set)]           # pandas
+    # Request only the sampled ticks from the parser — never loads the full DataFrame
+    tick_df = p.parse_ticks(
+        ["X", "Y", "health", "is_alive", "team_num", "active_weapon_name", "cash", "armor_value"],
+        ticks=sampled,
+    )
 
     tick_records = _to_records(tick_df)
     by_tick: dict = defaultdict(list)
