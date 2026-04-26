@@ -30,10 +30,10 @@ def _pair_rounds(start_ticks: list, end_rows: list) -> list:
 
 
 def _winner_side(winner_val) -> str | None:
-    """Return 'ct', 't', or None. CS2: winner==3 → CT, winner==2 → T."""
-    if winner_val == 3:
+    """Return 'ct', 't', or None. Handles both int (3/2) and string ('CT'/'T') forms."""
+    if winner_val == 3 or winner_val == "CT":
         return "ct"
-    if winner_val == 2:
+    if winner_val == 2 or winner_val == "T":
         return "t"
     return None
 
