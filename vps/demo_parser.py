@@ -371,8 +371,7 @@ def parse_demo(dem_path: str) -> dict:
             "victim_y":    vy,
         })
 
-    raw_rate = header.get("playback_ticks", 128) / max(header.get("playback_time", 1), 0.001)
-    tick_rate = 64 if raw_rate < 100 else 128
+    tick_rate = 64  # CS2 sub-tick stores 128 in header but actual game rate is 64
     ct_score  = sum(1 for r in rounds if r["winner_side"] == "ct")
     t_score   = sum(1 for r in rounds if r["winner_side"] == "t")
 
