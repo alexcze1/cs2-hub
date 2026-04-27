@@ -58,6 +58,8 @@ def _safe_float(val) -> float:
 
 
 def _to_records(df) -> list:
+    if isinstance(df, list):
+        return df
     try:
         return df.to_dicts()
     except AttributeError:
