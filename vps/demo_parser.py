@@ -470,7 +470,7 @@ def parse_demo(dem_path: str) -> dict:
 
     grenades = _parse_grenades(p)
     _add_throw_origins(grenades, shots_df, by_tick, sorted(sampled))
-    _build_grenade_paths(grenades, path)
+    _build_grenade_paths(grenades, dem_path)
     bomb     = _parse_bomb(p, by_tick, sampled)
     print(f"[parser] grenades: {len(grenades)}  bomb events: {len(bomb)}")
 
