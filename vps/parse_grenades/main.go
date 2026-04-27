@@ -93,7 +93,7 @@ func main() {
 	// Sample grenade positions every frame via FrameDone
 	parser.RegisterEventHandler(func(events.FrameDone) {
 		for uid, s := range active {
-			proj := parser.GameState().GrenadeProjectiles()[uid]
+			proj := parser.GameState().GrenadeProjectiles()[int(uid)]
 			if proj == nil {
 				continue
 			}
@@ -128,7 +128,7 @@ func main() {
 	parser.RegisterEventHandler(func(events.FrameDone) {
 		gs := parser.GameState().GrenadeProjectiles()
 		for uid, s := range active {
-			if _, still := gs[uid]; !still {
+			if _, still := gs[int(uid)]; !still {
 				if len(s.Path) >= 2 {
 					s.DetTick = parser.CurrentFrame()
 					completed = append(completed, s.Track)
