@@ -175,23 +175,52 @@ def _add_throw_origins(grenades, shots_df, by_tick, sampled_sorted) -> None:
 
 
 
-def _build_grenade_paths(p, grenades) -> None:
-    """Attach real path to each grenade by tracking entity positions across ticks."""
-    # Check grenade_thrown event fields
+def _build_grenade_paths(grenades, demo_path) -> None:
+    """Call Go binary to get real grenade entity paths; merges into grenade list."""
+    import os, subprocess, json as _json
+    from collections import defaultdict as _dd
+
+    binary = "/opt/midround/vps/parse_grenades_bin"
+    if not os.path.exists(binary):
+        print("[parser] grenade path binary not found — using straight-line fallback")
+        return
+
     try:
-        thrown_df = p.parse_event("grenade_thrown")
-        thrown_records = _to_records(thrown_df)
-        print(f"[parser] grenade_thrown count: {len(thrown_records)}")
-        if thrown_records:
-            print(f"[parser] grenade_thrown first record: {thrown_records[0]}")
-    except Exception as ge:
-        print(f"[parser] grenade_thrown error: {ge}")
-    # Check if entity prop parsing is available for projectiles
-    try:
-        props = p.parse_ticks(["CBaseCSGrenadeProjectile.m_vecOrigin"], ticks=[1000])
-        print(f"[parser] entity prop test cols: {list(props.columns) if hasattr(props, 'columns') else props}")
-    except Exception as ee:
-        print(f"[parser] entity prop test error: {ee}")
+        result = subprocess.run(
+            [binary, demo_path],
+            capture_output=True, text=True, timeout=120,
+        )
+        if result.returncode != 0:
+            print(f"[parser] grenade binary error (exit {result.returncode}): {result.stderr[:300]}")
+            return
+        tracks = _json.loads(result.stdout)
+        print(f"[parser] grenade paths: {len(tracks)} tracks from binary")
+    except Exception as e:
+        print(f"[parser] grenade binary failed: {e}")
+        return
+
+    by_key = _dd(list)
+    for t in tracks:
+        by_key[(t["steam_id"], t["type"])].append(t)
+    for lst in by_key.values():
+        lst.sort(key=lambda t: t["throw_tick"])
+
+    consumed = _dd(set)
+    for g in sorted(grenades, key=lambda x: x["tick"]):
+        key = (g.get("steam_id", ""), g["type"])
+        best, best_i = None, None
+        for i, t in enumerate(by_key.get(key, [])):
+            if i in consumed[key]:
+                continue
+            if abs(t["det_tick"] - g["tick"]) < 256:
+                if best is None or abs(t["det_tick"] - g["tick"]) < abs(best["det_tick"] - g["tick"]):
+                    best, best_i = t, i
+        if best is not None:
+            consumed[key].add(best_i)
+            g["path"]       = [[pt["x"], pt["y"]] for pt in best["path"]]
+            g["origin_x"]   = best["path"][0]["x"]
+            g["origin_y"]   = best["path"][0]["y"]
+            g["origin_tick"] = best["throw_tick"]
 
 def _parse_grenades(p) -> list:
     grenades = []
@@ -441,7 +470,7 @@ def parse_demo(dem_path: str) -> dict:
 
     grenades = _parse_grenades(p)
     _add_throw_origins(grenades, shots_df, by_tick, sorted(sampled))
-    _build_grenade_paths(p, grenades)
+    _build_grenade_paths(grenades, path)
     bomb     = _parse_bomb(p, by_tick, sampled)
     print(f"[parser] grenades: {len(grenades)}  bomb events: {len(bomb)}")
 
