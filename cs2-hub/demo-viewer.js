@@ -180,9 +180,6 @@ function renderGrenades(round, tick, frame, cw, ch) {
     return true
   })
 
-
-  }
-
   ctx.save()
   for (const g of grenades) {
     if (g.tick < round.start_tick) continue
