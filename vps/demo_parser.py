@@ -178,6 +178,12 @@ def _add_throw_origins(grenades, shots_df, by_tick, sampled_sorted) -> None:
 def _build_grenade_paths(p, grenades) -> None:
     """Attach real bounce-path to each grenade using grenade_bounce game events."""
     try:
+        try:
+            all_events = p.list_game_events()
+            grenade_events = [e for e in all_events if any(k in e.lower() for k in ('grenade', 'nade', 'bounce', 'projectile', 'throw'))]
+            print(f"[parser] grenade-related events in demo: {grenade_events}")
+        except Exception as le:
+            print(f"[parser] list_game_events error: {le}")
         bounce_df = p.parse_event("grenade_bounce")
         raw_records = _to_records(bounce_df)
         print(f"[parser] grenade_bounce raw count: {len(raw_records)}")
