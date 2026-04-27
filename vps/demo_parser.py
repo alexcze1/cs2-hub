@@ -175,32 +175,36 @@ def _add_throw_origins(grenades, shots_df, by_tick, sampled_sorted) -> None:
 
 
 
-def _build_grenade_paths(grenades, demo_path) -> None:
-    """Call Go binary to get real grenade entity paths; merges into grenade list."""
+def _fetch_grenade_tracks(dem_path) -> list:
+    """Run Go binary before demoparser2 loads to avoid double-RAM peak."""
     import os, subprocess, json as _json
-    from collections import defaultdict as _dd
-
     binary = "/opt/midround/vps/parse_grenades_bin"
     if not os.path.exists(binary):
         print("[parser] grenade path binary not found — using straight-line fallback")
-        return
-
+        return []
     try:
         result = subprocess.run(
-            [binary, demo_path],
+            [binary, dem_path],
             capture_output=True, text=True, timeout=120,
         )
         if result.returncode != 0:
             print(f"[parser] grenade binary error (exit {result.returncode}): {result.stderr[:300]}")
-            return
+            return []
         tracks = _json.loads(result.stdout)
         print(f"[parser] grenade paths: {len(tracks)} tracks from binary")
+        return tracks
     except Exception as e:
         print(f"[parser] grenade binary failed: {e}")
-        return
+        return []
 
+
+def _build_grenade_paths(grenades, raw_tracks) -> None:
+    """Match pre-fetched Go binary tracks onto parsed grenade list."""
+    if not raw_tracks:
+        return
+    from collections import defaultdict as _dd
     by_key = _dd(list)
-    for t in tracks:
+    for t in raw_tracks:
         by_key[(t["steam_id"], t["type"])].append(t)
     for lst in by_key.values():
         lst.sort(key=lambda t: t["throw_tick"])
@@ -217,9 +221,9 @@ def _build_grenade_paths(grenades, demo_path) -> None:
                     best, best_i = t, i
         if best is not None:
             consumed[key].add(best_i)
-            g["path"]       = [[pt["x"], pt["y"]] for pt in best["path"]]
-            g["origin_x"]   = best["path"][0]["x"]
-            g["origin_y"]   = best["path"][0]["y"]
+            g["path"]        = [[pt["x"], pt["y"]] for pt in best["path"]]
+            g["origin_x"]    = best["path"][0]["x"]
+            g["origin_y"]    = best["path"][0]["y"]
             g["origin_tick"] = best["throw_tick"]
 
 def _parse_grenades(p) -> list:
@@ -333,6 +337,9 @@ def _parse_bomb(p, by_tick, sampled) -> list:
 
 
 def parse_demo(dem_path: str) -> dict:
+    # Run Go binary BEFORE demoparser2 loads anything — avoids double-RAM peak
+    raw_tracks = _fetch_grenade_tracks(dem_path)
+
     p = DemoParser(dem_path)
     header = p.parse_header()
 
@@ -470,7 +477,7 @@ def parse_demo(dem_path: str) -> dict:
 
     grenades = _parse_grenades(p)
     _add_throw_origins(grenades, shots_df, by_tick, sorted(sampled))
-    _build_grenade_paths(grenades, dem_path)
+    _build_grenade_paths(grenades, raw_tracks)
     bomb     = _parse_bomb(p, by_tick, sampled)
     print(f"[parser] grenades: {len(grenades)}  bomb events: {len(bomb)}")
 
