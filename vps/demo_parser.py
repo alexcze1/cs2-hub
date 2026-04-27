@@ -176,56 +176,22 @@ def _add_throw_origins(grenades, shots_df, by_tick, sampled_sorted) -> None:
 
 
 def _build_grenade_paths(p, grenades) -> None:
-    """Attach real bounce-path to each grenade using grenade_bounce game events."""
+    """Attach real path to each grenade by tracking entity positions across ticks."""
+    # Check grenade_thrown event fields
     try:
-        try:
-            all_events = p.list_game_events()
-            grenade_events = [e for e in all_events if any(k in e.lower() for k in ('grenade', 'nade', 'bounce', 'projectile', 'throw'))]
-            print(f"[parser] grenade-related events in demo: {grenade_events}")
-        except Exception as le:
-            print(f"[parser] list_game_events error: {le}")
-        bounce_df = p.parse_event("grenade_bounce")
-        raw_records = _to_records(bounce_df)
-        print(f"[parser] grenade_bounce raw count: {len(raw_records)}")
-        if raw_records:
-            print(f"[parser] grenade_bounce first record: {raw_records[0]}")
-        bounces_by_sid: dict = {}
-        for r in raw_records:
-            sid  = str(r.get("user_steamid") or "")
-            tick = _safe_int(r.get("tick"))
-            x, y = _event_pos(r)
-            if tick > 0 and (x != 0 or y != 0):
-                bounces_by_sid.setdefault(sid, []).append({"tick": tick, "x": x, "y": y})
-        for sid in bounces_by_sid:
-            bounces_by_sid[sid].sort(key=lambda b: b["tick"])
-        total_bounces = sum(len(v) for v in bounces_by_sid.values())
-        print(f"[parser] grenade_bounce: {total_bounces} bounces across {len(bounces_by_sid)} players")
-        if bounce_df is not None:
-            try:
-                print(f"[parser] grenade_bounce cols: {list(bounce_df.columns)}")
-            except Exception:
-                pass
-    except Exception as e:
-        print(f"[parser] grenade_bounce error: {e}")
-        # If event unavailable, build straight-line paths from origin → detonation
-        for g in grenades:
-            if g.get("origin_x") is not None:
-                g["path"] = [[g["origin_x"], g["origin_y"]], [g["x"], g["y"]]]
-        return
-
-    for g in grenades:
-        if g.get("origin_x") is None or g.get("origin_tick") is None:
-            continue
-        sid = g.get("steam_id", "")
-        in_flight = [
-            b for b in bounces_by_sid.get(sid, [])
-            if g["origin_tick"] <= b["tick"] < g["tick"]
-        ]
-        path = [[g["origin_x"], g["origin_y"]]]
-        path += [[b["x"], b["y"]] for b in in_flight]
-        path.append([g["x"], g["y"]])
-        g["path"] = path
-
+        thrown_df = p.parse_event("grenade_thrown")
+        thrown_records = _to_records(thrown_df)
+        print(f"[parser] grenade_thrown count: {len(thrown_records)}")
+        if thrown_records:
+            print(f"[parser] grenade_thrown first record: {thrown_records[0]}")
+    except Exception as ge:
+        print(f"[parser] grenade_thrown error: {ge}")
+    # Check if entity prop parsing is available for projectiles
+    try:
+        props = p.parse_ticks(["CBaseCSGrenadeProjectile.m_vecOrigin"], ticks=[1000])
+        print(f"[parser] entity prop test cols: {list(props.columns) if hasattr(props, 'columns') else props}")
+    except Exception as ee:
+        print(f"[parser] entity prop test error: {ee}")
 
 def _parse_grenades(p) -> list:
     grenades = []
