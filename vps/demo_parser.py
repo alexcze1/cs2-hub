@@ -179,8 +179,12 @@ def _build_grenade_paths(p, grenades) -> None:
     """Attach real bounce-path to each grenade using grenade_bounce game events."""
     try:
         bounce_df = p.parse_event("grenade_bounce")
+        raw_records = _to_records(bounce_df)
+        print(f"[parser] grenade_bounce raw count: {len(raw_records)}")
+        if raw_records:
+            print(f"[parser] grenade_bounce first record: {raw_records[0]}")
         bounces_by_sid: dict = {}
-        for r in _to_records(bounce_df):
+        for r in raw_records:
             sid  = str(r.get("user_steamid") or "")
             tick = _safe_int(r.get("tick"))
             x, y = _event_pos(r)
