@@ -186,6 +186,13 @@ def _build_grenade_paths(p, grenades) -> None:
                 bounces_by_sid.setdefault(sid, []).append({"tick": tick, "x": x, "y": y})
         for sid in bounces_by_sid:
             bounces_by_sid[sid].sort(key=lambda b: b["tick"])
+        total_bounces = sum(len(v) for v in bounces_by_sid.values())
+        print(f"[parser] grenade_bounce: {total_bounces} bounces across {len(bounces_by_sid)} players")
+        if bounce_df is not None:
+            try:
+                print(f"[parser] grenade_bounce cols: {list(bounce_df.columns)}")
+            except Exception:
+                pass
     except Exception as e:
         print(f"[parser] grenade_bounce error: {e}")
         # If event unavailable, build straight-line paths from origin → detonation
