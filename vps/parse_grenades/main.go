@@ -61,11 +61,7 @@ func main() {
 	}
 	defer f.Close()
 
-	parser, err := dem.NewParser(f)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "parser:", err)
-		os.Exit(1)
-	}
+	parser := dem.NewParser(f)
 	defer parser.Close()
 
 	active := map[int64]*trackState{}
@@ -94,52 +90,52 @@ func main() {
 		}
 	})
 
-	parser.RegisterEventHandler(func(e events.GrenadeProjectileUpdated) {
-		uid := e.Projectile.UniqueID()
-		s, ok := active[uid]
-		if !ok {
-			return
-		}
-		pos := e.Projectile.Position()
-		dx := pos.X - s.prevX
-		dy := pos.Y - s.prevY
-		dist := math.Sqrt(dx*dx + dy*dy)
-		if dist < 5 {
-			return
-		}
-		ndx, ndy := dx/dist, dy/dist
-		s.sinceLast++
-
-		// Detect bounce: direction change > 45 degrees
-		isBounce := false
-		if (s.prevNDX != 0 || s.prevNDY != 0) && s.sinceLast > 1 {
-			dot := ndx*s.prevNDX + ndy*s.prevNDY
-			if dot < 0.707 {
-				isBounce = true
+	// Sample grenade positions every frame via FrameDone
+	parser.RegisterEventHandler(func(events.FrameDone) {
+		for uid, s := range active {
+			proj := parser.GameState().GrenadeProjectiles()[uid]
+			if proj == nil {
+				continue
 			}
-		}
+			pos := proj.Position()
+			dx := pos.X - s.prevX
+			dy := pos.Y - s.prevY
+			dist := math.Sqrt(dx*dx + dy*dy)
+			if dist < 5 {
+				continue
+			}
+			ndx, ndy := dx/dist, dy/dist
+			s.sinceLast++
 
-		if isBounce || s.sinceLast >= 8 {
-			s.Path = append(s.Path, Point{X: pos.X, Y: pos.Y})
-			s.sinceLast = 0
+			isBounce := false
+			if (s.prevNDX != 0 || s.prevNDY != 0) && s.sinceLast > 1 {
+				dot := ndx*s.prevNDX + ndy*s.prevNDY
+				if dot < 0.707 {
+					isBounce = true
+				}
+			}
+
+			if isBounce || s.sinceLast >= 8 {
+				s.Path = append(s.Path, Point{X: pos.X, Y: pos.Y})
+				s.sinceLast = 0
+			}
+			s.prevX, s.prevY = pos.X, pos.Y
+			s.prevNDX, s.prevNDY = ndx, ndy
 		}
-		s.prevX, s.prevY = pos.X, pos.Y
-		s.prevNDX, s.prevNDY = ndx, ndy
 	})
 
-	parser.RegisterEventHandler(func(e events.GrenadeProjectileDestroyed) {
-		uid := e.Projectile.UniqueID()
-		s, ok := active[uid]
-		if !ok {
-			return
+	// Detect grenades that left the active projectile set (destroyed/detonated)
+	parser.RegisterEventHandler(func(events.FrameDone) {
+		gs := parser.GameState().GrenadeProjectiles()
+		for uid, s := range active {
+			if _, still := gs[uid]; !still {
+				if len(s.Path) >= 2 {
+					s.DetTick = parser.CurrentFrame()
+					completed = append(completed, s.Track)
+				}
+				delete(active, uid)
+			}
 		}
-		pos := e.Projectile.Position()
-		s.DetTick = parser.CurrentFrame()
-		s.Path = append(s.Path, Point{X: pos.X, Y: pos.Y})
-		if len(s.Path) >= 2 {
-			completed = append(completed, s.Track)
-		}
-		delete(active, uid)
 	})
 
 	if err := parser.ParseToEnd(); err != nil {
