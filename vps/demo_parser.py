@@ -183,9 +183,14 @@ def _fetch_grenade_tracks(dem_path) -> list:
         print("[parser] grenade path binary not found — using straight-line fallback")
         return []
     try:
+        import os as _os
+        env = _os.environ.copy()
+        env["GOMEMLIMIT"] = "180MiB"
+        env["GOGC"] = "20"
         result = subprocess.run(
             [binary, dem_path],
             capture_output=True, text=True, timeout=120,
+            env=env,
         )
         if result.returncode != 0:
             print(f"[parser] grenade binary error (exit {result.returncode}): {result.stderr[:300]}")
