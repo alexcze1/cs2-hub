@@ -451,7 +451,7 @@ function renderShots(round, tick, frame, cw, ch) {
       mapName, cw, ch
     )
     const isct   = player.team === 'ct'
-    const teamRgb = isct ? '79,195,247' : '255,107,53'
+    const teamRgb = isct ? '79,195,247' : '255,149,0'
     const teamHex = isct ? CT_COLOR : T_COLOR
 
     // Outer glow — team-colored, soft
@@ -495,7 +495,7 @@ function renderShots(round, tick, frame, cw, ch) {
 
 // ── Player rendering helpers ──────────────────────────────────
 const CT_COLOR = '#4FC3F7'
-const T_COLOR  = '#FF6B35'
+const T_COLOR  = '#FF9500'
 
 function playerColor(team) { return team === 'ct' ? CT_COLOR : T_COLOR }
 
@@ -538,20 +538,22 @@ function drawPlayerPill(x, dotTopY, label, color, pillFont, pillFontSz) {
   ctx.save()
   ctx.font = pillFont
   const tw  = ctx.measureText(label).width
-  const ph  = pillFontSz + 6
-  const pw  = tw + 14
+  const ph  = pillFontSz + 5
+  const pw  = tw + 12
   const px  = x - pw / 2
-  const py  = dotTopY - ph - 3
-  drawRoundRect(ctx, px, py, pw, ph, 4)
-  ctx.fillStyle = 'rgba(18,18,20,0.94)'
+  const py  = dotTopY - ph - 2
+  // Dark glass background
+  drawRoundRect(ctx, px, py, pw, ph, ph / 2)
+  ctx.fillStyle   = 'rgba(3,7,18,0.82)'
   ctx.fill()
-  drawRoundRect(ctx, px, py, pw, ph, 4)
+  // Team-color outline
+  drawRoundRect(ctx, px, py, pw, ph, ph / 2)
   ctx.strokeStyle = color
-  ctx.globalAlpha = 0.5
+  ctx.globalAlpha = 0.75
   ctx.lineWidth   = 1
   ctx.stroke()
   ctx.globalAlpha = 1
-  ctx.fillStyle    = '#e8e8ec'
+  ctx.fillStyle    = '#fff'
   ctx.textAlign    = 'center'
   ctx.textBaseline = 'middle'
   ctx.fillText(label, x, py + ph / 2)
@@ -586,7 +588,7 @@ function render() {
     ctx.fillStyle = 'rgba(0,0,0,0.18)'
     ctx.fillRect(0, 0, cw, ch)
   } else {
-    ctx.fillStyle = '#121214'
+    ctx.fillStyle = '#111318'
     ctx.fillRect(0, 0, cw, ch)
   }
   const frame = getInterpolatedFrame(state.tick)
@@ -618,34 +620,17 @@ function render() {
 
       if (!p.is_alive) {
         ctx.save()
-        ctx.globalAlpha = 0.22
+        ctx.globalAlpha = 0.28
         ctx.beginPath()
-        ctx.arc(x, y, dotR * 0.7, 0, Math.PI * 2)
-        ctx.fillStyle   = '#555'
-        ctx.fill()
-        // small X mark
-        ctx.strokeStyle = 'rgba(255,255,255,0.3)'
+        ctx.arc(x, y, dotR * 0.75, 0, Math.PI * 2)
+        ctx.fillStyle   = '#777'
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)'
         ctx.lineWidth   = 1
-        ctx.beginPath()
-        ctx.moveTo(x - dotR * 0.35, y - dotR * 0.35)
-        ctx.lineTo(x + dotR * 0.35, y + dotR * 0.35)
-        ctx.moveTo(x + dotR * 0.35, y - dotR * 0.35)
-        ctx.lineTo(x - dotR * 0.35, y + dotR * 0.35)
+        ctx.fill()
         ctx.stroke()
         ctx.restore()
         continue
       }
-
-      // Glow halo for alive players
-      ctx.save()
-      const haloGrad = ctx.createRadialGradient(x, y, dotR * 0.5, x, y, dotR * 2.8)
-      haloGrad.addColorStop(0, p.team === 'ct' ? 'rgba(79,195,247,0.22)' : 'rgba(255,107,53,0.22)')
-      haloGrad.addColorStop(1, 'rgba(0,0,0,0)')
-      ctx.beginPath()
-      ctx.arc(x, y, dotR * 2.8, 0, Math.PI * 2)
-      ctx.fillStyle = haloGrad
-      ctx.fill()
-      ctx.restore()
 
       const id       = p.steam_id
       const blindInfo = blindUntil[id]
@@ -790,13 +775,13 @@ function render() {
     const pillH   = tFontSz + 14
     const pillX   = cw / 2 - pillW / 2
     const pillY   = 10
-    drawRoundRect(ctx, pillX, pillY, pillW, pillH, 10)
-    ctx.fillStyle = 'rgba(18,18,20,0.94)'
+    drawRoundRect(ctx, pillX, pillY, pillW, pillH, 8)
+    ctx.fillStyle = 'rgba(3,7,18,0.82)'
     ctx.fill()
-    drawRoundRect(ctx, pillX, pillY, pillW, pillH, 10)
+    drawRoundRect(ctx, pillX, pillY, pillW, pillH, 8)
     ctx.strokeStyle = plantEvent && !bombEnded
-      ? (timerColor === '#FF5252' ? 'rgba(255,82,82,0.7)' : 'rgba(255,183,77,0.6)')
-      : 'rgba(255,107,53,0.35)'
+      ? (timerColor === '#FF5252' ? 'rgba(255,82,82,0.6)' : 'rgba(255,183,77,0.5)')
+      : 'rgba(102,102,183,0.35)'
     ctx.lineWidth   = 1
     ctx.stroke()
     ctx.fillStyle    = timerColor
@@ -835,7 +820,7 @@ function render() {
     const label      = '✏  DRAW  [D] exit  [C] color  [R] clear'
     const lw         = ctx.measureText(label).width
     drawRoundRect(ctx, 10, 10, lw + 20, 26, 6)
-    ctx.fillStyle = 'rgba(18,18,20,0.94)'
+    ctx.fillStyle = 'rgba(3,7,18,0.82)'
     ctx.fill()
     drawRoundRect(ctx, 10, 10, lw + 20, 26, 6)
     ctx.strokeStyle = indColor
