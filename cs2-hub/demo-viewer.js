@@ -885,14 +885,12 @@ new Set(Object.values(WEAPON_ICON_MAP)).forEach(name => {
 
 function playerCardHTML(p) {
   if (!p.is_alive) {
-    return `<div class="card-shell dead">
-      <div class="player-card">
-        <div class="card-accent-bar"></div>
-        <div class="card-body">
-          <div class="card-top">
-            <span class="player-name">${esc(p.name.slice(0, 13))}</span>
-            <span class="dead-label">dead</span>
-          </div>
+    return `<div class="player-card dead">
+      <div class="card-accent-bar"></div>
+      <div class="card-body">
+        <div class="card-top">
+          <span class="player-name">${esc(p.name.slice(0, 13))}</span>
+          <span class="dead-label">dead</span>
         </div>
       </div>
     </div>`
@@ -909,23 +907,21 @@ function playerCardHTML(p) {
     p.has_molotov ? `<div class="util-dot molotov"><img src="images/weapons/molotov.svg"></div>`       : '',
     p.has_he      ? `<div class="util-dot he"><img src="images/weapons/hegrenade.svg"></div>`          : '',
   ].join('')
-  return `<div class="card-shell">
-    <div class="player-card">
-      <div class="card-accent-bar"></div>
-      <div class="card-body">
-        <div class="card-top">
-          <span class="player-name">${esc(p.name.slice(0, 13))}</span>
-          <span class="player-money">$${(p.money ?? 0).toLocaleString()}</span>
-        </div>
-        <div class="hp-row">
-          <div class="hp-bar-wrap"><div class="hp-fill" style="width:${hpPct}%"></div></div>
-          <span class="hp-val">${p.hp}</span>
-        </div>
-        <div class="card-bottom">
-          ${wIconEl}<span class="weapon-name">${esc(weapon)}</span>
-          <div class="util-spacer"></div>
-          <div class="util-dots">${utilDots}</div>
-        </div>
+  return `<div class="player-card">
+    <div class="card-accent-bar"></div>
+    <div class="card-body">
+      <div class="card-top">
+        <span class="player-name">${esc(p.name.slice(0, 13))}</span>
+        <span class="player-money">$${(p.money ?? 0).toLocaleString()}</span>
+      </div>
+      <div class="hp-row">
+        <div class="hp-bar-wrap"><div class="hp-fill" style="width:${hpPct}%"></div></div>
+        <span class="hp-val">${p.hp}</span>
+      </div>
+      <div class="card-bottom">
+        ${wIconEl}<span class="weapon-name">${esc(weapon)}</span>
+        <div class="util-spacer"></div>
+        <div class="util-dots">${utilDots}</div>
       </div>
     </div>
   </div>`
