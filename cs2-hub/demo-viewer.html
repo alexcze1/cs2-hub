@@ -21,82 +21,43 @@
     .viewer-header {
       display: flex;
       align-items: center;
-      background: rgba(0,0,0,0.55);
+      justify-content: center;
+      gap: 32px;
+      background: rgba(0,0,0,0.5);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
       border: 1px solid rgba(255,255,255,0.07);
       border-radius: 10px;
-      padding: 0 20px;
+      padding: 8px 24px;
       flex-shrink: 0;
-      height: 46px;
-    }
-    .vh-left {
-      display: flex;
-      align-items: baseline;
-      gap: 8px;
-      min-width: 120px;
     }
     .vh-map {
-      font-size: 13px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #7777cc;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      min-width: 90px;
+    }
+    .vh-score {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 22px;
       font-weight: 800;
-      color: #fff;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-    }
-    .vh-mode {
-      font-size: 9px;
-      color: rgba(255,255,255,0.35);
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-    }
-    .vh-center {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0;
-    }
-    .vh-team-block {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .vh-team-ct { flex-direction: row; }
-    .vh-team-t  { flex-direction: row-reverse; }
-    .vh-team-name {
-      font-size: 9px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: rgba(255,255,255,0.4);
-    }
-    .vh-score-ct {
-      font-size: 26px;
-      font-weight: 900;
-      color: #4FC3F7;
       font-family: "SF Mono", "Consolas", monospace;
-      line-height: 1;
     }
-    .vh-score-t {
-      font-size: 26px;
-      font-weight: 900;
-      color: #FF9500;
-      font-family: "SF Mono", "Consolas", monospace;
-      line-height: 1;
-    }
-    .vh-divider-block {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 0 20px;
-    }
+    .vh-score-ct  { color: #4FC3F7; }
+    .vh-score-sep { color: rgba(255,255,255,0.2); font-size: 18px; font-weight: 300; }
+    .vh-score-t   { color: #FF9500; }
     .vh-round {
-      font-size: 9px;
-      color: rgba(255,255,255,0.3);
+      font-size: 10px;
+      color: var(--text-secondary, #A1A1AA);
       text-transform: uppercase;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.1em;
+      min-width: 90px;
+      text-align: right;
     }
-    .vh-right { min-width: 120px; }
 
     /* ── Mid row ────────────────────────────────────────────── */
     .viewer-mid {
@@ -122,82 +83,44 @@
 
     /* ── Player panels ──────────────────────────────────────── */
     .player-panel {
-      width: 210px;
+      width: 172px;
       flex-shrink: 0;
       display: flex;
       flex-direction: column;
-      gap: 0;
-    }
-    .panel-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 6px 10px;
-      margin-bottom: 5px;
-      border-radius: 8px;
-      flex-shrink: 0;
-    }
-    .panel-header.ct { background: rgba(79,195,247,0.08); border: 1px solid rgba(79,195,247,0.14); }
-    .panel-header.t  { background: rgba(255,149,0,0.08);  border: 1px solid rgba(255,149,0,0.14); }
-    .panel-team-label {
-      font-size: 8px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-    }
-    .panel-header.ct .panel-team-label { color: #4FC3F7; }
-    .panel-header.t  .panel-team-label { color: #FF9500; }
-    .panel-score {
-      font-size: 11px;
-      font-weight: 700;
-      color: rgba(255,255,255,0.5);
-      font-family: "SF Mono", "Consolas", monospace;
-    }
-    #ct-panel, #t-panel {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
+      gap: 5px;
       overflow-y: auto;
+      padding: 2px 0;
       scrollbar-width: none;
     }
-    #ct-panel::-webkit-scrollbar, #t-panel::-webkit-scrollbar { display: none; }
+    .player-panel::-webkit-scrollbar { display: none; }
 
     .player-card {
       display: flex;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 8px;
+      background: rgba(0,0,0,0.48);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 9px;
       overflow: hidden;
       transition: opacity 0.15s, filter 0.15s;
     }
     .player-card.dead {
-      opacity: 0.18;
-      filter: grayscale(0.7);
-    }
-    .card-num {
-      width: 22px;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 9px;
-      font-weight: 700;
-      color: rgba(255,255,255,0.18);
-      font-family: "SF Mono", "Consolas", monospace;
+      opacity: 0.2;
+      filter: grayscale(0.6);
     }
     .card-accent-bar {
-      width: 3px;
+      width: 4px;
       flex-shrink: 0;
     }
-    .ct-panel .card-accent-bar, #ct-panel .card-accent-bar { background: #4FC3F7; }
-    .t-panel  .card-accent-bar, #t-panel  .card-accent-bar { background: #FF9500; }
+    .ct-panel .card-accent-bar { background: linear-gradient(180deg, #4FC3F7, #2196F3); }
+    .t-panel  .card-accent-bar { background: linear-gradient(180deg, #FF9500, #FF6B00); }
     .card-body {
       flex: 1;
       min-width: 0;
-      padding: 7px 9px 7px 8px;
+      padding: 8px 10px 8px 9px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 5px;
     }
     .card-top {
       display: flex;
@@ -206,26 +129,29 @@
       gap: 4px;
     }
     .player-name {
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 700;
       color: #fff;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .hp-val {
+    .player-money {
       font-size: 10px;
-      font-weight: 700;
-      color: rgba(255,255,255,0.55);
-      min-width: 22px;
-      text-align: right;
+      color: #5DBF6E;
+      font-weight: 600;
+      white-space: nowrap;
       flex-shrink: 0;
-      font-family: "SF Mono", "Consolas", monospace;
+    }
+    .hp-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
     .hp-bar-wrap {
-      width: 100%;
-      height: 3px;
-      background: rgba(255,255,255,0.07);
+      flex: 1;
+      height: 4px;
+      background: rgba(255,255,255,0.08);
       border-radius: 2px;
       overflow: hidden;
     }
@@ -234,55 +160,55 @@
       border-radius: 2px;
       transition: width 0.12s linear;
     }
-    #ct-panel .hp-fill { background: #4FC3F7; }
-    #t-panel  .hp-fill { background: #FF9500; }
+    .ct-panel .hp-fill { background: linear-gradient(90deg, #29B6F6, #4FC3F7); }
+    .t-panel  .hp-fill { background: linear-gradient(90deg, #FF6B00, #FF9500); }
+    .hp-val {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-secondary, #A1A1AA);
+      min-width: 20px;
+      text-align: right;
+    }
     .dead-label {
       font-size: 8px;
       font-weight: 700;
-      color: rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.2);
       text-transform: uppercase;
       letter-spacing: 0.12em;
     }
     .card-bottom {
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
     }
     .weapon-icon {
-      width: 26px;
-      height: 16px;
+      width: 24px;
+      height: 15px;
       object-fit: contain;
-      opacity: 0.6;
+      opacity: 0.7;
       flex-shrink: 0;
     }
     .weapon-name {
-      font-size: 8px;
-      color: rgba(255,255,255,0.35);
+      font-size: 9px;
+      color: rgba(255,255,255,0.45);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-    }
-    .player-money {
-      font-size: 9px;
-      color: #5DBF6E;
-      font-weight: 600;
-      white-space: nowrap;
-      flex-shrink: 0;
-      font-family: "SF Mono", "Consolas", monospace;
     }
 
     .util-spacer { flex: 1; }
     .util-dots   { display: flex; gap: 3px; flex-shrink: 0; }
     .util-dot {
-      width: 16px; height: 16px; border-radius: 3px;
+      width: 18px; height: 18px; border-radius: 4px;
       display: flex; align-items: center; justify-content: center;
-      padding: 2px; box-sizing: border-box;
+      padding: 2px;
+      box-sizing: border-box;
     }
     .util-dot img { width: 100%; height: 100%; object-fit: contain; }
-    .util-dot.smoke   { background: rgba(180,180,180,0.12); border: 1px solid rgba(180,180,180,0.2); }
-    .util-dot.flash   { background: rgba(255,255,180,0.10); border: 1px solid rgba(255,255,150,0.2); }
-    .util-dot.molotov { background: rgba(255,100,0,0.13);   border: 1px solid rgba(255,100,0,0.25); }
-    .util-dot.he      { background: rgba(100,210,100,0.10); border: 1px solid rgba(100,210,100,0.22); }
+    .util-dot.smoke   { background: rgba(180,180,180,0.13); border: 1px solid rgba(180,180,180,0.22); }
+    .util-dot.flash   { background: rgba(255,255,180,0.11); border: 1px solid rgba(255,255,150,0.22); }
+    .util-dot.molotov { background: rgba(255,100,0,0.14);   border: 1px solid rgba(255,100,0,0.28); }
+    .util-dot.he      { background: rgba(100,210,100,0.11); border: 1px solid rgba(100,210,100,0.24); }
 
     /* ── Kill feed ──────────────────────────────────────────── */
     .killfeed {
@@ -490,47 +416,24 @@
 
       <!-- Match header -->
       <div class="viewer-header" id="viewer-header">
-        <div class="vh-left">
-          <span class="vh-map" id="vh-map">—</span>
-          <span class="vh-mode">Competitive</span>
+        <span class="vh-map" id="vh-map">—</span>
+        <div class="vh-score">
+          <span class="vh-score-ct" id="vh-ct-score">0</span>
+          <span class="vh-score-sep">—</span>
+          <span class="vh-score-t" id="vh-t-score">0</span>
         </div>
-        <div class="vh-center">
-          <div class="vh-team-block vh-team-ct">
-            <span class="vh-team-name">Counter-Terrorists</span>
-            <span class="vh-score-ct" id="vh-ct-score">0</span>
-          </div>
-          <div class="vh-divider-block">
-            <span class="vh-round" id="vh-round">Round 1 / 24</span>
-          </div>
-          <div class="vh-team-block vh-team-t">
-            <span class="vh-score-t" id="vh-t-score">0</span>
-            <span class="vh-team-name">Terrorists</span>
-          </div>
-        </div>
-        <div class="vh-right"></div>
+        <span class="vh-round" id="vh-round">Round 1</span>
       </div>
 
       <div class="viewer-mid">
-        <div class="player-panel ct-panel">
-          <div class="panel-header ct">
-            <span class="panel-team-label">Counter-Terrorists</span>
-            <span class="panel-score" id="panel-ct-score">0 – 0</span>
-          </div>
-          <div id="ct-panel"></div>
-        </div>
+        <div class="player-panel ct-panel" id="ct-panel"></div>
 
         <div class="map-canvas-wrap" id="map-canvas-wrap">
           <canvas id="map-canvas"></canvas>
           <div class="killfeed" id="killfeed"></div>
         </div>
 
-        <div class="player-panel t-panel">
-          <div class="panel-header t">
-            <span class="panel-team-label">Terrorists</span>
-            <span class="panel-score" id="panel-t-score">0 – 0</span>
-          </div>
-          <div id="t-panel"></div>
-        </div>
+        <div class="player-panel t-panel" id="t-panel"></div>
       </div>
 
       <div class="viewer-bottom">

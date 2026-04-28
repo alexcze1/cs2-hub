@@ -883,14 +883,13 @@ new Set(Object.values(WEAPON_ICON_MAP)).forEach(name => {
   WEAPON_CANVAS_ICONS[name] = img
 })
 
-function playerCardHTML(p, num) {
+function playerCardHTML(p) {
   if (!p.is_alive) {
     return `<div class="player-card dead">
-      <div class="card-num">${num}</div>
       <div class="card-accent-bar"></div>
       <div class="card-body">
         <div class="card-top">
-          <span class="player-name">${esc(p.name.slice(0, 14))}</span>
+          <span class="player-name">${esc(p.name.slice(0, 13))}</span>
           <span class="dead-label">dead</span>
         </div>
       </div>
@@ -909,18 +908,19 @@ function playerCardHTML(p, num) {
     p.has_he      ? `<div class="util-dot he"><img src="images/weapons/hegrenade.svg"></div>`          : '',
   ].join('')
   return `<div class="player-card">
-    <div class="card-num">${num}</div>
     <div class="card-accent-bar"></div>
     <div class="card-body">
       <div class="card-top">
-        <span class="player-name">${esc(p.name.slice(0, 14))}</span>
+        <span class="player-name">${esc(p.name.slice(0, 13))}</span>
+        <span class="player-money">$${(p.money ?? 0).toLocaleString()}</span>
+      </div>
+      <div class="hp-row">
+        <div class="hp-bar-wrap"><div class="hp-fill" style="width:${hpPct}%"></div></div>
         <span class="hp-val">${p.hp}</span>
       </div>
-      <div class="hp-bar-wrap"><div class="hp-fill" style="width:${hpPct}%"></div></div>
       <div class="card-bottom">
         ${wIconEl}<span class="weapon-name">${esc(weapon)}</span>
         <div class="util-spacer"></div>
-        <span class="player-money">$${(p.money ?? 0).toLocaleString()}</span>
         <div class="util-dots">${utilDots}</div>
       </div>
     </div>
@@ -936,9 +936,9 @@ function updatePlayerCards() {
     (b.is_alive - a.is_alive) || (b.hp - a.hp)
   )
   document.getElementById('ct-panel').innerHTML =
-    sort(frame.players.filter(p => p.team === 'ct')).map((p, i) => playerCardHTML(p, i + 1)).join('')
+    sort(frame.players.filter(p => p.team === 'ct')).map(playerCardHTML).join('')
   document.getElementById('t-panel').innerHTML =
-    sort(frame.players.filter(p => p.team === 't')).map((p, i) => playerCardHTML(p, i + 1)).join('')
+    sort(frame.players.filter(p => p.team === 't')).map(playerCardHTML).join('')
 }
 
 function updateKillFeed() {
@@ -982,15 +982,14 @@ function updateMatchHeader() {
   const tScore  = state.match.rounds.slice(0, state.roundIdx).filter(r => r.winner_side === 't').length
   const totalR  = state.match.rounds.length
   const mapEl   = document.getElementById('vh-map')
+  const ctEl    = document.getElementById('vh-ct-score')
+  const tEl     = document.getElementById('vh-t-score')
+  const rndEl   = document.getElementById('vh-round')
   if (!mapEl) return
   mapEl.textContent = mapName.replace(/^de_/, '').toUpperCase()
-  document.getElementById('vh-ct-score').textContent  = ctScore
-  document.getElementById('vh-t-score').textContent   = tScore
-  document.getElementById('vh-round').textContent     = `Round ${state.roundIdx + 1} / ${totalR}`
-  const pct  = document.getElementById('panel-ct-score')
-  const ptt  = document.getElementById('panel-t-score')
-  if (pct) pct.textContent = `${ctScore} – ${tScore}`
-  if (ptt) ptt.textContent = `${ctScore} – ${tScore}`
+  ctEl.textContent  = ctScore
+  tEl.textContent   = tScore
+  rndEl.textContent = `Round ${state.roundIdx + 1} / ${totalR}`
 }
 
 // ── UI updates ────────────────────────────────────────────────
