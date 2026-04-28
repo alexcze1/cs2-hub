@@ -128,8 +128,11 @@ async def _poll_loop():
         try:
             await _reset_stuck()
             await _process_pending()
-        except Exception as e:
-            print(f"Poll error: {e}")
+        except asyncio.CancelledError:
+            print("Poll loop cancelled — shutting down")
+            raise
+        except BaseException as e:
+            print(f"Poll error ({type(e).__name__}): {e}")
         await asyncio.sleep(POLL_INTERVAL)
 
 
@@ -180,6 +183,9 @@ def _db_set_error(demo_id, msg):
 
 
 def _db_write_results(demo_id, meta, ct_score, t_score, match_data, player_rows):
+    print(f"[db] serializing match_data (frames={len(match_data.get('frames', []))}) ...")
+    match_json = json.dumps(match_data)
+    print(f"[db] match_data JSON size: {len(match_json) / 1024 / 1024:.1f} MB")
     with get_db() as conn:
         with conn.cursor() as cur:
             if player_rows:
@@ -190,6 +196,7 @@ def _db_write_results(demo_id, meta, ct_score, t_score, match_data, player_rows)
                        VALUES %s""",
                     player_rows,
                 )
+            print(f"[db] writing to postgres ...")
             cur.execute(
                 """UPDATE demos SET
                      status = 'ready',
@@ -208,10 +215,11 @@ def _db_write_results(demo_id, meta, ct_score, t_score, match_data, player_rows)
                     t_score,
                     meta["total_ticks"],
                     meta["tick_rate"],
-                    json.dumps(match_data),
+                    match_json,
                     demo_id,
                 ),
             )
+            print(f"[db] postgres write done")
 
 
 async def _process_one(demo: dict):
