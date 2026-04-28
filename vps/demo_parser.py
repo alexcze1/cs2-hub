@@ -1,3 +1,4 @@
+import bisect
 import math
 from collections import defaultdict
 from demoparser2 import DemoParser
@@ -96,7 +97,6 @@ def _event_pos(r) -> tuple:
 
 def _add_throw_origins(grenades, shots_df, by_tick, sampled_sorted) -> None:
     """Add origin_x/origin_y to each grenade from weapon_fire events."""
-    import bisect
 
     WEAPON_TO_TYPE = {
         "weapon_smokegrenade": "smoke",
@@ -408,14 +408,14 @@ def parse_demo(dem_path: str) -> dict:
         print("[parser] utility mode: none — no sampled ticks to probe")
     else:
         try:
-            _probe_df = p.parse_ticks(["smoke_grenade_count", "flash_grenade_count", "molotov_count", "he_grenade_count"], ticks=sampled[:1])
-            _UTIL_MODE = "counts"
-            print(f"[parser] utility mode: counts columns available")
+            _probe_df = p.parse_ticks(["inventory"], ticks=sampled[:1])
+            _UTIL_MODE = "inventory"
+            print(f"[parser] utility mode: inventory column available")
         except Exception:
             try:
-                _probe_df = p.parse_ticks(["inventory"], ticks=sampled[:1])
-                _UTIL_MODE = "inventory"
-                print(f"[parser] utility mode: inventory column available")
+                _probe_df = p.parse_ticks(["smoke_grenade_count", "flash_grenade_count", "molotov_count", "he_grenade_count"], ticks=sampled[:1])
+                _UTIL_MODE = "counts"
+                print(f"[parser] utility mode: counts columns available")
             except Exception:
                 _UTIL_MODE = "none"
                 print(f"[parser] utility mode: none — utility symbols disabled")
@@ -454,10 +454,10 @@ def parse_demo(dem_path: str) -> dict:
                     try:
                         import json as _json2; inv_raw = _json2.loads(inv_raw)
                     except Exception: inv_raw = []
-                has_smoke   = "weapon_smokegrenade" in inv_raw
-                has_flash   = "weapon_flashbang"    in inv_raw
-                has_molotov = any(w in inv_raw for w in ("weapon_molotov", "weapon_incgrenade"))
-                has_he      = "weapon_hegrenade"    in inv_raw
+                has_smoke   = "Smoke Grenade"  in inv_raw
+                has_flash   = "Flashbang"       in inv_raw
+                has_molotov = any(w in inv_raw for w in ("Molotov", "Incendiary Grenade"))
+                has_he      = "High Explosive Grenade" in inv_raw
             else:
                 has_smoke = has_flash = has_molotov = has_he = False
 
@@ -531,25 +531,49 @@ def parse_demo(dem_path: str) -> dict:
     bomb     = _parse_bomb(p, by_tick, sampled)
     print(f"[parser] grenades: {len(grenades)}  bomb events: {len(bomb)}")
 
+    # CS2 demos don't include player_blind events — estimate from flash detonations + player positions
+    FLASH_MAX_RANGE    = 1500.0   # world units beyond which no blind occurs
+    FLASH_MAX_DURATION = 3.2      # seconds at point-blank facing the flash
+    FLASH_AWAY_FACTOR  = 0.25     # multiplier when player is looking away (>90 deg)
+    FLASH_MIN_DURATION = 0.15     # ignore very short blinds
+
     blinds = []
     try:
-        blind_df = p.parse_event("player_blind")
-        if blind_df is not None and len(blind_df) > 0:
-            print(f"[parser] player_blind cols: {list(blind_df.columns)}")
-        for r in _to_records(blind_df):
-            tick     = _safe_int(r.get("tick"))
-            duration = float(r.get("blind_duration") or r.get("blindDuration") or 0)
-            sid      = str(r.get("user_steamid") or r.get("userid_steamid") or "")
-            if tick == 0 or duration < 0.05 or not sid:
+        flash_grenades = [g for g in grenades if g["type"] == "flash"]
+        sampled_sorted = sorted(sampled)
+        for g in flash_grenades:
+            ftick = g["tick"]
+            fx, fy = g["x"], g["y"]
+            # nearest sampled frame at or before detonation tick
+            idx = bisect.bisect_right(sampled_sorted, ftick) - 1
+            if idx < 0:
                 continue
-            blinds.append({
-                "tick":     tick,
-                "steam_id": sid,
-                "duration": round(duration, 3),
-            })
-        print(f"[parser] blinds: {len(blinds)}")
+            for r in by_tick.get(sampled_sorted[idx], []):
+                if not (r.get("is_alive") or False):
+                    continue
+                sid = str(r.get("steamid") or "")
+                if not sid:
+                    continue
+                px = _safe_float(r.get("X") or 0)
+                py = _safe_float(r.get("Y") or 0)
+                dist = math.hypot(fx - px, fy - py)
+                if dist >= FLASH_MAX_RANGE:
+                    continue
+                t = 1.0 - dist / FLASH_MAX_RANGE
+                duration = FLASH_MAX_DURATION * (t ** 1.5)
+                # yaw check: is player roughly facing the flash?
+                yaw = _safe_float(r.get("yaw"))
+                if yaw is not None:
+                    flash_dir = math.degrees(math.atan2(fy - py, fx - px))
+                    diff = abs((flash_dir - yaw + 180) % 360 - 180)
+                    if diff > 90:
+                        duration *= FLASH_AWAY_FACTOR
+                if duration < FLASH_MIN_DURATION:
+                    continue
+                blinds.append({"tick": ftick, "steam_id": sid, "duration": round(duration, 3)})
+        print(f"[parser] blinds (estimated): {len(blinds)}")
     except Exception as e:
-        print(f"[parser] player_blind error: {e}")
+        print(f"[parser] blinds estimation error: {e}")
 
     return {
         "meta": {
