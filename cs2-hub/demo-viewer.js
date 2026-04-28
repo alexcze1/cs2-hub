@@ -270,6 +270,7 @@ function renderGrenades(round, tick, frame, cw, ch) {
       if (inFlight) {
         const duration = g.tick - g.origin_tick
         const progress = duration > 0 ? (tick - g.origin_tick) / duration : 1
+        const arcScale = 1 + 0.5 * 4 * progress * (1 - progress)
         const iconX = ox + (x - ox) * progress
         const iconY = oy + (y - oy) * progress
         ctx.strokeStyle = typeColor; ctx.globalAlpha = 0.75
@@ -277,10 +278,10 @@ function renderGrenades(round, tick, frame, cw, ch) {
         ctx.setLineDash([])
         const icon = GRENADE_ICONS[g.type]
         if (icon && icon.complete && icon.naturalWidth) {
-          const iconSz = cw * 0.022; ctx.globalAlpha = 0.9
+          const iconSz = cw * 0.022 * arcScale; ctx.globalAlpha = 0.9
           ctx.drawImage(icon, iconX - iconSz / 2, iconY - iconSz / 2, iconSz, iconSz)
         } else {
-          ctx.beginPath(); ctx.arc(iconX, iconY, cw * 0.008, 0, Math.PI * 2)
+          ctx.beginPath(); ctx.arc(iconX, iconY, cw * 0.008 * arcScale, 0, Math.PI * 2)
           ctx.fillStyle = typeColor; ctx.fill()
         }
         ctx.restore(); continue
