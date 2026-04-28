@@ -403,18 +403,22 @@ def parse_demo(dem_path: str) -> dict:
     print(f"[parser] sampled ticks: {len(sampled)}")
 
     # Probe available tick columns for grenade inventory
-    try:
-        _probe_df = p.parse_ticks(["smoke_grenade_count", "flash_grenade_count", "molotov_count", "he_grenade_count"], ticks=sampled[:1])
-        _UTIL_MODE = "counts"
-        print(f"[parser] utility mode: counts columns available")
-    except Exception:
+    if not sampled:
+        _UTIL_MODE = "none"
+        print("[parser] utility mode: none — no sampled ticks to probe")
+    else:
         try:
-            _probe_df = p.parse_ticks(["inventory"], ticks=sampled[:1])
-            _UTIL_MODE = "inventory"
-            print(f"[parser] utility mode: inventory column available")
+            _probe_df = p.parse_ticks(["smoke_grenade_count", "flash_grenade_count", "molotov_count", "he_grenade_count"], ticks=sampled[:1])
+            _UTIL_MODE = "counts"
+            print(f"[parser] utility mode: counts columns available")
         except Exception:
-            _UTIL_MODE = "none"
-            print(f"[parser] utility mode: none — utility symbols disabled")
+            try:
+                _probe_df = p.parse_ticks(["inventory"], ticks=sampled[:1])
+                _UTIL_MODE = "inventory"
+                print(f"[parser] utility mode: inventory column available")
+            except Exception:
+                _UTIL_MODE = "none"
+                print(f"[parser] utility mode: none — utility symbols disabled")
 
     _util_cols = {
         "counts":    ["smoke_grenade_count", "flash_grenade_count", "molotov_count", "he_grenade_count"],
@@ -439,18 +443,17 @@ def parse_demo(dem_path: str) -> dict:
         for r in by_tick.get(tick, []):
             team_num = _safe_int(r.get("team_num")) or 2
 
-            inv_raw = r.get("inventory") or []
-            if isinstance(inv_raw, str):
-                try:
-                    import json as _json2; inv_raw = _json2.loads(inv_raw)
-                except Exception: inv_raw = []
-
             if _UTIL_MODE == "counts":
                 has_smoke   = _safe_int(r.get("smoke_grenade_count") or 0) > 0
                 has_flash   = _safe_int(r.get("flash_grenade_count") or 0) > 0
                 has_molotov = _safe_int(r.get("molotov_count") or 0) > 0
                 has_he      = _safe_int(r.get("he_grenade_count") or 0) > 0
             elif _UTIL_MODE == "inventory":
+                inv_raw = r.get("inventory") or []
+                if isinstance(inv_raw, str):
+                    try:
+                        import json as _json2; inv_raw = _json2.loads(inv_raw)
+                    except Exception: inv_raw = []
                 has_smoke   = "weapon_smokegrenade" in inv_raw
                 has_flash   = "weapon_flashbang"    in inv_raw
                 has_molotov = any(w in inv_raw for w in ("weapon_molotov", "weapon_incgrenade"))
