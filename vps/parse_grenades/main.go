@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"math"
 	"os"
 
 	dem "github.com/markus-wa/demoinfocs-golang/v5/pkg/demoinfocs"
@@ -40,10 +39,7 @@ func grenadeTypeFromClass(name string) string {
 
 type trackState struct {
 	Track
-	lastTick         int
-	prevX, prevY     float64
-	prevNDX, prevNDY float64
-	sinceLast        int
+	lastTick int
 }
 
 func main() {
@@ -65,85 +61,86 @@ func main() {
 	active := map[int64]*trackState{}
 	completed := make([]Track, 0)
 
-	parser.RegisterEventHandler(func(events.FrameDone) {
+	// Throw: start tracking
+	parser.RegisterEventHandler(func(e events.GrenadeProjectileThrow) {
 		defer func() { recover() }()
+		if e.Projectile == nil || e.Projectile.Entity == nil {
+			return
+		}
+		gt := grenadeTypeFromClass(e.Projectile.Entity.ServerClass().Name())
+		if gt == "" {
+			return
+		}
+		sid := ""
+		if e.Projectile.Thrower != nil {
+			sid = fmt.Sprintf("%d", e.Projectile.Thrower.SteamID64)
+		}
 		gameTick := parser.GameState().IngameTick()
-		for _, proj := range parser.GameState().GrenadeProjectiles() {
-			uid := proj.UniqueID()
-			s, ok := active[uid]
-			if !ok {
-				gt := grenadeTypeFromClass(proj.Entity.ServerClass().Name())
-				if gt == "" {
-					continue
-				}
-				sid := ""
-				if proj.Thrower != nil {
-					sid = fmt.Sprintf("%d", proj.Thrower.SteamID64)
-				}
-				pos := proj.Position()
-				s = &trackState{
-					Track: Track{
-						SteamID:   sid,
-						Type:      gt,
-						ThrowTick: gameTick,
-						Path:      []Point{{X: pos.X, Y: pos.Y}},
-					},
-					lastTick: gameTick,
-					prevX:    pos.X,
-					prevY:    pos.Y,
-				}
-				active[uid] = s
-				continue
-			}
-
-			pos := proj.Position()
-			dx := pos.X - s.prevX
-			dy := pos.Y - s.prevY
-			dist := math.Sqrt(dx*dx + dy*dy)
-
-			if dist < 2 {
-				continue
-			}
-
-			ndx, ndy := dx/dist, dy/dist
-			s.sinceLast++
-
-			// Detect bounce: direction changed more than ~30 degrees
-			isBounce := false
-			if (s.prevNDX != 0 || s.prevNDY != 0) && s.sinceLast > 1 {
-				dot := ndx*s.prevNDX + ndy*s.prevNDY
-				if dot < 0.866 { // cos(30deg)
-					isBounce = true
-				}
-			}
-
-			if isBounce || s.sinceLast >= 3 {
-				s.Path = append(s.Path, Point{X: pos.X, Y: pos.Y})
-				s.sinceLast = 0
-				s.lastTick = gameTick
-			}
-
-			s.prevX, s.prevY = pos.X, pos.Y
-			s.prevNDX, s.prevNDY = ndx, ndy
+		pos := e.Projectile.Position()
+		uid := e.Projectile.UniqueID()
+		active[uid] = &trackState{
+			Track: Track{
+				SteamID:   sid,
+				Type:      gt,
+				ThrowTick: gameTick,
+				Path:      []Point{{X: pos.X, Y: pos.Y}},
+			},
+			lastTick: gameTick,
 		}
 	})
 
+	// Bounce: always record exact position
+	parser.RegisterEventHandler(func(e events.GrenadeProjectileBounce) {
+		defer func() { recover() }()
+		if e.Projectile == nil {
+			return
+		}
+		s, ok := active[e.Projectile.UniqueID()]
+		if !ok {
+			return
+		}
+		pos := e.Projectile.Position()
+		gameTick := parser.GameState().IngameTick()
+		s.Path = append(s.Path, Point{X: pos.X, Y: pos.Y})
+		s.lastTick = gameTick
+	})
+
+	// FrameDone: regular samples between bounces
 	parser.RegisterEventHandler(func(events.FrameDone) {
 		defer func() { recover() }()
 		gameTick := parser.GameState().IngameTick()
-		alive := make(map[int64]bool)
 		for _, proj := range parser.GameState().GrenadeProjectiles() {
-			alive[proj.UniqueID()] = true
-		}
-		for uid, s := range active {
-			if !alive[uid] {
-				if len(s.Path) >= 2 {
-					s.DetTick = gameTick
-					completed = append(completed, s.Track)
-				}
-				delete(active, uid)
+			s, ok := active[proj.UniqueID()]
+			if !ok {
+				continue
+			}
+			if gameTick-s.lastTick >= 4 {
+				pos := proj.Position()
+				s.Path = append(s.Path, Point{X: pos.X, Y: pos.Y})
+				s.lastTick = gameTick
 			}
 		}
+	})
+
+	// Destroy: finalize
+	parser.RegisterEventHandler(func(e events.GrenadeProjectileDestroy) {
+		defer func() { recover() }()
+		if e.Projectile == nil {
+			return
+		}
+		uid := e.Projectile.UniqueID()
+		s, ok := active[uid]
+		if !ok {
+			return
+		}
+		gameTick := parser.GameState().IngameTick()
+		pos := e.Projectile.Position()
+		s.Path = append(s.Path, Point{X: pos.X, Y: pos.Y})
+		s.DetTick = gameTick
+		if len(s.Path) >= 2 {
+			completed = append(completed, s.Track)
+		}
+		delete(active, uid)
 	})
 
 	if err := parser.ParseToEnd(); err != nil {
