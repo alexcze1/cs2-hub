@@ -862,6 +862,12 @@ function playerCardHTML(p) {
   const wIconEl  = weapon
     ? `<img src="images/weapons/${esc(iconName)}.svg" class="weapon-icon" onerror="this.style.display='none'">`
     : ''
+  const utilDots = [
+    p.has_smoke   ? `<div class="util-dot smoke">S</div>`   : '',
+    p.has_flash   ? `<div class="util-dot flash">F</div>`   : '',
+    p.has_molotov ? `<div class="util-dot molotov">M</div>` : '',
+    p.has_he      ? `<div class="util-dot he">H</div>`      : '',
+  ].join('')
   return `<div class="player-card">
     <div class="card-accent-bar"></div>
     <div class="card-body">
@@ -875,6 +881,8 @@ function playerCardHTML(p) {
       </div>
       <div class="card-bottom">
         ${wIconEl}<span class="weapon-name">${esc(weapon)}</span>
+        <div class="util-spacer"></div>
+        <div class="util-dots">${utilDots}</div>
       </div>
     </div>
   </div>`
