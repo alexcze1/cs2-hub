@@ -39,7 +39,7 @@ func grenadeTypeFromClass(name string) string {
 
 type trackState struct {
 	Track
-	lastFrame int
+	lastTick int
 }
 
 func main() {
@@ -63,6 +63,7 @@ func main() {
 
 	parser.RegisterEventHandler(func(events.FrameDone) {
 		defer func() { recover() }()
+		gameTick := parser.GameState().IngameTick()
 		for _, proj := range parser.GameState().GrenadeProjectiles() {
 			uid := proj.UniqueID()
 			s, ok := active[uid]
@@ -80,26 +81,26 @@ func main() {
 					Track: Track{
 						SteamID:   sid,
 						Type:      gt,
-						ThrowTick: parser.CurrentFrame(),
+						ThrowTick: gameTick,
 						Path:      []Point{{X: pos.X, Y: pos.Y}},
 					},
-					lastFrame: parser.CurrentFrame(),
+					lastTick: gameTick,
 				}
 				active[uid] = s
 				continue
 			}
 
-		frame := parser.CurrentFrame()
-			if frame-s.lastFrame >= 2 {
+			if gameTick-s.lastTick >= 4 {
 				pos := proj.Position()
 				s.Path = append(s.Path, Point{X: pos.X, Y: pos.Y})
-				s.lastFrame = frame
+				s.lastTick = gameTick
 			}
 		}
 	})
 
 	parser.RegisterEventHandler(func(events.FrameDone) {
 		defer func() { recover() }()
+		gameTick := parser.GameState().IngameTick()
 		alive := make(map[int64]bool)
 		for _, proj := range parser.GameState().GrenadeProjectiles() {
 			alive[proj.UniqueID()] = true
@@ -107,7 +108,7 @@ func main() {
 		for uid, s := range active {
 			if !alive[uid] {
 				if len(s.Path) >= 2 {
-					s.DetTick = parser.CurrentFrame()
+					s.DetTick = gameTick
 					completed = append(completed, s.Track)
 				}
 				delete(active, uid)
