@@ -223,12 +223,8 @@ function renderGrenades(round, tick, frame, cw, ch) {
         const p1        = canvasPts[seg + 1]
         const iconX     = p0.x + (p1.x - p0.x) * t
         const iconY     = p0.y + (p1.y - p0.y) * t
-        // Parabolic arc: icon floats up, shadow stays on ground
-        const arcPeak   = cw * 0.06
-        const arcOffset = arcPeak * 4 * progress * (1 - progress)
-        const arcIconX  = iconX
-        const arcIconY  = iconY - arcOffset
-        const arcScale  = 1 + 0.4 * 4 * progress * (1 - progress)
+        // Scale icon up at peak to hint at height
+        const arcScale = 1 + 0.5 * 4 * progress * (1 - progress)
 
         // Draw travelled path so far
         ctx.strokeStyle = typeColor
@@ -239,21 +235,13 @@ function renderGrenades(round, tick, frame, cw, ch) {
         ctx.lineTo(iconX, iconY)
         ctx.stroke()
         ctx.setLineDash([])
-
-        // Shadow dot on ground
-        ctx.globalAlpha = 0.35
-        ctx.beginPath()
-        ctx.ellipse(iconX, iconY + cw * 0.004, cw * 0.009 * arcScale, cw * 0.004, 0, 0, Math.PI * 2)
-        ctx.fillStyle = '#000'
-        ctx.fill()
-
         const icon = GRENADE_ICONS[g.type]
         if (icon && icon.complete && icon.naturalWidth) {
           const iconSz = cw * 0.022 * arcScale
           ctx.globalAlpha = 0.9
-          ctx.drawImage(icon, arcIconX - iconSz / 2, arcIconY - iconSz / 2, iconSz, iconSz)
+          ctx.drawImage(icon, iconX - iconSz / 2, iconY - iconSz / 2, iconSz, iconSz)
         } else {
-          ctx.beginPath(); ctx.arc(arcIconX, arcIconY, cw * 0.008 * arcScale, 0, Math.PI * 2)
+          ctx.beginPath(); ctx.arc(iconX, iconY, cw * 0.008 * arcScale, 0, Math.PI * 2)
           ctx.fillStyle = typeColor; ctx.fill()
         }
         ctx.restore()
