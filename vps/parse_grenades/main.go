@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 
 	dem "github.com/markus-wa/demoinfocs-golang/v5/pkg/demoinfocs"
@@ -39,7 +40,10 @@ func grenadeTypeFromClass(name string) string {
 
 type trackState struct {
 	Track
-	lastTick int
+	lastTick         int
+	prevX, prevY     float64
+	prevNDX, prevNDY float64
+	sinceLast        int
 }
 
 func main() {
@@ -85,16 +89,42 @@ func main() {
 						Path:      []Point{{X: pos.X, Y: pos.Y}},
 					},
 					lastTick: gameTick,
+					prevX:    pos.X,
+					prevY:    pos.Y,
 				}
 				active[uid] = s
 				continue
 			}
 
-			if gameTick-s.lastTick >= 4 {
-				pos := proj.Position()
+			pos := proj.Position()
+			dx := pos.X - s.prevX
+			dy := pos.Y - s.prevY
+			dist := math.Sqrt(dx*dx + dy*dy)
+
+			if dist < 2 {
+				continue
+			}
+
+			ndx, ndy := dx/dist, dy/dist
+			s.sinceLast++
+
+			// Detect bounce: direction changed more than ~30 degrees
+			isBounce := false
+			if (s.prevNDX != 0 || s.prevNDY != 0) && s.sinceLast > 1 {
+				dot := ndx*s.prevNDX + ndy*s.prevNDY
+				if dot < 0.866 { // cos(30deg)
+					isBounce = true
+				}
+			}
+
+			if isBounce || s.sinceLast >= 3 {
 				s.Path = append(s.Path, Point{X: pos.X, Y: pos.Y})
+				s.sinceLast = 0
 				s.lastTick = gameTick
 			}
+
+			s.prevX, s.prevY = pos.X, pos.Y
+			s.prevNDX, s.prevNDY = ndx, ndy
 		}
 	})
 
