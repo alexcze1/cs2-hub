@@ -902,10 +902,10 @@ function playerCardHTML(p) {
     ? `<img src="images/weapons/${esc(iconName)}.svg" class="weapon-icon" onerror="this.style.display='none'">`
     : ''
   const utilDots = [
-    p.has_smoke   ? `<div class="util-dot smoke">S</div>`   : '',
-    p.has_flash   ? `<div class="util-dot flash">F</div>`   : '',
-    p.has_molotov ? `<div class="util-dot molotov">M</div>` : '',
-    p.has_he      ? `<div class="util-dot he">H</div>`      : '',
+    p.has_smoke   ? `<div class="util-dot smoke"><img src="images/weapons/smokegrenade.svg"></div>`   : '',
+    p.has_flash   ? `<div class="util-dot flash"><img src="images/weapons/flashbang.svg"></div>`       : '',
+    p.has_molotov ? `<div class="util-dot molotov"><img src="images/weapons/molotov.svg"></div>`       : '',
+    p.has_he      ? `<div class="util-dot he"><img src="images/weapons/hegrenade.svg"></div>`          : '',
   ].join('')
   return `<div class="player-card">
     <div class="card-accent-bar"></div>

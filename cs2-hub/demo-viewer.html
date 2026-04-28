@@ -198,14 +198,15 @@
     .util-spacer { flex: 1; }
     .util-dots   { display: flex; gap: 3px; flex-shrink: 0; }
     .util-dot {
-      width: 13px; height: 13px; border-radius: 3px;
+      width: 16px; height: 16px; border-radius: 3px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 7.5px; font-weight: 800;
+      padding: 2px;
     }
-    .util-dot.smoke   { background: rgba(180,180,180,0.15); color: #bbb; border: 1px solid rgba(180,180,180,0.2); }
-    .util-dot.flash   { background: rgba(255,255,180,0.12); color: #eed; border: 1px solid rgba(255,255,150,0.2); }
-    .util-dot.molotov { background: rgba(255,100,0,0.15);   color: #f94; border: 1px solid rgba(255,100,0,0.25); }
-    .util-dot.he      { background: rgba(100,210,100,0.13); color: #8d8; border: 1px solid rgba(100,210,100,0.22); }
+    .util-dot img { width: 100%; height: 100%; object-fit: contain; }
+    .util-dot.smoke   { background: rgba(180,180,180,0.12); border: 1px solid rgba(180,180,180,0.2); }
+    .util-dot.flash   { background: rgba(255,255,180,0.10); border: 1px solid rgba(255,255,150,0.2); }
+    .util-dot.molotov { background: rgba(255,100,0,0.12);   border: 1px solid rgba(255,100,0,0.25); }
+    .util-dot.he      { background: rgba(100,210,100,0.10); border: 1px solid rgba(100,210,100,0.22); }
 
     /* ── Kill feed ──────────────────────────────────────────── */
     .killfeed {
