@@ -210,19 +210,36 @@ function renderGrenades(round, tick, frame, cw, ch) {
       ctx.lineWidth = 1.5
 
       if (inFlight) {
-        // Animate icon along the real path segments
-        const throwT    = g.path_throw_tick ?? g.origin_tick
-        const detT      = g.path_det_tick   ?? g.tick
-        const duration  = detT - throwT
-        const progress  = duration > 0 ? Math.min(1, (tick - throwT) / duration) : 1
-        const totalSegs = canvasPts.length - 1
-        const rawT      = progress * totalSegs
-        const seg       = Math.min(Math.floor(rawT), totalSegs - 1)
-        const t         = rawT - seg
-        const p0        = canvasPts[seg]
-        const p1        = canvasPts[seg + 1]
-        const iconX     = p0.x + (p1.x - p0.x) * t
-        const iconY     = p0.y + (p1.y - p0.y) * t
+        // Animate icon along the real path using per-point ticks when available
+        const throwT   = g.path_throw_tick ?? g.origin_tick
+        const detT     = g.path_det_tick   ?? g.tick
+        const duration = detT - throwT
+        const progress = duration > 0 ? Math.min(1, (tick - throwT) / duration) : 1
+
+        let seg, t
+        const ptTicks = g.path_ticks
+        if (ptTicks && ptTicks.length === canvasPts.length) {
+          // Tick-accurate: find which segment the current tick falls in
+          let lo = 0
+          for (let i = 0; i < ptTicks.length - 1; i++) {
+            if (tick >= ptTicks[i]) lo = i
+            else break
+          }
+          seg = Math.min(lo, canvasPts.length - 2)
+          const segDur = ptTicks[seg + 1] - ptTicks[seg]
+          t = segDur > 0 ? Math.min(1, (tick - ptTicks[seg]) / segDur) : 1
+        } else {
+          // Fallback: distribute evenly across segments
+          const totalSegs = canvasPts.length - 1
+          const rawT = progress * totalSegs
+          seg = Math.min(Math.floor(rawT), totalSegs - 1)
+          t   = rawT - seg
+        }
+
+        const p0    = canvasPts[seg]
+        const p1    = canvasPts[seg + 1]
+        const iconX = p0.x + (p1.x - p0.x) * t
+        const iconY = p0.y + (p1.y - p0.y) * t
         // Scale icon up at peak to hint at height
         const arcScale = 1 + 0.5 * 4 * progress * (1 - progress)
 

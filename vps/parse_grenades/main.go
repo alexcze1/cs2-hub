@@ -10,8 +10,9 @@ import (
 )
 
 type Point struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
+	X    float64 `json:"x"`
+	Y    float64 `json:"y"`
+	Tick int     `json:"tick"`
 }
 
 type Track struct {
@@ -83,7 +84,7 @@ func main() {
 				SteamID:   sid,
 				Type:      gt,
 				ThrowTick: gameTick,
-				Path:      []Point{{X: pos.X, Y: pos.Y}},
+				Path:      []Point{{X: pos.X, Y: pos.Y, Tick: gameTick}},
 			},
 			lastTick: gameTick,
 		}
@@ -101,7 +102,7 @@ func main() {
 		}
 		pos := e.Projectile.Position()
 		gameTick := parser.GameState().IngameTick()
-		s.Path = append(s.Path, Point{X: pos.X, Y: pos.Y})
+		s.Path = append(s.Path, Point{X: pos.X, Y: pos.Y, Tick: gameTick})
 		s.lastTick = gameTick
 	})
 
@@ -116,7 +117,7 @@ func main() {
 			}
 			if gameTick-s.lastTick >= 4 {
 				pos := proj.Position()
-				s.Path = append(s.Path, Point{X: pos.X, Y: pos.Y})
+				s.Path = append(s.Path, Point{X: pos.X, Y: pos.Y, Tick: gameTick})
 				s.lastTick = gameTick
 			}
 		}
@@ -135,7 +136,7 @@ func main() {
 		}
 		gameTick := parser.GameState().IngameTick()
 		pos := e.Projectile.Position()
-		s.Path = append(s.Path, Point{X: pos.X, Y: pos.Y})
+		s.Path = append(s.Path, Point{X: pos.X, Y: pos.Y, Tick: gameTick})
 		s.DetTick = gameTick
 		if len(s.Path) >= 2 {
 			completed = append(completed, s.Track)

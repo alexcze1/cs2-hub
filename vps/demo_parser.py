@@ -221,10 +221,11 @@ def _build_grenade_paths(grenades, raw_tracks) -> None:
                     best, best_i = t, i
         if best is not None:
             consumed[key].add(best_i)
-            g["path"]           = [[pt["x"], pt["y"]] for pt in best["path"]]
-            g["origin_x"]       = best["path"][0]["x"]
-            g["origin_y"]       = best["path"][0]["y"]
-            g["origin_tick"]    = best["throw_tick"]
+            g["path"]            = [[pt["x"], pt["y"]] for pt in best["path"]]
+            g["path_ticks"]      = [pt["tick"] for pt in best["path"]] if best["path"] and "tick" in best["path"][0] else None
+            g["origin_x"]        = best["path"][0]["x"]
+            g["origin_y"]        = best["path"][0]["y"]
+            g["origin_tick"]     = best["throw_tick"]
             g["path_throw_tick"] = best["throw_tick"]
             g["path_det_tick"]   = best["det_tick"]
 
