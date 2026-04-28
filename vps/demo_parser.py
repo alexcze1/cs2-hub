@@ -531,6 +531,26 @@ def parse_demo(dem_path: str) -> dict:
     bomb     = _parse_bomb(p, by_tick, sampled)
     print(f"[parser] grenades: {len(grenades)}  bomb events: {len(bomb)}")
 
+    blinds = []
+    try:
+        blind_df = p.parse_event("player_blind")
+        if blind_df is not None and len(blind_df) > 0:
+            print(f"[parser] player_blind cols: {list(blind_df.columns)}")
+        for r in _to_records(blind_df):
+            tick     = _safe_int(r.get("tick"))
+            duration = float(r.get("blind_duration") or r.get("blindDuration") or 0)
+            sid      = str(r.get("user_steamid") or r.get("userid_steamid") or "")
+            if tick == 0 or duration < 0.05 or not sid:
+                continue
+            blinds.append({
+                "tick":     tick,
+                "steam_id": sid,
+                "duration": round(duration, 3),
+            })
+        print(f"[parser] blinds: {len(blinds)}")
+    except Exception as e:
+        print(f"[parser] player_blind error: {e}")
+
     return {
         "meta": {
             "map":         header.get("map_name", ""),
@@ -545,4 +565,5 @@ def parse_demo(dem_path: str) -> dict:
         "grenades": grenades,
         "bomb": bomb,
         "shots": shots,
+        "blinds": blinds,
     }
