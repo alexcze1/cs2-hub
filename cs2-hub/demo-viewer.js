@@ -588,7 +588,7 @@ function render() {
     ctx.fillStyle = 'rgba(0,0,0,0.18)'
     ctx.fillRect(0, 0, cw, ch)
   } else {
-    ctx.fillStyle = '#111318'
+    ctx.fillStyle = '#090e12'
     ctx.fillRect(0, 0, cw, ch)
   }
   const frame = getInterpolatedFrame(state.tick)
