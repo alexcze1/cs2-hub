@@ -402,9 +402,29 @@ def parse_demo(dem_path: str) -> dict:
         sampled = []
     print(f"[parser] sampled ticks: {len(sampled)}")
 
+    # Probe available tick columns for grenade inventory
+    try:
+        _probe_df = p.parse_ticks(["smoke_grenade_count", "flash_grenade_count", "molotov_count", "he_grenade_count"], ticks=sampled[:1])
+        _UTIL_MODE = "counts"
+        print(f"[parser] utility mode: counts columns available")
+    except Exception:
+        try:
+            _probe_df = p.parse_ticks(["inventory"], ticks=sampled[:1])
+            _UTIL_MODE = "inventory"
+            print(f"[parser] utility mode: inventory column available")
+        except Exception:
+            _UTIL_MODE = "none"
+            print(f"[parser] utility mode: none — utility symbols disabled")
+
+    _util_cols = {
+        "counts":    ["smoke_grenade_count", "flash_grenade_count", "molotov_count", "he_grenade_count"],
+        "inventory": ["inventory"],
+        "none":      [],
+    }[_UTIL_MODE]
+
     # Request only the sampled ticks from the parser — never loads the full DataFrame
     tick_df = p.parse_ticks(
-        ["X", "Y", "health", "is_alive", "team_num", "active_weapon_name", "balance", "armor_value", "yaw"],
+        ["X", "Y", "health", "is_alive", "team_num", "active_weapon_name", "balance", "armor_value", "yaw"] + _util_cols,
         ticks=sampled,
     )
 
@@ -418,18 +438,42 @@ def parse_demo(dem_path: str) -> dict:
         players = []
         for r in by_tick.get(tick, []):
             team_num = _safe_int(r.get("team_num")) or 2
+
+            inv_raw = r.get("inventory") or []
+            if isinstance(inv_raw, str):
+                try:
+                    import json as _json2; inv_raw = _json2.loads(inv_raw)
+                except Exception: inv_raw = []
+
+            if _UTIL_MODE == "counts":
+                has_smoke   = _safe_int(r.get("smoke_grenade_count") or 0) > 0
+                has_flash   = _safe_int(r.get("flash_grenade_count") or 0) > 0
+                has_molotov = _safe_int(r.get("molotov_count") or 0) > 0
+                has_he      = _safe_int(r.get("he_grenade_count") or 0) > 0
+            elif _UTIL_MODE == "inventory":
+                has_smoke   = "weapon_smokegrenade" in inv_raw
+                has_flash   = "weapon_flashbang"    in inv_raw
+                has_molotov = any(w in inv_raw for w in ("weapon_molotov", "weapon_incgrenade"))
+                has_he      = "weapon_hegrenade"    in inv_raw
+            else:
+                has_smoke = has_flash = has_molotov = has_he = False
+
             players.append({
-                "steam_id": str(r.get("steamid") or ""),
-                "name":     str(r.get("name") or ""),
-                "team":     "ct" if team_num == 3 else "t",
-                "x":        _safe_float(r.get("X")),
-                "y":        _safe_float(r.get("Y")),
-                "hp":       _safe_int(r.get("health")),
-                "armor":    _safe_int(r.get("armor_value")),
-                "weapon":   str(r.get("active_weapon_name") or ""),
-                "money":    _safe_int(r.get("balance")),
-                "is_alive": bool(r.get("is_alive") or False),
-                "yaw":      _safe_float(r.get("yaw")),
+                "steam_id":    str(r.get("steamid") or ""),
+                "name":        str(r.get("name") or ""),
+                "team":        "ct" if team_num == 3 else "t",
+                "x":           _safe_float(r.get("X")),
+                "y":           _safe_float(r.get("Y")),
+                "hp":          _safe_int(r.get("health")),
+                "armor":       _safe_int(r.get("armor_value")),
+                "weapon":      str(r.get("active_weapon_name") or ""),
+                "money":       _safe_int(r.get("balance")),
+                "is_alive":    bool(r.get("is_alive") or False),
+                "yaw":         _safe_float(r.get("yaw")),
+                "has_smoke":   has_smoke,
+                "has_flash":   has_flash,
+                "has_molotov": has_molotov,
+                "has_he":      has_he,
             })
         frames.append({"tick": int(tick), "players": players})
 
