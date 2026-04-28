@@ -77,9 +77,6 @@ if (!state.match.rounds.length) {
 const mapName = state.match.meta?.map || demo.map || ''
 document.title = `${mapName} — MIDROUND`
 console.log('[viewer] map:', mapName, '| rounds:', state.match.rounds.length, '| frames:', state.match.frames.length, '| tick_rate:', state.match.meta.tick_rate)
-const _f0p0 = state.match.frames[0]?.players?.[0]
-console.log('[viewer] utility debug — frame[0] player[0]:', _f0p0)
-console.log('[viewer] blinds count:', state.match.blinds?.length ?? 'NO BLINDS FIELD')
 
 mapImg     = new Image()
 mapImg.src = `images/maps/${mapName}_viewer.png`
