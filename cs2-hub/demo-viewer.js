@@ -601,6 +601,20 @@ function render() {
     renderGrenades(round, state.tick, frame, cw, ch)
     renderBomb(round, state.tick, cw, ch)
 
+    // Build active blind map: steam_id → { until, totalTicks }
+    const tickRate   = state.match.meta.tick_rate
+    const blindUntil = {}
+    for (const b of (state.match.blinds ?? [])) {
+      const totalTicks = Math.round(b.duration * tickRate)
+      const until      = b.tick + totalTicks
+      if (state.tick >= b.tick && state.tick < until) {
+        const existing = blindUntil[b.steam_id]
+        if (!existing || existing.until < until) {
+          blindUntil[b.steam_id] = { until, totalTicks }
+        }
+      }
+    }
+
     for (const p of frame.players) {
       const { x, y } = worldToCanvas(p.x, p.y, mapName, cw, ch)
 
@@ -618,6 +632,9 @@ function render() {
         continue
       }
 
+      const id       = p.steam_id
+      const blindInfo = blindUntil[id]
+
       if (p.hp != null && p.hp > 0) {
         const arcR = dotR + 3
         ctx.save()
@@ -633,12 +650,34 @@ function render() {
         ctx.restore()
       }
 
-      const id = p.steam_id
+      // Blind ring — shows team colour when dot is white
+      if (blindInfo && state.tick < blindInfo.until) {
+        const ringR = dotR + 5
+        ctx.save()
+        ctx.beginPath()
+        ctx.arc(x, y, ringR, 0, Math.PI * 2)
+        ctx.strokeStyle = playerColor(p.team)
+        ctx.lineWidth   = 1.5
+        ctx.globalAlpha = 0.7
+        ctx.stroke()
+        ctx.restore()
+      }
+
       if (state.playing && _prevHp[id] != null && p.hp < _prevHp[id]) {
         _flashUntil[id] = Date.now() + 350
       }
       _prevHp[id] = p.hp
-      const color = (Date.now() < (_flashUntil[id] ?? 0)) ? '#FF1744' : playerColor(p.team)
+      let color
+      if (blindInfo && state.tick < blindInfo.until) {
+        const remaining = (blindInfo.until - state.tick) / blindInfo.totalTicks
+        const [tr, tg, tb] = p.team === 'ct' ? [79, 195, 247] : [255, 149, 0]
+        const fr = Math.round(255 * remaining + tr * (1 - remaining))
+        const fg = Math.round(255 * remaining + tg * (1 - remaining))
+        const fb = Math.round(255 * remaining + tb * (1 - remaining))
+        color = `rgb(${fr},${fg},${fb})`
+      } else {
+        color = (Date.now() < (_flashUntil[id] ?? 0)) ? '#FF1744' : playerColor(p.team)
+      }
 
       if (p.yaw != null) {
         const yawRad = p.yaw * Math.PI / 180
