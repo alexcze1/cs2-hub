@@ -3,12 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"math"
 	"os"
 
-	dem "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs"
-	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/common"
-	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/events"
+	dem "github.com/markus-wa/demoinfocs-golang/v5/pkg/demoinfocs"
+	"github.com/markus-wa/demoinfocs-golang/v5/pkg/demoinfocs/events"
 )
 
 type Point struct {
@@ -24,17 +22,15 @@ type Track struct {
 	Path      []Point `json:"path"`
 }
 
-func grenadeType(t common.EquipmentType) string {
-	switch t {
-	case common.EqSmoke:
+func grenadeTypeFromClass(name string) string {
+	switch name {
+	case "CSmokeGrenadeProjectile":
 		return "smoke"
-	case common.EqHE:
+	case "CHEGrenadeProjectile":
 		return "he"
-	case common.EqFlash:
+	case "CFlashbangProjectile":
 		return "flash"
-	case common.EqMolotov:
-		return "molotov"
-	case common.EqIncendiary:
+	case "CMolotovProjectile", "CIncendiaryProjectile":
 		return "molotov"
 	default:
 		return ""
@@ -43,9 +39,7 @@ func grenadeType(t common.EquipmentType) string {
 
 type trackState struct {
 	Track
-	prevX, prevY     float64
-	prevNDX, prevNDY float64
-	sinceLast        int
+	lastFrame int
 }
 
 func main() {
@@ -61,74 +55,57 @@ func main() {
 	}
 	defer f.Close()
 
-	parser := dem.NewParser(f)
+	parser := dem.NewParserWithConfig(f, dem.ParserConfig{IgnorePacketEntitiesPanic: true})
 	defer parser.Close()
 
 	active := map[int64]*trackState{}
-	var completed []Track
+	completed := make([]Track, 0)
 
-	parser.RegisterEventHandler(func(e events.GrenadeProjectileThrow) {
-		gt := grenadeType(e.Projectile.WeaponInstance.Type)
-		if gt == "" {
-			return
-		}
-		uid := e.Projectile.UniqueID()
-		sid := ""
-		if e.Projectile.Thrower != nil {
-			sid = fmt.Sprintf("%d", e.Projectile.Thrower.SteamID64)
-		}
-		pos := e.Projectile.Position()
-		active[uid] = &trackState{
-			Track: Track{
-				SteamID:   sid,
-				Type:      gt,
-				ThrowTick: parser.CurrentFrame(),
-				Path:      []Point{{X: pos.X, Y: pos.Y}},
-			},
-			prevX: pos.X,
-			prevY: pos.Y,
-		}
-	})
-
-	// Sample grenade positions every frame via FrameDone
 	parser.RegisterEventHandler(func(events.FrameDone) {
-		for uid, s := range active {
-			proj := parser.GameState().GrenadeProjectiles()[int(uid)]
-			if proj == nil {
-				continue
-			}
-			pos := proj.Position()
-			dx := pos.X - s.prevX
-			dy := pos.Y - s.prevY
-			dist := math.Sqrt(dx*dx + dy*dy)
-			if dist < 5 {
-				continue
-			}
-			ndx, ndy := dx/dist, dy/dist
-			s.sinceLast++
-
-			isBounce := false
-			if (s.prevNDX != 0 || s.prevNDY != 0) && s.sinceLast > 1 {
-				dot := ndx*s.prevNDX + ndy*s.prevNDY
-				if dot < 0.707 {
-					isBounce = true
+		defer func() { recover() }()
+		for _, proj := range parser.GameState().GrenadeProjectiles() {
+			uid := proj.UniqueID()
+			s, ok := active[uid]
+			if !ok {
+				gt := grenadeTypeFromClass(proj.Entity.ServerClass().Name())
+				if gt == "" {
+					continue
 				}
+				sid := ""
+				if proj.Thrower != nil {
+					sid = fmt.Sprintf("%d", proj.Thrower.SteamID64)
+				}
+				pos := proj.Position()
+				s = &trackState{
+					Track: Track{
+						SteamID:   sid,
+						Type:      gt,
+						ThrowTick: parser.CurrentFrame(),
+						Path:      []Point{{X: pos.X, Y: pos.Y}},
+					},
+					lastFrame: parser.CurrentFrame(),
+				}
+				active[uid] = s
+				continue
 			}
 
-			if isBounce || s.sinceLast >= 8 {
+		frame := parser.CurrentFrame()
+			if frame-s.lastFrame >= 2 {
+				pos := proj.Position()
 				s.Path = append(s.Path, Point{X: pos.X, Y: pos.Y})
-				s.sinceLast = 0
+				s.lastFrame = frame
 			}
-			s.prevX, s.prevY = pos.X, pos.Y
-			s.prevNDX, s.prevNDY = ndx, ndy
 		}
 	})
 
-	// Detect grenades that left the active projectile set (destroyed/detonated)
 	parser.RegisterEventHandler(func(events.FrameDone) {
-		gs := parser.GameState().GrenadeProjectiles()
+		defer func() { recover() }()
+		alive := make(map[int64]bool)
+		for _, proj := range parser.GameState().GrenadeProjectiles() {
+			alive[proj.UniqueID()] = true
+		}
 		for uid, s := range active {
-			if _, still := gs[int(uid)]; !still {
+			if !alive[uid] {
 				if len(s.Path) >= 2 {
 					s.DetTick = parser.CurrentFrame()
 					completed = append(completed, s.Track)
@@ -139,8 +116,7 @@ func main() {
 	})
 
 	if err := parser.ParseToEnd(); err != nil {
-		fmt.Fprintln(os.Stderr, "parse:", err)
-		os.Exit(1)
+		fmt.Fprintln(os.Stderr, "[warn] parse:", err)
 	}
 
 	if err := json.NewEncoder(os.Stdout).Encode(completed); err != nil {

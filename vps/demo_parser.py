@@ -176,22 +176,22 @@ def _add_throw_origins(grenades, shots_df, by_tick, sampled_sorted) -> None:
 
 
 def _fetch_grenade_tracks(dem_path) -> list:
-    """Run Go binary before demoparser2 loads to avoid double-RAM peak."""
+    """Run Go grenade parser before demoparser2 loads to avoid double-RAM peak."""
     import os, subprocess, json as _json
-    binary = "/opt/midround/vps/parse_grenades_bin"
+    binary = "/opt/midround/vps/parse_grenades/parse_grenades"
     if not os.path.exists(binary):
-        print("[parser] grenade path binary not found — using straight-line fallback")
+        print("[parser] grenade binary not found — using straight-line fallback")
         return []
     try:
         result = subprocess.run(
             [binary, dem_path],
-            capture_output=True, text=True, timeout=120,
+            capture_output=True, text=True, timeout=180,
         )
         if result.returncode != 0:
-            print(f"[parser] grenade binary error (exit {result.returncode}): {result.stderr[:300]}")
+            print(f"[parser] grenade binary error (exit {result.returncode}): {result.stderr[:400]}")
             return []
         tracks = _json.loads(result.stdout)
-        print(f"[parser] grenade paths: {len(tracks)} tracks from binary")
+        print(f"[parser] grenade paths: {len(tracks)} tracks from Go binary")
         return tracks
     except Exception as e:
         print(f"[parser] grenade binary failed: {e}")
@@ -221,10 +221,12 @@ def _build_grenade_paths(grenades, raw_tracks) -> None:
                     best, best_i = t, i
         if best is not None:
             consumed[key].add(best_i)
-            g["path"]        = [[pt["x"], pt["y"]] for pt in best["path"]]
-            g["origin_x"]    = best["path"][0]["x"]
-            g["origin_y"]    = best["path"][0]["y"]
-            g["origin_tick"] = best["throw_tick"]
+            g["path"]           = [[pt["x"], pt["y"]] for pt in best["path"]]
+            g["origin_x"]       = best["path"][0]["x"]
+            g["origin_y"]       = best["path"][0]["y"]
+            g["origin_tick"]    = best["throw_tick"]
+            g["path_throw_tick"] = best["throw_tick"]
+            g["path_det_tick"]   = best["det_tick"]
 
 def _parse_grenades(p) -> list:
     grenades = []

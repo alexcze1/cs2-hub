@@ -211,8 +211,10 @@ function renderGrenades(round, tick, frame, cw, ch) {
 
       if (inFlight) {
         // Animate icon along the real path segments
-        const duration  = g.tick - g.origin_tick
-        const progress  = duration > 0 ? Math.min(1, (tick - g.origin_tick) / duration) : 1
+        const throwT    = g.path_throw_tick ?? g.origin_tick
+        const detT      = g.path_det_tick   ?? g.tick
+        const duration  = detT - throwT
+        const progress  = duration > 0 ? Math.min(1, (tick - throwT) / duration) : 1
         const totalSegs = canvasPts.length - 1
         const rawT      = progress * totalSegs
         const seg       = Math.min(Math.floor(rawT), totalSegs - 1)
