@@ -496,9 +496,9 @@ def parse_demo(dem_path: str) -> dict:
         print(f"[parser] weapon_fire error: {e}")
 
     def _team(val) -> str:
-        v = str(val or "").upper()
-        if v in ("CT", "3"):      return "ct"
-        if v in ("T", "TERRORIST", "2"): return "t"
+        v = str(val or "").upper().strip()
+        if v in ("CT", "3") or "COUNTER" in v: return "ct"
+        if v in ("T", "2")  or "TERRORIST" in v: return "t"
         return "t"
 
     kills_records = _to_records(kills_df)
