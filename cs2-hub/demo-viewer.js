@@ -817,10 +817,16 @@ const WEAPON_ICON_MAP = {
   // Heavy
   'Nova': 'nova', 'XM1014': 'xm1014', 'Sawed-Off': 'sawedoff',
   'MAG-7': 'mag7', 'M249': 'm249', 'Negev': 'negev',
-  // Grenades
+  // Grenades — display names (parser may send either form)
   'Smoke Grenade': 'smokegrenade', 'HE Grenade': 'hegrenade',
-  'Flashbang': 'flashbang', 'Molotov': 'molotov',
-  'Incendiary Grenade': 'incgrenade', 'Decoy Grenade': 'decoy',
+  'High Explosive Grenade': 'hegrenade',
+  'Flashbang': 'flashbang', 'Flash Grenade': 'flashbang',
+  'Molotov': 'molotov', 'Molotov Cocktail': 'molotov',
+  'Incendiary Grenade': 'incgrenade', 'Decoy Grenade': 'decoy', 'Decoy': 'decoy',
+  // Internal names (weapon_ prefix stripped)
+  'smokegrenade': 'smokegrenade', 'hegrenade': 'hegrenade',
+  'flashbang': 'flashbang', 'molotov': 'molotov',
+  'incgrenade': 'incgrenade', 'decoy': 'decoy',
   // Equipment
   'Zeus x27': 'taser', 'C4': 'c4',
   // Knives
