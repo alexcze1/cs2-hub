@@ -118,13 +118,15 @@ applyTeamNames()
 
 // ── Series map switcher ───────────────────────────────────────
 async function loadSeries() {
+  console.log('[series] series_id:', demo.series_id)
   if (!demo.series_id) return
-  const { data: siblings } = await supabase
+  const { data: siblings, error: sibErr } = await supabase
     .from('demos')
     .select('id,map,score_ct,score_t,status')
     .eq('series_id', demo.series_id)
     .order('created_at', { ascending: true })
 
+  console.log('[series] siblings:', siblings, 'error:', sibErr)
   if (!siblings || siblings.length < 2) return
 
   const swEl = document.getElementById('map-switcher')
