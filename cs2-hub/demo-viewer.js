@@ -128,7 +128,7 @@ async function loadSeries() {
   if (!siblings || siblings.length < 2) return
 
   const swEl = document.getElementById('map-switcher')
-  swEl.style.display = 'flex'
+  swEl.style.display = ''  // clear inline none, CSS display:flex takes over
   swEl.innerHTML = siblings.map((s, i) => {
     const mapShort = (s.map || 'de_?').replace('de_', '').toUpperCase().slice(0, 6)
     const score    = s.score_ct != null ? `${s.score_ct}–${s.score_t}` : s.status === 'ready' ? '?–?' : '…'

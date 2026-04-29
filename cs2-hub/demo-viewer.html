@@ -118,62 +118,62 @@
     .vh-team-t  .vh-team-name { color: #FF9500; text-align: left; }
 
     /* ── Map series switcher ────────────────────────────────── */
+    /* ── Map series switcher (inline in bottom bar) ─────────── */
     .map-switcher {
-      position: absolute;
-      bottom: 12px;
-      left: 12px;
-      z-index: 10;
       display: flex;
-      flex-direction: column;
-      gap: 5px;
-      pointer-events: auto;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+      padding-right: 8px;
+      border-right: 1px solid rgba(255,255,255,0.06);
+      margin-right: 4px;
     }
     .map-sw-pill {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 6px 12px 6px 10px;
-      background: linear-gradient(135deg, rgba(102,102,183,0.10) 0%, rgba(3,7,18,0.96) 70%);
-      border: 1px solid rgba(102,102,183,0.18);
-      border-radius: 8px;
+      gap: 5px;
+      padding: 3px 8px 3px 7px;
+      background: linear-gradient(135deg, rgba(102,102,183,0.08) 0%, rgba(3,7,18,0.95) 100%);
+      border: 1px solid rgba(102,102,183,0.16);
+      border-radius: 6px;
       cursor: pointer;
       transition: border-color 0.15s, box-shadow 0.15s;
       text-decoration: none;
+      white-space: nowrap;
+      height: 26px;
     }
     .map-sw-pill:hover {
-      border-color: rgba(102,102,183,0.4);
-      box-shadow: 0 0 12px rgba(102,102,183,0.15);
+      border-color: rgba(102,102,183,0.38);
+      box-shadow: 0 0 8px rgba(102,102,183,0.12);
     }
     .map-sw-pill.active {
-      border-color: rgba(102,102,183,0.55);
-      box-shadow: 0 0 14px rgba(102,102,183,0.2);
-      background: linear-gradient(135deg, rgba(102,102,183,0.18) 0%, rgba(3,7,18,0.96) 70%);
+      border-color: rgba(102,102,183,0.5);
+      box-shadow: 0 0 10px rgba(102,102,183,0.18);
+      background: linear-gradient(135deg, rgba(102,102,183,0.16) 0%, rgba(3,7,18,0.96) 100%);
     }
     .map-sw-num {
-      font-size: 9px;
+      font-size: 8px;
       font-weight: 700;
-      color: #555;
-      letter-spacing: 0.06em;
+      color: #444;
+      letter-spacing: 0.05em;
       text-transform: uppercase;
-      flex-shrink: 0;
     }
     .map-sw-name {
-      font-size: 11px;
-      font-weight: 700;
-      color: #aaa;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-    .map-sw-pill.active .map-sw-name { color: #ccc; }
-    .map-sw-score {
       font-size: 10px;
       font-weight: 700;
-      font-family: "SF Mono", "Consolas", monospace;
-      color: #555;
-      margin-left: auto;
-      padding-left: 10px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
     }
-    .map-sw-pill.active .map-sw-score { color: #888; }
+    .map-sw-pill.active .map-sw-name { color: #aaa; }
+    .map-sw-score {
+      font-size: 9px;
+      font-weight: 700;
+      font-family: "SF Mono", "Consolas", monospace;
+      color: #444;
+      padding-left: 4px;
+    }
+    .map-sw-pill.active .map-sw-score { color: #777; }
 
     /* ── Map canvas ─────────────────────────────────────────── */
     .map-canvas-wrap {
@@ -624,8 +624,6 @@
           </div>
         </div>
 
-        <!-- Map series switcher -->
-        <div class="map-switcher" id="map-switcher" style="display:none"></div>
 
         <!-- Player panels (glass overlays) -->
         <div class="player-panel ct-panel" id="ct-panel"></div>
@@ -638,6 +636,7 @@
       <!-- Bottom bar — solid strip -->
       <div class="viewer-bottom">
         <div class="round-row" id="round-row">
+          <div class="map-switcher" id="map-switcher" style="display:none"></div>
           <span class="round-row-label">Rounds</span>
         </div>
         <div class="viewer-timeline">
