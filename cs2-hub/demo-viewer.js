@@ -840,7 +840,7 @@ const WEAPON_ICON_MAP = {
   'flashbang': 'flashbang', 'molotov': 'molotov',
   'incgrenade': 'incgrenade', 'decoy': 'decoy',
   // Equipment
-  'Zeus x27': 'taser', 'C4': 'c4',
+  'Zeus x27': 'taser', 'C4': 'c4', 'C4 Explosive': 'c4',
   // Knives
   'Knife': 'knife', 'Bayonet': 'bayonet',
   'Butterfly Knife': 'knife_butterfly', 'Karambit': 'knife_karambit',
