@@ -408,6 +408,12 @@
     }
 
     /* ── Round row ──────────────────────────────────────────── */
+    .rounds-area {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      overflow: hidden;
+    }
     .round-row {
       display: flex;
       align-items: center;
@@ -635,9 +641,11 @@
 
       <!-- Bottom bar — solid strip -->
       <div class="viewer-bottom">
-        <div class="round-row" id="round-row">
+        <div class="rounds-area">
           <div class="map-switcher" id="map-switcher" style="display:none"></div>
-          <span class="round-row-label">Rounds</span>
+          <div class="round-row" id="round-row">
+            <span class="round-row-label">Rounds</span>
+          </div>
         </div>
         <div class="viewer-timeline">
           <button class="play-btn" id="play-btn">▶</button>
