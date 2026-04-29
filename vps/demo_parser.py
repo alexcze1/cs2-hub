@@ -522,8 +522,6 @@ def parse_demo(dem_path: str) -> dict:
         return "t"
 
     kills_records = _to_records(kills_df)
-    if kills_records:
-        print(f"[parser] player_death cols: {list(kills_records[0].keys())}")
     kills = []
     for r in kills_records:
         vx, vy = _event_pos(r)
@@ -540,11 +538,6 @@ def parse_demo(dem_path: str) -> dict:
             "victim_x":    vx,
             "victim_y":    vy,
         })
-    if kills:
-        k0 = kills[0]
-        print(f"[parser] kill[0] killer={k0['killer_name']} team={k0['killer_team']} victim={k0['victim_name']} team={k0['victim_team']}")
-        print(f"[parser] sid_team_hist keys sample: {list(sid_team_hist.keys())[:3]}")
-
     tick_rate = 70  # CS2 sub-tick: header reports 128, effective playback rate ~70
     ct_score  = sum(1 for r in rounds if r["winner_side"] == "ct")
     t_score   = sum(1 for r in rounds if r["winner_side"] == "t")
