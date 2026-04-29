@@ -343,7 +343,7 @@ function renderGrenades(round, tick, frame, cw, ch, tc, mapSize) {
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2)
       ctx.fillStyle   = 'rgba(180,180,180,0.35)'
       ctx.strokeStyle = teamOutline ?? 'rgba(200,200,200,0.5)'
-      ctx.lineWidth   = 2
+      ctx.lineWidth   = 1.2
       ctx.fill(); ctx.stroke()
       drawCountdownText(x, y, r, Math.ceil(totalS - elapsedS), 'rgba(255,255,255,0.9)')
       ctx.restore()
@@ -362,7 +362,7 @@ function renderGrenades(round, tick, frame, cw, ch, tc, mapSize) {
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2)
       ctx.fillStyle   = 'rgba(255,100,0,0.3)'
       ctx.strokeStyle = teamOutline ?? 'rgba(255,140,0,0.6)'
-      ctx.lineWidth   = 2
+      ctx.lineWidth   = 1.2
       ctx.fill(); ctx.stroke()
       drawCountdownText(x, y, r, Math.ceil(totalS - elapsedS), '#FF9500')
 
@@ -563,7 +563,7 @@ function drawCountdownText(x, y, r, remaining, textColor) {
   ctx.save()
 
   ctx.fillStyle    = textColor
-  ctx.font         = `700 ${Math.round(r * 0.55)}px Inter, system-ui, sans-serif`
+  ctx.font         = `700 ${Math.round(r * 0.44)}px Inter, system-ui, sans-serif`
   ctx.textAlign    = 'center'
   ctx.textBaseline = 'middle'
   ctx.fillText(remaining, x, y)
@@ -620,7 +620,7 @@ function render() {
   const frame = getInterpolatedFrame(state.tick)
   if (frame) {
     const dotR       = Math.round(mapSize * 0.009)
-    const pillFontSz = Math.round(mapSize * 0.011)
+    const pillFontSz = Math.round(mapSize * 0.0092)
     const pillFont   = `600 ${pillFontSz}px Inter, system-ui, sans-serif`
     const round      = currentRound()
 
