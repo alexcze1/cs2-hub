@@ -753,56 +753,6 @@ function render() {
 
   ctx.restore() // end zoom transform
 
-  // ── Fixed HUD — timer pill (not zoomed) ──────────────────
-  if (frame) {
-    const round    = currentRound()
-    const tickRate = state.match.meta.tick_rate
-    const fe       = freezeEnd(round)
-    const elapsed  = Math.max(0, (state.tick - fe) / tickRate)
-
-    let plantEvent = null, bombEnded = false
-    for (const ev of state.match.bomb) {
-      if (ev.tick < round.start_tick || ev.tick > state.tick) continue
-      if (ev.type === 'planted')  plantEvent = ev
-      if (ev.type === 'defused' || ev.type === 'exploded') bombEnded = true
-    }
-
-    let timeStr, timerColor
-    if (plantEvent && !bombEnded) {
-      const bombRemain = Math.max(0, 40 - (state.tick - plantEvent.tick) / tickRate)
-      const remSec     = Math.ceil(bombRemain)
-      timeStr    = `0:${String(remSec).padStart(2, '0')}`
-      timerColor = bombRemain < 10 ? '#FF5252' : '#FFB74D'
-    } else {
-      const remSec = Math.floor(Math.max(0, 115 - elapsed))
-      timeStr    = `${Math.floor(remSec / 60)}:${String(remSec % 60).padStart(2, '0')}`
-      timerColor = '#ffffff'
-    }
-
-    const tFontSz = Math.round(cw * 0.034)
-    ctx.save()
-    ctx.font      = `700 ${tFontSz}px Inter, "SF Mono", monospace`
-    ctx.textAlign = 'center'
-    const tw      = ctx.measureText(timeStr).width
-    const pillW   = tw + 28
-    const pillH   = tFontSz + 14
-    const pillX   = cw / 2 - pillW / 2
-    const pillY   = 10
-    drawRoundRect(ctx, pillX, pillY, pillW, pillH, 8)
-    ctx.fillStyle = 'rgba(3,7,18,0.82)'
-    ctx.fill()
-    drawRoundRect(ctx, pillX, pillY, pillW, pillH, 8)
-    ctx.strokeStyle = plantEvent && !bombEnded
-      ? (timerColor === '#FF5252' ? 'rgba(255,82,82,0.6)' : 'rgba(255,183,77,0.5)')
-      : 'rgba(102,102,183,0.35)'
-    ctx.lineWidth   = 1
-    ctx.stroke()
-    ctx.fillStyle    = timerColor
-    ctx.textBaseline = 'middle'
-    ctx.fillText(timeStr, cw / 2, pillY + pillH / 2)
-    ctx.restore()
-  }
-
   // ── Drawing overlay (zoomed, anchored to map) ─────────────
   if (drawPaths.length > 0 || currentPath) {
     ctx.save()
@@ -929,10 +879,10 @@ function playerCardHTML(p) {
         ${wIconEl}<span class="weapon-name">${esc(weapon)}</span>
       </div>
       <div class="util-row">
-        <div class="util-pill smoke${p.has_smoke   ? '' : ' empty'}">SMK</div>
-        <div class="util-pill flash${p.has_flash   ? '' : ' empty'}">FLB</div>
-        <div class="util-pill molotov${p.has_molotov ? '' : ' empty'}">MOL</div>
-        <div class="util-pill he${p.has_he         ? '' : ' empty'}">HE</div>
+        <div class="util-pill smoke${p.has_smoke   ? '' : ' empty'}"><img src="images/weapons/smokegrenade.svg" alt="smoke"></div>
+        <div class="util-pill flash${p.has_flash   ? '' : ' empty'}"><img src="images/weapons/flashbang.svg" alt="flash"></div>
+        <div class="util-pill molotov${p.has_molotov ? '' : ' empty'}"><img src="images/weapons/molotov.svg" alt="molotov"></div>
+        <div class="util-pill he${p.has_he         ? '' : ' empty'}"><img src="images/weapons/hegrenade.svg" alt="he"></div>
       </div>
     </div>
   </div>`
@@ -968,7 +918,8 @@ function updateKillFeed() {
 
   el.innerHTML = recent.map((k, i) => {
     const killerName = k.killer_name ?? 'World'
-    const killerTeam = k.killer_team ?? 't'
+    const killerTeam = (k.killer_team ?? 't').toLowerCase()
+    const victimTeam = (k.victim_team ?? 'ct').toLowerCase()
     const borderCls  = killerTeam === 'ct' ? 'ct-kill' : 't-kill'
     const fadeCls    = i >= 2 ? ' faded' : ''
     const hs         = k.headshot === true ? `<span class="kf-hs">HS</span>` : ''
@@ -981,7 +932,7 @@ function updateKillFeed() {
   <div class="kf-names">
     <span class="kf-killer ${killerTeam}">${esc(killerName)}</span>
     <span class="kf-arrow">›</span>
-    <span class="kf-victim ${k.victim_team}">${esc(k.victim_name)}</span>
+    <span class="kf-victim ${victimTeam}">${esc(k.victim_name)}</span>
   </div>
   <div class="kf-meta">${wIconEl}${hs}</div>
 </div>`
@@ -1001,6 +952,36 @@ function updateMatchHeader() {
   ctEl.textContent  = ctScore
   tEl.textContent   = tScore
   rndEl.textContent = `Round ${state.roundIdx + 1} / ${totalR}`
+}
+
+function updateTimer() {
+  const el = document.getElementById('vh-timer')
+  if (!el) return
+  const round    = currentRound()
+  const tickRate = state.match.meta.tick_rate
+  const fe       = freezeEnd(round)
+  const elapsed  = Math.max(0, (state.tick - fe) / tickRate)
+
+  let plantEvent = null, bombEnded = false
+  for (const ev of state.match.bomb) {
+    if (ev.tick < round.start_tick || ev.tick > state.tick) continue
+    if (ev.type === 'planted')  plantEvent = ev
+    if (ev.type === 'defused' || ev.type === 'exploded') bombEnded = true
+  }
+
+  let timeStr, cls
+  if (plantEvent && !bombEnded) {
+    const bombRemain = Math.max(0, 40 - (state.tick - plantEvent.tick) / tickRate)
+    const remSec     = Math.ceil(bombRemain)
+    timeStr = `0:${String(remSec).padStart(2, '0')}`
+    cls     = bombRemain < 10 ? 'bomb-low' : 'bomb'
+  } else {
+    const remSec = Math.floor(Math.max(0, 115 - elapsed))
+    timeStr = `${Math.floor(remSec / 60)}:${String(remSec % 60).padStart(2, '0')}`
+    cls     = ''
+  }
+  el.textContent = timeStr
+  el.className   = 'vh-timer' + (cls ? ' ' + cls : '')
 }
 
 // ── UI updates ────────────────────────────────────────────────
@@ -1108,6 +1089,7 @@ function loop(ts) {
     state.lastTs = ts
     render()
     updateMatchHeader()
+    updateTimer()
     updateRoundRow()
     updateTimeline()
     updatePlayerCards()

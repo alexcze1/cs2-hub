@@ -7,6 +7,9 @@
   <title>Demo Viewer — MIDROUND</title>
   <link rel="stylesheet" href="style.css"/>
   <style>
+    /* Override body gradient — full-screen viewer needs uniform dark bg */
+    body { background: #030712; }
+
     /* ── Layout shell ───────────────────────────────────────── */
     .viewer-shell {
       display: flex;
@@ -64,6 +67,24 @@
       min-width: 90px;
       text-align: right;
     }
+    .vh-divider {
+      width: 1px;
+      height: 18px;
+      background: rgba(255,255,255,0.1);
+      flex-shrink: 0;
+    }
+    .vh-timer {
+      font-size: 14px;
+      font-weight: 800;
+      font-family: "SF Mono", "Consolas", monospace;
+      color: #fff;
+      letter-spacing: 0.04em;
+      min-width: 36px;
+      text-align: center;
+      transition: color 0.2s;
+    }
+    .vh-timer.bomb    { color: #FFB74D; }
+    .vh-timer.bomb-low { color: #FF5252; }
 
     /* ── Map canvas ─────────────────────────────────────────── */
     .map-canvas-wrap {
@@ -207,16 +228,15 @@
     }
     .util-pill {
       flex: 1;
-      height: 18px;
+      height: 20px;
       border-radius: 4px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 7.5px;
-      font-weight: 700;
-      letter-spacing: 0.04em;
       transition: opacity 0.1s;
+      overflow: hidden;
     }
+    .util-pill img { width: 16px; height: 14px; object-fit: contain; opacity: 0.9; }
     .util-pill.empty { opacity: 0.18; }
     .util-pill.smoke   { background: rgba(180,180,180,0.14); border: 1px solid rgba(200,200,200,0.22); color: #bbb; }
     .util-pill.flash   { background: rgba(255,240,120,0.11); border: 1px solid rgba(255,235,100,0.20); color: #ddc; }
@@ -226,15 +246,16 @@
     /* ── Kill feed ──────────────────────────────────────────── */
     .killfeed {
       position: absolute;
-      top: 10px;
-      right: 10px;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
       display: flex;
-      flex-direction: column;
+      flex-direction: column-reverse;
       gap: 4px;
       pointer-events: none;
       z-index: 10;
-      min-width: 200px;
-      max-width: 260px;
+      min-width: 220px;
+      max-width: 300px;
     }
     .kf-row {
       background: rgba(3,7,18,0.78);
@@ -340,11 +361,11 @@
       gap: 10px;
     }
     .play-btn {
-      width: 30px;
-      height: 30px;
+      width: 34px;
+      height: 34px;
       background: rgba(102,102,183,0.2);
       border: 1px solid rgba(102,102,183,0.5);
-      border-radius: 50%;
+      border-radius: 5px;
       color: #9999dd;
       font-size: 12px;
       cursor: pointer;
@@ -474,6 +495,8 @@
             <span class="vh-score-sep">—</span>
             <span class="vh-score-t" id="vh-t-score">0</span>
           </div>
+          <div class="vh-divider"></div>
+          <span class="vh-timer" id="vh-timer">1:55</span>
           <span class="vh-round" id="vh-round">Round 1</span>
         </div>
 
