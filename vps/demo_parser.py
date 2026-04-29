@@ -434,14 +434,28 @@ def parse_demo(dem_path: str) -> dict:
 
     tick_records = _to_records(tick_df)
     by_tick: dict = defaultdict(list)
-    # steam_id → team lookup (kills event has no team fields — derive from frames)
-    sid_team: dict = {}
+    # sid → sorted [(tick, team)] — only valid teams (2=T, 3=CT), supports halftime swaps
+    sid_team_hist: dict = defaultdict(list)
     for r in tick_records:
         sid = str(r.get("steamid") or "")
-        if sid and sid not in sid_team:
-            tn = _safe_int(r.get("team_num")) or 2
-            sid_team[sid] = "ct" if tn == 3 else "t"
+        tn  = _safe_int(r.get("team_num"))
+        if sid and tn in (2, 3):
+            sid_team_hist[sid].append((int(r["tick"]), "ct" if tn == 3 else "t"))
         by_tick[int(r["tick"])].append(r)
+    for sid in sid_team_hist:
+        sid_team_hist[sid].sort()
+
+    def _team_at(sid: str, tick: int) -> str:
+        hist = sid_team_hist.get(sid, [])
+        if not hist:
+            return "t"
+        result = hist[0][1]
+        for t, team in hist:
+            if t <= tick:
+                result = team
+            else:
+                break
+        return result
 
     frames = []
     for tick in sampled:
@@ -517,15 +531,19 @@ def parse_demo(dem_path: str) -> dict:
             "tick":        int(r["tick"]),
             "killer_id":   str(r.get("attacker_steamid") or ""),
             "killer_name": str(r.get("attacker_name") or ""),
-            "killer_team": sid_team.get(str(r.get("attacker_steamid") or ""), "t"),
+            "killer_team": _team_at(str(r.get("attacker_steamid") or ""), int(r["tick"])),
             "victim_id":   str(r.get("user_steamid") or ""),
             "victim_name": str(r.get("user_name") or ""),
-            "victim_team": sid_team.get(str(r.get("user_steamid") or ""), "ct"),
+            "victim_team": _team_at(str(r.get("user_steamid") or ""), int(r["tick"])),
             "weapon":      str(r.get("weapon") or ""),
             "headshot":    bool(r.get("headshot") or False),
             "victim_x":    vx,
             "victim_y":    vy,
         })
+    if kills:
+        k0 = kills[0]
+        print(f"[parser] kill[0] killer={k0['killer_name']} team={k0['killer_team']} victim={k0['victim_name']} team={k0['victim_team']}")
+        print(f"[parser] sid_team_hist keys sample: {list(sid_team_hist.keys())[:3]}")
 
     tick_rate = 70  # CS2 sub-tick: header reports 128, effective playback rate ~70
     ct_score  = sum(1 for r in rounds if r["winner_side"] == "ct")
