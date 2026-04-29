@@ -434,7 +434,13 @@ def parse_demo(dem_path: str) -> dict:
 
     tick_records = _to_records(tick_df)
     by_tick: dict = defaultdict(list)
+    # steam_id → team lookup (kills event has no team fields — derive from frames)
+    sid_team: dict = {}
     for r in tick_records:
+        sid = str(r.get("steamid") or "")
+        if sid and sid not in sid_team:
+            tn = _safe_int(r.get("team_num")) or 2
+            sid_team[sid] = "ct" if tn == 3 else "t"
         by_tick[int(r["tick"])].append(r)
 
     frames = []
@@ -511,10 +517,10 @@ def parse_demo(dem_path: str) -> dict:
             "tick":        int(r["tick"]),
             "killer_id":   str(r.get("attacker_steamid") or ""),
             "killer_name": str(r.get("attacker_name") or ""),
-            "killer_team": _team(r.get("attacker_team_name") or r.get("attacker_side") or r.get("attacker_team_num")),
+            "killer_team": sid_team.get(str(r.get("attacker_steamid") or ""), "t"),
             "victim_id":   str(r.get("user_steamid") or ""),
             "victim_name": str(r.get("user_name") or ""),
-            "victim_team": _team(r.get("user_team_name") or r.get("user_side") or r.get("user_team_num")),
+            "victim_team": sid_team.get(str(r.get("user_steamid") or ""), "ct"),
             "weapon":      str(r.get("weapon") or ""),
             "headshot":    bool(r.get("headshot") or False),
             "victim_x":    vx,

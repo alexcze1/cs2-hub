@@ -930,7 +930,6 @@ function updateKillFeed() {
     k.tick >= round.start_tick && k.tick <= state.tick
   )
   const recent = kills.slice(-5).reverse()
-  if (recent.length) console.log('[kf] kill sample:', JSON.stringify(recent[0]))
 
   const el = document.getElementById('killfeed')
   if (!el) return
