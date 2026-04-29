@@ -601,8 +601,20 @@ function render() {
     ctx.drawImage(mapImg, mapX, mapY, mapSize, mapSize)
     ctx.fillStyle = 'rgba(0,0,0,0.18)'
     ctx.fillRect(mapX, mapY, mapSize, mapSize)
+    // Edge vignette — blends map into letterbox bg, removes visible box border
+    const vign = mapSize * 0.07
+    const bg   = '#030712'
+    const makeGrad = (x0, y0, x1, y1) => {
+      const g = ctx.createLinearGradient(x0, y0, x1, y1)
+      g.addColorStop(0, bg); g.addColorStop(1, 'rgba(3,7,18,0)')
+      return g
+    }
+    ctx.fillStyle = makeGrad(mapX,                    0, mapX + vign,              0); ctx.fillRect(mapX,                    mapY, vign,    mapSize)
+    ctx.fillStyle = makeGrad(mapX + mapSize,          0, mapX + mapSize - vign,    0); ctx.fillRect(mapX + mapSize - vign,   mapY, vign,    mapSize)
+    ctx.fillStyle = makeGrad(0, mapY,                    0, mapY + vign              ); ctx.fillRect(mapX, mapY,                    mapSize, vign)
+    ctx.fillStyle = makeGrad(0, mapY + mapSize,          0, mapY + mapSize - vign    ); ctx.fillRect(mapX, mapY + mapSize - vign,   mapSize, vign)
   } else {
-    ctx.fillStyle = '#0d1117'
+    ctx.fillStyle = '#030712'
     ctx.fillRect(mapX, mapY, mapSize, mapSize)
   }
   const frame = getInterpolatedFrame(state.tick)
@@ -1028,7 +1040,7 @@ function updateTimelineKills() {
     const pct = ((k.tick - fe) / span) * 100
     if (pct < 0 || pct > 100) continue
     const el = document.createElement('div')
-    el.className = `tl-kill-mark ${k.killer_team === 'ct' ? 'ct' : 't'}`
+    el.className = `tl-kill-mark ${k.killer_team?.toLowerCase() === 'ct' ? 'ct' : 't'}`
     el.style.left = pct + '%'
     track.appendChild(el)
   }
