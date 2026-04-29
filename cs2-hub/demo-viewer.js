@@ -1007,7 +1007,7 @@ function updateRoundRow() {
   if (state.roundIdx === _lastRoundIdx) return
   _lastRoundIdx = state.roundIdx
   const rounds   = state.match.rounds
-  const halfAt   = rounds.length >= 16 ? Math.ceil(rounds.length / 2) : -1
+  const halfAt   = rounds.length > 12 ? 12 : -1
   const rowEl    = document.getElementById('round-row')
   let html = '<span class="round-row-label">Rounds</span>'
   for (let i = 0; i < rounds.length; i++) {
