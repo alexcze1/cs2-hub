@@ -11,62 +11,101 @@ await requireAuth()
 renderSidebar('demos')
 
 const VPS_URL = 'https://vps.midround.pro'
-const teamId = getTeamId()
-const listEl = document.getElementById('demos-list')
+const teamId  = getTeamId()
+const listEl  = document.getElementById('demos-list')
 const countEl = document.getElementById('demo-count-sub')
-const uploadBtn = document.getElementById('upload-btn')
-const fileInput = document.getElementById('demo-file-input')
+const uploadBtn  = document.getElementById('upload-btn')
+const fileInput  = document.getElementById('demo-file-input')
 const progressWrap = document.getElementById('upload-progress')
 const progressText = document.getElementById('upload-progress-text')
-const progressBar = document.getElementById('upload-progress-bar')
+const progressBar  = document.getElementById('upload-progress-bar')
 
-// ── Team name modal ───────────────────────────────────────────
-function showTeamModal(fileCount) {
+// ── Assign Teams modal (shown after processing) ───────────────
+async function showAssignTeamsModal(demoId) {
+  // Fetch match data to show real players per side
+  const { data, error } = await supabase
+    .from('demos')
+    .select('match_data,ct_team_name,t_team_name')
+    .eq('id', demoId)
+    .single()
+
+  if (error || !data?.match_data) {
+    alert('Could not load demo data.')
+    return
+  }
+
+  // Get players from first frame, grouped by side
+  const firstFrame = data.match_data.frames?.[0]
+  const ctPlayers  = (firstFrame?.players ?? []).filter(p => p.team === 'ct').map(p => p.name)
+  const tPlayers   = (firstFrame?.players ?? []).filter(p => p.team === 't').map(p => p.name)
+
+  function playerList(names, color) {
+    if (!names.length) return '<span style="color:#444;font-size:11px">No players found</span>'
+    return names.map(n =>
+      `<div style="font-size:11px;color:${color};padding:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(n)}</div>`
+    ).join('')
+  }
+
   return new Promise(resolve => {
     const overlay = document.createElement('div')
     overlay.style.cssText = `
-      position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;
+      position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;
       display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);
     `
     overlay.innerHTML = `
       <div style="
         background:#0a0a0f;border:1px solid rgba(102,102,183,0.22);border-radius:14px;
-        padding:28px 32px;width:420px;max-width:92vw;
+        padding:28px 32px;width:480px;max-width:94vw;
         box-shadow:0 0 40px rgba(102,102,183,0.12);
       ">
-        <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:6px">Team Names</div>
-        <div style="font-size:12px;color:#666;margin-bottom:24px">
-          Who played in ${fileCount > 1 ? `these ${fileCount} demos` : 'this demo'}?
+        <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:20px">Assign Teams</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+          <div style="background:rgba(79,195,247,0.05);border:1px solid rgba(79,195,247,0.14);border-radius:8px;padding:12px">
+            <div style="font-size:10px;font-weight:700;color:rgba(79,195,247,0.7);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">CT Side</div>
+            ${playerList(ctPlayers, '#4FC3F7')}
+          </div>
+          <div style="background:rgba(255,149,0,0.05);border:1px solid rgba(255,149,0,0.14);border-radius:8px;padding:12px">
+            <div style="font-size:10px;font-weight:700;color:rgba(255,149,0,0.7);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">T Side</div>
+            ${playerList(tPlayers, '#FF9500')}
+          </div>
         </div>
 
-        <div style="margin-bottom:16px">
-          <label style="font-size:11px;font-weight:600;color:rgba(79,195,247,0.8);letter-spacing:0.08em;text-transform:uppercase;display:block;margin-bottom:6px">CT Team <span style="color:#555;font-weight:400;text-transform:none">(starting CT side)</span></label>
-          <input id="modal-ct-input" class="input" placeholder="Search team…" autocomplete="off" style="width:100%">
+        <div style="margin-bottom:14px">
+          <label style="font-size:10px;font-weight:700;color:rgba(79,195,247,0.7);letter-spacing:0.1em;text-transform:uppercase;display:block;margin-bottom:6px">CT Team Name</label>
+          <input id="modal-ct-input" class="input" placeholder="Search team…" autocomplete="off" style="width:100%" value="${esc(data.ct_team_name ?? '')}">
         </div>
-
         <div style="margin-bottom:28px">
-          <label style="font-size:11px;font-weight:600;color:rgba(255,149,0,0.8);letter-spacing:0.08em;text-transform:uppercase;display:block;margin-bottom:6px">T Team <span style="color:#555;font-weight:400;text-transform:none">(starting T side)</span></label>
-          <input id="modal-t-input" class="input" placeholder="Search team…" autocomplete="off" style="width:100%">
+          <label style="font-size:10px;font-weight:700;color:rgba(255,149,0,0.7);letter-spacing:0.1em;text-transform:uppercase;display:block;margin-bottom:6px">T Team Name</label>
+          <input id="modal-t-input" class="input" placeholder="Search team…" autocomplete="off" style="width:100%" value="${esc(data.t_team_name ?? '')}">
         </div>
 
         <div style="display:flex;gap:10px;justify-content:flex-end">
           <button id="modal-cancel" class="btn btn-ghost">Cancel</button>
-          <button id="modal-confirm" class="btn btn-primary">Upload${fileCount > 1 ? ` ${fileCount} Demos` : ''}</button>
+          <button id="modal-save" class="btn btn-primary">Save</button>
         </div>
       </div>
     `
     document.body.appendChild(overlay)
 
-    let ctTeamName = '', tTeamName = ''
+    let ctTeamName = data.ct_team_name ?? ''
+    let tTeamName  = data.t_team_name  ?? ''
 
     attachTeamAutocomplete(overlay.querySelector('#modal-ct-input'), t => { ctTeamName = t.name })
     attachTeamAutocomplete(overlay.querySelector('#modal-t-input'),  t => { tTeamName  = t.name })
-
     overlay.querySelector('#modal-ct-input').addEventListener('input', e => { ctTeamName = e.target.value })
     overlay.querySelector('#modal-t-input').addEventListener('input',  e => { tTeamName  = e.target.value })
 
     overlay.querySelector('#modal-cancel').addEventListener('click', () => { overlay.remove(); resolve(null) })
-    overlay.querySelector('#modal-confirm').addEventListener('click', () => { overlay.remove(); resolve({ ctTeamName, tTeamName }) })
+    overlay.querySelector('#modal-save').addEventListener('click', async () => {
+      await supabase.from('demos').update({
+        ct_team_name: ctTeamName || null,
+        t_team_name:  tTeamName  || null,
+      }).eq('id', demoId)
+      overlay.remove()
+      resolve({ ctTeamName, tTeamName })
+      loadDemos()
+    })
     overlay.addEventListener('click', e => { if (e.target === overlay) { overlay.remove(); resolve(null) } })
   })
 }
@@ -91,10 +130,9 @@ async function loadDemos() {
     return
   }
 
-  // Group by series_id, preserving order of first appearance
-  const seriesMap = new Map()   // series_id → [demos]
+  // Group by series_id
+  const seriesMap = new Map()
   const singles   = []
-  const seen      = new Set()
 
   for (const d of data) {
     if (d.series_id) {
@@ -106,17 +144,27 @@ async function loadDemos() {
   }
 
   function demoRow(d, label) {
-    const mapName = d.map ? d.map.replace('de_', '') : '?'
-    const score   = d.score_ct != null ? `${d.score_ct}–${d.score_t}` : ''
-    const title   = label || (d.ct_team_name && d.t_team_name
+    const mapName   = d.map ? d.map.replace('de_', '') : '?'
+    const score     = d.score_ct != null ? `${d.score_ct}–${d.score_t}` : ''
+    const teamsSet  = d.ct_team_name && d.t_team_name
+    const teamLabel = teamsSet
       ? `${esc(d.ct_team_name)} vs ${esc(d.t_team_name)}`
-      : d.opponent_name ? `vs ${esc(d.opponent_name)}` : 'Demo')
+      : d.opponent_name ? `vs ${esc(d.opponent_name)}` : 'Demo'
+    const title = label || teamLabel
+
     const badge = {
       pending:    `<span class="badge badge-warning">Processing</span>`,
       processing: `<span class="badge badge-warning">Processing</span>`,
       ready:      `<span class="badge badge-success">Ready</span>`,
       error:      `<span class="badge badge-error" title="${esc(d.error_message ?? '')}">Error</span>`,
     }[d.status] ?? ''
+
+    const assignBtn = d.status === 'ready'
+      ? `<button class="btn btn-ghost btn-sm" onclick="assignTeams('${d.id}')">
+           ${teamsSet ? '✎ Teams' : '+ Teams'}
+         </button>`
+      : ''
+
     const watchBtn = d.status === 'ready'
       ? `<a class="btn btn-primary btn-sm" href="demo-viewer.html?id=${d.id}">▶ Watch</a>`
       : d.status === 'error'
@@ -131,15 +179,17 @@ async function loadDemos() {
           <div class="list-row-sub">${d.played_at ? formatDate(d.played_at) : formatDate(d.created_at)}${score ? ` · ${score}` : ''}</div>
         </div>
         ${badge}
+        ${assignBtn}
         ${watchBtn}
       </div>`
   }
 
   let html = ''
 
-  for (const [sid, demos] of seriesMap) {
+  for (const [, demos] of seriesMap) {
     const first = demos[0]
-    const seriesLabel = first.ct_team_name && first.t_team_name
+    const teamsSet = first.ct_team_name && first.t_team_name
+    const seriesLabel = teamsSet
       ? `${esc(first.ct_team_name)} vs ${esc(first.t_team_name)}`
       : first.opponent_name ? `vs ${esc(first.opponent_name)}` : 'Series'
     html += `
@@ -161,6 +211,8 @@ supabase.channel('demos-status')
   .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'demos', filter: `team_id=eq.${teamId}` }, () => loadDemos())
   .subscribe()
 
+window.assignTeams = id => showAssignTeamsModal(id)
+
 // ── Upload ────────────────────────────────────────────────────
 uploadBtn.addEventListener('click', () => fileInput.click())
 
@@ -173,9 +225,6 @@ fileInput.addEventListener('change', async () => {
     if (!f.name.endsWith('.dem')) { alert('Please select .dem files only.'); return }
     if (f.size > 500 * 1024 * 1024) { alert(`${f.name} is too large (max 500 MB).`); return }
   }
-
-  const teamNames = await showTeamModal(files.length)
-  if (!teamNames) return
 
   const seriesId = files.length > 1 ? crypto.randomUUID() : null
 
@@ -216,12 +265,9 @@ fileInput.addEventListener('change', async () => {
         xhr.send(formData)
       })
 
-      const updates = {
-        ct_team_name: teamNames.ctTeamName || null,
-        t_team_name:  teamNames.tTeamName  || null,
+      if (seriesId) {
+        await supabase.from('demos').update({ series_id: seriesId }).eq('id', result.demo_id)
       }
-      if (seriesId) updates.series_id = seriesId
-      await supabase.from('demos').update(updates).eq('id', result.demo_id)
 
     } catch (err) {
       progressText.textContent = `Upload failed for ${file.name}: ${err.message}`
