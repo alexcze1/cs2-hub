@@ -42,15 +42,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 1px;
-    }
-    .vh-map {
-      font-size: 10px;
-      font-weight: 700;
-      color: #7777cc;
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-      min-width: 90px;
+      gap: 2px;
     }
     .vh-score {
       display: flex;
@@ -63,25 +55,125 @@
     .vh-score-ct  { color: #4FC3F7; }
     .vh-score-sep { color: rgba(255,255,255,0.2); font-size: 14px; font-weight: 300; }
     .vh-score-t   { color: #FF9500; }
-    .vh-round {
+    .vh-sub-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .vh-map {
       font-size: 10px;
-      color: var(--text-secondary, #A1A1AA);
+      font-weight: 600;
+      color: #5555aa;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      min-width: 90px;
-      text-align: right;
+    }
+    .vh-sub-dot {
+      font-size: 9px;
+      color: rgba(255,255,255,0.15);
+    }
+    .vh-round {
+      font-size: 10px;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 0.06em;
     }
     .vh-timer {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
       font-family: "SF Mono", "Consolas", monospace;
-      color: rgba(255,255,255,0.55);
+      color: rgba(255,255,255,0.45);
       letter-spacing: 0.06em;
-      text-align: center;
       transition: color 0.2s;
     }
-    .vh-timer.bomb    { color: #FFB74D; }
+    .vh-timer.bomb     { color: #FFB74D; }
     .vh-timer.bomb-low { color: #FF5252; }
+
+    /* ── Team name sections ─────────────────────────────────── */
+    .vh-team {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 110px;
+    }
+    .vh-team-ct { justify-content: flex-end; }
+    .vh-team-t  { justify-content: flex-start; }
+    .vh-team-logo {
+      width: 26px;
+      height: 26px;
+      object-fit: contain;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.04);
+      padding: 2px;
+      flex-shrink: 0;
+    }
+    .vh-team-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 90px;
+    }
+    .vh-team-ct .vh-team-name { color: #4FC3F7; text-align: right; }
+    .vh-team-t  .vh-team-name { color: #FF9500; text-align: left; }
+
+    /* ── Map series switcher ────────────────────────────────── */
+    .map-switcher {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      pointer-events: auto;
+    }
+    .map-sw-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px 6px 10px;
+      background: linear-gradient(135deg, rgba(102,102,183,0.10) 0%, rgba(3,7,18,0.96) 70%);
+      border: 1px solid rgba(102,102,183,0.18);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      text-decoration: none;
+    }
+    .map-sw-pill:hover {
+      border-color: rgba(102,102,183,0.4);
+      box-shadow: 0 0 12px rgba(102,102,183,0.15);
+    }
+    .map-sw-pill.active {
+      border-color: rgba(102,102,183,0.55);
+      box-shadow: 0 0 14px rgba(102,102,183,0.2);
+      background: linear-gradient(135deg, rgba(102,102,183,0.18) 0%, rgba(3,7,18,0.96) 70%);
+    }
+    .map-sw-num {
+      font-size: 9px;
+      font-weight: 700;
+      color: #555;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .map-sw-name {
+      font-size: 11px;
+      font-weight: 700;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .map-sw-pill.active .map-sw-name { color: #ccc; }
+    .map-sw-score {
+      font-size: 10px;
+      font-weight: 700;
+      font-family: "SF Mono", "Consolas", monospace;
+      color: #555;
+      margin-left: auto;
+      padding-left: 10px;
+    }
+    .map-sw-pill.active .map-sw-score { color: #888; }
 
     /* ── Map canvas ─────────────────────────────────────────── */
     .map-canvas-wrap {
@@ -508,17 +600,32 @@
 
         <!-- Match header pill -->
         <div class="viewer-header" id="viewer-header">
-          <span class="vh-map" id="vh-map">—</span>
+          <div class="vh-team vh-team-ct" id="vh-team-ct">
+            <img class="vh-team-logo" id="vh-ct-logo" src="" alt="" style="display:none">
+            <span class="vh-team-name" id="vh-ct-name">CT</span>
+          </div>
           <div class="vh-center">
             <div class="vh-score">
               <span class="vh-score-ct" id="vh-ct-score">0</span>
               <span class="vh-score-sep">—</span>
               <span class="vh-score-t" id="vh-t-score">0</span>
             </div>
-            <span class="vh-timer" id="vh-timer">1:55</span>
+            <div class="vh-sub-row">
+              <span class="vh-map" id="vh-map">—</span>
+              <span class="vh-sub-dot">·</span>
+              <span class="vh-timer" id="vh-timer">1:55</span>
+              <span class="vh-sub-dot">·</span>
+              <span class="vh-round" id="vh-round">R1</span>
+            </div>
           </div>
-          <span class="vh-round" id="vh-round">Round 1</span>
+          <div class="vh-team vh-team-t" id="vh-team-t">
+            <span class="vh-team-name" id="vh-t-name">T</span>
+            <img class="vh-team-logo" id="vh-t-logo" src="" alt="" style="display:none">
+          </div>
         </div>
+
+        <!-- Map series switcher -->
+        <div class="map-switcher" id="map-switcher" style="display:none"></div>
 
         <!-- Player panels (glass overlays) -->
         <div class="player-panel ct-panel" id="ct-panel"></div>

@@ -2,6 +2,7 @@ import { requireAuth }   from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase }      from './supabase.js'
 import { worldToCanvas } from './demo-map-data.js'
+import { getTeamLogo }   from './team-autocomplete.js'
 
 await requireAuth()
 renderSidebar('demos')
@@ -37,7 +38,7 @@ const loadingEl = document.getElementById('viewer-loading')
 
 const { data: demo, error } = await supabase
   .from('demos')
-  .select('match_data,map,status')
+  .select('match_data,map,status,ct_team_name,t_team_name,series_id')
   .eq('id', demoId)
   .single()
 
@@ -90,6 +91,56 @@ mapImg.onerror = () => {
 
 loadingEl.style.display = 'none'
 document.getElementById('viewer-shell').style.display = 'flex'
+
+// ── Team names in header ──────────────────────────────────────
+async function applyTeamNames() {
+  const ctName = demo.ct_team_name
+  const tName  = demo.t_team_name
+  if (!ctName && !tName) return
+
+  const ctNameEl = document.getElementById('vh-ct-name')
+  const tNameEl  = document.getElementById('vh-t-name')
+  const ctLogoEl = document.getElementById('vh-ct-logo')
+  const tLogoEl  = document.getElementById('vh-t-logo')
+
+  if (ctName) {
+    ctNameEl.textContent = ctName
+    const logo = await getTeamLogo(ctName)
+    if (logo) { ctLogoEl.src = logo; ctLogoEl.style.display = 'block' }
+  }
+  if (tName) {
+    tNameEl.textContent = tName
+    const logo = await getTeamLogo(tName)
+    if (logo) { tLogoEl.src = logo; tLogoEl.style.display = 'block' }
+  }
+}
+applyTeamNames()
+
+// ── Series map switcher ───────────────────────────────────────
+async function loadSeries() {
+  if (!demo.series_id) return
+  const { data: siblings } = await supabase
+    .from('demos')
+    .select('id,map,score_ct,score_t,status')
+    .eq('series_id', demo.series_id)
+    .order('created_at', { ascending: true })
+
+  if (!siblings || siblings.length < 2) return
+
+  const swEl = document.getElementById('map-switcher')
+  swEl.style.display = 'flex'
+  swEl.innerHTML = siblings.map((s, i) => {
+    const mapShort = (s.map || 'de_?').replace('de_', '').toUpperCase().slice(0, 6)
+    const score    = s.score_ct != null ? `${s.score_ct}–${s.score_t}` : s.status === 'ready' ? '?–?' : '…'
+    const active   = s.id === demoId ? ' active' : ''
+    return `<a class="map-sw-pill${active}" href="demo-viewer.html?id=${s.id}">
+      <span class="map-sw-num">M${i + 1}</span>
+      <span class="map-sw-name">${mapShort}</span>
+      <span class="map-sw-score">${score}</span>
+    </a>`
+  }).join('')
+}
+loadSeries()
 
 // ── Canvas ────────────────────────────────────────────────────
 const canvas = document.getElementById('map-canvas')
@@ -969,7 +1020,7 @@ function updateMatchHeader() {
   mapEl.textContent = mapName.replace(/^de_/, '').toUpperCase()
   ctEl.textContent  = ctScore
   tEl.textContent   = tScore
-  rndEl.textContent = `Round ${state.roundIdx + 1} / ${totalR}`
+  rndEl.textContent = `R${state.roundIdx + 1}/${totalR}`
 }
 
 function updateTimer() {
