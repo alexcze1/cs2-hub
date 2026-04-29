@@ -98,10 +98,9 @@ const wrap   = document.getElementById('map-canvas-wrap')
 
 function resizeCanvas() {
   const { width, height } = wrap.getBoundingClientRect()
-  const size = Math.min(width, height) - 16
-  if (size < 10) return
-  canvas.width  = size
-  canvas.height = size
+  if (width < 10 || height < 10) return
+  canvas.width  = Math.round(width)
+  canvas.height = Math.round(height)
 }
 requestAnimationFrame(resizeCanvas)
 new ResizeObserver(resizeCanvas).observe(wrap)
@@ -162,7 +161,7 @@ function getInterpolatedFrame(tick) {
 
 
 // ── Grenade overlays ──────────────────────────────────────────
-function renderGrenades(round, tick, frame, cw, ch) {
+function renderGrenades(round, tick, frame, cw, ch, tc, mapSize) {
   const teamBySid = {}
   for (const p of (frame?.players ?? [])) teamBySid[p.steam_id] = p.team
 
@@ -195,7 +194,7 @@ function renderGrenades(round, tick, frame, cw, ch) {
     const showTraj = g.tick <= tick && (tick - g.tick) < trajTicks && !(g.type === 'flash' && active)
     if (!inFlight && !active && !showTraj) continue
 
-    const { x, y } = worldToCanvas(g.x, g.y, mapName, cw, ch)
+    const { x, y } = tc(g.x, g.y)
     const typeColor = g.type === 'smoke'   ? 'rgba(200,200,200,0.6)'
                     : g.type === 'molotov' ? 'rgba(255,140,0,0.6)'
                     : g.type === 'flash'   ? 'rgba(255,255,255,0.5)'
@@ -204,7 +203,7 @@ function renderGrenades(round, tick, frame, cw, ch) {
     // ── Trajectory (real path) ────────────────────────────────
     const pathPts = g.path  // [[wx,wy], ...] from parser bounce events
     if (pathPts && pathPts.length >= 2) {
-      const canvasPts = pathPts.map(([wx, wy]) => worldToCanvas(wx, wy, mapName, cw, ch))
+      const canvasPts = pathPts.map(([wx, wy]) => tc(wx, wy))
       ctx.save()
       ctx.setLineDash([3, 5])
       ctx.lineWidth = 1.5
@@ -254,11 +253,11 @@ function renderGrenades(round, tick, frame, cw, ch) {
         ctx.setLineDash([])
         const icon = GRENADE_ICONS[g.type]
         if (icon && icon.complete && icon.naturalWidth) {
-          const iconSz = cw * 0.022 * arcScale
+          const iconSz = mapSize * 0.022 * arcScale
           ctx.globalAlpha = 0.9
           ctx.drawImage(icon, iconX - iconSz / 2, iconY - iconSz / 2, iconSz, iconSz)
         } else {
-          ctx.beginPath(); ctx.arc(iconX, iconY, cw * 0.008 * arcScale, 0, Math.PI * 2)
+          ctx.beginPath(); ctx.arc(iconX, iconY, mapSize * 0.008 * arcScale, 0, Math.PI * 2)
           ctx.fillStyle = typeColor; ctx.fill()
         }
         ctx.restore()
@@ -274,13 +273,13 @@ function renderGrenades(round, tick, frame, cw, ch) {
         // Dot at throw origin
         ctx.setLineDash([])
         ctx.globalAlpha = alpha * 0.5
-        ctx.beginPath(); ctx.arc(canvasPts[0].x, canvasPts[0].y, cw * 0.005, 0, Math.PI * 2)
+        ctx.beginPath(); ctx.arc(canvasPts[0].x, canvasPts[0].y, mapSize * 0.005, 0, Math.PI * 2)
         ctx.fillStyle = typeColor; ctx.fill()
       }
       ctx.restore()
     } else if (g.origin_x != null && !(g.origin_x === 0 && g.origin_y === 0)) {
       // Fallback: no path data — straight line
-      const { x: ox, y: oy } = worldToCanvas(g.origin_x, g.origin_y, mapName, cw, ch)
+      const { x: ox, y: oy } = tc(g.origin_x, g.origin_y)
       ctx.save()
       ctx.setLineDash([3, 5])
       ctx.lineWidth = 1.5
@@ -295,10 +294,10 @@ function renderGrenades(round, tick, frame, cw, ch) {
         ctx.setLineDash([])
         const icon = GRENADE_ICONS[g.type]
         if (icon && icon.complete && icon.naturalWidth) {
-          const iconSz = cw * 0.022 * arcScale; ctx.globalAlpha = 0.9
+          const iconSz = mapSize * 0.022 * arcScale; ctx.globalAlpha = 0.9
           ctx.drawImage(icon, iconX - iconSz / 2, iconY - iconSz / 2, iconSz, iconSz)
         } else {
-          ctx.beginPath(); ctx.arc(iconX, iconY, cw * 0.008 * arcScale, 0, Math.PI * 2)
+          ctx.beginPath(); ctx.arc(iconX, iconY, mapSize * 0.008 * arcScale, 0, Math.PI * 2)
           ctx.fillStyle = typeColor; ctx.fill()
         }
         ctx.restore(); continue
@@ -308,7 +307,7 @@ function renderGrenades(round, tick, frame, cw, ch) {
         ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(x, y); ctx.stroke()
         ctx.setLineDash([])
         ctx.globalAlpha = alpha * 0.5
-        ctx.beginPath(); ctx.arc(ox, oy, cw * 0.005, 0, Math.PI * 2)
+        ctx.beginPath(); ctx.arc(ox, oy, mapSize * 0.005, 0, Math.PI * 2)
         ctx.fillStyle = typeColor; ctx.fill()
       }
       ctx.restore()
@@ -321,7 +320,7 @@ function renderGrenades(round, tick, frame, cw, ch) {
     const teamOutline = throwerTeam === 'ct' ? CT_COLOR : throwerTeam === 't' ? T_COLOR : null
 
     if (g.type === 'smoke') {
-      const r = cw * 0.032
+      const r = mapSize * 0.032
       // Check for nearby HE reveals
       const heReveals = grenades.filter(h =>
         h.type === 'he' && h.tick >= round.start_tick &&
@@ -334,9 +333,9 @@ function renderGrenades(round, tick, frame, cw, ch) {
         ctx.beginPath()
         ctx.arc(x, y, r, 0, Math.PI * 2)
         for (const he of heReveals) {
-          const { x: hx, y: hy } = worldToCanvas(he.x, he.y, mapName, cw, ch)
+          const { x: hx, y: hy } = tc(he.x, he.y)
           const heAge  = (tick - he.tick) / tickRate
-          const holeR  = cw * 0.008 + cw * 0.02 * Math.min(1, heAge / 0.4)
+          const holeR  = mapSize * 0.008 + mapSize * 0.02 * Math.min(1, heAge / 0.4)
           ctx.arc(hx, hy, holeR, 0, Math.PI * 2)
         }
         ctx.clip('evenodd')
@@ -359,7 +358,7 @@ function renderGrenades(round, tick, frame, cw, ch) {
       })
       if (smoked) continue
 
-      const r = cw * 0.028
+      const r = mapSize * 0.028
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2)
       ctx.fillStyle   = 'rgba(255,100,0,0.3)'
       ctx.strokeStyle = teamOutline ?? 'rgba(255,140,0,0.6)'
@@ -371,7 +370,7 @@ function renderGrenades(round, tick, frame, cw, ch) {
       const durationSec = (g.end_tick - g.tick) / GAME_HZ
       const elapsedSec  = (tick - g.tick) / tickRate
       const progress    = durationSec > 0 ? Math.min(1, elapsedSec / durationSec) : 1
-      const r = cw * 0.03 * (1 - progress)
+      const r = mapSize * 0.03 * (1 - progress)
       if (r > 0) {
         ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2)
         ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fill()
@@ -379,7 +378,7 @@ function renderGrenades(round, tick, frame, cw, ch) {
 
     } else if (g.type === 'he') {
       const progress = totalS > 0 ? Math.min(1, elapsedS / totalS) : 1
-      const r = cw * 0.03 * (1 - progress)
+      const r = mapSize * 0.03 * (1 - progress)
       if (r > 0) {
         ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2)
         ctx.fillStyle = 'rgba(220,50,50,0.6)'; ctx.fill()
@@ -390,10 +389,10 @@ function renderGrenades(round, tick, frame, cw, ch) {
 }
 
 // ── Bomb tracking ─────────────────────────────────────────────
-function renderBomb(round, tick, cw, ch) {
+function renderBomb(round, tick, cw, ch, tc, mapSize) {
   ctx.save()
   const tickRate = state.match.meta.tick_rate
-  const fontSize = Math.round(cw * 0.018)
+  const fontSize = Math.round(mapSize * 0.018)
   let latest = null
   for (const event of state.match.bomb) {
     if (event.tick < round.start_tick || event.tick > tick) continue
@@ -401,9 +400,9 @@ function renderBomb(round, tick, cw, ch) {
   }
   if (!latest) { ctx.restore(); return }
   if (latest.x == null || latest.y == null) { ctx.restore(); return }
-  const { x, y } = worldToCanvas(latest.x, latest.y, mapName, cw, ch)
+  const { x, y } = tc(latest.x, latest.y)
   if (latest.type === 'planted') {
-    const r = cw * 0.018 + Math.sin(tick / 8) * cw * 0.006
+    const r = mapSize * 0.018 + Math.sin(tick / 8) * mapSize * 0.006
     ctx.beginPath()
     ctx.arc(x, y, r, 0, Math.PI * 2)
     ctx.fillStyle = 'rgba(255,50,50,0.7)'
@@ -416,12 +415,12 @@ function renderBomb(round, tick, cw, ch) {
     ctx.fillText(Math.ceil(seconds), x, y - r - 2)
   } else if (latest.type === 'defused') {
     ctx.beginPath()
-    ctx.arc(x, y, cw * 0.018, 0, Math.PI * 2)
+    ctx.arc(x, y, mapSize * 0.018, 0, Math.PI * 2)
     ctx.fillStyle = '#4CAF50'
     ctx.fill()
   } else if (latest.type === 'exploded') {
     ctx.beginPath()
-    ctx.arc(x, y, cw * 0.025, 0, Math.PI * 2)
+    ctx.arc(x, y, mapSize * 0.025, 0, Math.PI * 2)
     ctx.fillStyle = 'rgba(255,140,0,0.8)'
     ctx.fill()
   }
@@ -429,7 +428,7 @@ function renderBomb(round, tick, cw, ch) {
 }
 
 // ── Shot beam ─────────────────────────────────────────────────
-function renderShots(round, tick, frame, cw, ch) {
+function renderShots(round, tick, frame, cw, ch, tc, mapSize) {
   const BEAM_DURATION = 9
   ctx.save()
   ctx.lineCap = 'round'
@@ -442,13 +441,12 @@ function renderShots(round, tick, frame, cw, ch) {
     const player = frame.players.find(p => p.steam_id === shot.steam_id)
     if (!player || !player.is_alive || player.yaw == null) continue
 
-    const { x, y }   = worldToCanvas(player.x, player.y, mapName, cw, ch)
+    const { x, y }   = tc(player.x, player.y)
     const fade        = 1 - age / BEAM_DURATION
     const yawRad      = player.yaw * Math.PI / 180
-    const { x: bx, y: by } = worldToCanvas(
+    const { x: bx, y: by } = tc(
       player.x + Math.cos(yawRad) * 520,
-      player.y + Math.sin(yawRad) * 520,
-      mapName, cw, ch
+      player.y + Math.sin(yawRad) * 520
     )
     const isct   = player.team === 'ct'
     const teamRgb = isct ? '79,195,247' : '255,149,0'
@@ -478,13 +476,13 @@ function renderShots(round, tick, frame, cw, ch) {
       const ft = age / 3
       ctx.globalAlpha = (1 - ft) * 0.85
       ctx.beginPath()
-      ctx.arc(x, y, cw * 0.005 + cw * 0.015 * ft, 0, Math.PI * 2)
+      ctx.arc(x, y, mapSize * 0.005 + mapSize * 0.015 * ft, 0, Math.PI * 2)
       ctx.strokeStyle = teamHex
       ctx.lineWidth   = 1.5
       ctx.stroke()
       ctx.globalAlpha = (1 - ft) * 0.75
       ctx.beginPath()
-      ctx.arc(x, y, cw * 0.0045 * (1 - ft * 0.6), 0, Math.PI * 2)
+      ctx.arc(x, y, mapSize * 0.0045 * (1 - ft * 0.6), 0, Math.PI * 2)
       ctx.fillStyle = '#fff'
       ctx.fill()
     }
@@ -574,8 +572,24 @@ function drawCountdownText(x, y, r, remaining, textColor) {
 
 // ── Render ────────────────────────────────────────────────────
 function render() {
-  const { width: cw, height: ch } = canvas
+  const cw = canvas.width
+  const ch = canvas.height
   ctx.clearRect(0, 0, cw, ch)
+
+  // Dark fill — letterbox areas match body bg
+  ctx.fillStyle = '#030712'
+  ctx.fillRect(0, 0, cw, ch)
+
+  // Map region: object-fit:contain centered square
+  const mapSize = Math.min(cw, ch)
+  const mapX    = Math.round((cw - mapSize) / 2)
+  const mapY    = Math.round((ch - mapSize) / 2)
+
+  // Helper: world coords → canvas coords (accounts for map offset)
+  function tc(wx, wy) {
+    const { x, y } = worldToCanvas(wx, wy, mapName, mapSize, mapSize)
+    return { x: x + mapX, y: y + mapY }
+  }
 
   // ── Zoomed map layer ──────────────────────────────────────
   ctx.save()
@@ -584,22 +598,22 @@ function render() {
   ctx.translate(-cw / 2, -ch / 2)
 
   if (mapLoaded && mapImg.complete && mapImg.naturalWidth) {
-    ctx.drawImage(mapImg, 0, 0, cw, ch)
+    ctx.drawImage(mapImg, mapX, mapY, mapSize, mapSize)
     ctx.fillStyle = 'rgba(0,0,0,0.18)'
-    ctx.fillRect(0, 0, cw, ch)
+    ctx.fillRect(mapX, mapY, mapSize, mapSize)
   } else {
-    ctx.fillStyle = '#111318'
-    ctx.fillRect(0, 0, cw, ch)
+    ctx.fillStyle = '#0d1117'
+    ctx.fillRect(mapX, mapY, mapSize, mapSize)
   }
   const frame = getInterpolatedFrame(state.tick)
   if (frame) {
-    const dotR       = Math.round(cw * 0.009)
-    const pillFontSz = Math.round(cw * 0.011)
+    const dotR       = Math.round(mapSize * 0.009)
+    const pillFontSz = Math.round(mapSize * 0.011)
     const pillFont   = `600 ${pillFontSz}px Inter, system-ui, sans-serif`
     const round      = currentRound()
 
-    renderGrenades(round, state.tick, frame, cw, ch)
-    renderBomb(round, state.tick, cw, ch)
+    renderGrenades(round, state.tick, frame, cw, ch, tc, mapSize)
+    renderBomb(round, state.tick, cw, ch, tc, mapSize)
 
     // Build active blind map: steam_id → { until, totalTicks }
     const tickRate   = state.match.meta.tick_rate
@@ -616,7 +630,7 @@ function render() {
     }
 
     for (const p of frame.players) {
-      const { x, y } = worldToCanvas(p.x, p.y, mapName, cw, ch)
+      const { x, y } = tc(p.x, p.y)
 
       if (!p.is_alive) {
         ctx.save()
@@ -681,10 +695,9 @@ function render() {
 
       if (p.yaw != null) {
         const yawRad = p.yaw * Math.PI / 180
-        const { x: dirX, y: dirY } = worldToCanvas(
+        const { x: dirX, y: dirY } = tc(
           p.x + Math.cos(yawRad) * 300,
-          p.y + Math.sin(yawRad) * 300,
-          mapName, cw, ch
+          p.y + Math.sin(yawRad) * 300
         )
         const angle      = Math.atan2(dirY - y, dirX - x)
         const notchAngle = 22 * Math.PI / 180
@@ -719,14 +732,14 @@ function render() {
 
     for (const p of frame.players) {
       if (!p.is_alive) continue
-      const { x, y } = worldToCanvas(p.x, p.y, mapName, cw, ch)
+      const { x, y } = tc(p.x, p.y)
       drawPlayerPill(x, y - dotR, p.name.slice(0, 13), playerColor(p.team), pillFont, pillFontSz)
 
       const rawWeapon = (p.weapon || '').replace('weapon_', '')
       const iconName  = WEAPON_ICON_MAP[rawWeapon] ?? rawWeapon
       const wIcon     = WEAPON_CANVAS_ICONS[iconName]
       if (wIcon && wIcon.complete && wIcon.naturalWidth) {
-        const sz = Math.round(cw * 0.018)
+        const sz = Math.round(mapSize * 0.018)
         const ph = pillFontSz + 5
         const py = (y - dotR) - ph - 2
         ctx.save()
@@ -735,7 +748,7 @@ function render() {
       }
     }
 
-    renderShots(round, state.tick, frame, cw, ch)
+    renderShots(round, state.tick, frame, cw, ch, tc, mapSize)
   }
 
   ctx.restore() // end zoom transform
@@ -901,12 +914,6 @@ function playerCardHTML(p) {
   const wIconEl  = weapon
     ? `<img src="images/weapons/${esc(iconName)}.svg" class="weapon-icon" onerror="this.style.display='none'">`
     : ''
-  const utilDots = [
-    p.has_smoke   ? `<div class="util-dot smoke"><img src="images/weapons/smokegrenade.svg"></div>`   : '',
-    p.has_flash   ? `<div class="util-dot flash"><img src="images/weapons/flashbang.svg"></div>`       : '',
-    p.has_molotov ? `<div class="util-dot molotov"><img src="images/weapons/molotov.svg"></div>`       : '',
-    p.has_he      ? `<div class="util-dot he"><img src="images/weapons/hegrenade.svg"></div>`          : '',
-  ].join('')
   return `<div class="player-card">
     <div class="card-accent-bar"></div>
     <div class="card-body">
@@ -920,8 +927,12 @@ function playerCardHTML(p) {
       </div>
       <div class="card-bottom">
         ${wIconEl}<span class="weapon-name">${esc(weapon)}</span>
-        <div class="util-spacer"></div>
-        <div class="util-dots">${utilDots}</div>
+      </div>
+      <div class="util-row">
+        <div class="util-pill smoke${p.has_smoke   ? '' : ' empty'}">SMK</div>
+        <div class="util-pill flash${p.has_flash   ? '' : ' empty'}">FLB</div>
+        <div class="util-pill molotov${p.has_molotov ? '' : ' empty'}">MOL</div>
+        <div class="util-pill he${p.has_he         ? '' : ' empty'}">HE</div>
       </div>
     </div>
   </div>`
@@ -1016,13 +1027,15 @@ function updateRoundRow() {
 }
 
 function updateTimelineKills() {
-  const round    = currentRound()
-  const fe       = freezeEnd(round)
-  const span     = round.end_tick - fe
-  const track    = document.getElementById('timeline-track')
-  // Remove old markers
+  const round  = currentRound()
+  const fe     = freezeEnd(round)
+  const span   = round.end_tick - fe
+  const track  = document.getElementById('timeline-track')
+
   track.querySelectorAll('.tl-kill-mark').forEach(el => el.remove())
   if (span <= 0) return
+
+  // Kill marks: CT in top half, T in bottom half
   for (const k of state.match.kills) {
     if (k.tick < round.start_tick || k.tick > round.end_tick) continue
     const pct = ((k.tick - fe) / span) * 100
@@ -1032,15 +1045,29 @@ function updateTimelineKills() {
     el.style.left = pct + '%'
     track.appendChild(el)
   }
+
+  // Bomb plant marks: full height, red
+  for (const ev of state.match.bomb) {
+    if (ev.type !== 'planted') continue
+    if (ev.tick < round.start_tick || ev.tick > round.end_tick) continue
+    const pct = ((ev.tick - fe) / span) * 100
+    if (pct < 0 || pct > 100) continue
+    const el = document.createElement('div')
+    el.className = 'tl-kill-mark bomb'
+    el.style.left = pct + '%'
+    track.appendChild(el)
+  }
 }
 
 function updateTimeline() {
-  const round    = currentRound()
-  const fe       = freezeEnd(round)
-  const span     = round.end_tick - fe
-  const pct      = span > 0 ? ((state.tick - fe) / span) * 100 : 0
-  const clamped  = Math.max(0, Math.min(100, pct))
+  const round   = currentRound()
+  const fe      = freezeEnd(round)
+  const span    = round.end_tick - fe
+  const pct     = span > 0 ? ((state.tick - fe) / span) * 100 : 0
+  const clamped = Math.max(0, Math.min(100, pct))
+
   document.getElementById('timeline-fill').style.width = clamped + '%'
+  document.getElementById('timeline-scrub').style.left = clamped + '%'
   document.getElementById('timeline-thumb').style.left = clamped + '%'
 
   const tickRate = state.match.meta.tick_rate
