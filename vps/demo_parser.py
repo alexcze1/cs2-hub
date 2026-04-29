@@ -15,23 +15,24 @@ _WIN_REASONS = {
 
 
 def _pair_rounds(start_ticks: list, end_rows: list) -> list:
-    """Pair each round_start with the next round_end that follows it."""
+    """Pair each round_end with the first round_start that precedes it in that window."""
     starts = sorted(int(t) for t in start_ticks)
     ends   = sorted(end_rows, key=lambda r: int(r["tick"]))
     pairs  = []
-    ei     = 0
-    for start in starts:
-        while ei < len(ends) and int(ends[ei]["tick"]) <= start:
-            ei += 1
-        if ei >= len(ends):
-            break
+    prev_end_tick = -1
+    for end_row in ends:
+        end_tick = int(end_row["tick"])
+        # All starts strictly between the previous end and this end
+        window = [s for s in starts if s > prev_end_tick and s < end_tick]
+        if not window:
+            continue
         pairs.append({
-            "start_tick": start,
-            "end_tick":   int(ends[ei]["tick"]),
-            "winner":     ends[ei].get("winner"),
-            "reason":     ends[ei].get("reason"),
+            "start_tick": window[0],   # first start in window preserves freeze phase
+            "end_tick":   end_tick,
+            "winner":     end_row.get("winner"),
+            "reason":     end_row.get("reason"),
         })
-        ei += 1
+        prev_end_tick = end_tick
     return pairs
 
 
