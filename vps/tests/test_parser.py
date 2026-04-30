@@ -294,3 +294,49 @@ def test_build_grenade_paths_consumed_track_not_reused():
     _build_grenade_paths(grenades, raw_tracks)
     assert grenades[0].get("origin_tick") == 900
     assert "origin_tick" not in grenades[1]
+
+
+# ── _is_knife_round ───────────────────────────────────────────
+
+def test_is_knife_round_short_with_only_knife_kills():
+    from demo_parser import _is_knife_round
+    rnd   = {"start_tick": 1000, "end_tick": 1000 + 64 * 30}  # 30 s
+    kills = [
+        {"tick": 1100, "weapon": "knife"},
+        {"tick": 1200, "weapon": "weapon_knife_t"},
+    ]
+    assert _is_knife_round(rnd, kills, tick_rate=64) is True
+
+
+def test_is_knife_round_short_with_gun_kill_not_knife():
+    from demo_parser import _is_knife_round
+    rnd   = {"start_tick": 1000, "end_tick": 1000 + 64 * 30}
+    kills = [{"tick": 1100, "weapon": "ak47"}]
+    assert _is_knife_round(rnd, kills, tick_rate=64) is False
+
+
+def test_is_knife_round_long_round_never_knife():
+    from demo_parser import _is_knife_round
+    rnd   = {"start_tick": 1000, "end_tick": 1000 + 64 * 80}  # 80 s > 75 s
+    kills = []  # even with no kills, too long to be knife
+    assert _is_knife_round(rnd, kills, tick_rate=64) is False
+
+
+def test_is_knife_round_no_kills_at_all_short_round():
+    """Short round with no kills (timed out) — treat as non-knife since we
+    cannot prove it was a knife round. Conservative: keep it."""
+    from demo_parser import _is_knife_round
+    rnd   = {"start_tick": 1000, "end_tick": 1000 + 64 * 30}
+    kills = []
+    assert _is_knife_round(rnd, kills, tick_rate=64) is False
+
+
+def test_is_knife_round_kills_outside_window_ignored():
+    from demo_parser import _is_knife_round
+    rnd   = {"start_tick": 1000, "end_tick": 1000 + 64 * 30}
+    kills = [
+        {"tick": 500,  "weapon": "ak47"},   # before round
+        {"tick": 5000, "weapon": "ak47"},   # after round
+        {"tick": 1100, "weapon": "knife"},  # only kill in-round → knife
+    ]
+    assert _is_knife_round(rnd, kills, tick_rate=64) is True

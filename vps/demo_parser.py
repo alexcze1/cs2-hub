@@ -49,6 +49,37 @@ def _is_warmup(start_tick: int, end_tick: int, min_ticks: int = 500) -> bool:
     return (end_tick - start_tick) < min_ticks
 
 
+_KNIFE_WEAPONS = {
+    "knife", "knifegg", "knife_t", "knife_ct", "bayonet",
+    "knife_butterfly", "knife_karambit", "knife_m9_bayonet", "knife_flip",
+    "knife_gut", "knife_falchion", "knife_shadow_daggers", "knife_bowie",
+    "knife_ursus", "knife_gypsy_jackknife", "knife_stiletto", "knife_widowmaker",
+    "knife_skeleton", "knife_cord", "knife_canis", "knife_outdoor", "knife_push",
+    "knife_tactical", "knife_css",
+}
+
+
+def _is_knife_round(rnd: dict, kills: list, tick_rate: int) -> bool:
+    """A round is a knife round iff it is short (<=75 s) AND has at least one
+    kill in-window AND none of the in-window kills used a non-knife weapon.
+
+    Empty kill list means no evidence - keep the round (conservative)."""
+    duration_s = (rnd["end_tick"] - rnd["start_tick"]) / max(tick_rate, 1)
+    if duration_s > 75:
+        return False
+    in_window = [k for k in kills
+                 if rnd["start_tick"] <= k.get("tick", 0) <= rnd["end_tick"]]
+    if not in_window:
+        return False
+    has_gun_kill = False
+    for k in in_window:
+        w = (k.get("weapon") or "").lower().replace("weapon_", "")
+        if w and w not in _KNIFE_WEAPONS and w != "world":
+            has_gun_kill = True
+            break
+    return not has_gun_kill
+
+
 def _safe_float(val) -> float:
     if val is None:
         return 0.0
