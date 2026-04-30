@@ -200,35 +200,47 @@ def _fetch_grenade_tracks(dem_path) -> list:
 
 
 def _build_grenade_paths(grenades, raw_tracks) -> None:
-    """Match pre-fetched Go binary tracks onto parsed grenade list."""
+    """Match Go-binary projectile tracks onto parsed grenade rows.
+
+    Match key is type-only; steam_id is a tiebreaker, not a primary key.
+    This handles two same-player throws (different projectiles, same steam_id+type)
+    and pickup-and-rethrow (different steam_ids on grenade vs. track) uniformly.
+    """
     if not raw_tracks:
         return
     from collections import defaultdict as _dd
-    by_key = _dd(list)
+    by_type = _dd(list)
     for t in raw_tracks:
-        by_key[(t["steam_id"], t["type"])].append(t)
-    for lst in by_key.values():
-        lst.sort(key=lambda t: t["throw_tick"])
+        by_type[t.get("type", "")].append(t)
+    for lst in by_type.values():
+        lst.sort(key=lambda t: t.get("throw_tick", 0))
 
     consumed = _dd(set)
-    for g in sorted(grenades, key=lambda x: x["tick"]):
-        key = (g.get("steam_id", ""), g["type"])
-        best, best_i = None, None
-        for i, t in enumerate(by_key.get(key, [])):
-            if i in consumed[key]:
+    for g in sorted(grenades, key=lambda x: x.get("tick", 0)):
+        gtype = g.get("type", "")
+        candidates = by_type.get(gtype, [])
+        best = None
+        best_i = None
+        best_score = None
+        for i, t in enumerate(candidates):
+            if i in consumed[gtype]:
                 continue
-            if abs(t["det_tick"] - g["tick"]) < 256:
-                if best is None or abs(t["det_tick"] - g["tick"]) < abs(best["det_tick"] - g["tick"]):
-                    best, best_i = t, i
+            d = abs(t.get("det_tick", 0) - g.get("tick", 0))
+            if d >= 256:
+                continue
+            same_thrower = (t.get("steam_id", "") == g.get("steam_id", ""))
+            score = (0 if same_thrower else 1, d)
+            if best_score is None or score < best_score:
+                best, best_i, best_score = t, i, score
         if best is not None:
-            consumed[key].add(best_i)
+            consumed[gtype].add(best_i)
             g["path"]            = [[pt["x"], pt["y"]] for pt in best["path"]]
             g["path_ticks"]      = [pt["tick"] for pt in best["path"]] if best["path"] and "tick" in best["path"][0] else None
             g["origin_x"]        = best["path"][0]["x"]
             g["origin_y"]        = best["path"][0]["y"]
-            g["origin_tick"]     = best["throw_tick"]
-            g["path_throw_tick"] = best["throw_tick"]
-            g["path_det_tick"]   = best["det_tick"]
+            g["origin_tick"]     = best.get("throw_tick", 0)
+            g["path_throw_tick"] = best.get("throw_tick", 0)
+            g["path_det_tick"]   = best.get("det_tick", 0)
 
 def _parse_grenades(p) -> list:
     grenades = []

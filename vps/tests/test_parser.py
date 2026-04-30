@@ -207,3 +207,90 @@ def test_all_rounds_have_valid_winner():
     result = parse_demo(str(FIXTURE))
     for r in result["rounds"]:
         assert r["winner_side"] in ("ct", "t"), f"bad winner: {r}"
+
+
+# ── _build_grenade_paths ──────────────────────────────────────
+
+def test_build_grenade_paths_matches_same_player_two_throws():
+    """Player A throws smoke #1 (det 1000), throws smoke #2 (det 2000).
+    Both tracks must attach to the right grenade.
+    """
+    from demo_parser import _build_grenade_paths
+    grenades = [
+        {"tick": 1000, "type": "smoke", "steam_id": "A", "x": 0, "y": 0},
+        {"tick": 2000, "type": "smoke", "steam_id": "A", "x": 0, "y": 0},
+    ]
+    raw_tracks = [
+        {"steam_id": "A", "type": "smoke", "throw_tick":  900, "det_tick": 1000,
+         "path": [{"x": 1.0, "y": 1.0, "tick":  900}, {"x": 2.0, "y": 2.0, "tick": 1000}]},
+        {"steam_id": "A", "type": "smoke", "throw_tick": 1900, "det_tick": 2000,
+         "path": [{"x": 3.0, "y": 3.0, "tick": 1900}, {"x": 4.0, "y": 4.0, "tick": 2000}]},
+    ]
+    _build_grenade_paths(grenades, raw_tracks)
+    assert grenades[0]["origin_tick"] == 900
+    assert grenades[1]["origin_tick"] == 1900
+    assert grenades[0]["path"][0] == [1.0, 1.0]
+    assert grenades[1]["path"][0] == [3.0, 3.0]
+
+
+def test_build_grenade_paths_picked_up_grenade_attribution():
+    """Player B picks up A's dropped smoke and throws it. The detonation event
+    has B as steam_id; the Go-binary track also has B (since it tracks the
+    re-thrown projectile entity from B's hand). Match must succeed.
+    """
+    from demo_parser import _build_grenade_paths
+    grenades = [
+        {"tick": 1000, "type": "smoke", "steam_id": "A", "x": 0, "y": 0},
+        {"tick": 2000, "type": "smoke", "steam_id": "B", "x": 0, "y": 0},
+    ]
+    raw_tracks = [
+        {"steam_id": "A", "type": "smoke", "throw_tick":  900, "det_tick": 1000,
+         "path": [{"x": 1.0, "y": 1.0, "tick":  900}, {"x": 2.0, "y": 2.0, "tick": 1000}]},
+        {"steam_id": "B", "type": "smoke", "throw_tick": 1900, "det_tick": 2000,
+         "path": [{"x": 3.0, "y": 3.0, "tick": 1900}, {"x": 4.0, "y": 4.0, "tick": 2000}]},
+    ]
+    _build_grenade_paths(grenades, raw_tracks)
+    assert grenades[0]["origin_tick"] == 900
+    assert grenades[1]["origin_tick"] == 1900
+
+
+def test_build_grenade_paths_steamid_mismatch_falls_back_to_proximity():
+    """Detonation steam_id differs from track steam_id (e.g. attribution glitch).
+    Match should still succeed by tick proximity."""
+    from demo_parser import _build_grenade_paths
+    grenades = [
+        {"tick": 1000, "type": "smoke", "steam_id": "A", "x": 0, "y": 0},
+    ]
+    raw_tracks = [
+        {"steam_id": "OTHER", "type": "smoke", "throw_tick": 900, "det_tick": 1000,
+         "path": [{"x": 1.0, "y": 1.0, "tick": 900}, {"x": 2.0, "y": 2.0, "tick": 1000}]},
+    ]
+    _build_grenade_paths(grenades, raw_tracks)
+    assert grenades[0]["origin_tick"] == 900
+
+
+def test_build_grenade_paths_too_far_apart_no_match():
+    from demo_parser import _build_grenade_paths
+    grenades = [{"tick": 1000, "type": "smoke", "steam_id": "A", "x": 0, "y": 0}]
+    raw_tracks = [
+        {"steam_id": "A", "type": "smoke", "throw_tick": 5000, "det_tick": 5300,
+         "path": [{"x": 1.0, "y": 1.0, "tick": 5000}]},
+    ]
+    _build_grenade_paths(grenades, raw_tracks)
+    assert "origin_tick" not in grenades[0]
+
+
+def test_build_grenade_paths_consumed_track_not_reused():
+    """If two grenades both want the same track, only one consumes it."""
+    from demo_parser import _build_grenade_paths
+    grenades = [
+        {"tick": 1000, "type": "smoke", "steam_id": "A", "x": 0, "y": 0},
+        {"tick": 1010, "type": "smoke", "steam_id": "A", "x": 0, "y": 0},
+    ]
+    raw_tracks = [
+        {"steam_id": "A", "type": "smoke", "throw_tick": 900, "det_tick": 1000,
+         "path": [{"x": 1.0, "y": 1.0, "tick": 900}]},
+    ]
+    _build_grenade_paths(grenades, raw_tracks)
+    assert grenades[0].get("origin_tick") == 900
+    assert "origin_tick" not in grenades[1]
