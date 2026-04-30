@@ -630,7 +630,10 @@ def parse_demo(dem_path: str) -> dict:
             "victim_y":    vy,
         })
 
-    # Knife-round filter (now that kills are built) and score recompute.
+    # Knife-round filter (must run AFTER kills are built — _is_knife_round inspects weapons)
+    # and score recompute. tick_rate=64 here is the server tickrate at which round_start/end
+    # events fire (matches _is_warmup convention) — distinct from meta.tick_rate=70 below
+    # which is the player frame sampling rate.
     pre_knife_count = len(rounds)
     rounds = [r for r in rounds if not _is_knife_round(r, kills, tick_rate=64)]
     for i, r in enumerate(rounds):
