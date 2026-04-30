@@ -299,6 +299,35 @@ def _parse_grenades(p) -> list:
     return grenades
 
 
+def _dedupe_grenades(grenades: list) -> list:
+    """Collapse subtick-duplicated grenade rows. Two rows are merged if same
+    steam_id, same type, within 64 ticks AND within 300 world units of each
+    other. Earliest entry is preserved. Each survivor gets a synthetic 'id'
+    field so the client can dedupe stably regardless of tick collisions.
+    """
+    sorted_g = sorted(
+        grenades,
+        key=lambda g: (g.get("steam_id", ""), g.get("type", ""), g.get("tick", 0)),
+    )
+    out: list = []
+    for g in sorted_g:
+        merged = False
+        if out:
+            prev = out[-1]
+            if (prev.get("steam_id", "") == g.get("steam_id", "")
+                    and prev.get("type") == g.get("type")
+                    and abs(prev.get("tick", 0) - g.get("tick", 0)) <= 64):
+                dx = prev.get("x", 0.0) - g.get("x", 0.0)
+                dy = prev.get("y", 0.0) - g.get("y", 0.0)
+                if dx * dx + dy * dy < 300 * 300:
+                    merged = True
+        if not merged:
+            out.append(g)
+    for i, g in enumerate(out):
+        g["id"] = f"{g.get('type','')}-{g.get('tick',0)}-{g.get('steam_id','')}-{i}"
+    return out
+
+
 def _parse_bomb(p, by_tick, sampled) -> list:
     """Parse bomb events. Derives position from planting player's frame position
     because bomb_planted/defused events don't carry reliable world coords."""

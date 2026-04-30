@@ -80,6 +80,81 @@ def test_is_warmup_exact_boundary():
     assert _is_warmup(100, 600) is False  # 500 ticks == 500, not warmup
 
 
+# ── _dedupe_grenades ──────────────────────────────────────────
+
+def test_dedupe_grenades_keeps_distinct_throws():
+    from demo_parser import _dedupe_grenades
+    grenades = [
+        {"tick": 1000, "type": "smoke",   "x": 100.0, "y": 100.0, "steam_id": "A"},
+        {"tick": 2000, "type": "smoke",   "x": 800.0, "y": 800.0, "steam_id": "A"},
+        {"tick": 1500, "type": "molotov", "x": 100.0, "y": 100.0, "steam_id": "A"},
+    ]
+    out = _dedupe_grenades(grenades)
+    assert len(out) == 3
+
+
+def test_dedupe_grenades_collapses_subtick_double_fire():
+    from demo_parser import _dedupe_grenades
+    grenades = [
+        {"tick": 1000, "type": "smoke", "x": 100.0, "y": 100.0, "steam_id": "A"},
+        {"tick": 1002, "type": "smoke", "x": 100.5, "y": 100.5, "steam_id": "A"},  # subtick dup
+    ]
+    out = _dedupe_grenades(grenades)
+    assert len(out) == 1
+    assert out[0]["tick"] == 1000  # earliest preserved
+
+
+def test_dedupe_grenades_keeps_far_apart_same_player_throws():
+    from demo_parser import _dedupe_grenades
+    grenades = [
+        {"tick": 1000, "type": "smoke", "x": 100.0, "y": 100.0, "steam_id": "A"},
+        {"tick": 1080, "type": "smoke", "x": 105.0, "y": 105.0, "steam_id": "A"},  # 80 ticks apart > 64
+    ]
+    out = _dedupe_grenades(grenades)
+    assert len(out) == 2
+
+
+def test_dedupe_grenades_keeps_same_tick_far_apart_positions():
+    from demo_parser import _dedupe_grenades
+    grenades = [
+        {"tick": 1000, "type": "smoke", "x": 100.0, "y": 100.0, "steam_id": "A"},
+        {"tick": 1010, "type": "smoke", "x": 900.0, "y": 900.0, "steam_id": "A"},  # 800 units apart > 300
+    ]
+    out = _dedupe_grenades(grenades)
+    assert len(out) == 2
+
+
+def test_dedupe_grenades_assigns_synthetic_ids():
+    from demo_parser import _dedupe_grenades
+    grenades = [
+        {"tick": 1000, "type": "smoke", "x": 100.0, "y": 100.0, "steam_id": "A"},
+        {"tick": 2000, "type": "flash", "x": 200.0, "y": 200.0, "steam_id": "B"},
+    ]
+    out = _dedupe_grenades(grenades)
+    assert all("id" in g for g in out)
+    assert out[0]["id"] != out[1]["id"]
+
+
+def test_dedupe_grenades_different_types_not_merged():
+    from demo_parser import _dedupe_grenades
+    grenades = [
+        {"tick": 1000, "type": "smoke",   "x": 100.0, "y": 100.0, "steam_id": "A"},
+        {"tick": 1010, "type": "molotov", "x": 100.0, "y": 100.0, "steam_id": "A"},
+    ]
+    out = _dedupe_grenades(grenades)
+    assert len(out) == 2
+
+
+def test_dedupe_grenades_different_players_not_merged():
+    from demo_parser import _dedupe_grenades
+    grenades = [
+        {"tick": 1000, "type": "smoke", "x": 100.0, "y": 100.0, "steam_id": "A"},
+        {"tick": 1010, "type": "smoke", "x": 100.0, "y": 100.0, "steam_id": "B"},
+    ]
+    out = _dedupe_grenades(grenades)
+    assert len(out) == 2
+
+
 # ── integration tests (require fixture.dem) ──────────────────
 
 @pytest.mark.skipif(not FIXTURE.exists(), reason="no fixture.dem")
