@@ -440,10 +440,24 @@ def parse_demo(dem_path: str) -> dict:
     pairs = _pair_rounds(start_ticks, end_rows)
     print(f"[parser] pairs: {len(pairs)}  starts: {len(start_ticks)}  ends: {len(end_rows)}")
 
+    try:
+        match_start_ticks = sorted(
+            _safe_int(r.get("tick"))
+            for r in _to_records(p.parse_event("round_announce_match_start"))
+            if _safe_int(r.get("tick")) > 0
+        )
+    except Exception:
+        match_start_ticks = []
+    live_start_tick = match_start_ticks[-1] if match_start_ticks else 0
+    print(f"[parser] live_start_tick: {live_start_tick}  match_start events: {len(match_start_ticks)}")
+
     rounds = []
     for pair in pairs:
         if _is_warmup(pair["start_tick"], pair["end_tick"]):
             print(f"[parser] skip warmup: {pair['start_tick']}→{pair['end_tick']}")
+            continue
+        if pair["start_tick"] < live_start_tick:
+            print(f"[parser] skip pre-live: {pair['start_tick']} < {live_start_tick}")
             continue
         winner = _winner_side(pair["winner"])
         if winner is None:
@@ -501,7 +515,8 @@ def parse_demo(dem_path: str) -> dict:
 
     # Request only the sampled ticks from the parser — never loads the full DataFrame
     tick_df = p.parse_ticks(
-        ["X", "Y", "health", "is_alive", "team_num", "active_weapon_name", "balance", "armor_value", "yaw"] + _util_cols,
+        ["X", "Y", "Z", "health", "is_alive", "team_num", "active_weapon_name",
+         "balance", "armor_value", "yaw", "pitch", "flash_duration"] + _util_cols,
         ticks=sampled,
     )
 
@@ -555,21 +570,24 @@ def parse_demo(dem_path: str) -> dict:
                 has_smoke = has_flash = has_molotov = has_he = False
 
             players.append({
-                "steam_id":    str(r.get("steamid") or ""),
-                "name":        str(r.get("name") or ""),
-                "team":        "ct" if team_num == 3 else "t",
-                "x":           _safe_float(r.get("X")),
-                "y":           _safe_float(r.get("Y")),
-                "hp":          _safe_int(r.get("health")),
-                "armor":       _safe_int(r.get("armor_value")),
-                "weapon":      str(r.get("active_weapon_name") or ""),
-                "money":       _safe_int(r.get("balance")),
-                "is_alive":    bool(r.get("is_alive") or False),
-                "yaw":         _safe_float(r.get("yaw")),
-                "has_smoke":   has_smoke,
-                "has_flash":   has_flash,
-                "has_molotov": has_molotov,
-                "has_he":      has_he,
+                "steam_id":       str(r.get("steamid") or ""),
+                "name":           str(r.get("name") or ""),
+                "team":           "ct" if team_num == 3 else "t",
+                "x":              _safe_float(r.get("X")),
+                "y":              _safe_float(r.get("Y")),
+                "z":              _safe_float(r.get("Z")),
+                "hp":             _safe_int(r.get("health")),
+                "armor":          _safe_int(r.get("armor_value")),
+                "weapon":         str(r.get("active_weapon_name") or ""),
+                "money":          _safe_int(r.get("balance")),
+                "is_alive":       bool(r.get("is_alive") or False),
+                "yaw":            _safe_float(r.get("yaw")),
+                "pitch":          _safe_float(r.get("pitch")),
+                "flash_duration": _safe_float(r.get("flash_duration")),
+                "has_smoke":      has_smoke,
+                "has_flash":      has_flash,
+                "has_molotov":    has_molotov,
+                "has_he":         has_he,
             })
         frames.append({"tick": int(tick), "players": players})
 
@@ -611,59 +629,24 @@ def parse_demo(dem_path: str) -> dict:
             "victim_x":    vx,
             "victim_y":    vy,
         })
+
+    # Knife-round filter (now that kills are built) and score recompute.
+    pre_knife_count = len(rounds)
+    rounds = [r for r in rounds if not _is_knife_round(r, kills, tick_rate=64)]
+    for i, r in enumerate(rounds):
+        r["round_num"] = i + 1
+    print(f"[parser] knife filter: {pre_knife_count} → {len(rounds)} rounds")
+
     tick_rate = 70  # CS2 sub-tick: header reports 128, effective playback rate ~70
     ct_score  = sum(1 for r in rounds if r["winner_side"] == "ct")
     t_score   = sum(1 for r in rounds if r["winner_side"] == "t")
 
     grenades = _parse_grenades(p)
+    grenades = _dedupe_grenades(grenades)
     _add_throw_origins(grenades, shots_df, by_tick, sorted(sampled))
     _build_grenade_paths(grenades, raw_tracks)
     bomb     = _parse_bomb(p, by_tick, sampled)
     print(f"[parser] grenades: {len(grenades)}  bomb events: {len(bomb)}")
-
-    # CS2 demos don't include player_blind events — estimate from flash detonations + player positions
-    FLASH_MAX_RANGE    = 1500.0   # world units beyond which no blind occurs
-    FLASH_MAX_DURATION = 3.2      # seconds at point-blank facing the flash
-    FLASH_AWAY_FACTOR  = 0.25     # multiplier when player is looking away (>90 deg)
-    FLASH_MIN_DURATION = 0.15     # ignore very short blinds
-
-    blinds = []
-    try:
-        flash_grenades = [g for g in grenades if g["type"] == "flash"]
-        sampled_sorted = sorted(sampled)
-        for g in flash_grenades:
-            ftick = g["tick"]
-            fx, fy = g["x"], g["y"]
-            # nearest sampled frame at or before detonation tick
-            idx = bisect.bisect_right(sampled_sorted, ftick) - 1
-            if idx < 0:
-                continue
-            for r in by_tick.get(sampled_sorted[idx], []):
-                if not (r.get("is_alive") or False):
-                    continue
-                sid = str(r.get("steamid") or "")
-                if not sid:
-                    continue
-                px = _safe_float(r.get("X") or 0)
-                py = _safe_float(r.get("Y") or 0)
-                dist = math.hypot(fx - px, fy - py)
-                if dist >= FLASH_MAX_RANGE:
-                    continue
-                t = 1.0 - dist / FLASH_MAX_RANGE
-                duration = FLASH_MAX_DURATION * (t ** 1.5)
-                # yaw check: is player roughly facing the flash?
-                yaw = _safe_float(r.get("yaw"))
-                if yaw is not None:
-                    flash_dir = math.degrees(math.atan2(fy - py, fx - px))
-                    diff = abs((flash_dir - yaw + 180) % 360 - 180)
-                    if diff > 90:
-                        duration *= FLASH_AWAY_FACTOR
-                if duration < FLASH_MIN_DURATION:
-                    continue
-                blinds.append({"tick": ftick, "steam_id": sid, "duration": round(duration, 3)})
-        print(f"[parser] blinds (estimated): {len(blinds)}")
-    except Exception as e:
-        print(f"[parser] blinds estimation error: {e}")
 
     return {
         "meta": {
@@ -673,11 +656,10 @@ def parse_demo(dem_path: str) -> dict:
             "ct_score":    ct_score,
             "t_score":     t_score,
         },
-        "rounds": rounds,
-        "frames": frames,
-        "kills":  kills,
+        "rounds":   rounds,
+        "frames":   frames,
+        "kills":    kills,
         "grenades": grenades,
-        "bomb": bomb,
-        "shots": shots,
-        "blinds": blinds,
+        "bomb":     bomb,
+        "shots":    shots,
     }
