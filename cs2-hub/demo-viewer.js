@@ -38,7 +38,7 @@ const loadingEl = document.getElementById('viewer-loading')
 
 const { data: demo, error } = await supabase
   .from('demos')
-  .select('match_data,map,status,ct_team_name,t_team_name,team_a_first_side,series_id')
+  .select('match_data,map,status,ct_team_name,t_team_name,team_a_first_side,team_a_score,team_b_score,series_id')
   .eq('id', demoId)
   .single()
 
@@ -99,28 +99,70 @@ loadingEl.style.display = 'none'
 document.getElementById('viewer-shell').style.display = 'flex'
 
 // ── Team names in header ──────────────────────────────────────
-async function applyTeamNames() {
-  const ctName = demo.ct_team_name
-  const tName  = demo.t_team_name
+// The viewer header has fixed left (CT) / right (T) slots. Names + logos must
+// follow the side a roster is currently on, so they swap at halftime.
+//
+// Roster A = team that started CT iff team_a_first_side==='ct', otherwise
+// the team that started T. Each round dict carries team_a_side so the viewer
+// can decide which roster occupies the CT slot for that round.
+let _rosterAName = null, _rosterBName = null
+let _rosterALogo = null, _rosterBLogo = null
+let _lastSideKey = null
+
+async function preloadTeamNames() {
+  const ctName    = demo.ct_team_name
+  const tName     = demo.t_team_name
+  const aFirstSide = demo.team_a_first_side
   if (!ctName && !tName) return
+
+  if (aFirstSide === 't') {
+    _rosterAName = tName  || null
+    _rosterBName = ctName || null
+  } else {
+    // 'ct' or unknown — assume ct_team_name is roster A (legacy behavior)
+    _rosterAName = ctName || null
+    _rosterBName = tName  || null
+  }
+
+  if (_rosterAName) _rosterALogo = await getTeamLogo(_rosterAName)
+  if (_rosterBName) _rosterBLogo = await getTeamLogo(_rosterBName)
+
+  // Trigger initial header paint now that names/logos are loaded
+  const round0 = state.match.rounds[state.roundIdx] || state.match.rounds[0]
+  applyTeamHeaderForRound(round0)
+}
+
+function applyTeamHeaderForRound(round) {
+  if (!_rosterAName && !_rosterBName) return
+  // If round has no team_a_side annotation (legacy demo), treat roster A as
+  // CT — keeps existing UI mostly correct for first half.
+  const aOnCt = round?.team_a_side ? round.team_a_side === 'ct' : true
+  const sideKey = aOnCt ? 'a-ct' : 'b-ct'
+  if (sideKey === _lastSideKey) return
+  _lastSideKey = sideKey
 
   const ctNameEl = document.getElementById('vh-ct-name')
   const tNameEl  = document.getElementById('vh-t-name')
   const ctLogoEl = document.getElementById('vh-ct-logo')
   const tLogoEl  = document.getElementById('vh-t-logo')
 
-  if (ctName) {
-    ctNameEl.textContent = ctName
-    const logo = await getTeamLogo(ctName)
-    if (logo) { ctLogoEl.src = logo; ctLogoEl.style.display = 'block' }
+  const leftName  = aOnCt ? _rosterAName : _rosterBName
+  const rightName = aOnCt ? _rosterBName : _rosterAName
+  const leftLogo  = aOnCt ? _rosterALogo : _rosterBLogo
+  const rightLogo = aOnCt ? _rosterBLogo : _rosterALogo
+
+  if (ctNameEl) ctNameEl.textContent = leftName  || ''
+  if (tNameEl)  tNameEl.textContent  = rightName || ''
+  if (ctLogoEl) {
+    if (leftLogo) { ctLogoEl.src = leftLogo; ctLogoEl.style.display = 'block' }
+    else          { ctLogoEl.style.display = 'none' }
   }
-  if (tName) {
-    tNameEl.textContent = tName
-    const logo = await getTeamLogo(tName)
-    if (logo) { tLogoEl.src = logo; tLogoEl.style.display = 'block' }
+  if (tLogoEl) {
+    if (rightLogo) { tLogoEl.src = rightLogo; tLogoEl.style.display = 'block' }
+    else           { tLogoEl.style.display = 'none' }
   }
 }
-applyTeamNames()
+preloadTeamNames()
 
 // ── Series map switcher ───────────────────────────────────────
 async function loadSeries() {
@@ -128,7 +170,7 @@ async function loadSeries() {
   if (!demo.series_id) return
   const { data: siblings, error: sibErr } = await supabase
     .from('demos')
-    .select('id,map,score_ct,score_t,status')
+    .select('id,map,score_ct,score_t,team_a_score,team_b_score,status')
     .eq('series_id', demo.series_id)
     .order('created_at', { ascending: true })
 
@@ -141,7 +183,10 @@ async function loadSeries() {
   swEl.style.display = 'flex'
   swEl.innerHTML = siblings.map((s, i) => {
     const mapShort = (s.map || 'de_?').replace('de_', '').toUpperCase().slice(0, 6)
-    const score    = s.score_ct != null ? `${s.score_ct}–${s.score_t}` : s.status === 'ready' ? '?–?' : '…'
+    const score    = s.team_a_score != null && s.team_b_score != null
+      ? `${s.team_a_score}–${s.team_b_score}`
+      : s.score_ct != null ? `${s.score_ct}–${s.score_t}`
+      : s.status === 'ready' ? '?–?' : '…'
     const active   = s.id === demoId ? ' active' : ''
     return `<a class="map-sw-pill${active}" href="demo-viewer.html?id=${s.id}">
       <span class="map-sw-num">M${i + 1}</span>
@@ -1064,18 +1109,41 @@ function updateKillFeed() {
 }
 
 function updateMatchHeader() {
-  const ctScore = state.match.rounds.slice(0, state.roundIdx).filter(r => r.winner_side === 'ct').length
-  const tScore  = state.match.rounds.slice(0, state.roundIdx).filter(r => r.winner_side === 't').length
-  const totalR  = state.match.rounds.length
-  const mapEl   = document.getElementById('vh-map')
-  const ctEl    = document.getElementById('vh-ct-score')
-  const tEl     = document.getElementById('vh-t-score')
-  const rndEl   = document.getElementById('vh-round')
+  const rounds = state.match.rounds
+  const totalR = rounds.length
+  const idx    = state.roundIdx
+  const mapEl  = document.getElementById('vh-map')
+  const ctEl   = document.getElementById('vh-ct-score')
+  const tEl    = document.getElementById('vh-t-score')
+  const rndEl  = document.getElementById('vh-round')
   if (!mapEl) return
+
   mapEl.textContent = mapName.replace(/^de_/, '').toUpperCase()
-  ctEl.textContent  = ctScore
-  tEl.textContent   = tScore
-  rndEl.textContent = `R${state.roundIdx + 1}/${totalR}`
+  rndEl.textContent = `R${idx + 1}/${totalR}`
+
+  // Roster-aware count: each round carries team_a_side stating which side
+  // roster A was on. After halftime sides swap, so the LEFT (CT) slot needs
+  // to display the team currently on CT — its lifetime roster wins, not a
+  // side counter that resets identity at halftime.
+  if (rounds[0]?.team_a_side) {
+    let aWins = 0, bWins = 0
+    for (let i = 0; i < idx; i++) {
+      if (rounds[i].winner_side === rounds[i].team_a_side) aWins++
+      else                                                  bWins++
+    }
+    const cur   = rounds[Math.min(idx, totalR - 1)]
+    const aOnCt = cur.team_a_side === 'ct'
+    ctEl.textContent = aOnCt ? aWins : bWins
+    tEl.textContent  = aOnCt ? bWins : aWins
+    applyTeamHeaderForRound(cur)
+  } else {
+    // Legacy demos parsed before team_a_side was stamped — fall back to
+    // side-only count. Re-upload (or reset to pending) to fix.
+    const ctScore = rounds.slice(0, idx).filter(r => r.winner_side === 'ct').length
+    const tScore  = rounds.slice(0, idx).filter(r => r.winner_side === 't').length
+    ctEl.textContent = ctScore
+    tEl.textContent  = tScore
+  }
 }
 
 function updateTimer() {

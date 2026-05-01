@@ -760,6 +760,9 @@ def parse_demo(dem_path: str) -> dict:
         if roster_a_sample:
             for r in rounds:
                 a_side = _team_at(roster_a_sample, r["freeze_end_tick"])
+                # Stamp the round so the viewer can swap side labels at halftime
+                # without needing sid_team_hist client-side.
+                r["team_a_side"] = a_side
                 if r["winner_side"] == a_side:
                     team_a_score += 1
                 else:
