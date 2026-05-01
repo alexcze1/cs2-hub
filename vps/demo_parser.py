@@ -681,6 +681,38 @@ def parse_demo(dem_path: str) -> dict:
     ct_score  = sum(1 for r in rounds if r["winner_side"] == "ct")
     t_score   = sum(1 for r in rounds if r["winner_side"] == "t")
 
+    # Per-roster scores. "Roster A" = whoever was on CT at round 1's freeze_end_tick;
+    # "Roster B" = whoever was on T. Each round, look up roster A's current side
+    # (sid_team_hist tracks halftime swaps automatically), then attribute the round
+    # win to A or B accordingly. Falls back gracefully if rounds is empty.
+    team_a_first_side = None
+    team_a_score = 0
+    team_b_score = 0
+    if rounds:
+        r1_tick = rounds[0]["freeze_end_tick"]
+        roster_a_sample = None
+        for sid in sid_team_hist:
+            if _team_at(sid, r1_tick) == "ct":
+                roster_a_sample = sid
+                break
+        if roster_a_sample:
+            team_a_first_side = "ct"
+        else:
+            # Edge case: no CT player found at r1 — fall back to first T player
+            for sid in sid_team_hist:
+                if _team_at(sid, r1_tick) == "t":
+                    roster_a_sample = sid
+                    team_a_first_side = "t"
+                    break
+        if roster_a_sample:
+            for r in rounds:
+                a_side = _team_at(roster_a_sample, r["freeze_end_tick"])
+                if r["winner_side"] == a_side:
+                    team_a_score += 1
+                else:
+                    team_b_score += 1
+    print(f"[parser] per-roster: A({team_a_first_side})={team_a_score} B={team_b_score}")
+
     grenades = _parse_grenades(p)
     grenades = _dedupe_grenades(grenades)
     _add_throw_origins(grenades, shots_df, by_tick, sorted(sampled))
@@ -690,11 +722,14 @@ def parse_demo(dem_path: str) -> dict:
 
     return {
         "meta": {
-            "map":         header.get("map_name", ""),
-            "tick_rate":   tick_rate,
-            "total_ticks": _safe_int(header.get("playback_ticks")),
-            "ct_score":    ct_score,
-            "t_score":     t_score,
+            "map":               header.get("map_name", ""),
+            "tick_rate":         tick_rate,
+            "total_ticks":       _safe_int(header.get("playback_ticks")),
+            "ct_score":          ct_score,
+            "t_score":           t_score,
+            "team_a_score":      team_a_score,
+            "team_b_score":      team_b_score,
+            "team_a_first_side": team_a_first_side,
         },
         "players_meta": players_meta,
         "rounds":       rounds,
