@@ -144,13 +144,14 @@ def test_grenades_filtered_to_in_round_and_slim_shape():
     g = slim["grenades"][0]
     assert set(g.keys()) >= {
         "round_idx", "type", "thrower_sid", "thrower_team",
-        "throw_tick", "land_x", "land_y", "trajectory",
+        "throw_tick", "det_tick", "land_x", "land_y", "trajectory",
     }
     assert g["round_idx"] == 0
     assert g["type"] == "smoke"
     assert g["thrower_sid"] == "76561"
     assert g["thrower_team"] == "ct"   # derived from frame at throw tick
     assert g["throw_tick"] == 3450
+    assert g["det_tick"] == 3500
     assert g["land_x"] == 150 and g["land_y"] == 250
     assert g["trajectory"] == [[100, 200], [120, 220], [150, 250]]
 

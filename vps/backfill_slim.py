@@ -22,18 +22,19 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true", help="Compute but do not write")
     parser.add_argument("--limit", type=int, default=None, help="Process at most N demos")
+    parser.add_argument("--force", action="store_true", help="Re-process demos that already have slim payloads")
     args = parser.parse_args()
 
     load_dotenv()
     conn = psycopg2.connect(os.environ["DATABASE_URL"], connect_timeout=10)
     conn.autocommit = False
 
+    where_slim = "" if args.force else " and match_data_slim is null"
     with conn.cursor() as cur:
         cur.execute("SET statement_timeout = '180s'")
         cur.execute(
-            """select id from demos
-                where status = 'ready'
-                  and match_data_slim is null
+            f"""select id from demos
+                where status = 'ready'{where_slim}
                 order by created_at desc
                 limit %s""",
             (args.limit,) if args.limit else (None,),

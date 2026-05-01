@@ -899,6 +899,7 @@ def build_slim_payload(parsed: dict) -> dict:
             "thrower_sid":   thrower_sid,
             "thrower_team":  _team_at_tick(frames_in, thrower_sid, throw_tick),
             "throw_tick":    throw_tick,
+            "det_tick":      det_tick,
             "land_x":        int(g.get("x", 0)),
             "land_y":        int(g.get("y", 0)),
             "trajectory":    list(g.get("path") or []),

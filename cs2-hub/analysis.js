@@ -320,6 +320,7 @@ async function reloadRoundSet() {
   // 4. Narrow rounds.
   state.rounds = narrowRoundsForTeam(enriched, state.filters)
 
+  buildPlayerColorMap()
   recomputePlaybackBounds()
   updateTimelineUi()
   updateReadout(state.rounds.length, demos.length)
@@ -494,18 +495,151 @@ function renderGrenadeMode(tc, mapSize) {
   ctx.globalAlpha = 1.0
 }
 
+// 5 distinct colors for the 5 players on the user's team. Stable per-sid across the session.
+const TEAM_PALETTE = ['#FF6B6B', '#FFD93D', '#6BCB77', '#4D96FF', '#C56CF0']
+const _playerColorBySid = new Map()
+
+function buildPlayerColorMap() {
+  _playerColorBySid.clear()
+  const sids = new Set()
+  for (const r of state.rounds) {
+    const frames = framesForRound(r._payload, r.roundIdx)
+    if (!frames.length) continue
+    for (const p of frames[0].players) {
+      if (p.team === r.teamSide) sids.add(p.steam_id)
+    }
+  }
+  const sorted = [...sids].sort()
+  for (let i = 0; i < sorted.length; i++) {
+    _playerColorBySid.set(sorted[i], TEAM_PALETTE[i % TEAM_PALETTE.length])
+  }
+}
+
+function getPlayerColor(sid) {
+  return _playerColorBySid.get(sid) || '#888'
+}
+
+// Util-in-flight active windows (in ticks). Keep loose; visual aid only.
+const UTIL_DURATION_S = { smoke: 18, molotov: 7, flash: 0.5, he: 0.4 }
+
+function utilActiveAt(g, targetTick, tickRate) {
+  const start = g.det_tick ?? g.throw_tick
+  const dur   = (UTIL_DURATION_S[g.type] || 0.4) * tickRate
+  return targetTick >= start && targetTick <= start + dur
+}
+
+function utilProgress(g, targetTick, tickRate) {
+  const start = g.det_tick ?? g.throw_tick
+  const dur   = (UTIL_DURATION_S[g.type] || 0.4) * tickRate
+  return Math.min(1, Math.max(0, (targetTick - start) / dur))
+}
+
+function drawPlayer(tc, x, y, yaw, color, mapSize) {
+  const cx_cy = tc(x, y)
+  if (!Number.isFinite(cx_cy.x) || !Number.isFinite(cx_cy.y)) return
+  const cx = cx_cy.x, cy = cx_cy.y
+  const r = Math.max(3, mapSize * 0.009)
+
+  // Yaw indicator: arc with notch facing direction (mirrors demo viewer)
+  if (Number.isFinite(yaw)) {
+    const facing = -yaw * Math.PI / 180   // CS yaw to screen radians (y inverts)
+    const halfArc = (22 * Math.PI) / 180
+    ctx.fillStyle   = color
+    ctx.strokeStyle = 'rgba(255,255,255,0.88)'
+    ctx.lineWidth   = 1.5
+    ctx.beginPath()
+    ctx.arc(cx, cy, r, facing + halfArc, facing - halfArc + Math.PI * 2)
+    ctx.lineTo(cx, cy)
+    ctx.closePath()
+    ctx.fill()
+    ctx.stroke()
+    // Direction line
+    ctx.beginPath()
+    ctx.moveTo(cx, cy)
+    ctx.lineTo(cx + Math.cos(facing) * r * 1.4, cy + Math.sin(facing) * r * 1.4)
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)'
+    ctx.lineWidth = 1
+    ctx.stroke()
+  } else {
+    ctx.fillStyle = color
+    ctx.strokeStyle = 'rgba(255,255,255,0.88)'
+    ctx.lineWidth = 1.5
+    ctx.beginPath()
+    ctx.arc(cx, cy, r, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+  }
+}
+
+function drawUtility(tc, g, targetTick, tickRate, mapSize) {
+  const { x, y } = tc(g.land_x, g.land_y)
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return
+  const t = g.type
+
+  if (t === 'smoke') {
+    ctx.fillStyle = 'rgba(200,200,200,0.45)'
+    ctx.strokeStyle = 'rgba(230,230,230,0.7)'
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.arc(x, y, mapSize * 0.035, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+  } else if (t === 'molotov') {
+    ctx.fillStyle = 'rgba(255,122,48,0.55)'
+    ctx.strokeStyle = 'rgba(255,170,90,0.85)'
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.arc(x, y, mapSize * 0.028, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+  } else if (t === 'flash') {
+    const p = utilProgress(g, targetTick, tickRate)
+    const alpha = 1 - p
+    ctx.fillStyle = `rgba(255,245,180,${alpha * 0.7})`
+    ctx.strokeStyle = `rgba(255,255,220,${alpha})`
+    ctx.lineWidth = 1.5
+    ctx.beginPath()
+    ctx.arc(x, y, mapSize * 0.03 * (1 - p * 0.4), 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+  } else if (t === 'he') {
+    const p = utilProgress(g, targetTick, tickRate)
+    const alpha = 1 - p
+    ctx.fillStyle = `rgba(255,80,80,${alpha * 0.6})`
+    ctx.strokeStyle = `rgba(255,140,140,${alpha})`
+    ctx.lineWidth = 1.5
+    ctx.beginPath()
+    ctx.arc(x, y, mapSize * 0.03 * (1 + p * 0.5), 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+  }
+}
+
 function renderOverlay(tc, mapSize) {
   if (!state.rounds.length) return
 
-  const dotR = Math.max(2, Math.round(mapSize * 0.0035))
+  const tickRate = state.rounds[0]?._payload?.meta?.tick_rate ?? 64
 
+  // Pass 1: utility (drawn under players so dots stay visible on top of smokes)
   for (const r of state.rounds) {
     const targetTick = r.freezeEndTick + Math.floor(playback.relTick)
-    if (targetTick > r.endTick) continue   // round ended already
+    if (targetTick > r.endTick) continue
+    const grenades = grenadesForRound(r._payload, r.roundIdx)
+    for (const g of grenades) {
+      if (g.thrower_team !== r.teamSide) continue   // hide opponent util
+      if (!utilActiveAt(g, targetTick, tickRate)) continue
+      drawUtility(tc, g, targetTick, tickRate, mapSize)
+    }
+  }
+
+  // Pass 2: players (filtered to user's team)
+  for (const r of state.rounds) {
+    const targetTick = r.freezeEndTick + Math.floor(playback.relTick)
+    if (targetTick > r.endTick) continue
     const frames = framesForRound(r._payload, r.roundIdx)
     if (!frames.length) continue
 
-    // Find the nearest frame at-or-before targetTick (binary search)
+    // Binary search for nearest frame at-or-before targetTick
     let lo = 0, hi = frames.length - 1, idx = 0
     while (lo <= hi) {
       const mid = (lo + hi) >> 1
@@ -513,14 +647,13 @@ function renderOverlay(tc, mapSize) {
     }
     const frame = frames[idx]
 
-    const color = `hsl(${r.hue}, 75%, 60%)`
-
-    // Trails (off by default)
+    // Trails (off by default) — uses each player's color
     if (playback.showTrails) {
       const trailFrames = 30
       const trailStart  = Math.max(0, idx - trailFrames)
       ctx.lineWidth = 1.2
       for (const player of frame.players) {
+        if (player.team !== r.teamSide) continue
         if (!player.alive) continue
         ctx.beginPath()
         let started = false
@@ -529,26 +662,20 @@ function renderOverlay(tc, mapSize) {
           const pp = pf.players.find(p => p.steam_id === player.steam_id)
           if (!pp || !pp.alive) { started = false; continue }
           const { x, y } = tc(pp.x, pp.y)
+          if (!Number.isFinite(x) || !Number.isFinite(y)) { started = false; continue }
           if (!started) { ctx.moveTo(x, y); started = true } else ctx.lineTo(x, y)
         }
-        const fade = Math.max(0.05, 0.25)
-        ctx.strokeStyle = `hsla(${r.hue}, 75%, 60%, ${fade})`
+        const c = getPlayerColor(player.steam_id)
+        ctx.strokeStyle = c + '66'  // ~40% alpha
         ctx.stroke()
       }
     }
 
-    // Player dots
-    ctx.fillStyle = color
-    ctx.globalAlpha = 0.35
     for (const player of frame.players) {
+      if (player.team !== r.teamSide) continue
       if (!player.alive) continue
-      const { x, y } = tc(player.x, player.y)
-      if (!Number.isFinite(x) || !Number.isFinite(y)) continue
-      ctx.beginPath()
-      ctx.arc(x, y, dotR, 0, Math.PI * 2)
-      ctx.fill()
+      drawPlayer(tc, player.x, player.y, player.yaw, getPlayerColor(player.steam_id), mapSize)
     }
-    ctx.globalAlpha = 1.0
   }
 }
 
