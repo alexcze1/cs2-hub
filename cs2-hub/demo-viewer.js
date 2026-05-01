@@ -232,14 +232,18 @@ function renderGrenades(round, tick, frame, cw, ch, tc, mapSize) {
   const TRAJ_TICKS       = { smoke: tickRate * 7, molotov: tickRate * 6, he: tickRate * 5, flash: tickRate * 2 }
   const GRENADE_DURATION_S = { smoke: 22, molotov: 7 }
 
-  // Dedupe by stable synthetic id (new demos) or fallback key (old demos)
+  // Dedupe by stable synthetic id (new demos) or fallback key (old demos).
+  // Log when collisions are detected so we can confirm whether parser-side
+  // dedupe is sufficient.
   const seen = new Set()
+  let _dupCount = 0
   const grenades = state.match.grenades.filter(g => {
     const key = g.id ?? `${g.type}:${g.tick}:${g.steam_id}`
-    if (seen.has(key)) return false
+    if (seen.has(key)) { _dupCount++; return false }
     seen.add(key)
     return true
   })
+  if (_dupCount > 0) console.warn('[viewer] grenade dedupe rejected', _dupCount, 'duplicates by id; check parser dedupe')
 
   ctx.save()
   for (const g of grenades) {

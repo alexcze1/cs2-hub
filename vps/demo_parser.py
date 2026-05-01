@@ -363,10 +363,22 @@ def _parse_grenades(p) -> list:
 
 def _dedupe_grenades(grenades: list) -> list:
     """Collapse subtick-duplicated grenade rows. Two rows are merged if same
-    steam_id, same type, within 64 ticks AND within 300 world units of each
-    other. Earliest entry is preserved. Each survivor gets a synthetic 'id'
-    field so the client can dedupe stably regardless of tick collisions.
+    steam_id, same type, within the type-specific tick window AND within the
+    type-specific spatial window. Earliest entry is preserved. Each survivor
+    gets a synthetic 'id' field so the client can dedupe stably regardless of
+    tick collisions.
+
+    Molotovs use a wider window because inferno_startburn can fire 2-4 times
+    per throw (one per fire patch the grenade lights), spread over up to ~3 s
+    and ~500 units of map space.
     """
+    # type -> (tick_window, distance_window_squared)
+    WINDOWS = {
+        "molotov": (256, 500 * 500),
+        "smoke":   (64,  300 * 300),
+        "flash":   (64,  300 * 300),
+        "he":      (64,  300 * 300),
+    }
     sorted_g = sorted(
         grenades,
         key=lambda g: (g.get("steam_id", ""), g.get("type", ""), g.get("tick", 0)),
@@ -376,15 +388,20 @@ def _dedupe_grenades(grenades: list) -> list:
         merged = False
         if out:
             prev = out[-1]
+            gtype = g.get("type", "")
+            tick_win, dist_sq_win = WINDOWS.get(gtype, (64, 300 * 300))
             if (prev.get("steam_id", "") == g.get("steam_id", "")
-                    and prev.get("type") == g.get("type")
-                    and abs(prev.get("tick", 0) - g.get("tick", 0)) <= 64):
+                    and prev.get("type") == gtype
+                    and abs(prev.get("tick", 0) - g.get("tick", 0)) <= tick_win):
                 dx = prev.get("x", 0.0) - g.get("x", 0.0)
                 dy = prev.get("y", 0.0) - g.get("y", 0.0)
-                if dx * dx + dy * dy < 300 * 300:
+                if dx * dx + dy * dy < dist_sq_win:
                     merged = True
         if not merged:
             out.append(g)
+    pre, post = len(grenades), len(out)
+    if pre != post:
+        print(f"[parser] grenade dedupe: {pre} → {post} (collapsed {pre - post})")
     for i, g in enumerate(out):
         g["id"] = f"{g.get('type','')}-{g.get('tick',0)}-{g.get('steam_id','')}-{i}"
     return out
