@@ -260,9 +260,10 @@ async def _process_one(demo: dict):
         ct_score = meta["ct_score"]
         t_score  = meta["t_score"]
 
-        last_frame   = match_data["frames"][-1] if match_data["frames"] else {"players": []}
-        kill_counts  = {}
-        death_counts = {}
+        last_frame    = match_data["frames"][-1] if match_data["frames"] else {"players": []}
+        players_meta  = match_data.get("players_meta", {})
+        kill_counts   = {}
+        death_counts  = {}
         for k in match_data["kills"]:
             kill_counts[k["killer_id"]]  = kill_counts.get(k["killer_id"], 0) + 1
             death_counts[k["victim_id"]] = death_counts.get(k["victim_id"], 0) + 1
@@ -274,8 +275,10 @@ async def _process_one(demo: dict):
             if sid in seen:
                 continue
             seen.add(sid)
+            # name lives in players_meta now (dropped from per-frame to shrink JSON)
+            name = players_meta.get(sid, {}).get("name") or p.get("name") or ""
             player_rows.append((
-                str(uuid.uuid4()), demo_id, sid, p["name"], p["team"],
+                str(uuid.uuid4()), demo_id, sid, name, p["team"],
                 kill_counts.get(sid, 0), death_counts.get(sid, 0), 0, 0.0, 0.0,
             ))
 
