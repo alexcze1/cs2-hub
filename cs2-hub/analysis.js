@@ -315,6 +315,8 @@ async function reloadRoundSet() {
   // 4. Narrow rounds.
   state.rounds = narrowRoundsForTeam(enriched, state.filters)
 
+  recomputePlaybackBounds()
+  updateTimelineUi()
   updateReadout(state.rounds.length, demos.length)
   setEmptyMessage(state.rounds.length === 0 ? '0 rounds match — try widening filters.' : '')
   requestRender()
@@ -366,6 +368,44 @@ function requestRender() {
   })
 }
 
+const playback = {
+  playing:  false,
+  speed:    1,
+  relTick:  0,        // round-relative tick (0 = freeze end)
+  maxTick:  0,        // longest matched round duration
+  lastTs:   0,
+  showTrails: false,
+}
+
+function recomputePlaybackBounds() {
+  let max = 0
+  for (const r of state.rounds) {
+    const span = r.endTick - r.freezeEndTick
+    if (span > max) max = span
+  }
+  playback.maxTick = max
+  if (playback.relTick > max) playback.relTick = 0
+}
+
+function loop(ts) {
+  if (playback.playing) {
+    if (!playback.lastTs) playback.lastTs = ts
+    const dt = (ts - playback.lastTs) / 1000
+    playback.lastTs = ts
+    const tickRate = state.rounds[0]?._payload?.meta?.tick_rate ?? 64
+    playback.relTick += dt * tickRate * playback.speed
+    if (playback.relTick > playback.maxTick) {
+      playback.relTick = 0  // loop
+    }
+    updateTimelineUi()
+    render()
+  } else {
+    playback.lastTs = 0
+  }
+  requestAnimationFrame(loop)
+}
+requestAnimationFrame(loop)
+
 function render() {
   const cw = canvas.width
   const ch = canvas.height
@@ -397,9 +437,107 @@ function render() {
   else if (state.mode === 'grenade') renderGrenadeMode(tc, mapSize)
 }
 
-// Stubs — Tasks 11 (overlay) and 13 (grenade) fill them in
-function renderOverlay(tc, mapSize) {}
+// Stubs — Task 13 (grenade) fills this in
 function renderGrenadeMode(tc, mapSize) {}
+
+function renderOverlay(tc, mapSize) {
+  if (!state.rounds.length) return
+
+  const dotR = Math.max(2, Math.round(mapSize * 0.0035))
+
+  for (const r of state.rounds) {
+    const targetTick = r.freezeEndTick + Math.floor(playback.relTick)
+    if (targetTick > r.endTick) continue   // round ended already
+    const frames = framesForRound(r._payload, r.roundIdx)
+    if (!frames.length) continue
+
+    // Find the nearest frame at-or-before targetTick (binary search)
+    let lo = 0, hi = frames.length - 1, idx = 0
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1
+      if (frames[mid].tick <= targetTick) { idx = mid; lo = mid + 1 } else hi = mid - 1
+    }
+    const frame = frames[idx]
+
+    const color = `hsl(${r.hue}, 75%, 60%)`
+
+    // Trails (off by default)
+    if (playback.showTrails) {
+      const trailFrames = 30
+      const trailStart  = Math.max(0, idx - trailFrames)
+      ctx.lineWidth = 1.2
+      for (const player of frame.players) {
+        if (!player.alive) continue
+        ctx.beginPath()
+        let started = false
+        for (let i = trailStart; i <= idx; i++) {
+          const pf = frames[i]
+          const pp = pf.players.find(p => p.steam_id === player.steam_id)
+          if (!pp || !pp.alive) { started = false; continue }
+          const { x, y } = tc(pp.x, pp.y)
+          if (!started) { ctx.moveTo(x, y); started = true } else ctx.lineTo(x, y)
+        }
+        const fade = Math.max(0.05, 0.25)
+        ctx.strokeStyle = `hsla(${r.hue}, 75%, 60%, ${fade})`
+        ctx.stroke()
+      }
+    }
+
+    // Player dots
+    ctx.fillStyle = color
+    ctx.globalAlpha = 0.35
+    for (const player of frame.players) {
+      if (!player.alive) continue
+      const { x, y } = tc(player.x, player.y)
+      ctx.beginPath()
+      ctx.arc(x, y, dotR, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    ctx.globalAlpha = 1.0
+  }
+}
+
+function updateTimelineUi() {
+  const fillEl  = document.getElementById('tl-fill')
+  const thumbEl = document.getElementById('tl-thumb')
+  const curEl   = document.getElementById('tl-current')
+  const endEl   = document.getElementById('tl-end')
+  const tr      = state.rounds[0]?._payload?.meta?.tick_rate ?? 64
+
+  const pct = playback.maxTick > 0 ? (playback.relTick / playback.maxTick) * 100 : 0
+  fillEl.style.width  = pct + '%'
+  thumbEl.style.left  = pct + '%'
+
+  const fmt = secs => `${Math.floor(secs / 60)}:${String(Math.floor(secs % 60)).padStart(2, '0')}`
+  curEl.textContent = fmt(playback.relTick / tr)
+  endEl.textContent = fmt(playback.maxTick / tr)
+}
+
+document.getElementById('play-btn').addEventListener('click', () => {
+  playback.playing = !playback.playing
+  document.getElementById('play-btn').textContent = playback.playing ? '❚❚' : '▶'
+})
+
+document.getElementById('tl-track').addEventListener('click', e => {
+  const rect = e.currentTarget.getBoundingClientRect()
+  const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+  playback.relTick = pct * playback.maxTick
+  updateTimelineUi()
+  render()
+})
+
+for (const btn of document.querySelectorAll('.speed-btn')) {
+  btn.addEventListener('click', () => {
+    playback.speed = parseFloat(btn.dataset.speed)
+    document.querySelectorAll('.speed-btn').forEach(b => b.classList.toggle('active', b === btn))
+  })
+}
+
+document.getElementById('trail-toggle').addEventListener('click', e => {
+  playback.showTrails = !playback.showTrails
+  e.currentTarget.classList.toggle('active', playback.showTrails)
+  render()
+})
 
 // Export for tests (no-op in browser)
 export { state, readUrl, writeUrl }
