@@ -437,8 +437,55 @@ function render() {
   else if (state.mode === 'grenade') renderGrenadeMode(tc, mapSize)
 }
 
-// Stubs — Task 13 (grenade) fills this in
-function renderGrenadeMode(tc, mapSize) {}
+// ── Grenade mode constants ───────────────────────────────────
+const GREN_COLORS = {
+  smoke:   { fill: 'rgba(180,180,180,0.55)', stroke: 'rgba(220,220,220,0.85)' },
+  molotov: { fill: 'rgba(255,122,48,0.65)',  stroke: 'rgba(255,170,90,0.95)'  },
+  flash:   { fill: 'rgba(255,235,85,0.65)',  stroke: 'rgba(255,245,140,0.95)' },
+  he:      { fill: 'rgba(108,208,112,0.55)', stroke: 'rgba(150,230,150,0.95)' },
+}
+const GREN_RADII = { smoke: 0.024, molotov: 0.014, flash: 0.012, he: 0.012 }
+
+let _highlightedGrenadeKey = null  // demoId|roundIdx|throw_tick — used for click highlight
+
+// Task 13 (grenade) fills this in
+function renderGrenadeMode(tc, mapSize) {
+  if (!state.rounds.length) return
+
+  const typeFilter = document.getElementById('gp-type-filter')?.value ?? 'all'
+
+  for (const r of state.rounds) {
+    const grenades = grenadesForRound(r._payload, r.roundIdx)
+    for (const g of grenades) {
+      if (typeFilter !== 'all' && g.type !== typeFilter) continue
+
+      const colors = GREN_COLORS[g.type] || GREN_COLORS.smoke
+      const radius = (GREN_RADII[g.type] || 0.012) * mapSize
+      const { x, y } = tc(g.land_x, g.land_y)
+      const key = `${r.demoId}|${r.roundIdx}|${g.throw_tick}`
+      const dimmed = _highlightedGrenadeKey && _highlightedGrenadeKey !== key
+
+      ctx.globalAlpha = dimmed ? 0.20 : 1.0
+
+      ctx.fillStyle   = colors.fill
+      ctx.strokeStyle = colors.stroke
+      ctx.lineWidth   = 1
+      ctx.beginPath()
+      ctx.arc(x, y, radius, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+
+      if (_highlightedGrenadeKey === key) {
+        ctx.beginPath()
+        ctx.arc(x, y, radius + 4, 0, Math.PI * 2)
+        ctx.strokeStyle = '#fff'
+        ctx.lineWidth = 1.5
+        ctx.stroke()
+      }
+    }
+  }
+  ctx.globalAlpha = 1.0
+}
 
 function renderOverlay(tc, mapSize) {
   if (!state.rounds.length) return
