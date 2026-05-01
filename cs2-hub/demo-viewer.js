@@ -167,7 +167,8 @@ function freezeEnd(round) { return round.freeze_end_tick ?? round.start_tick }
 function jumpToRound(idx) {
   state.roundIdx  = Math.max(0, Math.min(idx, state.match.rounds.length - 1))
   state.tick      = freezeEnd(currentRound())
-  state.playing   = false
+  state.playing   = true
+  state.lastTs    = performance.now()
   _lastFrameTick  = -1
   _lastRoundIdx   = -1
   _lastKillTick   = -1
