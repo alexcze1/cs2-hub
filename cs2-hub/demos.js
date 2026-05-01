@@ -7,6 +7,54 @@ import { attachTeamAutocomplete } from './team-autocomplete.js'
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 function formatDate(d) { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) }
 
+// Detect two 5-player rosters across one or more demos in a series.
+// Returns { rosterA: [{steam_id, name}, ...], rosterB: [...], confident: bool }.
+// rosterA = first-frame CT players of map 1 (earliest by created_at).
+// rosterB = first-frame T players of map 1.
+// confident=false if a subsequent map's CT side is not a subset of either roster
+// (e.g. mid-series substitution) — caller should fall back to legacy by-side flow.
+function detectRosters(demos) {
+  if (!demos.length) return { rosterA: [], rosterB: [], confident: false }
+  const sorted = [...demos].sort((a, b) =>
+    (a.created_at || '').localeCompare(b.created_at || '')
+  )
+  const m1 = sorted[0]
+  const f0 = m1?.match_data?.frames?.[0]
+  if (!f0) return { rosterA: [], rosterB: [], confident: false }
+  const rosterA = f0.players.filter(p => p.team === 'ct').map(p => ({ steam_id: p.steam_id, name: p.name }))
+  const rosterB = f0.players.filter(p => p.team === 't').map(p => ({ steam_id: p.steam_id, name: p.name }))
+  const idsA = new Set(rosterA.map(p => p.steam_id))
+  const idsB = new Set(rosterB.map(p => p.steam_id))
+  let confident = (rosterA.length === 5 && rosterB.length === 5)
+  for (const d of sorted.slice(1)) {
+    const fr = d?.match_data?.frames?.[0]
+    if (!fr) continue
+    const ctIds = fr.players.filter(p => p.team === 'ct').map(p => p.steam_id)
+    const tIds  = fr.players.filter(p => p.team === 't').map(p => p.steam_id)
+    const ctMatchesA = ctIds.every(id => idsA.has(id))
+    const ctMatchesB = ctIds.every(id => idsB.has(id))
+    if (!ctMatchesA && !ctMatchesB) {
+      confident = false
+      console.warn('[demos] roster detection: map', d.id, 'has mixed roster — falling back')
+      break
+    }
+  }
+  return { rosterA, rosterB, confident }
+}
+
+// Decide which name goes on which side for a given demo's first frame,
+// given the roster→name mapping.
+function namesForDemo(demo, rosterA, rosterB, nameA, nameB) {
+  const fr = demo?.match_data?.frames?.[0]
+  if (!fr) return { ct_team_name: null, t_team_name: null }
+  const idsA = new Set(rosterA.map(p => p.steam_id))
+  const ctIds = fr.players.filter(p => p.team === 'ct').map(p => p.steam_id)
+  const ctIsA = ctIds.length > 0 && ctIds.every(id => idsA.has(id))
+  return ctIsA
+    ? { ct_team_name: nameA, t_team_name: nameB }
+    : { ct_team_name: nameB, t_team_name: nameA }
+}
+
 await requireAuth()
 renderSidebar('demos')
 
