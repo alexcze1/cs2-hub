@@ -223,6 +223,42 @@ function onFilter(key, value) {
   reloadRoundSet()
 }
 
+const SLIM_CACHE_MAX = 50
+
+async function fetchSlimPayloads(demoIds) {
+  // Split into already-cached vs needs-fetch
+  const need = demoIds.filter(id => !state.slimCache.has(id))
+  if (need.length) {
+    showChip(`Loading ${need.length} demo${need.length === 1 ? '' : 's'}…`, 'info')
+    const { data, error } = await supabase
+      .from('demos')
+      .select('id, match_data_slim, team_a_first_side')
+      .in('id', need)
+    hideChip(`Loading ${need.length} demo${need.length === 1 ? '' : 's'}…`)
+
+    if (error) {
+      showChip('Some demos failed to load', 'error')
+      console.error('[analysis] slim fetch error:', error)
+    } else {
+      let skipped = 0
+      for (const row of data ?? []) {
+        if (!row.match_data_slim) { skipped++; continue }
+        // Inject team_a_first_side into the slim payload so downstream code
+        // doesn't need to keep a parallel lookup
+        row.match_data_slim._team_a_first_side = row.team_a_first_side
+        state.slimCache.set(row.id, row.match_data_slim)
+      }
+      if (skipped > 0) showChip(`${skipped} demo(s) skipped — pending re-parse`, 'warn')
+    }
+    // LRU eviction
+    while (state.slimCache.size > SLIM_CACHE_MAX) {
+      const oldestKey = state.slimCache.keys().next().value
+      state.slimCache.delete(oldestKey)
+    }
+  }
+  return demoIds.map(id => state.slimCache.get(id)).filter(Boolean)
+}
+
 async function reloadRoundSet() {
   // Stub — Task 9 fills this in. For now just update the readout to a placeholder.
   const rEl = document.getElementById('f-rounds')
