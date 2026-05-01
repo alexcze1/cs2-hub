@@ -116,14 +116,30 @@ console.log('[viewer] map:', mapName, '| rounds:', state.match.rounds.length, '|
   if (dupes.length) {
     console.warn('[diag] suspected smoke duplicate clusters:', dupes.length)
     dupes.forEach((grp, i) => {
-      console.log(`[diag] cluster #${i + 1}:`, grp.map(g => ({
-        id: g.id, tick: g.tick, x: Math.round(g.x), y: Math.round(g.y),
-        sid: g.steam_id, throw_tick: g.path_throw_tick ?? g.origin_tick ?? null,
-      })))
+      const summary = grp.map(g => `id=${g.id} tick=${g.tick} xy=(${Math.round(g.x)},${Math.round(g.y)}) sid=${g.steam_id} throw_tick=${g.path_throw_tick ?? g.origin_tick ?? '∅'} has_path=${!!g.path}`).join('  ||  ')
+      console.log(`[diag] cluster #${i + 1} (${grp.length}): ${summary}`)
     })
   } else {
     console.log('[diag] no smoke clusters within tick=128 + 400u radius')
   }
+
+  // Also log raw grenade entries that share the same player+round window — broader net
+  const _bySid = {}
+  for (const g of _smokes) {
+    if (!_bySid[g.steam_id]) _bySid[g.steam_id] = []
+    _bySid[g.steam_id].push(g)
+  }
+  let _broadDupes = 0
+  for (const sid in _bySid) {
+    const arr = _bySid[sid].sort((a, b) => a.tick - b.tick)
+    for (let i = 1; i < arr.length; i++) {
+      if (arr[i].tick - arr[i - 1].tick <= 256) {
+        _broadDupes++
+        console.warn(`[diag] same-sid pair within 256 ticks: sid=${sid} A(id=${arr[i-1].id} tick=${arr[i-1].tick} xy=${Math.round(arr[i-1].x)},${Math.round(arr[i-1].y)}) B(id=${arr[i].id} tick=${arr[i].tick} xy=${Math.round(arr[i].x)},${Math.round(arr[i].y)}) Δtick=${arr[i].tick - arr[i-1].tick} Δxy=${Math.round(Math.hypot(arr[i].x-arr[i-1].x, arr[i].y-arr[i-1].y))}`)
+      }
+    }
+  }
+  console.log('[diag] same-sid close pairs total:', _broadDupes)
 }
 
 mapImg     = new Image()
