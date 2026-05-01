@@ -85,6 +85,47 @@ const mapName = state.match.meta?.map || demo.map || ''
 document.title = `${mapName} — MIDROUND`
 console.log('[viewer] map:', mapName, '| rounds:', state.match.rounds.length, '| frames:', state.match.frames.length, '| tick_rate:', state.match.meta.tick_rate)
 
+// DIAG: smoke duplicate hunt — log all smoke grenade entries to inspect for dupes
+{
+  const _smokes = (state.match.grenades || []).filter(g => g.type === 'smoke')
+  console.log('[diag] total smokes:', _smokes.length)
+  console.table(_smokes.slice(0, 60).map(g => ({
+    id: g.id,
+    tick: g.tick,
+    x: Math.round(g.x),
+    y: Math.round(g.y),
+    sid: g.steam_id,
+    throw_tick: g.path_throw_tick ?? g.origin_tick ?? null,
+    has_path: !!g.path,
+    path_len: g.path ? g.path.length : 0,
+  })))
+  // Group by (tick window 64 ticks, ~12.5 m radius) to highlight likely duplicates
+  const groups = []
+  for (const g of _smokes) {
+    let placed = false
+    for (const grp of groups) {
+      const ref = grp[0]
+      if (Math.abs(g.tick - ref.tick) <= 128 &&
+          (g.x - ref.x) ** 2 + (g.y - ref.y) ** 2 <= 400 * 400) {
+        grp.push(g); placed = true; break
+      }
+    }
+    if (!placed) groups.push([g])
+  }
+  const dupes = groups.filter(grp => grp.length > 1)
+  if (dupes.length) {
+    console.warn('[diag] suspected smoke duplicate clusters:', dupes.length)
+    dupes.forEach((grp, i) => {
+      console.log(`[diag] cluster #${i + 1}:`, grp.map(g => ({
+        id: g.id, tick: g.tick, x: Math.round(g.x), y: Math.round(g.y),
+        sid: g.steam_id, throw_tick: g.path_throw_tick ?? g.origin_tick ?? null,
+      })))
+    })
+  } else {
+    console.log('[diag] no smoke clusters within tick=128 + 400u radius')
+  }
+}
+
 mapImg     = new Image()
 mapImg.src = `images/maps/${mapName}_viewer.png`
 mapImg.onload  = () => { console.log('[viewer] viewer map loaded'); mapLoaded = true }
