@@ -1,11 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8"/>
+  <link rel="icon" type="image/png" href="images/favicon.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Analysis — MIDROUND</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css"/>
   <style>
+    /* Override body gradient — full-screen analysis needs uniform dark bg */
+    body { background: #030712; }
+
     /* ── Page shell ──────────────────────────────────────────── */
     .analysis-shell {
       display: flex; flex-direction: column;
@@ -244,9 +248,9 @@
   </style>
 </head>
 <body>
-  <div id="sidebar" class="sidebar"></div>
-
-  <main class="main-content">
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <main class="main-content" style="padding:0;overflow:hidden;position:relative;height:100vh">
     <div class="analysis-shell" id="analysis-shell">
       <header class="analysis-header">
         <span class="analysis-title">Analysis</span>
@@ -310,7 +314,7 @@
       </div>
     </div>
   </main>
-
-  <script type="module" src="analysis.js"></script>
+</div>
+<script type="module" src="analysis.js"></script>
 </body>
 </html>
