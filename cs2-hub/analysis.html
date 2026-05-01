@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analysis — MIDROUND</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* ── Page shell ──────────────────────────────────────────── */
+    .analysis-shell {
+      display: flex; flex-direction: column;
+      height: 100vh; box-sizing: border-box;
+    }
+    .analysis-header {
+      flex-shrink: 0;
+      display: flex; align-items: center; gap: 16px;
+      padding: 12px 18px;
+      background: rgba(3,7,18,0.92);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .analysis-title {
+      font-size: 13px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.12em;
+    }
+    .team-pick-wrap { flex: 0 0 280px; }
+    .team-pick-input {
+      width: 100%; box-sizing: border-box;
+      padding: 7px 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 6px;
+      color: #fff; font-size: 13px;
+    }
+    .mode-pills {
+      display: flex; gap: 4px; margin-left: auto;
+      background: rgba(255,255,255,0.04);
+      padding: 3px; border-radius: 7px;
+    }
+    .mode-pill {
+      padding: 5px 14px; font-size: 11px;
+      color: var(--muted); cursor: pointer; border: none;
+      background: transparent; border-radius: 5px;
+      transition: background 0.12s, color 0.12s;
+    }
+    .mode-pill.active { background: rgba(102,102,183,0.18); color: #cfcff0; }
+
+    /* ── Body: filters | canvas (| grenade panel) ────────────── */
+    .analysis-body {
+      flex: 1; min-height: 0;
+      display: flex;
+    }
+    .filter-rail {
+      flex: 0 0 200px;
+      padding: 14px 12px; box-sizing: border-box;
+      overflow-y: auto;
+      background: rgba(3,7,18,0.78);
+      border-right: 1px solid rgba(255,255,255,0.05);
+    }
+    .filter-rail .label {
+      font-size: 9px; color: #555;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin: 14px 0 5px;
+    }
+    .filter-rail .label:first-child { margin-top: 0; }
+    .filter-rail select,
+    .filter-rail input[type="date"] {
+      width: 100%; box-sizing: border-box;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 5px;
+      padding: 5px 7px; font-size: 12px;
+      color: #ddd;
+    }
+    .seg-row { display: flex; gap: 3px; }
+    .seg-btn {
+      flex: 1; padding: 5px 0;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 4px;
+      font-size: 10px; color: #888;
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+    }
+    .seg-btn.active {
+      background: rgba(102,102,183,0.18);
+      border-color: rgba(102,102,183,0.45);
+      color: #cfcff0;
+    }
+    .filter-readout {
+      margin-top: 18px; padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      font-size: 11px; color: #888;
+    }
+    .filter-readout .num { color: #cfcff0; font-weight: 700; }
+    .reset-filters-btn {
+      margin-top: 10px;
+      width: 100%; padding: 6px 0;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 5px;
+      color: #888; font-size: 10px;
+      cursor: pointer;
+    }
+    .reset-filters-btn:hover { color: #cfcff0; border-color: rgba(102,102,183,0.45); }
+
+    /* ── Canvas area ──────────────────────────────────────────── */
+    .canvas-wrap {
+      flex: 1; min-width: 0;
+      position: relative; overflow: hidden;
+      background: #030712;
+    }
+    #map-canvas {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      display: block;
+    }
+    .canvas-empty {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      color: #444; font-size: 14px;
+      pointer-events: none;
+    }
+    .canvas-chips {
+      position: absolute; top: 10px; left: 10px;
+      display: flex; flex-direction: column; gap: 6px;
+      z-index: 10; pointer-events: none;
+    }
+    .chip {
+      padding: 4px 9px;
+      background: rgba(0,0,0,0.55);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 4px;
+      font-size: 10px; color: #cfcff0;
+    }
+    .chip.warn { color: #ffc56b; border-color: rgba(255,180,80,0.30); }
+    .chip.error { color: #ff7676; border-color: rgba(255,100,100,0.30); }
+
+    /* ── Bottom timeline (overlay only) ──────────────────────── */
+    .analysis-bottom {
+      flex-shrink: 0;
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 14px;
+      background: rgba(3,7,18,0.95);
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    .analysis-bottom.hidden { display: none; }
+    .play-btn {
+      width: 30px; height: 30px;
+      background: rgba(102,102,183,0.20);
+      border: 1px solid rgba(102,102,183,0.50);
+      border-radius: 50%;
+      color: #9999dd; font-size: 12px;
+      cursor: pointer; padding: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .play-btn:hover { background: rgba(102,102,183,0.36); }
+    .tl-track {
+      flex: 1; position: relative; height: 26px; cursor: pointer;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 5px;
+    }
+    .tl-fill {
+      position: absolute; left: 0; top: 0; bottom: 0;
+      background: rgba(102,102,183,0.16);
+      border-radius: 5px 0 0 5px;
+      pointer-events: none;
+    }
+    .tl-thumb {
+      position: absolute; top: 50%;
+      transform: translate(-50%, -50%);
+      width: 12px; height: 12px;
+      background: #fff;
+      border-radius: 50%;
+      box-shadow: 0 0 0 3px rgba(102,102,183,0.4);
+      pointer-events: none;
+    }
+    .tl-time {
+      font-family: "SF Mono", "Consolas", monospace;
+      font-size: 10px; color: #555;
+      flex-shrink: 0;
+    }
+    .speed-buttons { display: flex; gap: 3px; flex-shrink: 0; }
+    .speed-btn {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 4px;
+      padding: 3px 8px; font-size: 10px;
+      color: #666; cursor: pointer;
+    }
+    .speed-btn.active {
+      background: rgba(102,102,183,0.16);
+      border-color: rgba(102,102,183,0.50);
+      color: #cfcff0;
+    }
+    .trail-toggle {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 4px;
+      padding: 4px 10px; font-size: 10px;
+      color: #666; cursor: pointer;
+      flex-shrink: 0;
+    }
+    .trail-toggle.active { color: #cfcff0; border-color: rgba(102,102,183,0.50); }
+
+    /* ── Grenade side panel ──────────────────────────────────── */
+    .grenade-panel {
+      flex: 0 0 280px;
+      display: none; flex-direction: column;
+      background: rgba(3,7,18,0.85);
+      border-left: 1px solid rgba(255,255,255,0.06);
+    }
+    .grenade-panel.show { display: flex; }
+    .gp-header {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .gp-count { font-size: 12px; font-weight: 700; color: #cfcff0; }
+    .gp-controls {
+      display: flex; gap: 6px; margin-top: 8px; align-items: center;
+    }
+    .gp-controls select {
+      flex: 1;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 4px;
+      padding: 3px 6px;
+      font-size: 11px; color: #ddd;
+    }
+    .gp-list { flex: 1; overflow-y: auto; padding: 6px; }
+    .gp-item {
+      padding: 6px 8px; cursor: pointer;
+      border-radius: 4px;
+      font-size: 11px; color: #aaa;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .gp-item:hover { background: rgba(255,255,255,0.04); }
+    .gp-item.active { background: rgba(102,102,183,0.16); color: #cfcff0; }
+    .gp-item-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .gp-item-dot.smoke   { background: #b3b3b3; }
+    .gp-item-dot.molotov { background: #ff7a30; }
+    .gp-item-dot.flash   { background: #ffeb55; }
+    .gp-item-dot.he      { background: #6cd070; }
+  </style>
+</head>
+<body>
+  <div id="sidebar" class="sidebar"></div>
+
+  <main class="main-content">
+    <div class="analysis-shell" id="analysis-shell">
+      <header class="analysis-header">
+        <span class="analysis-title">Analysis</span>
+        <div class="team-pick-wrap">
+          <input id="team-pick" class="team-pick-input" type="text" placeholder="Pick a team…" autocomplete="off">
+        </div>
+        <div class="mode-pills">
+          <button class="mode-pill active" data-mode="overlay">Overlay</button>
+          <button class="mode-pill"        data-mode="grenade">Grenade</button>
+        </div>
+      </header>
+
+      <div class="analysis-body">
+        <aside class="filter-rail" id="filter-rail">
+          <!-- Filter UI populated by analysis.js once a team is picked -->
+        </aside>
+
+        <div class="canvas-wrap" id="canvas-wrap">
+          <canvas id="map-canvas"></canvas>
+          <div class="canvas-empty" id="canvas-empty">Pick a team to begin.</div>
+          <div class="canvas-chips" id="canvas-chips"></div>
+        </div>
+
+        <aside class="grenade-panel" id="grenade-panel">
+          <div class="gp-header">
+            <div class="gp-count" id="gp-count">0 grenades</div>
+            <div class="gp-controls">
+              <select id="gp-type-filter">
+                <option value="all">All types</option>
+                <option value="smoke">Smoke</option>
+                <option value="molotov">Molotov</option>
+                <option value="flash">Flash</option>
+                <option value="he">HE</option>
+              </select>
+              <select id="gp-sort">
+                <option value="round">Sort: Round</option>
+                <option value="type">Sort: Type</option>
+                <option value="thrower">Sort: Thrower</option>
+              </select>
+            </div>
+          </div>
+          <div class="gp-list" id="gp-list"></div>
+        </aside>
+      </div>
+
+      <div class="analysis-bottom hidden" id="analysis-bottom">
+        <button class="play-btn" id="play-btn">▶</button>
+        <span class="tl-time" id="tl-current">0:00</span>
+        <div class="tl-track" id="tl-track">
+          <div class="tl-fill" id="tl-fill"></div>
+          <div class="tl-thumb" id="tl-thumb"></div>
+        </div>
+        <span class="tl-time" id="tl-end">0:00</span>
+        <button class="trail-toggle" id="trail-toggle">Trails</button>
+        <div class="speed-buttons">
+          <button class="speed-btn" data-speed="0.5">½×</button>
+          <button class="speed-btn active" data-speed="1">1×</button>
+          <button class="speed-btn" data-speed="2">2×</button>
+          <button class="speed-btn" data-speed="4">4×</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="analysis.js"></script>
+</body>
+</html>
