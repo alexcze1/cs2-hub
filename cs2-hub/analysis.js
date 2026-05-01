@@ -320,6 +320,7 @@ async function reloadRoundSet() {
   updateReadout(state.rounds.length, demos.length)
   setEmptyMessage(state.rounds.length === 0 ? '0 rounds match — try widening filters.' : '')
   requestRender()
+  if (state.mode === 'grenade') refreshGrenadePanel()
 }
 
 function updateReadout(rounds, demos) {
@@ -587,7 +588,63 @@ document.getElementById('trail-toggle').addEventListener('click', e => {
 })
 
 // ── Mode toggle (Task 12) ────────────────────────────────────
-function refreshGrenadePanel() {}
+function refreshGrenadePanel() {
+  const listEl  = document.getElementById('gp-list')
+  const countEl = document.getElementById('gp-count')
+  const typeFilter = document.getElementById('gp-type-filter').value
+  const sortBy     = document.getElementById('gp-sort').value
+
+  const items = []
+  for (const r of state.rounds) {
+    const grenades = grenadesForRound(r._payload, r.roundIdx)
+    // slim payload carries meta.players = { sid: { name } } (Task 2 / build_slim_payload)
+    const playersMeta = r._payload.meta?.players || {}
+    for (const g of grenades) {
+      if (typeFilter !== 'all' && g.type !== typeFilter) continue
+      items.push({
+        key:         `${r.demoId}|${r.roundIdx}|${g.throw_tick}`,
+        type:        g.type,
+        round:       r.roundIdx + 1,
+        thrower:     playersMeta[g.thrower_sid]?.name || g.thrower_sid?.slice(-5) || '?',
+        thrower_team: g.thrower_team,
+        throw_tick:  g.throw_tick,
+        round_ref:   r,
+      })
+    }
+  }
+
+  items.sort((a, b) => {
+    if (sortBy === 'type')    return a.type.localeCompare(b.type) || a.round - b.round
+    if (sortBy === 'thrower') return a.thrower.localeCompare(b.thrower)
+    return a.round - b.round || a.throw_tick - b.throw_tick
+  })
+
+  countEl.textContent = `${items.length} grenade${items.length === 1 ? '' : 's'}`
+
+  listEl.innerHTML = items.map(it => `
+    <div class="gp-item ${_highlightedGrenadeKey === it.key ? 'active' : ''}" data-key="${it.key}">
+      <div class="gp-item-dot ${it.type}"></div>
+      <div>
+        <div>${it.type.toUpperCase()} · R${it.round} · ${escapeHtml(it.thrower)}</div>
+      </div>
+    </div>
+  `).join('')
+
+  for (const el of listEl.querySelectorAll('.gp-item')) {
+    el.addEventListener('click', () => {
+      _highlightedGrenadeKey = (_highlightedGrenadeKey === el.dataset.key) ? null : el.dataset.key
+      refreshGrenadePanel()
+      render()
+    })
+  }
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML
+}
+
+document.getElementById('gp-type-filter').addEventListener('change', () => { refreshGrenadePanel(); render() })
+document.getElementById('gp-sort').addEventListener('change', refreshGrenadePanel)
 
 function applyMode() {
   for (const pill of document.querySelectorAll('.mode-pill')) {
