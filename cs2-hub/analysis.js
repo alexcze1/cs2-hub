@@ -95,18 +95,20 @@ if (state.team) {
 }
 
 async function loadCorpus(teamName) {
-  const { data, error } = await supabase
-    .from('demos')
-    .select('id, map, played_at, ct_team_name, t_team_name, score_ct, score_t, team_a_first_side, team_a_score, team_b_score')
-    .eq('status', 'ready')
-    .or(`ct_team_name.eq.${teamName},t_team_name.eq.${teamName}`)
-    .order('played_at', { ascending: false })
-
-  if (error) {
-    console.error('[analysis] corpus query failed:', error)
+  try {
+    const { data, error } = await supabase
+      .from('demos')
+      .select('id, map, played_at, ct_team_name, t_team_name, score_ct, score_t, team_a_first_side, team_a_score, team_b_score')
+      .eq('status', 'ready')
+      .or(`ct_team_name.eq.${teamName},t_team_name.eq.${teamName}`)
+      .order('played_at', { ascending: false })
+    if (error) throw error
+    return data ?? []
+  } catch (e) {
+    console.error('[analysis] corpus load failed:', e)
+    showChip('Failed to load corpus — check network', 'error')
     return []
   }
-  return data ?? []
 }
 
 async function onTeamChanged() {
@@ -280,6 +282,9 @@ async function reloadRoundSet() {
   } else if (state.filters.dateRange === 'last10') {
     demos = demos.slice(0, 10)
   }
+
+  if (demos.length > 15) showChip(`Loading ${demos.length} demos — this may take a moment…`, 'warn')
+  else                    hideChip(`Loading ${demos.length} demos — this may take a moment…`)
 
   if (!demos.length) {
     state.rounds = []
@@ -463,6 +468,7 @@ function renderGrenadeMode(tc, mapSize) {
       const colors = GREN_COLORS[g.type] || GREN_COLORS.smoke
       const radius = (GREN_RADII[g.type] || 0.012) * mapSize
       const { x, y } = tc(g.land_x, g.land_y)
+      if (!Number.isFinite(x) || !Number.isFinite(y)) continue
       const key = `${r.demoId}|${r.roundIdx}|${g.throw_tick}`
       const dimmed = _highlightedGrenadeKey && _highlightedGrenadeKey !== key
 
@@ -537,6 +543,7 @@ function renderOverlay(tc, mapSize) {
     for (const player of frame.players) {
       if (!player.alive) continue
       const { x, y } = tc(player.x, player.y)
+      if (!Number.isFinite(x) || !Number.isFinite(y)) continue
       ctx.beginPath()
       ctx.arc(x, y, dotR, 0, Math.PI * 2)
       ctx.fill()
