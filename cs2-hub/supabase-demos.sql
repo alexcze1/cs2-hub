@@ -125,3 +125,9 @@ create policy "team_demos_storage_delete" on storage.objects
 
 create index on demos (team_id, created_at desc);
 create index on demos (status) where status = 'pending';
+
+-- Migration 2026-05-01: per-roster scores for halftime-aware display
+alter table demos add column if not exists team_a_score      int;
+alter table demos add column if not exists team_b_score      int;
+alter table demos add column if not exists team_a_first_side text
+  check (team_a_first_side in ('ct','t'));
