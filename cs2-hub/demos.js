@@ -21,8 +21,12 @@ function detectRosters(demos) {
   const m1 = sorted[0]
   const f0 = m1?.match_data?.frames?.[0]
   if (!f0) return { rosterA: [], rosterB: [], confident: false }
-  const rosterA = f0.players.filter(p => p.team === 'ct').map(p => ({ steam_id: p.steam_id, name: p.name }))
-  const rosterB = f0.players.filter(p => p.team === 't').map(p => ({ steam_id: p.steam_id, name: p.name }))
+  // Names live on match_data.players_meta on new demos; fall back to per-frame
+  // p.name for old demos parsed before the payload trim.
+  const meta1 = m1?.match_data?.players_meta ?? {}
+  const nameOf = p => meta1[p.steam_id]?.name ?? p.name ?? ''
+  const rosterA = f0.players.filter(p => p.team === 'ct').map(p => ({ steam_id: p.steam_id, name: nameOf(p) }))
+  const rosterB = f0.players.filter(p => p.team === 't').map(p => ({ steam_id: p.steam_id, name: nameOf(p) }))
   const idsA = new Set(rosterA.map(p => p.steam_id))
   const idsB = new Set(rosterB.map(p => p.steam_id))
   let confident = (rosterA.length === 5 && rosterB.length === 5)
@@ -194,8 +198,10 @@ async function showLegacyBySideModal(demoId) {
     .single()
   if (error || !data?.match_data) { alert('Could not load demo data.'); return null }
   const firstFrame = data.match_data.frames?.[0]
-  const ctPlayers  = (firstFrame?.players ?? []).filter(p => p.team === 'ct').map(p => p.name)
-  const tPlayers   = (firstFrame?.players ?? []).filter(p => p.team === 't').map(p => p.name)
+  const meta = data.match_data.players_meta ?? {}
+  const nameOf = p => meta[p.steam_id]?.name ?? p.name ?? ''
+  const ctPlayers  = (firstFrame?.players ?? []).filter(p => p.team === 'ct').map(nameOf)
+  const tPlayers   = (firstFrame?.players ?? []).filter(p => p.team === 't').map(nameOf)
 
   function playerList(names, color) {
     if (!names.length) return '<span style="color:#444;font-size:11px">No players found</span>'

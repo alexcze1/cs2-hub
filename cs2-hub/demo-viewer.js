@@ -74,6 +74,12 @@ if (!state.match.rounds.length) {
   throw new Error('no rounds')
 }
 
+// Names live in players_meta on new demos (per-frame name was dropped to shrink
+// match_data). Fall back to per-frame p.name for old demos parsed before the
+// payload trim.
+const _playersMeta = state.match.players_meta ?? {}
+const playerName = p => _playersMeta[p.steam_id]?.name ?? p.name ?? ''
+
 // Use meta.map from parsed data as source of truth; fall back to DB column
 const mapName = state.match.meta?.map || demo.map || ''
 document.title = `${mapName} — MIDROUND`
@@ -808,7 +814,7 @@ function render() {
     for (const p of frame.players) {
       if (!p.is_alive) continue
       const { x, y } = tc(p.x, p.y)
-      drawPlayerPill(x, y - dotR, p.name.slice(0, 13), playerColor(p.team), pillFont, pillFontSz)
+      drawPlayerPill(x, y - dotR, playerName(p).slice(0, 13), playerColor(p.team), pillFont, pillFontSz)
 
       const rawWeapon = (p.weapon || '').replace('weapon_', '')
       const iconName  = WEAPON_ICON_MAP[rawWeapon] ?? rawWeapon
@@ -933,7 +939,7 @@ function playerCardHTML(p) {
       <div class="card-accent-bar"></div>
       <div class="card-body">
         <div class="card-top">
-          <span class="player-name">${esc(p.name.slice(0, 13))}</span>
+          <span class="player-name">${esc(playerName(p).slice(0, 13))}</span>
           <span class="dead-label">dead</span>
         </div>
       </div>
@@ -949,7 +955,7 @@ function playerCardHTML(p) {
     <div class="card-accent-bar"></div>
     <div class="card-body">
       <div class="card-top">
-        <span class="player-name">${esc(p.name.slice(0, 13))}</span>
+        <span class="player-name">${esc(playerName(p).slice(0, 13))}</span>
         <span class="player-money">$${(p.money ?? 0).toLocaleString()}</span>
       </div>
       <div class="hp-row">
@@ -978,7 +984,7 @@ function copySetposFor(steamId) {
     ? `setpos ${p.x.toFixed(1)} ${p.y.toFixed(1)} ${p.z.toFixed(1)}; setang ${p.pitch.toFixed(1)} ${p.yaw.toFixed(1)} 0`
     : `setpos ${p.x.toFixed(1)} ${p.y.toFixed(1)}; setang 0 ${p.yaw.toFixed(1)} 0`
   navigator.clipboard.writeText(cmd)
-    .then(() => showSetposToast(p.name))
+    .then(() => showSetposToast(playerName(p)))
     .catch(err => console.warn('clipboard write failed:', err))
 }
 

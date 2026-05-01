@@ -546,11 +546,18 @@ def parse_demo(dem_path: str) -> dict:
     by_tick: dict = defaultdict(list)
     # sid → sorted [(tick, team)] — only valid teams (2=T, 3=CT), supports halftime swaps
     sid_team_hist: dict = defaultdict(list)
+    # sid → name — accumulated across all sampled ticks; last write wins. Static-per-player
+    # data lifted out of every frame to save ~2 MB of JSON on a 30-min match.
+    players_meta: dict = {}
     for r in tick_records:
         sid = str(r.get("steamid") or "")
         tn  = _safe_int(r.get("team_num"))
         if sid and tn in (2, 3):
             sid_team_hist[sid].append((int(r["tick"]), "ct" if tn == 3 else "t"))
+        if sid:
+            nm = str(r.get("name") or "")
+            if nm:
+                players_meta[sid] = {"name": nm}
         by_tick[int(r["tick"])].append(r)
     for sid in sid_team_hist:
         sid_team_hist[sid].sort()
@@ -591,26 +598,34 @@ def parse_demo(dem_path: str) -> dict:
             else:
                 has_smoke = has_flash = has_molotov = has_he = False
 
-            players.append({
-                "steam_id":       str(r.get("steamid") or ""),
-                "name":           str(r.get("name") or ""),
+            sid = str(r.get("steamid") or "")
+            fd  = _safe_float(r.get("flash_duration"))
+            entry = {
+                "steam_id":       sid,
                 "team":           "ct" if team_num == 3 else "t",
-                "x":              _safe_float(r.get("X")),
-                "y":              _safe_float(r.get("Y")),
-                "z":              _safe_float(r.get("Z")),
+                # World coords rounded to int — sub-unit precision is invisible at any
+                # zoom on a 1024px minimap and saves ~3 MB of JSON per match.
+                "x":              int(round(_safe_float(r.get("X")))),
+                "y":              int(round(_safe_float(r.get("Y")))),
+                "z":              int(round(_safe_float(r.get("Z")))),
                 "hp":             _safe_int(r.get("health")),
                 "armor":          _safe_int(r.get("armor_value")),
                 "weapon":         str(r.get("active_weapon_name") or ""),
                 "money":          _safe_int(r.get("balance")),
                 "is_alive":       bool(r.get("is_alive") or False),
-                "yaw":            _safe_float(r.get("yaw")),
-                "pitch":          _safe_float(r.get("pitch")),
-                "flash_duration": _safe_float(r.get("flash_duration")),
+                # Yaw/pitch to 1 decimal — viewer clamps to integer pixels, more is noise.
+                "yaw":            round(_safe_float(r.get("yaw")), 1),
+                "pitch":          round(_safe_float(r.get("pitch")), 1),
                 "has_smoke":      has_smoke,
                 "has_flash":      has_flash,
                 "has_molotov":    has_molotov,
                 "has_he":         has_he,
-            })
+            }
+            # flash_duration is 0 for the vast majority of ticks; omit when 0
+            # (saves ~7 MB on a 30-min match). Viewer treats absent as 0.
+            if fd > 0:
+                entry["flash_duration"] = round(fd, 2)
+            players.append(entry)
         frames.append({"tick": int(tick), "players": players})
 
     print(f"[parser] frames: {len(frames)}  frame[0] players: {len(frames[0]['players']) if frames else 0}")
@@ -681,10 +696,11 @@ def parse_demo(dem_path: str) -> dict:
             "ct_score":    ct_score,
             "t_score":     t_score,
         },
-        "rounds":   rounds,
-        "frames":   frames,
-        "kills":    kills,
-        "grenades": grenades,
-        "bomb":     bomb,
-        "shots":    shots,
+        "players_meta": players_meta,
+        "rounds":       rounds,
+        "frames":       frames,
+        "kills":        kills,
+        "grenades":     grenades,
+        "bomb":         bomb,
+        "shots":        shots,
     }
