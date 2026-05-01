@@ -799,3 +799,128 @@ def parse_demo(dem_path: str) -> dict:
         "bomb":         bomb,
         "shots":        shots,
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Slim payload for multi-round analysis tool (analysis.html).
+# Pure function — no I/O. Derives a ~10x smaller representation of a parsed
+# demo containing only the fields needed for round-overlay rendering and
+# grenade-mode visualisation.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Maps the integer/string winner-reason from parse_demo.rounds → analysis term.
+# parse_demo currently stores raw strings from _WIN_REASONS; copy through verbatim.
+def _slim_won_by(reason):
+    return reason if isinstance(reason, str) else None
+
+
+def _round_index_for_tick(rounds, tick):
+    """Return the 0-based round idx whose [start, end] contains tick, else None.
+    Linear scan is fine — typical demo has ≤30 rounds."""
+    for i, r in enumerate(rounds):
+        if r["start_tick"] <= tick <= r["end_tick"]:
+            return i
+    return None
+
+
+def _team_at_tick(frames, steam_id, tick):
+    """Best-effort lookup of a player's team at the given tick by scanning frames.
+    Used to attribute grenade throws to a side. Returns 'ct'/'t'/None."""
+    # Walk frames in order; the last frame at-or-before the target tick wins.
+    last = None
+    for f in frames:
+        if f.get("tick", 0) > tick:
+            break
+        for p in f.get("players", []):
+            if p.get("steam_id") == steam_id:
+                last = p.get("team")
+    return last
+
+
+def build_slim_payload(parsed: dict) -> dict:
+    """Derive the slim payload from a full parse_demo() result.
+
+    Reductions vs full match_data:
+      - frames keep only steam_id/team/x/y/alive/yaw per player
+      - frames carry round_idx so the client can group without scanning rounds
+      - grenades keep landing coords + sparse trajectory + throw metadata
+      - kills, shots, bomb timeline, players_meta omitted (live on full match_data)
+    """
+    meta = parsed.get("meta", {}) or {}
+    rounds_in  = parsed.get("rounds", []) or []
+    frames_in  = parsed.get("frames", []) or []
+    grenades_in = parsed.get("grenades", []) or []
+
+    rounds_out = []
+    for i, r in enumerate(rounds_in):
+        rounds_out.append({
+            "idx":               i,
+            "side_team_a":       r.get("team_a_side"),
+            "freeze_end_tick":   int(r.get("freeze_end_tick", r.get("start_tick", 0))),
+            "end_tick":          int(r.get("end_tick", 0)),
+            "winner":            r.get("winner_side"),
+            "won_by":            _slim_won_by(r.get("reason")),
+            "bomb_planted_site": r.get("bomb_planted_site"),
+        })
+
+    frames_out = []
+    for f in frames_in:
+        tick = int(f.get("tick", 0))
+        ridx = _round_index_for_tick(rounds_in, tick)
+        if ridx is None:
+            continue  # drop frames that fall outside any round (warmup, between rounds)
+        slim_players = []
+        for p in f.get("players", []):
+            slim_players.append({
+                "steam_id": p.get("steam_id", ""),
+                "team":     p.get("team"),
+                "x":        p.get("x", 0),
+                "y":        p.get("y", 0),
+                "alive":    bool(p.get("is_alive", False)),
+                "yaw":      p.get("yaw", 0),
+            })
+        frames_out.append({
+            "tick":      tick,
+            "round_idx": ridx,
+            "players":   slim_players,
+        })
+
+    grenades_out = []
+    for g in grenades_in:
+        det_tick = int(g.get("tick", 0))
+        ridx = _round_index_for_tick(rounds_in, det_tick)
+        if ridx is None:
+            continue
+        throw_tick = int(g.get("origin_tick") or g.get("path_throw_tick") or det_tick)
+        thrower_sid = g.get("steam_id") or ""
+        grenades_out.append({
+            "round_idx":     ridx,
+            "type":          g.get("type", ""),
+            "thrower_sid":   thrower_sid,
+            "thrower_team":  _team_at_tick(frames_in, thrower_sid, throw_tick),
+            "throw_tick":    throw_tick,
+            "land_x":        int(g.get("x", 0)),
+            "land_y":        int(g.get("y", 0)),
+            "trajectory":    list(g.get("path") or []),
+        })
+
+    # Compact players_meta into name-only lookups so the analysis side panel
+    # can render thrower names (full players_meta from parse_demo carries
+    # weapon counts / per-round stats we don't need for analysis).
+    players_meta_in = parsed.get("players_meta", {}) or {}
+    players_out = {}
+    for sid, pmeta in players_meta_in.items():
+        name = (pmeta or {}).get("name") if isinstance(pmeta, dict) else None
+        if name:
+            players_out[sid] = {"name": name}
+
+    return {
+        "meta": {
+            "map":       meta.get("map", ""),
+            "tick_rate": int(meta.get("tick_rate", 64)),
+            "players":   players_out,
+        },
+        "rounds":   rounds_out,
+        "frames":   frames_out,
+        "grenades": grenades_out,
+    }
