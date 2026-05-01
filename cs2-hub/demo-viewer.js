@@ -243,10 +243,10 @@ function renderGrenades(round, tick, frame, cw, ch, tc, mapSize) {
   const TRAJ_TICKS       = { smoke: tickRate * 7, molotov: tickRate * 6, he: tickRate * 5, flash: tickRate * 2 }
   const GRENADE_DURATION_S = { smoke: 22, molotov: 7 }
 
-  // Deduplicate grenades by (type, tick, steam_id) — parser can emit duplicate rows
+  // Dedupe by stable synthetic id (new demos) or fallback key (old demos)
   const seen = new Set()
   const grenades = state.match.grenades.filter(g => {
-    const key = `${g.type}:${g.tick}:${g.steam_id}`
+    const key = g.id ?? `${g.type}:${g.tick}:${g.steam_id}`
     if (seen.has(key)) return false
     seen.add(key)
     return true
