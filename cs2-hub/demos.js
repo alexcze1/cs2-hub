@@ -254,7 +254,7 @@ async function showLegacyBySideModal(demoId) {
 async function loadDemos() {
   const { data, error } = await supabase
     .from('demos')
-    .select('id,status,error_message,map,played_at,score_ct,score_t,opponent_name,ct_team_name,t_team_name,series_id,created_at')
+    .select('id,status,error_message,map,played_at,score_ct,score_t,team_a_score,team_b_score,team_a_first_side,opponent_name,ct_team_name,t_team_name,series_id,created_at')
     .eq('team_id', teamId)
     .order('created_at', { ascending: false })
 
@@ -283,12 +283,33 @@ async function loadDemos() {
     }
   }
 
+  // Resolve "left vs right" team labels and scores using per-roster columns when
+  // available (correct after halftime swap), falling back to per-side columns
+  // for old demos parsed before team_a_score was added. Returns null fields if
+  // team names not set so the caller can pick a different label format.
+  function teamDisplay(d) {
+    const teamsSet = d.ct_team_name && d.t_team_name
+    const haveRoster = d.team_a_score != null && d.team_b_score != null && d.team_a_first_side
+    if (teamsSet && haveRoster) {
+      // team_a_first_side tells us which name belongs to roster A
+      const nameA = d.team_a_first_side === 'ct' ? d.ct_team_name : d.t_team_name
+      const nameB = d.team_a_first_side === 'ct' ? d.t_team_name  : d.ct_team_name
+      return { left: nameA, right: nameB, leftScore: d.team_a_score, rightScore: d.team_b_score }
+    }
+    if (teamsSet) {
+      // Old demo (no per-roster columns) — best-effort: use CT/T mapping (wrong post-halftime)
+      return { left: d.ct_team_name, right: d.t_team_name, leftScore: d.score_ct, rightScore: d.score_t }
+    }
+    // No team names — show side-based label
+    return { left: null, right: null, leftScore: d.score_ct, rightScore: d.score_t }
+  }
+
   function demoRow(d, label) {
     const mapName   = d.map ? d.map.replace('de_', '') : '?'
-    const score     = d.score_ct != null ? `${d.score_ct}–${d.score_t}` : ''
-    const teamsSet  = d.ct_team_name && d.t_team_name
-    const teamLabel = teamsSet
-      ? `${esc(d.ct_team_name)} vs ${esc(d.t_team_name)}`
+    const td        = teamDisplay(d)
+    const score     = td.leftScore != null ? `${td.leftScore}–${td.rightScore}` : ''
+    const teamLabel = td.left
+      ? `${esc(td.left)} vs ${esc(td.right)}`
       : d.opponent_name ? `vs ${esc(d.opponent_name)}` : 'Demo'
     const title = label || teamLabel
 
@@ -301,7 +322,7 @@ async function loadDemos() {
 
     const assignBtn = d.status === 'ready'
       ? `<button class="btn btn-ghost btn-sm" onclick="assignTeams('${d.id}')">
-           ${teamsSet ? '✎ Teams' : '+ Teams'}
+           ${td.left ? '✎ Teams' : '+ Teams'}
          </button>`
       : ''
 
@@ -328,9 +349,9 @@ async function loadDemos() {
 
   for (const [, demos] of seriesMap) {
     const first = demos[0]
-    const teamsSet = first.ct_team_name && first.t_team_name
-    const seriesLabel = teamsSet
-      ? `${esc(first.ct_team_name)} vs ${esc(first.t_team_name)}`
+    const td = teamDisplay(first)
+    const seriesLabel = td.left
+      ? `${esc(td.left)} vs ${esc(td.right)}`
       : first.opponent_name ? `vs ${esc(first.opponent_name)}` : 'Series'
     html += `
       <div style="margin-bottom:4px;padding:4px 0 2px 4px;font-size:10px;font-weight:700;color:#555;letter-spacing:0.1em;text-transform:uppercase">
