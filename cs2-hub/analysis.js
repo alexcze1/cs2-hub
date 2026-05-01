@@ -3,6 +3,7 @@ import { renderSidebar }         from './layout.js'
 import { supabase }              from './supabase.js'
 import { attachTeamAutocomplete } from './team-autocomplete.js'
 import { narrowRoundsForTeam, framesForRound, grenadesForRound } from './analysis-rounds.js'
+import { worldToCanvas } from './demo-map-data.js'
 
 await requireAuth()
 renderSidebar('analysis')
@@ -114,6 +115,7 @@ async function onTeamChanged() {
   state.corpus = await loadCorpus(state.team)
   hideChip('Loading corpus…')
   renderFilterRail()
+  if (state.filters.map) loadMapImage(state.filters.map)
   // Round set built once filters apply — Task 9
   await reloadRoundSet()
 }
@@ -218,9 +220,11 @@ function mapShort(m) {
 }
 
 function onFilter(key, value) {
+  const prevMap = state.filters.map
   state.filters[key] = value
   writeUrl()
   renderFilterRail()  // re-render so segmented active state updates
+  if (key === 'map' && value !== prevMap) loadMapImage(value)
   reloadRoundSet()
 }
 
@@ -323,9 +327,79 @@ function updateReadout(rounds, demos) {
   if (d) d.textContent = String(demos)
 }
 
-function requestRender() {
-  // Stub — Task 10 fills in actual canvas rendering.
+// ── Canvas and map rendering ──────────────────────────────────
+const canvas = document.getElementById('map-canvas')
+const ctx    = canvas.getContext('2d')
+const wrap   = document.getElementById('canvas-wrap')
+
+let mapImg     = null
+let mapLoaded  = false
+let _renderQueued = false
+
+function loadMapImage(mapName) {
+  mapImg = new Image()
+  mapLoaded = false
+  mapImg.src = `images/maps/${mapName}_viewer.png`
+  mapImg.onload  = () => { mapLoaded = true; requestRender() }
+  mapImg.onerror = () => {
+    mapImg.src = `images/maps/${mapName}_radar.png`
+    mapImg.onload  = () => { mapLoaded = true; requestRender() }
+    mapImg.onerror = () => { mapLoaded = true; requestRender() }
+  }
 }
+
+function resizeCanvas() {
+  const { width, height } = wrap.getBoundingClientRect()
+  if (width < 10 || height < 10) return
+  canvas.width  = Math.round(width)
+  canvas.height = Math.round(height)
+}
+new ResizeObserver(() => { resizeCanvas(); requestRender() }).observe(wrap)
+resizeCanvas()
+
+function requestRender() {
+  if (_renderQueued) return
+  _renderQueued = true
+  requestAnimationFrame(() => {
+    _renderQueued = false
+    render()
+  })
+}
+
+function render() {
+  const cw = canvas.width
+  const ch = canvas.height
+  ctx.clearRect(0, 0, cw, ch)
+  ctx.fillStyle = '#030712'
+  ctx.fillRect(0, 0, cw, ch)
+
+  // Letterbox: square map region, centered
+  const mapSize = Math.min(cw, ch)
+  const mapX    = Math.round((cw - mapSize) / 2)
+  const mapY    = Math.round((ch - mapSize) / 2)
+
+  if (mapLoaded && mapImg.complete && mapImg.naturalWidth) {
+    ctx.drawImage(mapImg, mapX, mapY, mapSize, mapSize)
+    ctx.fillStyle = 'rgba(0,0,0,0.18)'
+    ctx.fillRect(mapX, mapY, mapSize, mapSize)
+  } else {
+    ctx.fillStyle = '#0d1117'
+    ctx.fillRect(mapX, mapY, mapSize, mapSize)
+  }
+
+  const tc = (wx, wy) => {
+    const { x, y } = worldToCanvas(wx, wy, state.filters.map, mapSize, mapSize)
+    return { x: x + mapX, y: y + mapY }
+  }
+
+  // Mode dispatch (Task 11/13 fill these in)
+  if (state.mode === 'overlay') renderOverlay(tc, mapSize)
+  else if (state.mode === 'grenade') renderGrenadeMode(tc, mapSize)
+}
+
+// Stubs — Tasks 11 (overlay) and 13 (grenade) fill them in
+function renderOverlay(tc, mapSize) {}
+function renderGrenadeMode(tc, mapSize) {}
 
 // Export for tests (no-op in browser)
 export { state, readUrl, writeUrl }
