@@ -42,8 +42,20 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 @contextmanager
 def get_db():
-    conn = psycopg2.connect(DATABASE_URL)
+    # keepalives: detect dead pooler connections in ~25s instead of hanging indefinitely.
+    # statement_timeout: server kills any single statement > 180s (large match_data writes
+    # have measured at ~45s, so 180s is generous headroom while still bounding hangs).
+    conn = psycopg2.connect(
+        DATABASE_URL,
+        connect_timeout=10,
+        keepalives=1,
+        keepalives_idle=10,
+        keepalives_interval=5,
+        keepalives_count=3,
+    )
     try:
+        with conn.cursor() as cur:
+            cur.execute("SET statement_timeout = '180s'")
         yield conn
         conn.commit()
     except Exception:
@@ -267,9 +279,20 @@ async def _process_one(demo: dict):
                 kill_counts.get(sid, 0), death_counts.get(sid, 0), 0, 0.0, 0.0,
             ))
 
-        await loop.run_in_executor(
-            None, _db_write_results, demo_id, meta, ct_score, t_score, match_data, player_rows
-        )
+        # Bound the write at 240s so a stuck pooler connection can't lock the
+        # poll loop forever — server statement_timeout (180s) should fire first;
+        # this is a belt-and-suspenders cap. On timeout the demo is marked error
+        # and the loop continues; the leaked connection eventually gets reaped
+        # by keepalives.
+        try:
+            await asyncio.wait_for(
+                loop.run_in_executor(
+                    None, _db_write_results, demo_id, meta, ct_score, t_score, match_data, player_rows
+                ),
+                timeout=240,
+            )
+        except asyncio.TimeoutError:
+            raise RuntimeError("postgres write exceeded 240s — connection likely stuck")
         print(f"Done: {demo_id} — {meta['map']} {ct_score}-{t_score}")
 
     except Exception as e:
