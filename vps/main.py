@@ -17,7 +17,7 @@ from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from supabase import create_client, Client
 
-from demo_parser import parse_demo
+from demo_parser import parse_demo, build_slim_payload
 
 socket.setdefaulttimeout(30)
 sys.stdout.reconfigure(line_buffering=True)
@@ -194,10 +194,12 @@ def _db_set_error(demo_id, msg):
             )
 
 
-def _db_write_results(demo_id, meta, ct_score, t_score, match_data, player_rows):
+def _db_write_results(demo_id, meta, ct_score, t_score, match_data, slim_data, player_rows):
     print(f"[db] serializing match_data (frames={len(match_data.get('frames', []))}) ...")
     match_json = json.dumps(match_data)
+    slim_json  = json.dumps(slim_data)
     print(f"[db] match_data JSON size: {len(match_json) / 1024 / 1024:.1f} MB")
+    print(f"[db] match_data_slim JSON size: {len(slim_json) / 1024 / 1024:.2f} MB")
     with get_db() as conn:
         with conn.cursor() as cur:
             if player_rows:
@@ -221,7 +223,8 @@ def _db_write_results(demo_id, meta, ct_score, t_score, match_data, player_rows)
                      team_a_first_side = %s,
                      duration_ticks = %s,
                      tick_rate = %s,
-                     match_data = %s
+                     match_data = %s,
+                     match_data_slim = %s
                    WHERE id = %s""",
                 (
                     datetime.datetime.utcnow().isoformat(),
@@ -234,6 +237,7 @@ def _db_write_results(demo_id, meta, ct_score, t_score, match_data, player_rows)
                     meta["total_ticks"],
                     meta["tick_rate"],
                     match_json,
+                    slim_json,
                     demo_id,
                 ),
             )
@@ -261,6 +265,7 @@ async def _process_one(demo: dict):
                 tmp_path = tmp.name
 
         match_data = await loop.run_in_executor(None, parse_demo, tmp_path)
+        slim_data  = build_slim_payload(match_data)
 
         meta     = match_data["meta"]
         ct_score = meta["ct_score"]
@@ -296,7 +301,7 @@ async def _process_one(demo: dict):
         try:
             await asyncio.wait_for(
                 loop.run_in_executor(
-                    None, _db_write_results, demo_id, meta, ct_score, t_score, match_data, player_rows
+                    None, _db_write_results, demo_id, meta, ct_score, t_score, match_data, slim_data, player_rows
                 ),
                 timeout=240,
             )
