@@ -74,24 +74,6 @@ if (!state.match.rounds.length) {
   throw new Error('no rounds')
 }
 
-// Strip knife rounds: no gun kills and shorter than 75 seconds
-const KNIFE_WEAPONS = new Set(['knife','bayonet','knife_butterfly','knife_karambit',
-  'knife_m9_bayonet','knife_flip','knife_gut','knife_falchion','knife_shadow_daggers',
-  'knife_bowie','knife_ursus','knife_gypsy_jackknife','knife_stiletto','knife_widowmaker',
-  'knife_skeleton','knife_cord','knife_canis','knife_outdoor','knife_push'])
-const tickRate0 = state.match.meta.tick_rate || 64
-state.match.rounds = state.match.rounds.filter(round => {
-  const durationSec = (round.end_tick - round.start_tick) / tickRate0
-  if (durationSec > 75) return true  // too long to be a knife round
-  const roundKills = state.match.kills.filter(k => k.tick >= round.start_tick && k.tick <= round.end_tick)
-  const hasGunKill = roundKills.some(k => {
-    const w = (k.weapon || '').toLowerCase().replace('weapon_', '')
-    return !KNIFE_WEAPONS.has(w) && w !== 'world' && w !== ''
-  })
-  return hasGunKill  // keep only rounds that have at least one gun kill
-})
-console.log('[viewer] rounds after knife filter:', state.match.rounds.length)
-
 // Use meta.map from parsed data as source of truth; fall back to DB column
 const mapName = state.match.meta?.map || demo.map || ''
 document.title = `${mapName} — MIDROUND`
