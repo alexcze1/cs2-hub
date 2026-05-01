@@ -362,20 +362,29 @@ def _parse_grenades(p) -> list:
 
 
 def _dedupe_grenades(grenades: list) -> list:
-    """Collapse subtick-duplicated grenade rows. Two rows are merged if same
-    steam_id, same type, within the type-specific tick window AND within the
-    type-specific spatial window. Earliest entry is preserved. Each survivor
-    gets a synthetic 'id' field so the client can dedupe stably regardless of
-    tick collisions.
+    """Collapse duplicated grenade rows in two passes.
 
-    Molotovs use a wider window because inferno_startburn can fire 2-4 times
-    per throw (one per fire patch the grenade lights), spread over up to ~3 s
-    and ~500 units of map space.
+    Pass 1 (same-thrower): merge rows that share steam_id+type within a
+    type-specific (tick, spatial) window. Catches subtick echoes and per-fire-
+    patch inferno_startburn events from a single throw.
+
+    Pass 2 (cross-thrower): merge rows that share type at near-identical tick
+    AND near-identical position regardless of steam_id. Catches cases where the
+    demo (or demoparser2) attributes one physical detonate event to two
+    different user IDs — observed in the wild as two smokes ~10 ticks / ~30 u
+    apart with different steam_ids.
+
+    Earliest entry survives in both passes. Each survivor gets a synthetic
+    'id' field so the client can dedupe stably.
     """
-    # type -> (tick_window, distance_window_squared)
-    WINDOWS = {
+    # Pass 1 windows: type -> (tick_window, distance_window_squared).
+    # Smoke window widened from 64→256 ticks because demoparser2 occasionally
+    # emits a duplicate detonate event ~150 ticks after the original, at the
+    # same spot. 200 u is tighter than the prior 300 u to avoid merging two
+    # players who legitimately smoked nearby spots seconds apart.
+    SAME_THROWER_WINDOWS = {
         "molotov": (256, 500 * 500),
-        "smoke":   (64,  300 * 300),
+        "smoke":   (256, 200 * 200),
         "flash":   (64,  300 * 300),
         "he":      (64,  300 * 300),
     }
@@ -383,13 +392,13 @@ def _dedupe_grenades(grenades: list) -> list:
         grenades,
         key=lambda g: (g.get("steam_id", ""), g.get("type", ""), g.get("tick", 0)),
     )
-    out: list = []
+    pass1: list = []
     for g in sorted_g:
         merged = False
-        if out:
-            prev = out[-1]
+        if pass1:
+            prev = pass1[-1]
             gtype = g.get("type", "")
-            tick_win, dist_sq_win = WINDOWS.get(gtype, (64, 300 * 300))
+            tick_win, dist_sq_win = SAME_THROWER_WINDOWS.get(gtype, (64, 300 * 300))
             if (prev.get("steam_id", "") == g.get("steam_id", "")
                     and prev.get("type") == gtype
                     and abs(prev.get("tick", 0) - g.get("tick", 0)) <= tick_win):
@@ -398,10 +407,37 @@ def _dedupe_grenades(grenades: list) -> list:
                 if dx * dx + dy * dy < dist_sq_win:
                     merged = True
         if not merged:
+            pass1.append(g)
+
+    # Pass 2: cross-thrower near-coincidence. Tight thresholds (32 ticks / 100 u)
+    # so two players throwing the same spot a half-second apart are NOT merged
+    # — only essentially-simultaneous, essentially-co-located events.
+    CROSS_TICK_WIN = 32
+    CROSS_DIST_SQ  = 100 * 100
+    pass1_by_tick = sorted(pass1, key=lambda g: (g.get("type", ""), g.get("tick", 0)))
+    out: list = []
+    for g in pass1_by_tick:
+        gtype = g.get("type", "")
+        gtick = g.get("tick", 0)
+        gx, gy = g.get("x", 0.0), g.get("y", 0.0)
+        merged = False
+        # Walk back through recent survivors of same type
+        for prev in reversed(out):
+            if prev.get("type") != gtype:
+                continue
+            if gtick - prev.get("tick", 0) > CROSS_TICK_WIN:
+                break  # sorted by tick within type — no more candidates
+            dx = prev.get("x", 0.0) - gx
+            dy = prev.get("y", 0.0) - gy
+            if dx * dx + dy * dy < CROSS_DIST_SQ:
+                merged = True
+                break
+        if not merged:
             out.append(g)
-    pre, post = len(grenades), len(out)
+
+    pre, mid, post = len(grenades), len(pass1), len(out)
     if pre != post:
-        print(f"[parser] grenade dedupe: {pre} → {post} (collapsed {pre - post})")
+        print(f"[parser] grenade dedupe: {pre} → {mid} (same-thrower) → {post} (cross-thrower)")
     for i, g in enumerate(out):
         g["id"] = f"{g.get('type','')}-{g.get('tick',0)}-{g.get('steam_id','')}-{i}"
     return out

@@ -85,63 +85,6 @@ const mapName = state.match.meta?.map || demo.map || ''
 document.title = `${mapName} — MIDROUND`
 console.log('[viewer] map:', mapName, '| rounds:', state.match.rounds.length, '| frames:', state.match.frames.length, '| tick_rate:', state.match.meta.tick_rate)
 
-// DIAG: smoke duplicate hunt — log all smoke grenade entries to inspect for dupes
-{
-  const _smokes = (state.match.grenades || []).filter(g => g.type === 'smoke')
-  console.log('[diag] total smokes:', _smokes.length)
-  console.table(_smokes.slice(0, 60).map(g => ({
-    id: g.id,
-    tick: g.tick,
-    x: Math.round(g.x),
-    y: Math.round(g.y),
-    sid: g.steam_id,
-    throw_tick: g.path_throw_tick ?? g.origin_tick ?? null,
-    has_path: !!g.path,
-    path_len: g.path ? g.path.length : 0,
-  })))
-  // Group by (tick window 64 ticks, ~12.5 m radius) to highlight likely duplicates
-  const groups = []
-  for (const g of _smokes) {
-    let placed = false
-    for (const grp of groups) {
-      const ref = grp[0]
-      if (Math.abs(g.tick - ref.tick) <= 128 &&
-          (g.x - ref.x) ** 2 + (g.y - ref.y) ** 2 <= 400 * 400) {
-        grp.push(g); placed = true; break
-      }
-    }
-    if (!placed) groups.push([g])
-  }
-  const dupes = groups.filter(grp => grp.length > 1)
-  if (dupes.length) {
-    console.warn('[diag] suspected smoke duplicate clusters:', dupes.length)
-    dupes.forEach((grp, i) => {
-      const summary = grp.map(g => `id=${g.id} tick=${g.tick} xy=(${Math.round(g.x)},${Math.round(g.y)}) sid=${g.steam_id} throw_tick=${g.path_throw_tick ?? g.origin_tick ?? '∅'} has_path=${!!g.path}`).join('  ||  ')
-      console.log(`[diag] cluster #${i + 1} (${grp.length}): ${summary}`)
-    })
-  } else {
-    console.log('[diag] no smoke clusters within tick=128 + 400u radius')
-  }
-
-  // Also log raw grenade entries that share the same player+round window — broader net
-  const _bySid = {}
-  for (const g of _smokes) {
-    if (!_bySid[g.steam_id]) _bySid[g.steam_id] = []
-    _bySid[g.steam_id].push(g)
-  }
-  let _broadDupes = 0
-  for (const sid in _bySid) {
-    const arr = _bySid[sid].sort((a, b) => a.tick - b.tick)
-    for (let i = 1; i < arr.length; i++) {
-      if (arr[i].tick - arr[i - 1].tick <= 256) {
-        _broadDupes++
-        console.warn(`[diag] same-sid pair within 256 ticks: sid=${sid} A(id=${arr[i-1].id} tick=${arr[i-1].tick} xy=${Math.round(arr[i-1].x)},${Math.round(arr[i-1].y)}) B(id=${arr[i].id} tick=${arr[i].tick} xy=${Math.round(arr[i].x)},${Math.round(arr[i].y)}) Δtick=${arr[i].tick - arr[i-1].tick} Δxy=${Math.round(Math.hypot(arr[i].x-arr[i-1].x, arr[i].y-arr[i-1].y))}`)
-      }
-    }
-  }
-  console.log('[diag] same-sid close pairs total:', _broadDupes)
-}
-
 mapImg     = new Image()
 mapImg.src = `images/maps/${mapName}_viewer.png`
 mapImg.onload  = () => { console.log('[viewer] viewer map loaded'); mapLoaded = true }
