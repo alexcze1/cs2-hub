@@ -342,8 +342,43 @@ async function loadDemos() {
 }
 
 supabase.channel('demos-status')
-  .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'demos', filter: `team_id=eq.${teamId}` }, () => loadDemos())
+  .on('postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'demos', filter: `team_id=eq.${teamId}` },
+      payload => {
+        loadDemos()
+        maybeAutoOpenAssignModal(payload.new)
+      })
   .subscribe()
+
+// Track which series/demos we've already auto-opened a modal for, so we
+// don't pop it twice if the realtime event re-fires.
+const _autoModalShown = new Set()
+
+async function maybeAutoOpenAssignModal(updated) {
+  if (!updated || updated.status !== 'ready') return
+  if (updated.ct_team_name && updated.t_team_name) return  // already named
+
+  if (updated.series_id) {
+    if (_autoModalShown.has(updated.series_id)) return
+    const { data: sib } = await supabase
+      .from('demos')
+      .select('id,series_id,match_data,ct_team_name,t_team_name,created_at,status')
+      .eq('series_id', updated.series_id)
+      .order('created_at', { ascending: true })
+    if (!sib?.length) return
+    if (sib.some(d => d.status !== 'ready')) return  // wait until all done
+    if (sib.some(d => d.ct_team_name && d.t_team_name)) {
+      _autoModalShown.add(updated.series_id)
+      return
+    }
+    _autoModalShown.add(updated.series_id)
+    showAssignTeamsModal(sib)
+  } else {
+    if (_autoModalShown.has(updated.id)) return
+    _autoModalShown.add(updated.id)
+    showAssignTeamsModal(updated.id)
+  }
+}
 
 window.assignTeams = id => showAssignTeamsModal(id)
 
