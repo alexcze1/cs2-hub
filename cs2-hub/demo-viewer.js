@@ -626,6 +626,25 @@ function drawCountdownText(x, y, r, remaining, textColor) {
   ctx.restore()
 }
 
+// Returns 0..1 indicating how blind a player is at the current state.tick.
+// New demos: read engine-truth flash_duration off the player frame.
+// Old demos: derive from state.match.blinds (legacy fallback).
+function flashIntensity(p) {
+  if (p.flash_duration != null && p.flash_duration > 0) {
+    return Math.max(0, Math.min(1, p.flash_duration / 2.5))
+  }
+  const tickRate = state.match.meta.tick_rate
+  for (const b of (state.match.blinds ?? [])) {
+    if (b.steam_id !== p.steam_id) continue
+    const totalTicks = Math.round(b.duration * tickRate)
+    const until      = b.tick + totalTicks
+    if (state.tick >= b.tick && state.tick < until) {
+      return Math.max(0, Math.min(1, (until - state.tick) / totalTicks))
+    }
+  }
+  return 0
+}
+
 // ── Render ────────────────────────────────────────────────────
 function render() {
   const cw = canvas.width
@@ -683,19 +702,7 @@ function render() {
     renderGrenades(round, state.tick, frame, cw, ch, tc, mapSize)
     renderBomb(round, state.tick, cw, ch, tc, mapSize)
 
-    // Build active blind map: steam_id → { until, totalTicks }
-    const tickRate   = state.match.meta.tick_rate
-    const blindUntil = {}
-    for (const b of (state.match.blinds ?? [])) {
-      const totalTicks = Math.round(b.duration * tickRate)
-      const until      = b.tick + totalTicks
-      if (state.tick >= b.tick && state.tick < until) {
-        const existing = blindUntil[b.steam_id]
-        if (!existing || existing.until < until) {
-          blindUntil[b.steam_id] = { until, totalTicks }
-        }
-      }
-    }
+    const tickRate = state.match.meta.tick_rate
 
     for (const p of frame.players) {
       const { x, y } = tc(p.x, p.y)
@@ -714,8 +721,9 @@ function render() {
         continue
       }
 
-      const id       = p.steam_id
-      const blindInfo = blindUntil[id]
+      const id      = p.steam_id
+      const flashI  = flashIntensity(p)
+      const blinded = flashI > 0.06
 
       if (p.hp != null && p.hp > 0) {
         const arcR = dotR + 3
@@ -732,8 +740,8 @@ function render() {
         ctx.restore()
       }
 
-      // Blind ring — shows team colour when dot is white
-      if (blindInfo && state.tick < blindInfo.until) {
+      // Blind ring — shows team colour when dot is whitened
+      if (blinded) {
         const ringR = dotR + 5
         ctx.save()
         ctx.beginPath()
@@ -750,12 +758,11 @@ function render() {
       }
       _prevHp[id] = p.hp
       let color
-      if (blindInfo && state.tick < blindInfo.until) {
-        const remaining = (blindInfo.until - state.tick) / blindInfo.totalTicks
+      if (blinded) {
         const [tr, tg, tb] = p.team === 'ct' ? [79, 195, 247] : [255, 149, 0]
-        const fr = Math.round(255 * remaining + tr * (1 - remaining))
-        const fg = Math.round(255 * remaining + tg * (1 - remaining))
-        const fb = Math.round(255 * remaining + tb * (1 - remaining))
+        const fr = Math.round(255 * flashI + tr * (1 - flashI))
+        const fg = Math.round(255 * flashI + tg * (1 - flashI))
+        const fb = Math.round(255 * flashI + tb * (1 - flashI))
         color = `rgb(${fr},${fg},${fb})`
       } else {
         color = (Date.now() < (_flashUntil[id] ?? 0)) ? '#FF1744' : playerColor(p.team)
