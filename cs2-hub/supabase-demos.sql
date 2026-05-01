@@ -131,3 +131,12 @@ alter table demos add column if not exists team_a_score      int;
 alter table demos add column if not exists team_b_score      int;
 alter table demos add column if not exists team_a_first_side text
   check (team_a_first_side in ('ct','t'));
+
+-- Migration 2026-05-01: slim payload column for multi-round analysis tool.
+-- Populated by VPS parser at parse time alongside match_data; ~10x smaller,
+-- contains only what analysis.html needs (downsampled frames, grenade landings).
+alter table demos add column if not exists match_data_slim jsonb;
+
+-- Indexes covering the common analysis lookup: "all demos where team T played map M"
+create index if not exists demos_ct_team_map_idx on demos (ct_team_name, map);
+create index if not exists demos_t_team_map_idx  on demos (t_team_name,  map);
