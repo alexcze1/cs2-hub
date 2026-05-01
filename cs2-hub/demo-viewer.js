@@ -85,35 +85,6 @@ const mapName = state.match.meta?.map || demo.map || ''
 document.title = `${mapName} — MIDROUND`
 console.log('[viewer] map:', mapName, '| rounds:', state.match.rounds.length, '| frames:', state.match.frames.length, '| tick_rate:', state.match.meta.tick_rate)
 
-// DIAG: smoke duplicate hunt — log post-fix grenade entries
-{
-  const _smokes = (state.match.grenades || []).filter(g => g.type === 'smoke')
-  console.log('[diag] total smokes:', _smokes.length)
-  // Brute-force pairwise scan for any near-coincidence
-  const pairs = []
-  for (let i = 0; i < _smokes.length; i++) {
-    for (let j = i + 1; j < _smokes.length; j++) {
-      const a = _smokes[i], b = _smokes[j]
-      const dt = Math.abs(a.tick - b.tick)
-      if (dt > 512) continue
-      const dx = a.x - b.x, dy = a.y - b.y
-      const d2 = dx * dx + dy * dy
-      if (d2 < 400 * 400) {
-        pairs.push({ dt, d2, a, b })
-      }
-    }
-  }
-  pairs.sort((p, q) => p.d2 - q.d2)
-  if (pairs.length) {
-    console.warn(`[diag] ${pairs.length} smoke pairs within 512 ticks AND 400u`)
-    pairs.slice(0, 20).forEach((p, i) => {
-      console.log(`[diag] pair #${i + 1}: Δtick=${p.dt} Δxy=${Math.round(Math.sqrt(p.d2))} | A: id=${p.a.id} sid=${p.a.steam_id} tick=${p.a.tick} xy=(${Math.round(p.a.x)},${Math.round(p.a.y)}) | B: id=${p.b.id} sid=${p.b.steam_id} tick=${p.b.tick} xy=(${Math.round(p.b.x)},${Math.round(p.b.y)})`)
-    })
-  } else {
-    console.log('[diag] no smoke pairs within 512 ticks AND 400u — dedupe looks clean')
-  }
-}
-
 mapImg     = new Image()
 mapImg.src = `images/maps/${mapName}_viewer.png`
 mapImg.onload  = () => { console.log('[viewer] viewer map loaded'); mapLoaded = true }
@@ -418,7 +389,17 @@ function renderGrenades(round, tick, frame, cw, ch, tc, mapSize) {
       }
       ctx.restore()
     } else if (g.origin_x != null && !(g.origin_x === 0 && g.origin_y === 0)) {
-      // Fallback: no path data — straight line
+      // Fallback: no path data — straight line.
+      // Suppress this fallback if a sibling grenade of the same type with a
+      // real Go-track path detonates near this one's tick+position. That
+      // sibling is the trusted entry; this linear line is a ghost from a
+      // duplicate detonate event whose track was consumed by the sibling.
+      const hasPathSibling = grenades.some(o =>
+        o !== g && o.type === g.type && o.path && o.path.length >= 2 &&
+        Math.abs(o.tick - g.tick) <= 256 &&
+        (o.x - g.x) ** 2 + (o.y - g.y) ** 2 < 400 * 400
+      )
+      if (hasPathSibling) continue
       const { x: ox, y: oy } = tc(g.origin_x, g.origin_y)
       ctx.save()
       ctx.setLineDash([3, 5])
