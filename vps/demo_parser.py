@@ -15,19 +15,38 @@ _WIN_REASONS = {
 
 
 def _pair_rounds(start_ticks: list, end_rows: list) -> list:
-    """Pair each round_end with the first round_start that precedes it in that window."""
+    """Pair each round_start with its corresponding round_end.
+
+    When counts match (the common case), pair by chronological index — this is
+    robust to warmup_end firing AFTER round 1's round_start (a real CS2 demo
+    timing where the match-start announcement straddles the warmup→live boundary).
+
+    When counts mismatch, fall back to window-based pairing: walk ends, pick the
+    first start in (prev_end, end_tick).
+    """
     starts = sorted(int(t) for t in start_ticks)
     ends   = sorted(end_rows, key=lambda r: int(r["tick"]))
-    pairs  = []
+
+    if len(starts) == len(ends):
+        return [
+            {
+                "start_tick": starts[i],
+                "end_tick":   int(ends[i]["tick"]),
+                "winner":     ends[i].get("winner"),
+                "reason":     ends[i].get("reason"),
+            }
+            for i in range(len(starts))
+        ]
+
+    pairs = []
     prev_end_tick = -1
     for end_row in ends:
         end_tick = int(end_row["tick"])
-        # All starts strictly between the previous end and this end
         window = [s for s in starts if s > prev_end_tick and s < end_tick]
         if not window:
             continue
         pairs.append({
-            "start_tick": window[0],   # first start in window preserves freeze phase
+            "start_tick": window[0],
             "end_tick":   end_tick,
             "winner":     end_row.get("winner"),
             "reason":     end_row.get("reason"),
@@ -456,8 +475,11 @@ def parse_demo(dem_path: str) -> dict:
         if _is_warmup(pair["start_tick"], pair["end_tick"]):
             print(f"[parser] skip warmup: {pair['start_tick']}→{pair['end_tick']}")
             continue
-        if pair["start_tick"] < live_start_tick:
-            print(f"[parser] skip pre-live: {pair['start_tick']} < {live_start_tick}")
+        # Filter on end_tick, not start_tick: round_announce_match_start fires
+        # DURING round 1's freeze, AFTER round 1's round_start. Filtering on
+        # start_tick would eat real round 1.
+        if pair["end_tick"] < live_start_tick:
+            print(f"[parser] skip pre-live: end {pair['end_tick']} < {live_start_tick}")
             continue
         winner = _winner_side(pair["winner"])
         if winner is None:

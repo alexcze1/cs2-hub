@@ -53,6 +53,24 @@ def test_pair_rounds_winner_and_reason_preserved():
     assert pairs[0]["reason"] == 9
 
 
+def test_pair_rounds_warmup_overlap():
+    """warmup_end can fire AFTER round 1 round_start. Pair by index when counts match."""
+    starts = [0, 5500, 12500]
+    ends = [
+        {"tick": 6000,  "winner": 2, "reason": 7},
+        {"tick": 12000, "winner": 3, "reason": 8},
+        {"tick": 20000, "winner": 2, "reason": 9},
+    ]
+    pairs = _pair_rounds(starts, ends)
+    assert len(pairs) == 3
+    assert pairs[0]["start_tick"] == 0
+    assert pairs[0]["end_tick"]   == 6000
+    assert pairs[1]["start_tick"] == 5500
+    assert pairs[1]["end_tick"]   == 12000
+    assert pairs[2]["start_tick"] == 12500
+    assert pairs[2]["end_tick"]   == 20000
+
+
 def test_winner_side_ct():
     assert _winner_side(3) == "ct"
 
