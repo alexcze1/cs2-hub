@@ -2,6 +2,7 @@ import { requireAuth }           from './auth.js'
 import { renderSidebar }         from './layout.js'
 import { supabase }              from './supabase.js'
 import { attachTeamAutocomplete } from './team-autocomplete.js'
+import { narrowRoundsForTeam, framesForRound, grenadesForRound } from './analysis-rounds.js'
 
 await requireAuth()
 renderSidebar('analysis')
@@ -260,11 +261,70 @@ async function fetchSlimPayloads(demoIds) {
 }
 
 async function reloadRoundSet() {
-  // Stub — Task 9 fills this in. For now just update the readout to a placeholder.
-  const rEl = document.getElementById('f-rounds')
-  const dEl = document.getElementById('f-demos')
-  if (rEl) rEl.textContent = '…'
-  if (dEl) dEl.textContent = String(state.corpus.length)
+  // 1. Apply demo-level filters in client (cheap, no fetch).
+  let demos = state.corpus
+  if (state.filters.map)  demos = demos.filter(d => d.map === state.filters.map)
+  if (state.filters.opponent !== 'any') {
+    demos = demos.filter(d =>
+      (d.ct_team_name === state.filters.opponent && d.t_team_name === state.team) ||
+      (d.t_team_name === state.filters.opponent && d.ct_team_name === state.team)
+    )
+  }
+  if (state.filters.dateRange === '30d') {
+    const cutoff = Date.now() - 30 * 24 * 3600 * 1000
+    demos = demos.filter(d => d.played_at && new Date(d.played_at).getTime() >= cutoff)
+  } else if (state.filters.dateRange === 'last10') {
+    demos = demos.slice(0, 10)
+  }
+
+  if (!demos.length) {
+    state.rounds = []
+    updateReadout(0, 0)
+    setEmptyMessage('0 rounds match — try widening filters.')
+    requestRender()
+    return
+  }
+
+  // 2. Fetch slim payloads — populates state.slimCache. Awaiting only ensures
+  //    the cache is filled; we look up by demo.id below to keep id↔payload
+  //    pairing unambiguous (avoids index-drift if any payload was skipped).
+  await fetchSlimPayloads(demos.map(d => d.id))
+
+  // 3. Bind team identity to each payload (roster A vs B for the selected team).
+  const teamName = state.team
+  const enriched = []
+  for (const demo of demos) {
+    const slim = state.slimCache.get(demo.id)
+    if (!slim) continue   // skipped (null match_data_slim) — already chip-warned
+    // Roster A = team that started on the side recorded in team_a_first_side.
+    // Match the selected team's name to either ct_team_name or t_team_name to
+    // determine whether it was roster A in this demo.
+    const aFirstSide = slim._team_a_first_side
+    let isRosterA = false
+    if (aFirstSide === 'ct')      isRosterA = (demo.ct_team_name === teamName)
+    else if (aFirstSide === 't')  isRosterA = (demo.t_team_name === teamName)
+    else                          isRosterA = (demo.ct_team_name === teamName)  // legacy fallback
+
+    enriched.push(Object.assign({ _is_roster_a: isRosterA, _demo_id: demo.id }, slim))
+  }
+
+  // 4. Narrow rounds.
+  state.rounds = narrowRoundsForTeam(enriched, state.filters)
+
+  updateReadout(state.rounds.length, demos.length)
+  setEmptyMessage(state.rounds.length === 0 ? '0 rounds match — try widening filters.' : '')
+  requestRender()
+}
+
+function updateReadout(rounds, demos) {
+  const r = document.getElementById('f-rounds')
+  const d = document.getElementById('f-demos')
+  if (r) r.textContent = String(rounds)
+  if (d) d.textContent = String(demos)
+}
+
+function requestRender() {
+  // Stub — Task 10 fills in actual canvas rendering.
 }
 
 // Export for tests (no-op in browser)

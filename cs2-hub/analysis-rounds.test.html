@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h1>analysis-rounds tests</h1>
+<pre id="out"></pre>
+<script type="module">
+import { narrowRoundsForTeam } from './analysis-rounds.js'
+
+const out = document.getElementById('out')
+let pass = 0, fail = 0
+function assert(cond, msg) {
+  const line = (cond ? '✓ ' : '✗ ') + msg
+  out.textContent += line + '\n'
+  if (cond) pass++; else fail++
+}
+
+// Two slim payloads representing two demos.
+//
+// Demo A: team "Alpha" was roster A, started CT. Two rounds.
+//   - R0: team_a_side='ct'  (Alpha on CT)  winner='ct' (Alpha won, ct side)  bomb_planted_site=null
+//   - R1: team_a_side='t'   (Alpha on T after halftime) winner='ct' (Alpha lost) bomb_planted_site='A'
+// Demo B: team "Alpha" was roster B (i.e. team_a_first_side='t' meant the OTHER team started T,
+//   so Alpha started CT — that's the same as demo A. Use a contrasting case:
+//   _team_a_first_side='t' means roster A is the OTHER team and started T → Alpha = roster B started CT.
+//   - R0: team_a_side='t' so roster B (Alpha) is CT; winner='t' (Alpha lost) bomb_planted_site='B'
+const demoA = {
+  meta: { map: 'de_mirage', tick_rate: 70 },
+  _team_a_first_side: 'ct',
+  rounds: [
+    { idx: 0, side_team_a: 'ct', freeze_end_tick: 1000, end_tick: 5000, winner: 'ct', won_by: 't_eliminated', bomb_planted_site: null },
+    { idx: 1, side_team_a: 't',  freeze_end_tick: 6000, end_tick: 10000, winner: 'ct', won_by: 'bomb_defused', bomb_planted_site: 'A' },
+  ],
+  frames: [], grenades: [],
+}
+// In Demo A, Alpha is roster A. Alpha-on-CT rounds = those where side_team_a='ct' → only R0.
+// Alpha-on-T rounds = those where side_team_a='t' → only R1.
+
+const demoB = {
+  meta: { map: 'de_mirage', tick_rate: 70 },
+  _team_a_first_side: 't',     // roster A started T → Alpha (roster B) started CT
+  rounds: [
+    { idx: 0, side_team_a: 't', freeze_end_tick: 1000, end_tick: 5000, winner: 't', won_by: 'bomb_exploded', bomb_planted_site: 'B' },
+  ],
+  frames: [], grenades: [],
+}
+// In Demo B, Alpha is roster B. Alpha-on-CT rounds = those where side_team_a='t' (B is opposite of A) → R0.
+// In R0, winner='t' so Alpha (CT) lost.
+
+// helper to bind team identity to a slim payload — analysis.js does this from
+// the corpus row, and narrowRoundsForTeam expects payloads with these fields:
+function bind(slim, isRosterA) {
+  return Object.assign({ _is_roster_a: isRosterA, _demo_id: 'd' + Math.random() }, slim)
+}
+
+const pA = bind(demoA, true)   // Alpha = roster A in demo A
+const pB = bind(demoB, false)  // Alpha = roster B in demo B
+const payloads = [pA, pB]
+
+// Test: side='ct' should return both demos' CT-side rounds (1 each)
+let got = narrowRoundsForTeam(payloads, { side: 'ct', outcome: 'all', bombSite: 'all' })
+assert(got.length === 2, `side=ct returns 2 rounds (got ${got.length})`)
+assert(got.every(r => r.demoId), 'each result carries demoId')
+
+// Test: side='t' returns only Demo A R1
+got = narrowRoundsForTeam(payloads, { side: 't', outcome: 'all', bombSite: 'all' })
+assert(got.length === 1 && got[0].roundIdx === 1, `side=t returns demoA R1 (got len=${got.length} idx=${got[0]?.roundIdx})`)
+
+// Test: outcome='won' from CT side — Alpha won R0 in demoA (ct=Alpha won) but lost demoB R0 (t won)
+got = narrowRoundsForTeam(payloads, { side: 'ct', outcome: 'won', bombSite: 'all' })
+assert(got.length === 1, `side=ct + won returns 1 round (got ${got.length})`)
+
+// Test: bombSite='B' from CT returns only demoB R0
+got = narrowRoundsForTeam(payloads, { side: 'ct', outcome: 'all', bombSite: 'b' })
+assert(got.length === 1, `side=ct + bombSite=b returns 1 round (got ${got.length})`)
+
+// Test: bombSite='none' from CT returns only demoA R0 (no plant)
+got = narrowRoundsForTeam(payloads, { side: 'ct', outcome: 'all', bombSite: 'none' })
+assert(got.length === 1 && got[0].roundIdx === 0, `bombSite=none returns demoA R0 (len=${got.length})`)
+
+// Test: side='both' returns all 3 rounds
+got = narrowRoundsForTeam(payloads, { side: 'both', outcome: 'all', bombSite: 'all' })
+assert(got.length === 3, `side=both returns 3 rounds (got ${got.length})`)
+
+out.textContent += `\n${pass} passed, ${fail} failed`
+</script>
+</body>
+</html>
