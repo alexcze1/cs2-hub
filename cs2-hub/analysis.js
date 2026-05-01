@@ -539,5 +539,31 @@ document.getElementById('trail-toggle').addEventListener('click', e => {
   render()
 })
 
+// ── Mode toggle (Task 12) ────────────────────────────────────
+function refreshGrenadePanel() {}
+
+function applyMode() {
+  for (const pill of document.querySelectorAll('.mode-pill')) {
+    pill.classList.toggle('active', pill.dataset.mode === state.mode)
+  }
+  document.getElementById('analysis-bottom').classList.toggle('hidden', state.mode !== 'overlay')
+  document.getElementById('grenade-panel').classList.toggle('show', state.mode === 'grenade')
+  if (state.mode !== 'overlay') {
+    playback.playing = false
+    document.getElementById('play-btn').textContent = '▶'
+  }
+  if (state.mode === 'grenade') refreshGrenadePanel()
+  render()
+}
+
+for (const pill of document.querySelectorAll('.mode-pill')) {
+  pill.addEventListener('click', () => {
+    state.mode = pill.dataset.mode
+    writeUrl()
+    applyMode()
+  })
+}
+applyMode()  // initial sync from URL
+
 // Export for tests (no-op in browser)
 export { state, readUrl, writeUrl }
