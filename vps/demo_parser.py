@@ -379,12 +379,16 @@ def _dedupe_grenades(grenades: list) -> list:
     """
     # Pass 1 windows: type -> (tick_window, distance_window_squared).
     # Smoke window widened from 64→256 ticks because demoparser2 occasionally
-    # emits a duplicate detonate event ~150 ticks after the original, at the
-    # same spot. 200 u is tighter than the prior 300 u to avoid merging two
-    # players who legitimately smoked nearby spots seconds apart.
+    # emits a duplicate detonate event ~150 ticks after the original. 300 u
+    # is permissive enough to catch jittered duplicates where the second event
+    # carries slightly different coords (~220 u observed in the wild) without
+    # affecting two-player coordination — pass 1 is same-thrower only, and a
+    # single player throwing two smokes within the same 3-second window at
+    # spots <300 u apart essentially never happens in real play (the first
+    # smoke is still deploying).
     SAME_THROWER_WINDOWS = {
         "molotov": (256, 500 * 500),
-        "smoke":   (256, 200 * 200),
+        "smoke":   (256, 300 * 300),
         "flash":   (64,  300 * 300),
         "he":      (64,  300 * 300),
     }
