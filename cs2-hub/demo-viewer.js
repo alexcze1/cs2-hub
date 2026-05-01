@@ -38,7 +38,7 @@ const loadingEl = document.getElementById('viewer-loading')
 
 const { data: demo, error } = await supabase
   .from('demos')
-  .select('match_data,map,status,ct_team_name,t_team_name,series_id')
+  .select('match_data,map,status,ct_team_name,t_team_name,team_a_first_side,series_id')
   .eq('id', demoId)
   .single()
 
