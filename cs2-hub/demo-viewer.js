@@ -929,7 +929,7 @@ new Set(Object.values(WEAPON_ICON_MAP)).forEach(name => {
 
 function playerCardHTML(p) {
   if (!p.is_alive) {
-    return `<div class="player-card dead">
+    return `<div class="player-card dead" data-steam-id="${esc(p.steam_id)}">
       <div class="card-accent-bar"></div>
       <div class="card-body">
         <div class="card-top">
@@ -945,7 +945,7 @@ function playerCardHTML(p) {
   const wIconEl  = weapon
     ? `<img src="images/weapons/${esc(iconName)}.svg" class="weapon-icon" onerror="this.style.display='none'">`
     : ''
-  return `<div class="player-card">
+  return `<div class="player-card" data-steam-id="${esc(p.steam_id)}">
     <div class="card-accent-bar"></div>
     <div class="card-body">
       <div class="card-top">
@@ -967,6 +967,39 @@ function playerCardHTML(p) {
       </div>
     </div>
   </div>`
+}
+
+function copySetposFor(steamId) {
+  const frame = getInterpolatedFrame(state.tick)
+  if (!frame) return
+  const p = frame.players.find(pl => pl.steam_id === steamId)
+  if (!p) return
+  const cmd = (p.z != null && p.pitch != null && (p.z !== 0 || p.pitch !== 0))
+    ? `setpos ${p.x.toFixed(1)} ${p.y.toFixed(1)} ${p.z.toFixed(1)}; setang ${p.pitch.toFixed(1)} ${p.yaw.toFixed(1)} 0`
+    : `setpos ${p.x.toFixed(1)} ${p.y.toFixed(1)}; setang 0 ${p.yaw.toFixed(1)} 0`
+  navigator.clipboard.writeText(cmd)
+    .then(() => showSetposToast(p.name))
+    .catch(err => console.warn('clipboard write failed:', err))
+}
+
+function showSetposToast(playerName) {
+  let toast = document.getElementById('setpos-toast')
+  if (!toast) {
+    toast = document.createElement('div')
+    toast.id = 'setpos-toast'
+    toast.style.cssText = `
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+      background: rgba(3,7,18,0.92); color: #fff; padding: 9px 16px;
+      border: 1px solid rgba(102,102,183,0.45); border-radius: 8px;
+      font: 600 12px Inter, system-ui, sans-serif; z-index: 1000;
+      pointer-events: none; transition: opacity 0.2s; opacity: 0;
+    `
+    document.body.appendChild(toast)
+  }
+  toast.textContent = `Setpos copied — ${playerName}`
+  toast.style.opacity = '1'
+  clearTimeout(toast._hideTimer)
+  toast._hideTimer = setTimeout(() => { toast.style.opacity = '0' }, 1500)
 }
 
 function updatePlayerCards() {
@@ -1181,6 +1214,16 @@ function loop(ts) {
   requestAnimationFrame(loop)
 }
 
+// ── Player click → copy setpos ────────────────────────────────
+for (const panelId of ['ct-panel', 't-panel']) {
+  document.getElementById(panelId).addEventListener('click', e => {
+    const card = e.target.closest('.player-card')
+    if (!card) return
+    const sid = card.dataset.steamId
+    if (sid) copySetposFor(sid)
+  })
+}
+
 // ── Controls ──────────────────────────────────────────────────
 document.getElementById('play-btn').addEventListener('click', () => {
   const round = currentRound()
@@ -1239,8 +1282,34 @@ function getMapPos(e) {
 }
 
 canvas.addEventListener('mousedown', e => {
-  if (!drawingMode) return
-  currentPath = { color: DRAW_COLORS[drawColorIdx], points: [getMapPos(e)] }
+  if (drawingMode) {
+    currentPath = { color: DRAW_COLORS[drawColorIdx], points: [getMapPos(e)] }
+    return
+  }
+  // Hit-test player dots → copy setpos
+  const frame = getInterpolatedFrame(state.tick)
+  if (!frame) return
+  const rect = canvas.getBoundingClientRect()
+  const sx   = (e.clientX - rect.left) * (canvas.width  / rect.width)
+  const sy   = (e.clientY - rect.top)  * (canvas.height / rect.height)
+  const cw = canvas.width, ch = canvas.height
+  const mapSize = Math.min(cw, ch)
+  const mapX    = (cw - mapSize) / 2
+  const mapY    = (ch - mapSize) / 2
+  // screen → unzoomed canvas coords
+  const ux = (sx - cw / 2 - mapPanX) / mapZoom + cw / 2
+  const uy = (sy - ch / 2 - mapPanY) / mapZoom + ch / 2
+  const dotR = Math.round(mapSize * 0.009)
+  const hitR = dotR + 6
+  for (const p of frame.players) {
+    if (!p.is_alive) continue
+    const { x, y } = worldToCanvas(p.x, p.y, mapName, mapSize, mapSize)
+    const px = x + mapX, py = y + mapY
+    if ((ux - px) ** 2 + (uy - py) ** 2 <= hitR * hitR) {
+      copySetposFor(p.steam_id)
+      return
+    }
+  }
 })
 canvas.addEventListener('mousemove', e => {
   if (!drawingMode || !currentPath) return
