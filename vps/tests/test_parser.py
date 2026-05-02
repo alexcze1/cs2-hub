@@ -384,6 +384,49 @@ def test_build_grenade_paths_rejects_implausibly_long_flight():
     assert "origin_tick" not in grenades[0]
 
 
+def test_build_grenade_paths_strips_trailing_stationary_samples():
+    """Smoke projectile lands ~30 ticks before smokegrenade_detonate fires;
+    the binary keeps sampling the (stationary) projectile in between. Those
+    trailing duplicate-position samples must be stripped so the icon doesn't
+    idle at the landing spot before "exploding"."""
+    from demo_parser import _build_grenade_paths
+    grenades = [{"tick": 1000, "type": "smoke", "steam_id": "A", "x": 50.0, "y": 50.0}]
+    raw_tracks = [{
+        "steam_id": "A", "type": "smoke", "throw_tick": 920, "det_tick": 1000,
+        "path": [
+            {"x":  0.0, "y":  0.0, "tick":  920},
+            {"x": 25.0, "y": 25.0, "tick":  960},
+            {"x": 50.0, "y": 50.0, "tick":  980},  # landed here
+            {"x": 50.0, "y": 50.0, "tick":  984},  # stationary
+            {"x": 50.0, "y": 50.0, "tick":  988},  # stationary
+            {"x": 50.0, "y": 50.0, "tick":  992},  # stationary
+        ],
+    }]
+    _build_grenade_paths(grenades, raw_tracks)
+    # Trailing stationary samples are stripped down to the landing point.
+    # The landing point's tick is then overridden to g.tick (1000) so the
+    # animation finishes exactly at detonation.
+    assert grenades[0]["path"] == [[0.0, 0.0], [25.0, 25.0], [50.0, 50.0]]
+    assert grenades[0]["path_ticks"] == [920, 960, 1000]
+
+
+def test_build_grenade_paths_last_tick_overridden_to_detonation():
+    """Even with no trailing stationary samples, the last path point's tick
+    is bumped to g.tick so trajectory animation ends at detonation."""
+    from demo_parser import _build_grenade_paths
+    grenades = [{"tick": 1000, "type": "flash", "steam_id": "A", "x": 0, "y": 0}]
+    raw_tracks = [{
+        "steam_id": "A", "type": "flash", "throw_tick": 950, "det_tick": 1000,
+        "path": [
+            {"x": 0.0, "y": 0.0, "tick": 950},
+            {"x": 1.0, "y": 1.0, "tick": 970},
+            {"x": 2.0, "y": 2.0, "tick": 990},  # last actual sample, 10t before det
+        ],
+    }]
+    _build_grenade_paths(grenades, raw_tracks)
+    assert grenades[0]["path_ticks"] == [950, 970, 1000]
+
+
 def test_build_grenade_paths_origin_tick_reflects_first_kept_point():
     """When the path is truncated, origin_tick should point at the first
     surviving sample (which is the actual throw), not at Go's throw_tick

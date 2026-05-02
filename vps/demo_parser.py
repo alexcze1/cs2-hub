@@ -308,6 +308,17 @@ def _build_grenade_paths(grenades, raw_tracks) -> None:
                 flight_path = [pt for pt in raw_path if pt.get("tick", 0) <= g_det_tick + 16]
             else:
                 flight_path = list(raw_path)
+            # Strip trailing stationary samples — the projectile lands a few
+            # ticks before the smokegrenade_detonate event fires, and the
+            # cloud sits at the landing spot. Without this the trajectory
+            # ends early and the icon idles at landing before "exploding".
+            while len(flight_path) >= 2:
+                last = flight_path[-1]
+                prev = flight_path[-2]
+                if abs(last["x"] - prev["x"]) < 1.0 and abs(last["y"] - prev["y"]) < 1.0:
+                    flight_path.pop()
+                else:
+                    break
             plausible = len(flight_path) >= 1
             if plausible and "tick" in flight_path[0]:
                 flight_ticks = g_det_tick - flight_path[0].get("tick", 0)
@@ -315,6 +326,12 @@ def _build_grenade_paths(grenades, raw_tracks) -> None:
                 if flight_ticks < 0 or flight_ticks > 768:
                     plausible = False
             if plausible:
+                # Override the last point's tick to the real detonation tick
+                # so the renderer paces the icon to arrive at landing exactly
+                # when the smoke goes off.
+                if "tick" in flight_path[0] and len(flight_path) >= 2:
+                    flight_path[-1] = dict(flight_path[-1])
+                    flight_path[-1]["tick"] = g_det_tick
                 g["path"]            = [[pt["x"], pt["y"]] for pt in flight_path]
                 g["path_ticks"]      = [pt["tick"] for pt in flight_path] if "tick" in flight_path[0] else None
                 g["origin_x"]        = flight_path[0]["x"]
