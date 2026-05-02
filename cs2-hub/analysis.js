@@ -378,7 +378,7 @@ async function reloadRoundSet() {
   state.gren.selectedKeys.clear()
   state.gren.playlist    = null
   state.gren.playlistPos = 0
-  refreshGrenSelectionButton?.()
+  refreshGrenSelection?.()
 
   buildPlayerColorMap()
   recomputePlaybackBounds()
@@ -1482,7 +1482,7 @@ window.addEventListener('mouseup', e => {
   // Click without drag → clear selection
   if (dx < DRAG_CLICK_THRESHOLD && dy < DRAG_CLICK_THRESHOLD) {
     state.gren.selectedKeys.clear()
-    refreshGrenSelectionButton()
+    refreshGrenSelection()
     render()
     return
   }
@@ -1503,27 +1503,77 @@ window.addEventListener('mouseup', e => {
       }
     }
   }
-  refreshGrenSelectionButton()
+  refreshGrenSelection()
   render()
 })
 
-function refreshGrenSelectionButton() {
-  const btn = document.getElementById('gp-play-selection')
-  if (!btn) return
+function opponentForDemo(demoId) {
+  const demo = state.corpus.find(d => d.id === demoId)
+  if (!demo) return '?'
+  return demo.ct_team_name === state.team ? demo.t_team_name : demo.ct_team_name
+}
+
+const GREN_TYPE_LABEL = { smoke: 'Smoke', molotov: 'Molotov', flash: 'Flash', he: 'HE' }
+
+function refreshGrenSelection() {
+  const panel  = document.getElementById('gp-selection')
+  const listEl = document.getElementById('gp-sel-list')
+  const statEl = document.getElementById('gp-sel-stat')
+  const btn    = document.getElementById('gp-play-selection')
+  if (!panel || !listEl || !statEl || !btn) return
+
   const n = state.gren.selectedKeys.size
-  // Count unique rounds across the selection
-  const rounds = new Set()
-  if (n > 0) {
-    for (const key of state.gren.selectedKeys) {
-      const [demoId, roundIdx] = key.split('|')
-      rounds.add(`${demoId}|${roundIdx}`)
+  if (n === 0) { panel.style.display = 'none'; return }
+  panel.style.display = 'flex'
+
+  // Resolve selection keys back to grenade objects (with their owning round)
+  // so we can render rich rows. Build an index for O(1) lookups.
+  const byKey = new Map()
+  const roundsSet = new Set()
+  for (const r of state.rounds) {
+    for (const g of grenadesForRound(r._payload, r.roundIdx)) {
+      byKey.set(`${r.demoId}|${r.roundIdx}|${g.throw_tick}`, { g, r })
     }
   }
-  btn.style.display = n > 0 ? '' : 'none'
-  btn.textContent = rounds.size <= 1
-    ? 'Play round'
-    : `Play ${rounds.size} rounds`
+
+  const rows = []
+  for (const key of state.gren.selectedKeys) {
+    const hit = byKey.get(key); if (!hit) continue
+    const { g, r } = hit
+    roundsSet.add(`${r.demoId}|${r.roundIdx}`)
+    const tickRate = r._payload?.meta?.tick_rate ?? 64
+    const sec = Math.max(0, Math.round((g.throw_tick - r.freezeEndTick) / tickRate))
+    const playersMeta = r._payload?.meta?.players || {}
+    rows.push({
+      key,
+      type:     g.type,
+      sec,
+      name:     playersMeta[g.thrower_sid]?.name || g.thrower_sid?.slice(-5) || '?',
+      opponent: opponentForDemo(r.demoId),
+      sortKey:  sec * 1e6 + r.roundIdx,
+    })
+  }
+  rows.sort((a, b) => a.sortKey - b.sortKey)
+
+  const totalRounds = state.rounds.length
+  const pct = totalRounds > 0 ? Math.round((roundsSet.size / totalRounds) * 100) : 0
+  statEl.textContent = `${roundsSet.size} / ${totalRounds} rounds · ${pct}%`
+
+  const fmtTime = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+  listEl.innerHTML = rows.map(it => `
+    <div class="gp-sel-row" data-key="${it.key}">
+      <span class="gp-sel-dot ${it.type}"></span>
+      <div class="gp-sel-meta">
+        <span class="gp-sel-name">${escapeHtml(it.name)}</span>
+        <span class="gp-sel-sub">${GREN_TYPE_LABEL[it.type] || it.type} · vs ${escapeHtml(it.opponent)}</span>
+      </div>
+      <span class="gp-sel-time">${fmtTime(it.sec)}</span>
+    </div>
+  `).join('')
+
+  btn.textContent = roundsSet.size <= 1 ? 'Play round' : `Play ${roundsSet.size} rounds`
 }
+
 
 async function playSelectionAsPlaylist() {
   if (state.gren.selectedKeys.size === 0) return
@@ -1680,7 +1730,7 @@ document.getElementById('gp-type-pills')?.addEventListener('click', e => {
   else                         state.gren.types.add(t)
   state.gren.selectedKeys.clear()  // filter changed → previous selection may now be invisible
   refreshGrenadePanel()
-  refreshGrenSelectionButton()
+  refreshGrenSelection()
   render()
 })
 
@@ -1700,7 +1750,7 @@ document.getElementById('gp-type-pills')?.addEventListener('click', e => {
     state.gren.timeMax = hi
     state.gren.selectedKeys.clear()
     refreshGrenadePanel()
-    refreshGrenSelectionButton()
+    refreshGrenSelection()
     render()
   }
   minEl.addEventListener('input', onInput)
@@ -1723,7 +1773,7 @@ function applyMode() {
     // single-round playback orphaned. Drop out of it cleanly first.
     if (state.viewRoundIdx != null) exitSingleRound()
     refreshGrenadePanel()
-    refreshGrenSelectionButton()
+    refreshGrenSelection()
   }
   render()
 }
