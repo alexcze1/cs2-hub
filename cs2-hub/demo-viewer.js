@@ -340,6 +340,11 @@ function renderGrenades(round, tick, frame, cw, ch, tc, mapSize) {
   })
   if (_dupCount > 0) console.warn('[viewer] grenade dedupe rejected', _dupCount, 'duplicates by id; check parser dedupe')
 
+  // Diag: when window.GRENADE_DEBUG === true, log every grenade rendering at
+  // the current tick so we can identify duplicate visual entries by id.
+  const _dbg = typeof window !== 'undefined' && window.GRENADE_DEBUG === true
+  const _renderedThisTick = []
+
   ctx.save()
   for (const g of grenades) {
     if (g.tick < round.start_tick) continue
@@ -354,6 +359,17 @@ function renderGrenades(round, tick, frame, cw, ch, tc, mapSize) {
     // Flash: hide trajectory while white circle is still visible (avoids "thrown twice" look)
     const showTraj = g.tick <= tick && (tick - g.tick) < trajTicks && !(g.type === 'flash' && active)
     if (!inFlight && !active && !showTraj) continue
+
+    if (_dbg) {
+      _renderedThisTick.push({
+        id: g.id, type: g.type, sid: g.steam_id,
+        tick: g.tick, origin_tick: g.origin_tick ?? null,
+        x: Math.round(g.x ?? 0), y: Math.round(g.y ?? 0),
+        hasPath: !!(g.path && g.path.length >= 2),
+        pathLen: g.path?.length ?? 0,
+        inFlight, active, showTraj,
+      })
+    }
 
     const { x, y } = tc(g.x, g.y)
     const typeColor = g.type === 'smoke'   ? 'rgba(200,200,200,0.6)'
@@ -557,6 +573,22 @@ function renderGrenades(round, tick, frame, cw, ch, tc, mapSize) {
     }
   }
   ctx.restore()
+
+  if (_dbg && _renderedThisTick.length > 0) {
+    // Group by type+detonation cell to spot duplicates rendering at same spot
+    const cells = {}
+    for (const r of _renderedThisTick) {
+      const key = `${r.type}@${Math.floor(r.x / 100)},${Math.floor(r.y / 100)}`
+      ;(cells[key] ||= []).push(r)
+    }
+    const dupes = Object.entries(cells).filter(([_, arr]) => arr.length > 1)
+    if (dupes.length > 0) {
+      console.warn(`[viewer dbg] tick=${tick}  rendered=${_renderedThisTick.length}  dup-cells=${dupes.length}`)
+      for (const [key, arr] of dupes) {
+        console.warn(`  ${key}: ${JSON.stringify(arr)}`)
+      }
+    }
+  }
 }
 
 // ── Bomb tracking ─────────────────────────────────────────────
