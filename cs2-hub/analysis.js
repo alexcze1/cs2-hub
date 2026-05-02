@@ -19,9 +19,8 @@ const state = {
     map:        null,        // string
     side:       'ct',        // 'ct' | 't' | 'both'
     opponent:   'any',       // 'any' | string
-    dateRange:  '30d',       // 'all' | '30d' | 'last10' | 'custom'
-    outcome:    'all',       // 'all' | 'won' | 'lost'
-    bombSite:   'all',       // 'all' | 'a' | 'b' | 'none'
+    matchIds:   null,        // Set<string> | null (null = all matches for current map)
+    buyTypes:   new Set(),   // Set<'fullbuy'|'antieco'|'eco'|'pistol'> — empty = all
   },
   corpus:      [],           // [{id, map, played_at, ct_team_name, t_team_name, ...}]
   slimCache:   new Map(),    // demoId → slim payload
@@ -38,9 +37,10 @@ function readUrl() {
   state.filters.map      = p.get('map')             || null
   state.filters.side     = p.get('side')            || 'ct'
   state.filters.opponent = p.get('opponent')        || 'any'
-  state.filters.dateRange = p.get('date')           || '30d'
-  state.filters.outcome  = p.get('outcome')         || 'all'
-  state.filters.bombSite = p.get('bomb')            || 'all'
+  const buys = p.get('buy')
+  state.filters.buyTypes = buys ? new Set(buys.split(',').filter(Boolean)) : new Set()
+  // matchIds is too large for URL — left at null on load (= all matches for current map).
+  state.filters.matchIds = null
 }
 
 function writeUrl() {
@@ -50,9 +50,7 @@ function writeUrl() {
   if (state.filters.map)        p.set('map',     state.filters.map)
   if (state.filters.side !== 'ct') p.set('side', state.filters.side)
   if (state.filters.opponent !== 'any') p.set('opponent', state.filters.opponent)
-  if (state.filters.dateRange !== '30d') p.set('date',     state.filters.dateRange)
-  if (state.filters.outcome !== 'all') p.set('outcome',   state.filters.outcome)
-  if (state.filters.bombSite !== 'all') p.set('bomb',     state.filters.bombSite)
+  if (state.filters.buyTypes.size) p.set('buy', [...state.filters.buyTypes].join(','))
   const qs = p.toString()
   history.replaceState(null, '', qs ? `?${qs}` : location.pathname)
 }
@@ -152,6 +150,18 @@ function renderFilterRail() {
     writeUrl()
   }
 
+  // Demos shown in the matches checklist: filtered by current map + opponent.
+  const demosForMap = state.corpus.filter(d =>
+    (!state.filters.map || d.map === state.filters.map) &&
+    (state.filters.opponent === 'any' ||
+     d.ct_team_name === state.filters.opponent ||
+     d.t_team_name  === state.filters.opponent)
+  )
+  // matchIds null means "all" — turn into Set on first interaction.
+  const selectedIds = state.filters.matchIds ?? new Set(demosForMap.map(d => d.id))
+  const buyTypes    = ['fullbuy', 'antieco', 'eco', 'pistol']
+  const buyLabel    = { fullbuy: 'Full', antieco: 'Anti-eco', eco: 'Eco', pistol: 'Pistol' }
+
   rail.innerHTML = `
     <div class="label">Map</div>
     <select id="f-map">
@@ -171,26 +181,27 @@ function renderFilterRail() {
       ${opps.map(o => `<option value="${o}" ${o === state.filters.opponent ? 'selected' : ''}>${o}</option>`).join('')}
     </select>
 
-    <div class="label">Date</div>
-    <select id="f-date">
-      <option value="all"    ${state.filters.dateRange === 'all'    ? 'selected' : ''}>All time</option>
-      <option value="30d"    ${state.filters.dateRange === '30d'    ? 'selected' : ''}>Last 30 days</option>
-      <option value="last10" ${state.filters.dateRange === 'last10' ? 'selected' : ''}>Last 10 matches</option>
-    </select>
-
-    <div class="label">Outcome</div>
-    <div class="seg-row" id="f-outcome">
-      <button class="seg-btn ${state.filters.outcome === 'won'  ? 'active' : ''}" data-v="won">Won</button>
-      <button class="seg-btn ${state.filters.outcome === 'lost' ? 'active' : ''}" data-v="lost">Lost</button>
-      <button class="seg-btn ${state.filters.outcome === 'all'  ? 'active' : ''}" data-v="all">All</button>
+    <div class="label">Matches</div>
+    <div class="match-list" id="f-matches">
+      ${demosForMap.length === 0
+        ? `<div style="padding:7px;font-size:11px;color:#555">No matches.</div>`
+        : demosForMap.map(d => `
+          <label class="match-row">
+            <input type="checkbox" data-id="${d.id}" ${selectedIds.has(d.id) ? 'checked' : ''}>
+            <span class="meta">${matchLabel(d)}</span>
+          </label>`).join('')
+      }
+    </div>
+    <div class="match-list-actions">
+      <button id="f-match-all">All</button>
+      <button id="f-match-none">None</button>
     </div>
 
-    <div class="label">Bomb plant</div>
-    <div class="seg-row" id="f-bomb">
-      <button class="seg-btn ${state.filters.bombSite === 'a'    ? 'active' : ''}" data-v="a">A</button>
-      <button class="seg-btn ${state.filters.bombSite === 'b'    ? 'active' : ''}" data-v="b">B</button>
-      <button class="seg-btn ${state.filters.bombSite === 'none' ? 'active' : ''}" data-v="none">None</button>
-      <button class="seg-btn ${state.filters.bombSite === 'all'  ? 'active' : ''}" data-v="all">All</button>
+    <div class="label">Buy type</div>
+    <div class="seg-row" id="f-buy">
+      ${buyTypes.map(t => `
+        <button class="seg-btn ${state.filters.buyTypes.has(t) ? 'active' : ''}" data-v="${t}">${buyLabel[t]}</button>
+      `).join('')}
     </div>
 
     <div class="filter-readout">
@@ -203,23 +214,54 @@ function renderFilterRail() {
   // Wire change handlers
   rail.querySelector('#f-map').addEventListener('change', e => onFilter('map', e.target.value))
   rail.querySelector('#f-opp').addEventListener('change', e => onFilter('opponent', e.target.value))
-  rail.querySelector('#f-date').addEventListener('change', e => onFilter('dateRange', e.target.value))
-  for (const [groupId, key] of [['f-side','side'], ['f-outcome','outcome'], ['f-bomb','bombSite']]) {
-    rail.querySelector('#' + groupId).addEventListener('click', e => {
-      const btn = e.target.closest('.seg-btn'); if (!btn) return
-      onFilter(key, btn.dataset.v)
-    })
-  }
-  rail.querySelector('#f-reset').addEventListener('click', () => {
-    state.filters.side = 'ct'
-    state.filters.opponent = 'any'
-    state.filters.dateRange = '30d'
-    state.filters.outcome = 'all'
-    state.filters.bombSite = 'all'
+  rail.querySelector('#f-side').addEventListener('click', e => {
+    const btn = e.target.closest('.seg-btn'); if (!btn) return
+    onFilter('side', btn.dataset.v)
+  })
+  rail.querySelector('#f-buy').addEventListener('click', e => {
+    const btn = e.target.closest('.seg-btn'); if (!btn) return
+    const t = btn.dataset.v
+    if (state.filters.buyTypes.has(t)) state.filters.buyTypes.delete(t)
+    else state.filters.buyTypes.add(t)
     writeUrl()
     renderFilterRail()
     reloadRoundSet()
   })
+  rail.querySelector('#f-matches').addEventListener('change', e => {
+    const cb = e.target.closest('input[type="checkbox"]'); if (!cb) return
+    if (state.filters.matchIds == null) {
+      state.filters.matchIds = new Set(demosForMap.map(d => d.id))
+    }
+    if (cb.checked) state.filters.matchIds.add(cb.dataset.id)
+    else            state.filters.matchIds.delete(cb.dataset.id)
+    updateReadout(state.rounds.length, state.filters.matchIds.size)
+    reloadRoundSet()
+  })
+  rail.querySelector('#f-match-all').addEventListener('click', () => {
+    state.filters.matchIds = new Set(demosForMap.map(d => d.id))
+    renderFilterRail()
+    reloadRoundSet()
+  })
+  rail.querySelector('#f-match-none').addEventListener('click', () => {
+    state.filters.matchIds = new Set()
+    renderFilterRail()
+    reloadRoundSet()
+  })
+  rail.querySelector('#f-reset').addEventListener('click', () => {
+    state.filters.side = 'ct'
+    state.filters.opponent = 'any'
+    state.filters.matchIds = null
+    state.filters.buyTypes = new Set()
+    writeUrl()
+    renderFilterRail()
+    reloadRoundSet()
+  })
+}
+
+function matchLabel(d) {
+  const opp = (d.ct_team_name === state.team ? d.t_team_name : d.ct_team_name) || 'Unknown'
+  const date = d.played_at ? new Date(d.played_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''
+  return `${date ? date + ' · ' : ''}vs ${opp}`
 }
 
 function mapShort(m) {
@@ -281,11 +323,8 @@ async function reloadRoundSet() {
       (d.t_team_name === state.filters.opponent && d.ct_team_name === state.team)
     )
   }
-  if (state.filters.dateRange === '30d') {
-    const cutoff = Date.now() - 30 * 24 * 3600 * 1000
-    demos = demos.filter(d => d.played_at && new Date(d.played_at).getTime() >= cutoff)
-  } else if (state.filters.dateRange === 'last10') {
-    demos = demos.slice(0, 10)
+  if (state.filters.matchIds != null) {
+    demos = demos.filter(d => state.filters.matchIds.has(d.id))
   }
 
   if (demos.length > 15) showChip(`Loading ${demos.length} demos — this may take a moment…`, 'warn')

@@ -107,6 +107,42 @@
     }
     .reset-filters-btn:hover { color: #cfcff0; border-color: rgba(102,102,183,0.45); }
 
+    /* Matches multi-select */
+    .match-list {
+      max-height: 180px;
+      overflow-y: auto;
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 5px;
+      background: rgba(255,255,255,0.02);
+    }
+    .match-row {
+      display: flex; align-items: center; gap: 7px;
+      padding: 5px 7px;
+      font-size: 11px; color: #bbb;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .match-row:last-child { border-bottom: none; }
+    .match-row:hover { background: rgba(255,255,255,0.04); color: #cfcff0; }
+    .match-row input[type="checkbox"] {
+      accent-color: #6666b7;
+      cursor: pointer;
+      flex: 0 0 auto;
+    }
+    .match-row .meta { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .match-list-actions {
+      display: flex; gap: 4px; margin-top: 5px;
+    }
+    .match-list-actions button {
+      flex: 1; padding: 3px 0;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 4px;
+      color: #888; font-size: 10px;
+      cursor: pointer;
+    }
+    .match-list-actions button:hover { color: #cfcff0; border-color: rgba(102,102,183,0.45); }
+
     /* ── Canvas area ──────────────────────────────────────────── */
     .canvas-wrap {
       flex: 1; min-width: 0;

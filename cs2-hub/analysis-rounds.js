@@ -28,14 +28,12 @@ export function narrowRoundsForTeam(payloads, filters) {
       // Side filter
       if (filters.side !== 'both' && teamSide !== filters.side) continue
 
-      // Outcome filter — round.winner is the winning side ('ct'/'t')
-      if (filters.outcome === 'won'  && round.winner !== teamSide) continue
-      if (filters.outcome === 'lost' && round.winner === teamSide) continue
-
-      // Bomb site filter
-      if (filters.bombSite === 'a' && round.bomb_planted_site !== 'A') continue
-      if (filters.bombSite === 'b' && round.bomb_planted_site !== 'B') continue
-      if (filters.bombSite === 'none' && round.bomb_planted_site != null) continue
+      // Buy-type filter — selected team's buy type comes from buy_type_a/b
+      // depending on whether they were roster A in this demo.
+      if (filters.buyTypes && filters.buyTypes.size > 0) {
+        const buyType = payload._is_roster_a ? round.buy_type_a : round.buy_type_b
+        if (!buyType || !filters.buyTypes.has(buyType)) continue
+      }
 
       out.push({
         demoId:         payload._demo_id,
