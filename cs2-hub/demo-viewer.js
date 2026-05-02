@@ -109,14 +109,26 @@ console.log('[viewer] map:', mapName, '| rounds:', state.match.rounds.length, '|
   }
   if (clusters.length) {
     console.warn('[viewer] grenade duplicate clusters:', clusters.length)
-    for (const c of clusters.slice(0, 8)) {
-      console.warn('  cluster:', c.map(g => ({
+    // Aggregate stats so we can see the pattern at a glance
+    let bothPath = 0, onePath = 0, neitherPath = 0
+    for (const c of clusters) {
+      const withPath = c.filter(g => g.path && g.path.length >= 2).length
+      if (withPath === c.length) bothPath++
+      else if (withPath === 0) neitherPath++
+      else onePath++
+    }
+    console.warn(`[viewer] cluster path-state: bothPath=${bothPath}  onePath=${onePath}  neitherPath=${neitherPath}`)
+    // Print first 5 clusters as JSON strings so they're readable in console
+    for (const c of clusters.slice(0, 5)) {
+      const summary = c.map(g => ({
         type: g.type, tick: g.tick, sid: g.steam_id,
-        x: Math.round(g.x), y: Math.round(g.y),
+        x: Math.round(g.x ?? 0), y: Math.round(g.y ?? 0),
         hasPath: !!(g.path && g.path.length >= 2),
         pathLen: g.path?.length ?? 0,
-        origin_tick: g.origin_tick,
-      })))
+        origin_tick: g.origin_tick ?? null,
+        end_tick: g.end_tick ?? null,
+      }))
+      console.warn('  cluster: ' + JSON.stringify(summary))
     }
   } else {
     console.log('[viewer] no grenade duplicate clusters detected')
