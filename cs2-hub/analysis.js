@@ -883,9 +883,12 @@ function gotoSoloRound(delta) {
 
 function exitSingleRound() {
   if (state.viewRoundIdx == null) return
+  const prev = playback.relTick
   state.viewRoundIdx = null
-  playback.relTick = 0
   recomputePlaybackBounds()
+  // Preserve playback time across the transition (multi-round bound is the
+  // longest round, so the previous tick is always within the new max).
+  playback.relTick = Math.min(prev, playback.maxTick)
   updateTimelineUi()
   refreshSoloRoundNav()
   render()
@@ -900,10 +903,17 @@ document.getElementById('pp-clear').addEventListener('click', () => {
 document.getElementById('pp-round-prev').addEventListener('click', () => gotoSoloRound(-1))
 document.getElementById('pp-round-next').addEventListener('click', () => gotoSoloRound(+1))
 
-// Click a player icon on the map → toggle single-round playback for that round.
-// Click any icon while in single-round mode → exit back to multi-round overlay.
+// Click a player icon on the map → enter single-round playback for that round
+// at the current playback time (seamless transition). Click anywhere on the map
+// while in single-round mode → exit back to multi-round overlay.
 canvas.addEventListener('click', e => {
   if (state.mode !== 'overlay' || !state.rounds.length) return
+
+  // In single-round mode any click exits — no hit test needed.
+  if (state.viewRoundIdx != null) {
+    exitSingleRound()
+    return
+  }
 
   const rect = canvas.getBoundingClientRect()
   const cx = e.clientX - rect.left
@@ -921,13 +931,8 @@ canvas.addEventListener('click', e => {
   const dotR = Math.max(3, Math.round(mapSize * 0.009))
   const hitR = dotR * 1.8
 
-  // Rounds to scan: just the active one in single-round mode, otherwise all.
-  const scan = (state.viewRoundIdx != null)
-    ? [state.rounds[state.viewRoundIdx]].filter(Boolean)
-    : state.rounds
-
   let best = null
-  for (const r of scan) {
+  for (const r of state.rounds) {
     const targetTick = r.freezeEndTick + Math.floor(playback.relTick)
     if (targetTick > r.endTick) continue
     const frames = framesForRound(r._payload, r.roundIdx)
@@ -939,9 +944,8 @@ canvas.addEventListener('click', e => {
     }
     const frame = frames[idx]
     for (const p of frame.players) {
-      // Multi-round: only hit teammates (opponents aren't drawn). Single-round: hit anyone drawn.
-      if (state.viewRoundIdx == null && p.team !== r.teamSide) continue
-      if (state.soloSid && p.steam_id !== state.soloSid && state.viewRoundIdx == null) continue
+      if (p.team !== r.teamSide) continue
+      if (state.soloSid && p.steam_id !== state.soloSid) continue
       if (!p.alive) continue
       const { x, y } = tc(p.x, p.y)
       if (!Number.isFinite(x) || !Number.isFinite(y)) continue
@@ -951,18 +955,16 @@ canvas.addEventListener('click', e => {
   }
   if (!best) return
 
-  if (state.viewRoundIdx != null) {
-    exitSingleRound()
-  } else {
-    const idx = state.rounds.indexOf(best.round)
-    if (idx < 0) return
-    state.viewRoundIdx = idx
-    playback.relTick = 0
-    recomputePlaybackBounds()
-    updateTimelineUi()
-    refreshSoloRoundNav()
-    render()
-  }
+  const idx = state.rounds.indexOf(best.round)
+  if (idx < 0) return
+  state.viewRoundIdx = idx
+  // Preserve current playback time, clamped to this round's length, for a
+  // seamless transition into single-round playback.
+  recomputePlaybackBounds()
+  if (playback.relTick > playback.maxTick) playback.relTick = playback.maxTick
+  updateTimelineUi()
+  refreshSoloRoundNav()
+  render()
 })
 
 const UTIL_TYPES = [
