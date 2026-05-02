@@ -895,12 +895,20 @@ def _is_pistol_round(rounds_in, idx) -> bool:
     return prev_side is not None and this_side is not None and prev_side != this_side
 
 
-def _classify_buy(value: int, is_pistol: bool) -> str:
+_ECO_THRESHOLD = 5000
+
+
+def _classify_buy(own_value: int, opp_value: int, is_pistol: bool) -> str:
     """Classify a team's buy into pistol/eco/antieco/fullbuy.
-    Thresholds tuned for 5-player team totals (rough industry conventions)."""
-    if is_pistol: return "pistol"
-    if value < 5000:  return "eco"
-    if value < 20000: return "antieco"
+
+    - pistol:   round 1 of a half
+    - eco:      this team is below the eco threshold (saving)
+    - antieco:  this team is bought, but the opponent is on eco
+    - fullbuy:  normal gun round (both sides geared)
+    """
+    if is_pistol:                  return "pistol"
+    if own_value < _ECO_THRESHOLD: return "eco"
+    if opp_value < _ECO_THRESHOLD: return "antieco"
     return "fullbuy"
 
 
@@ -934,8 +942,8 @@ def build_slim_payload(parsed: dict) -> dict:
             "winner":            r.get("winner_side"),
             "won_by":            _slim_won_by(r.get("reason")),
             "bomb_planted_site": r.get("bomb_planted_site"),
-            "buy_type_a":        _classify_buy(val_a, is_pistol),
-            "buy_type_b":        _classify_buy(val_b, is_pistol),
+            "buy_type_a":        _classify_buy(val_a, val_b, is_pistol),
+            "buy_type_b":        _classify_buy(val_b, val_a, is_pistol),
         })
 
     frames_out = []

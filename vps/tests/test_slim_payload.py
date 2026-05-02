@@ -1,6 +1,6 @@
 import pytest
 
-from demo_parser import build_slim_payload
+from demo_parser import build_slim_payload, _classify_buy
 
 
 def _sample_parsed():
@@ -134,6 +134,29 @@ def test_non_pistol_round_classified_by_equipment_value():
     assert slim["rounds"][1]["buy_type_b"] == "eco"
     # CT side has no players in round 2 frames → 0 → eco
     assert slim["rounds"][1]["buy_type_a"] == "eco"
+
+
+def test_classify_buy_pistol_overrides_values():
+    assert _classify_buy(0, 0, is_pistol=True) == "pistol"
+    assert _classify_buy(25000, 25000, is_pistol=True) == "pistol"
+
+
+def test_classify_buy_eco_when_own_below_threshold():
+    # Own team is under $5000 → eco, regardless of opponent
+    assert _classify_buy(1000, 25000, is_pistol=False) == "eco"
+    assert _classify_buy(4999, 0, is_pistol=False) == "eco"
+
+
+def test_classify_buy_antieco_when_opponent_on_eco():
+    # Own team is bought, opponent is on eco → antieco
+    assert _classify_buy(20000, 1000, is_pistol=False) == "antieco"
+    assert _classify_buy(5000, 4999, is_pistol=False) == "antieco"
+
+
+def test_classify_buy_fullbuy_when_both_geared():
+    # Both teams above threshold → normal gun round
+    assert _classify_buy(20000, 20000, is_pistol=False) == "fullbuy"
+    assert _classify_buy(5000, 5000, is_pistol=False) == "fullbuy"
 
 
 def test_frames_assigned_to_round_and_filtered():
