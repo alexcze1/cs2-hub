@@ -272,21 +272,21 @@ def _build_grenade_paths(grenades, raw_tracks) -> None:
         best = None
         best_i = None
         best_score = None
-        # The Go binary's det_tick comes from GrenadeProjectileDestroy, which
-        # fires at smoke fade for smokes (~18-23s after the actual smoke
-        # detonation event). Use a generous match window and rely on the
-        # post-match plausibility check to discard bad pairings.
-        win = 2048 if gtype == "smoke" else 256
+        # Match by throw-tick proximity to (g.tick - typical_flight). The Go
+        # binary's det_tick is unreliable: for smokes it fires at smoke fade
+        # (~18-23s late), and even for HE/molotov small subtick offsets vs
+        # Python's *_detonate event push pairings out of a tight window.
+        # throw_tick is a solid anchor because the throw event is well-defined.
+        # The post-match plausibility check (flight_ticks <= 768) discards bad
+        # pairings; the truncation step clips any post-detonation samples.
+        win = 2048 if gtype == "smoke" else 1024
+        # Typical throw→det offset (ticks) for matching anchor.
+        TYP_FLIGHT = {"smoke": 64, "molotov": 64, "he": 64, "flash": 64}
+        anchor = g.get("tick", 0) - TYP_FLIGHT.get(gtype, 64)
         for i, t in enumerate(candidates):
             if i in consumed[gtype]:
                 continue
-            # Prefer matching by throw-tick proximity for smokes (det_tick
-            # from Go is unreliable). For other nades, det_tick proximity is
-            # solid because the projectile is destroyed at detonation.
-            if gtype == "smoke":
-                d = abs(t.get("throw_tick", 0) - (g.get("tick", 0) - 64))
-            else:
-                d = abs(t.get("det_tick", 0) - g.get("tick", 0))
+            d = abs(t.get("throw_tick", 0) - anchor)
             if d >= win:
                 continue
             same_thrower = (t.get("steam_id", "") == g.get("steam_id", ""))
@@ -527,27 +527,33 @@ def _dedupe_grenades(grenades: list) -> list:
         if not merged:
             pass1.append(g)
 
-    # Pass 2: cross-thrower near-coincidence. Tight thresholds (32 ticks / 100 u)
-    # so two players throwing the same spot a half-second apart are NOT merged
-    # — only essentially-simultaneous, essentially-co-located events.
-    CROSS_TICK_WIN = 32
-    CROSS_DIST_SQ  = 100 * 100
+    # Pass 2: cross-thrower near-coincidence. Per-type windows because the
+    # ghost-duplicate signature differs by grenade type. HE in particular has
+    # been observed with the duplicate event ~150 ticks late at coords ~200 u
+    # off, which the previous tight 32/100 window missed.
+    CROSS_WINDOWS = {
+        "smoke":   (32,  100 * 100),
+        "molotov": (32,  100 * 100),
+        "flash":   (32,  100 * 100),
+        "he":      (256, 300 * 300),
+    }
     pass1_by_tick = sorted(pass1, key=lambda g: (g.get("type", ""), g.get("tick", 0)))
     out: list = []
     for g in pass1_by_tick:
         gtype = g.get("type", "")
         gtick = g.get("tick", 0)
         gx, gy = g.get("x", 0.0), g.get("y", 0.0)
+        tick_win, dist_sq = CROSS_WINDOWS.get(gtype, (32, 100 * 100))
         merged = False
         # Walk back through recent survivors of same type
         for prev in reversed(out):
             if prev.get("type") != gtype:
                 continue
-            if gtick - prev.get("tick", 0) > CROSS_TICK_WIN:
+            if gtick - prev.get("tick", 0) > tick_win:
                 break  # sorted by tick within type — no more candidates
             dx = prev.get("x", 0.0) - gx
             dy = prev.get("y", 0.0) - gy
-            if dx * dx + dy * dy < CROSS_DIST_SQ:
+            if dx * dx + dy * dy < dist_sq:
                 merged = True
                 break
         if not merged:

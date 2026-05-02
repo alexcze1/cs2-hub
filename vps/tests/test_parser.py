@@ -155,6 +155,32 @@ def test_dedupe_grenades_collapses_he_ghost_duplicate():
     assert out[0]["tick"] == 1000
 
 
+def test_dedupe_grenades_collapses_he_cross_thrower_ghost():
+    """When the demo misattributes the ghost-duplicate HE event to a
+    different player, same-thrower dedupe misses it. Cross-thrower window
+    for HE was widened to 256 ticks / 300 u to catch this."""
+    from demo_parser import _dedupe_grenades
+    grenades = [
+        {"tick": 1000, "type": "he", "x": 100.0, "y": 100.0, "steam_id": "A"},
+        {"tick": 1150, "type": "he", "x": 200.0, "y": 200.0, "steam_id": "B"},
+    ]
+    out = _dedupe_grenades(grenades)
+    assert len(out) == 1
+    assert out[0]["steam_id"] == "A"  # earliest survives
+
+
+def test_dedupe_grenades_he_keeps_real_distinct_throws():
+    """Two HEs from different players landing 320 u apart at different
+    times are real distinct throws — must not merge."""
+    from demo_parser import _dedupe_grenades
+    grenades = [
+        {"tick": 1000, "type": "he", "x":   0.0, "y":   0.0, "steam_id": "A"},
+        {"tick": 1100, "type": "he", "x": 320.0, "y":   0.0, "steam_id": "B"},
+    ]
+    out = _dedupe_grenades(grenades)
+    assert len(out) == 2
+
+
 def test_dedupe_grenades_assigns_synthetic_ids():
     from demo_parser import _dedupe_grenades
     grenades = [
