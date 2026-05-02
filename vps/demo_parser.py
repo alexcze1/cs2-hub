@@ -837,6 +837,73 @@ def _team_at_tick(frames, steam_id, tick):
     return last
 
 
+_WEAPON_COSTS = {
+    # Pistols
+    "Glock-18": 200, "USP-S": 200, "P2000": 200, "P250": 300,
+    "Tec-9": 500, "Five-SeveN": 500, "CZ75-Auto": 500,
+    "Dual Berettas": 300, "Desert Eagle": 700, "R8 Revolver": 600,
+    # SMGs
+    "MAC-10": 1050, "MP9": 1250, "MP7": 1500, "MP5-SD": 1500,
+    "UMP-45": 1200, "P90": 2350, "PP-Bizon": 1400,
+    # Rifles
+    "Galil AR": 1800, "FAMAS": 1950, "AK-47": 2700,
+    "M4A4": 3100, "M4A1-S": 2900, "AUG": 3300, "SG 553": 3000,
+    "SSG 08": 1700, "AWP": 4750, "G3SG1": 5000, "SCAR-20": 5000,
+    # Heavy
+    "Nova": 1050, "XM1014": 2000, "Sawed-Off": 1100,
+    "MAG-7": 1300, "M249": 5200, "Negev": 1700,
+    # Utility / non-buy
+    "Knife": 0, "Zeus x27": 200, "Taser": 200, "C4 Explosive": 0, "C4": 0,
+}
+
+
+def _player_equip_value(p: dict) -> int:
+    """Approximate per-player equipment value at the sampled tick.
+    Sums active weapon, grenades, and armor (assumes helmet+kevlar when armor>0).
+    """
+    w = (p.get("weapon") or "").strip()
+    val = _WEAPON_COSTS.get(w, 0)
+    if p.get("has_smoke"):    val += 300
+    if p.get("has_flash"):    val += 200
+    if p.get("has_molotov"):  val += 400
+    if p.get("has_he"):       val += 300
+    if (p.get("armor") or 0) > 0:
+        val += 1000  # cannot distinguish kevlar-only from kevlar+helmet here
+    return val
+
+
+def _team_equip_value_at_tick(frames, tick, team) -> int:
+    """Sum equipment value across all players on `team` at the sampled frame
+    closest to `tick` (at-or-before). Returns 0 if no frame found."""
+    target = None
+    for f in frames:
+        if f.get("tick", 0) > tick:
+            break
+        target = f
+    if not target:
+        return 0
+    return sum(_player_equip_value(p) for p in target.get("players", []) if p.get("team") == team)
+
+
+def _is_pistol_round(rounds_in, idx) -> bool:
+    """First round of each half is a pistol round. Detected by side flip on
+    roster A — handles regulation halftime and overtime halves uniformly."""
+    if idx == 0:
+        return True
+    prev_side = (rounds_in[idx - 1] or {}).get("team_a_side")
+    this_side = (rounds_in[idx] or {}).get("team_a_side")
+    return prev_side is not None and this_side is not None and prev_side != this_side
+
+
+def _classify_buy(value: int, is_pistol: bool) -> str:
+    """Classify a team's buy into pistol/eco/antieco/fullbuy.
+    Thresholds tuned for 5-player team totals (rough industry conventions)."""
+    if is_pistol: return "pistol"
+    if value < 5000:  return "eco"
+    if value < 20000: return "antieco"
+    return "fullbuy"
+
+
 def build_slim_payload(parsed: dict) -> dict:
     """Derive the slim payload from a full parse_demo() result.
 
@@ -853,14 +920,22 @@ def build_slim_payload(parsed: dict) -> dict:
 
     rounds_out = []
     for i, r in enumerate(rounds_in):
+        freeze_end_tick = int(r.get("freeze_end_tick", r.get("start_tick", 0)))
+        team_a_side = r.get("team_a_side")
+        team_b_side = "t" if team_a_side == "ct" else ("ct" if team_a_side == "t" else None)
+        is_pistol = _is_pistol_round(rounds_in, i)
+        val_a = _team_equip_value_at_tick(frames_in, freeze_end_tick, team_a_side) if team_a_side else 0
+        val_b = _team_equip_value_at_tick(frames_in, freeze_end_tick, team_b_side) if team_b_side else 0
         rounds_out.append({
             "idx":               i,
-            "side_team_a":       r.get("team_a_side"),
-            "freeze_end_tick":   int(r.get("freeze_end_tick", r.get("start_tick", 0))),
+            "side_team_a":       team_a_side,
+            "freeze_end_tick":   freeze_end_tick,
             "end_tick":          int(r.get("end_tick", 0)),
             "winner":            r.get("winner_side"),
             "won_by":            _slim_won_by(r.get("reason")),
             "bomb_planted_site": r.get("bomb_planted_site"),
+            "buy_type_a":        _classify_buy(val_a, is_pistol),
+            "buy_type_b":        _classify_buy(val_b, is_pistol),
         })
 
     frames_out = []

@@ -41,25 +41,25 @@ def _sample_parsed():
             },
         ],
         "frames": [
-            # Round 1 frames
+            # Round 1 frames — pistol round (idx 0). Player has Glock + flash.
             {"tick": 2000, "players": [
                 {"steam_id": "76561", "team": "ct", "x": 100, "y": 200, "z": 0,
-                 "hp": 100, "armor": 100, "weapon": "ak47", "money": 4000,
+                 "hp": 100, "armor": 100, "weapon": "Glock-18", "money": 800,
                  "is_alive": True, "yaw": 90.0, "pitch": 0.0,
-                 "has_smoke": True, "has_flash": False, "has_molotov": False, "has_he": False},
+                 "has_smoke": False, "has_flash": True, "has_molotov": False, "has_he": False},
             ]},
             {"tick": 2016, "players": [  # 16 ticks later (the SAMPLE_RATE)
                 {"steam_id": "76561", "team": "ct", "x": 110, "y": 210, "z": 0,
-                 "hp": 100, "armor": 100, "weapon": "ak47", "money": 4000,
+                 "hp": 100, "armor": 100, "weapon": "Glock-18", "money": 800,
                  "is_alive": True, "yaw": 95.0, "pitch": 0.0,
-                 "has_smoke": True, "has_flash": False, "has_molotov": False, "has_he": False},
+                 "has_smoke": False, "has_flash": True, "has_molotov": False, "has_he": False},
             ]},
             # Frame outside any round (between R1 end and R2 start) — must be excluded
             {"tick": 5500, "players": []},
-            # Round 2 frame
+            # Round 2 frame — non-pistol; player has AK + armor + nades (anti-eco proxy for solo player).
             {"tick": 7016, "players": [
                 {"steam_id": "76561", "team": "t", "x": -50, "y": -100, "z": 0,
-                 "hp": 100, "armor": 100, "weapon": "ak47", "money": 4000,
+                 "hp": 100, "armor": 100, "weapon": "AK-47", "money": 100,
                  "is_alive": True, "yaw": 180.0, "pitch": 0.0,
                  "has_smoke": False, "has_flash": False, "has_molotov": True, "has_he": False},
             ]},
@@ -107,6 +107,7 @@ def test_rounds_keep_only_required_fields():
     assert set(r0.keys()) == {
         "idx", "side_team_a", "freeze_end_tick", "end_tick",
         "winner", "won_by", "bomb_planted_site",
+        "buy_type_a", "buy_type_b",
     }
     assert r0["idx"] == 0
     assert r0["side_team_a"] == "ct"
@@ -117,6 +118,22 @@ def test_rounds_keep_only_required_fields():
     assert r0["bomb_planted_site"] is None
     # Round 2 carries the bomb plant site through
     assert slim["rounds"][1]["bomb_planted_site"] == "A"
+
+
+def test_round_zero_classified_as_pistol():
+    slim = build_slim_payload(_sample_parsed())
+    # First round of a half is always pistol regardless of equipment value.
+    assert slim["rounds"][0]["buy_type_a"] == "pistol"
+    assert slim["rounds"][0]["buy_type_b"] == "pistol"
+
+
+def test_non_pistol_round_classified_by_equipment_value():
+    slim = build_slim_payload(_sample_parsed())
+    # Round 2 is not a pistol round (no side flip). The lone T player has
+    # AK ($2700) + molotov ($400) + armor ($1000) = $4100 → eco threshold (<$5000).
+    assert slim["rounds"][1]["buy_type_b"] == "eco"
+    # CT side has no players in round 2 frames → 0 → eco
+    assert slim["rounds"][1]["buy_type_a"] == "eco"
 
 
 def test_frames_assigned_to_round_and_filtered():
