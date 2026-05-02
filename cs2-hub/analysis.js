@@ -1305,16 +1305,26 @@ function refreshSoloRoundNav() {
   }
   nav.style.display = 'flex'
   const r = state.rounds[state.viewRoundIdx]
-  const tot = state.rounds.length
   const sideLabel = r ? r.teamSide.toUpperCase() : '?'
+  const pl = state.gren.playlist
   document.getElementById('pp-round-label').textContent =
-    `Round ${state.viewRoundIdx + 1} / ${tot} · ${sideLabel}`
+    (pl && pl.length)
+      ? `Playlist ${state.gren.playlistPos + 1} / ${pl.length} · ${sideLabel}`
+      : `Round ${state.viewRoundIdx + 1} / ${state.rounds.length} · ${sideLabel}`
 }
 
 async function gotoSoloRound(delta) {
   if (state.viewRoundIdx == null || !state.rounds.length) return
-  const n = state.rounds.length
-  const next = (state.viewRoundIdx + delta + n) % n
+  // Playlist mode: prev/next walk only the selected rounds, not the full set.
+  const pl = state.gren.playlist
+  let next
+  if (pl && pl.length) {
+    state.gren.playlistPos = (state.gren.playlistPos + delta + pl.length) % pl.length
+    next = pl[state.gren.playlistPos]
+  } else {
+    const n = state.rounds.length
+    next = (state.viewRoundIdx + delta + n) % n
+  }
   const r = state.rounds[next]
   if (r) await fetchFullMatch(r.demoId)
   state.viewRoundIdx = next
