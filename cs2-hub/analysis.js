@@ -13,6 +13,7 @@ const state = {
   team:        null,         // selected team name (string)
   mode:        'overlay',    // 'overlay' | 'grenade'
   soloSid:     null,         // when set, overlay shows only this player
+  utilSoloType: null,        // when set, overlay shows only this util type (smoke/molotov/flash/he)
   filters: {
     map:        null,        // string
     side:       'ct',        // 'ct' | 't' | 'both'
@@ -525,6 +526,7 @@ function buildPlayerColorMap() {
   // If solo'd player is no longer in the roster, clear it
   if (state.soloSid && !_playerColorBySid.has(state.soloSid)) state.soloSid = null
   refreshPlayerPanel()
+  refreshUtilPanel()
 }
 
 function getPlayerColor(sid) {
@@ -730,6 +732,7 @@ function renderOverlay(tc, mapSize) {
     for (const g of grenades) {
       if (g.thrower_team !== r.teamSide) continue
       if (state.soloSid && g.thrower_sid !== state.soloSid) continue
+      if (state.utilSoloType && g.type !== state.utilSoloType) continue
       drawGrenade(tc, g, targetTick, tickRate, mapSize, teamColors[r.teamSide])
     }
   }
@@ -812,6 +815,43 @@ function refreshPlayerPanel() {
 document.getElementById('pp-clear').addEventListener('click', () => {
   state.soloSid = null
   refreshPlayerPanel()
+  render()
+})
+
+const UTIL_TYPES = [
+  { type: 'smoke',   label: 'Smoke',    color: '#b3b3b3' },
+  { type: 'molotov', label: 'Molotov',  color: '#ff7a30' },
+  { type: 'flash',   label: 'Flash',    color: '#ffeb55' },
+  { type: 'he',      label: 'HE',       color: '#dc3232' },
+]
+
+function refreshUtilPanel() {
+  const listEl  = document.getElementById('pp-util-list')
+  const clearEl = document.getElementById('pp-util-clear')
+  if (!listEl) return
+
+  listEl.innerHTML = UTIL_TYPES.map(u => `
+    <div class="pp-item ${state.utilSoloType === u.type ? 'active' : ''}" data-util="${u.type}">
+      <span class="pp-swatch" style="background:${u.color}"></span>
+      <span>${u.label}</span>
+    </div>
+  `).join('')
+
+  clearEl.style.display = state.utilSoloType ? 'block' : 'none'
+
+  for (const el of listEl.querySelectorAll('.pp-item')) {
+    el.addEventListener('click', () => {
+      const t = el.dataset.util
+      state.utilSoloType = (state.utilSoloType === t) ? null : t
+      refreshUtilPanel()
+      render()
+    })
+  }
+}
+
+document.getElementById('pp-util-clear').addEventListener('click', () => {
+  state.utilSoloType = null
+  refreshUtilPanel()
   render()
 })
 
