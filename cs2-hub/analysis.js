@@ -32,6 +32,9 @@ const state = {
     drag:         null,       // {x0,y0,x1,y1} canvas pixels while dragging, else null
     playlist:     null,       // [round indices into state.rounds] when in playlist mode, else null
     playlistPos:  0,
+    types:        new Set(),  // empty = all types; otherwise subset of {smoke,molotov,flash,he}
+    timeMin:      0,          // seconds since freeze_end_tick (round goes live)
+    timeMax:      30,
   },
 }
 
@@ -534,7 +537,17 @@ const GREN_COLORS = {
 }
 const GREN_RADII = { smoke: 0.024, molotov: 0.014, flash: 0.012, he: 0.012 }
 
-let _highlightedGrenadeKey = null  // demoId|roundIdx|throw_tick — used for click highlight
+// Single source of truth for the grenade-mode visibility filter. Used by
+// rendering, the drag-rect hit-test, and the count readout — keeping them
+// consistent prevents "you can select what you can't see" bugs.
+function grenadePassesFilters(g, r) {
+  if (g.thrower_team !== r.teamSide) return false
+  if (state.gren.types.size > 0 && !state.gren.types.has(g.type)) return false
+  const tickRate = r._payload?.meta?.tick_rate ?? 64
+  const sec = (g.throw_tick - r.freezeEndTick) / tickRate
+  if (sec < state.gren.timeMin || sec > state.gren.timeMax) return false
+  return true
+}
 
 // Renders selected team's grenade trajectories (no opponents).
 // Each grenade is drawn as a polyline from throw → land using the slim
@@ -544,7 +557,6 @@ let _highlightedGrenadeKey = null  // demoId|roundIdx|throw_tick — used for cl
 function renderGrenadeMode(tc, mapSize) {
   if (!state.rounds.length) return
 
-  const typeFilter = document.getElementById('gp-type-filter')?.value ?? 'all'
   const anySelected = state.gren.selectedKeys.size > 0
   const startR = Math.max(2, mapSize * 0.004)
   const endR   = Math.max(3, mapSize * 0.007)
@@ -552,9 +564,7 @@ function renderGrenadeMode(tc, mapSize) {
   for (const r of state.rounds) {
     const grenades = grenadesForRound(r._payload, r.roundIdx)
     for (const g of grenades) {
-      if (typeFilter !== 'all' && g.type !== typeFilter) continue
-      // Selected team only — drop opponents.
-      if (g.thrower_team !== r.teamSide) continue
+      if (!grenadePassesFilters(g, r)) continue
 
       const colors = GREN_COLORS[g.type] || GREN_COLORS.smoke
       const key = `${r.demoId}|${r.roundIdx}|${g.throw_tick}`
@@ -1468,7 +1478,6 @@ window.addEventListener('mouseup', e => {
   if (!d) { render(); return }
 
   const dx = Math.abs(d.x1 - d.x0), dy = Math.abs(d.y1 - d.y0)
-  const typeFilter = document.getElementById('gp-type-filter')?.value ?? 'all'
 
   // Click without drag → clear selection
   if (dx < DRAG_CLICK_THRESHOLD && dy < DRAG_CLICK_THRESHOLD) {
@@ -1486,8 +1495,7 @@ window.addEventListener('mouseup', e => {
   for (const r of state.rounds) {
     const grenades = grenadesForRound(r._payload, r.roundIdx)
     for (const g of grenades) {
-      if (typeFilter !== 'all' && g.type !== typeFilter) continue
-      if (g.thrower_team !== r.teamSide) continue
+      if (!grenadePassesFilters(g, r)) continue
       const { x, y } = tc(g.land_x, g.land_y)
       if (!Number.isFinite(x) || !Number.isFinite(y)) continue
       if (x >= left && x <= right && y >= top && y <= bottom) {
@@ -1634,63 +1642,70 @@ document.getElementById('trail-toggle').addEventListener('click', e => {
 })
 
 // ── Mode toggle (Task 12) ────────────────────────────────────
+// Panel refresh = update count + sync type pills + sync time slider thumbs.
+// The list of individual grenades was dropped — selection happens on the
+// canvas via drag-rect.
 function refreshGrenadePanel() {
-  const listEl  = document.getElementById('gp-list')
   const countEl = document.getElementById('gp-count')
-  const typeFilter = document.getElementById('gp-type-filter').value
-  const sortBy     = document.getElementById('gp-sort').value
+  if (!countEl) return
 
-  const items = []
+  let count = 0
   for (const r of state.rounds) {
-    const grenades = grenadesForRound(r._payload, r.roundIdx)
-    // slim payload carries meta.players = { sid: { name } } (Task 2 / build_slim_payload)
-    const playersMeta = r._payload.meta?.players || {}
-    for (const g of grenades) {
-      if (typeFilter !== 'all' && g.type !== typeFilter) continue
-      items.push({
-        key:         `${r.demoId}|${r.roundIdx}|${g.throw_tick}`,
-        type:        g.type,
-        round:       r.roundIdx + 1,
-        thrower:     playersMeta[g.thrower_sid]?.name || g.thrower_sid?.slice(-5) || '?',
-        thrower_team: g.thrower_team,
-        throw_tick:  g.throw_tick,
-        round_ref:   r,
-      })
+    for (const g of grenadesForRound(r._payload, r.roundIdx)) {
+      if (grenadePassesFilters(g, r)) count++
     }
   }
+  countEl.textContent = `${count} grenade${count === 1 ? '' : 's'}`
 
-  items.sort((a, b) => {
-    if (sortBy === 'type')    return a.type.localeCompare(b.type) || a.round - b.round
-    if (sortBy === 'thrower') return a.thrower.localeCompare(b.thrower)
-    return a.round - b.round || a.throw_tick - b.throw_tick
-  })
-
-  countEl.textContent = `${items.length} grenade${items.length === 1 ? '' : 's'}`
-
-  listEl.innerHTML = items.map(it => `
-    <div class="gp-item ${_highlightedGrenadeKey === it.key ? 'active' : ''}" data-key="${it.key}">
-      <div class="gp-item-dot ${it.type}"></div>
-      <div>
-        <div>${it.type.toUpperCase()} · R${it.round} · ${escapeHtml(it.thrower)}</div>
-      </div>
-    </div>
-  `).join('')
-
-  for (const el of listEl.querySelectorAll('.gp-item')) {
-    el.addEventListener('click', () => {
-      _highlightedGrenadeKey = (_highlightedGrenadeKey === el.dataset.key) ? null : el.dataset.key
-      refreshGrenadePanel()
-      render()
-    })
+  for (const btn of document.querySelectorAll('#gp-type-pills .seg-btn')) {
+    btn.classList.toggle('active', state.gren.types.has(btn.dataset.v))
   }
+
+  const minEl = document.getElementById('gp-time-min')
+  const maxEl = document.getElementById('gp-time-max')
+  const readout = document.getElementById('gp-time-readout')
+  if (minEl) minEl.value = state.gren.timeMin
+  if (maxEl) maxEl.value = state.gren.timeMax
+  if (readout) readout.textContent = `${state.gren.timeMin}–${state.gren.timeMax}s`
 }
 
 function escapeHtml(s) {
   const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML
 }
 
-document.getElementById('gp-type-filter').addEventListener('change', () => { refreshGrenadePanel(); render() })
-document.getElementById('gp-sort').addEventListener('change', refreshGrenadePanel)
+document.getElementById('gp-type-pills')?.addEventListener('click', e => {
+  const btn = e.target.closest('.seg-btn'); if (!btn) return
+  const t = btn.dataset.v
+  if (state.gren.types.has(t)) state.gren.types.delete(t)
+  else                         state.gren.types.add(t)
+  state.gren.selectedKeys.clear()  // filter changed → previous selection may now be invisible
+  refreshGrenadePanel()
+  refreshGrenSelectionButton()
+  render()
+})
+
+;(function wireTimeRange() {
+  const minEl = document.getElementById('gp-time-min')
+  const maxEl = document.getElementById('gp-time-max')
+  if (!minEl || !maxEl) return
+  const onInput = e => {
+    let lo = +minEl.value, hi = +maxEl.value
+    // Keep the handles from crossing.
+    if (lo >= hi) {
+      if (e.target === minEl) lo = Math.max(0, hi - 1)
+      else                    hi = Math.min(+maxEl.max, lo + 1)
+      minEl.value = lo; maxEl.value = hi
+    }
+    state.gren.timeMin = lo
+    state.gren.timeMax = hi
+    state.gren.selectedKeys.clear()
+    refreshGrenadePanel()
+    refreshGrenSelectionButton()
+    render()
+  }
+  minEl.addEventListener('input', onInput)
+  maxEl.addEventListener('input', onInput)
+})();
 
 function applyMode() {
   for (const pill of document.querySelectorAll('.mode-pill')) {
