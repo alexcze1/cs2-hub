@@ -25,6 +25,8 @@ const state = {
   },
   corpus:      [],           // [{id, map, played_at, ct_team_name, t_team_name, ...}]
   slimCache:   new Map(),    // demoId → slim payload
+  fullCache:   new Map(),    // demoId → full match_data (loaded on single-round entry only)
+  fullLoading: new Set(),    // demoIds currently being fetched (debounce)
   rounds:      [],           // computed RenderRound[] (built in Task 9)
 }
 
@@ -503,6 +505,121 @@ function renderGrenadeMode(tc, mapSize) {
   ctx.globalAlpha = 1.0
 }
 
+// ── Viewer-style helpers (used in single-round playback with full match_data) ──
+const CT_COLOR = '#4FC3F7'
+const T_COLOR  = '#FF9500'
+const FULL_CACHE_MAX = 4
+const _prevHp = {}
+const _flashUntil = {}
+
+function viewerPlayerColor(team) { return team === 'ct' ? CT_COLOR : T_COLOR }
+
+function hpToColor(hp) {
+  if (hp > 50) {
+    const t = (hp - 50) / 50
+    return `rgb(${Math.round(76 + (255 - 76) * (1 - t))},${Math.round(175 + (215 - 175) * (1 - t))},${Math.round(80 * t)})`
+  }
+  if (hp > 25) {
+    const t = (hp - 25) / 25
+    return `rgb(255,${Math.round(215 * t)},0)`
+  }
+  return '#F44336'
+}
+
+function flashIntensity(p) {
+  if (p.flash_duration != null && p.flash_duration > 0) {
+    return Math.max(0, Math.min(1, p.flash_duration / 2.5))
+  }
+  return 0
+}
+
+function drawRoundRect(c, x, y, w, h, r) {
+  c.beginPath()
+  c.moveTo(x + r, y); c.lineTo(x + w - r, y); c.arcTo(x + w, y, x + w, y + h, r)
+  c.lineTo(x + w, y + h - r); c.arcTo(x + w, y + h, x, y + h, r)
+  c.lineTo(x + r, y + h); c.arcTo(x, y + h, x, y, r)
+  c.lineTo(x, y + r); c.arcTo(x, y, x + w, y, r); c.closePath()
+}
+
+function drawPlayerPill(x, dotTopY, label, color, pillFont, pillFontSz) {
+  ctx.save()
+  ctx.font = pillFont
+  const tw = ctx.measureText(label).width
+  const ph = pillFontSz + 5
+  const pw = tw + 12
+  const px = x - pw / 2
+  const py = dotTopY - ph - 2
+  drawRoundRect(ctx, px, py, pw, ph, ph / 2)
+  ctx.fillStyle = 'rgba(3,7,18,0.82)'; ctx.fill()
+  drawRoundRect(ctx, px, py, pw, ph, ph / 2)
+  ctx.strokeStyle = color; ctx.globalAlpha = 0.75; ctx.lineWidth = 1; ctx.stroke()
+  ctx.globalAlpha = 1
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  ctx.fillText(label, x, py + ph / 2)
+  ctx.restore()
+}
+
+const WEAPON_ICON_MAP = {
+  'Glock-18': 'glock', 'P2000': 'p2000', 'USP-S': 'usp_silencer',
+  'Dual Berettas': 'elite', 'P250': 'p250', 'Five-SeveN': 'fiveseven',
+  'Tec-9': 'tec9', 'CZ75-Auto': 'cz75a', 'Desert Eagle': 'deagle',
+  'R8 Revolver': 'revolver',
+  'AK-47': 'ak47', 'Galil AR': 'galilar', 'FAMAS': 'famas',
+  'M4A4': 'm4a1', 'M4A1-S': 'm4a1_silencer', 'AUG': 'aug',
+  'SG 553': 'sg556', 'SSG 08': 'ssg08', 'AWP': 'awp',
+  'G3SG1': 'g3sg1', 'SCAR-20': 'scar20',
+  'MAC-10': 'mac10', 'MP9': 'mp9', 'MP7': 'mp7', 'MP5-SD': 'mp5sd',
+  'UMP-45': 'ump45', 'PP-Bizon': 'bizon', 'P90': 'p90',
+  'Nova': 'nova', 'XM1014': 'xm1014', 'Sawed-Off': 'sawedoff',
+  'MAG-7': 'mag7', 'M249': 'm249', 'Negev': 'negev',
+  'Smoke Grenade': 'smokegrenade', 'HE Grenade': 'hegrenade',
+  'High Explosive Grenade': 'hegrenade',
+  'Flashbang': 'flashbang', 'Flash Grenade': 'flashbang',
+  'Molotov': 'molotov', 'Molotov Cocktail': 'molotov',
+  'Incendiary Grenade': 'incgrenade', 'Decoy Grenade': 'decoy', 'Decoy': 'decoy',
+  'smokegrenade': 'smokegrenade', 'hegrenade': 'hegrenade',
+  'flashbang': 'flashbang', 'molotov': 'molotov',
+  'inferno': 'molotov', 'incgrenade': 'incgrenade', 'decoy': 'decoy',
+  'knife': 'knife_default', 'knife_t': 'knife_t', 'knife_ct': 'knife_default',
+  'taser': 'taser', 'c4': 'c4',
+}
+const WEAPON_CANVAS_ICONS = {}
+new Set(Object.values(WEAPON_ICON_MAP)).forEach(name => {
+  const img = new Image()
+  img.src = `images/weapons/${name}.svg`
+  WEAPON_CANVAS_ICONS[name] = img
+})
+
+// Lazy-fetch the full match_data for one demo. Slim is used for multi-round
+// overlay; full is fetched only when the user enters single-round playback so
+// we can render HP/names/weapons/flashes/shots that the slim payload drops.
+async function fetchFullMatch(demoId) {
+  if (state.fullCache.has(demoId)) return state.fullCache.get(demoId)
+  if (state.fullLoading.has(demoId)) return null
+  state.fullLoading.add(demoId)
+  showChip('Loading round details…', 'info')
+  try {
+    const { data, error } = await supabase
+      .from('demos').select('match_data').eq('id', demoId).single()
+    if (error) throw error
+    const full = data?.match_data
+    if (!full) { showChip('No full data available for this demo', 'warn'); return null }
+    state.fullCache.set(demoId, full)
+    while (state.fullCache.size > FULL_CACHE_MAX) {
+      const oldestKey = state.fullCache.keys().next().value
+      state.fullCache.delete(oldestKey)
+    }
+    return full
+  } catch (e) {
+    console.error('[analysis] full fetch failed:', e)
+    showChip('Failed to load round details', 'error')
+    return null
+  } finally {
+    state.fullLoading.delete(demoId)
+    hideChip('Loading round details…')
+  }
+}
+
 // 5 distinct colors for the 5 players on the user's team. Stable per-sid across the session.
 const TEAM_PALETTE = ['#FF6B6B', '#FFD93D', '#6BCB77', '#4D96FF', '#C56CF0']
 const _playerColorBySid = new Map()
@@ -733,36 +850,10 @@ function renderOverlay(tc, mapSize) {
   const TEAM_BASE = { ct: '#4FC3F7', t: '#FF9500' }
 
   // Single-round playback: triggered by clicking a player icon on the map.
-  // Renders ONE round with everyone visible (teammates + opponents + all util).
+  // Uses full match_data (lazy-fetched) so we can render the same visuals as
+  // the demo viewer — HP rings, names, weapons, shots, flashes.
   if (state.viewRoundIdx != null) {
-    const r = state.rounds[Math.min(state.viewRoundIdx, state.rounds.length - 1)]
-    if (!r) return
-    const targetTick = r.freezeEndTick + Math.floor(playback.relTick)
-    if (targetTick > r.endTick) return
-
-    const grenades = grenadesForRound(r._payload, r.roundIdx)
-    for (const g of grenades) {
-      if (state.utilSoloType && g.type !== state.utilSoloType) continue
-      drawGrenade(tc, g, targetTick, tickRate, mapSize, TEAM_BASE[g.thrower_team])
-    }
-
-    const frames = framesForRound(r._payload, r.roundIdx)
-    if (!frames.length) return
-    let lo = 0, hi = frames.length - 1, idx = 0
-    while (lo <= hi) {
-      const mid = (lo + hi) >> 1
-      if (frames[mid].tick <= targetTick) { idx = mid; lo = mid + 1 } else hi = mid - 1
-    }
-    const frame = frames[idx]
-
-    for (const player of frame.players) {
-      // Teammates use their palette color; opponents use the team-side base color.
-      const isTeammate = (player.team === r.teamSide)
-      const color = isTeammate
-        ? getPlayerColor(player.steam_id)
-        : TEAM_BASE[player.team]
-      drawPlayer(tc, player, color, mapSize)
-    }
+    renderSingleRoundViewerStyle(tc, mapSize)
     return
   }
 
@@ -824,6 +915,221 @@ function renderOverlay(tc, mapSize) {
   }
 }
 
+// Viewer-style single-round render. Falls back to slim render if full data
+// hasn't loaded yet (rare — fetch is awaited before viewRoundIdx is set).
+function renderSingleRoundViewerStyle(tc, mapSize) {
+  const r = state.rounds[Math.min(state.viewRoundIdx, state.rounds.length - 1)]
+  if (!r) return
+
+  const full = state.fullCache.get(r.demoId)
+  if (!full) {
+    renderSingleRoundSlimFallback(tc, mapSize, r)
+    return
+  }
+
+  const fullRound = (full.rounds || [])[r.roundIdx]
+  if (!fullRound) return
+  const tickRate = full.meta?.tick_rate ?? 64
+  const startTick = fullRound.freeze_end_tick ?? fullRound.start_tick ?? 0
+  const endTick   = fullRound.end_tick ?? startTick
+  const targetTick = startTick + Math.floor(playback.relTick)
+  if (targetTick > endTick) return
+
+  // ── Frame at targetTick (binary search across full.frames in round window)
+  const frames = full.frames || []
+  if (!frames.length) return
+  let lo = 0, hi = frames.length - 1, idx = 0
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1
+    if (frames[mid].tick <= targetTick) { idx = mid; lo = mid + 1 } else hi = mid - 1
+  }
+  const frame = frames[idx]
+  if (!frame || frame.tick < startTick) return
+
+  // ── Grenades (use slim grenades since they already carry det/throw/trajectory) ──
+  const grenades = grenadesForRound(r._payload, r.roundIdx)
+  for (const g of grenades) {
+    if (state.utilSoloType && g.type !== state.utilSoloType) continue
+    drawGrenade(tc, g, targetTick, tickRate, mapSize, viewerPlayerColor(g.thrower_team))
+  }
+
+  const dotR       = Math.round(mapSize * 0.009)
+  const pillFontSz = Math.round(mapSize * 0.0092)
+  const pillFont   = `600 ${pillFontSz}px Inter, system-ui, sans-serif`
+
+  // ── Players (HP rings, blind, damage flash, yaw arrow) ──
+  for (const p of frame.players) {
+    const { x, y } = tc(p.x, p.y)
+    if (!Number.isFinite(x) || !Number.isFinite(y)) continue
+
+    if (!p.is_alive) {
+      ctx.save()
+      ctx.globalAlpha = 0.28
+      ctx.beginPath(); ctx.arc(x, y, dotR * 0.75, 0, Math.PI * 2)
+      ctx.fillStyle = '#777'; ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1
+      ctx.fill(); ctx.stroke()
+      ctx.restore()
+      continue
+    }
+
+    const id = p.steam_id
+    const flashI  = flashIntensity(p)
+    const blinded = flashI > 0.06
+
+    if (p.hp != null && p.hp > 0) {
+      const arcR = dotR + 3
+      ctx.save()
+      ctx.lineWidth = 1.5
+      ctx.beginPath(); ctx.arc(x, y, arcR, 0, Math.PI * 2)
+      ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.stroke()
+      ctx.beginPath()
+      ctx.arc(x, y, arcR, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, Math.min(1, p.hp / 100)))
+      ctx.strokeStyle = hpToColor(p.hp); ctx.stroke()
+      ctx.restore()
+    }
+
+    if (blinded) {
+      const ringR = dotR + 5
+      ctx.save()
+      ctx.beginPath(); ctx.arc(x, y, ringR, 0, Math.PI * 2)
+      ctx.strokeStyle = viewerPlayerColor(p.team); ctx.lineWidth = 1.5; ctx.globalAlpha = 0.7
+      ctx.stroke()
+      ctx.restore()
+    }
+
+    if (playback.playing && _prevHp[id] != null && p.hp < _prevHp[id]) {
+      _flashUntil[id] = Date.now() + 350
+    }
+    _prevHp[id] = p.hp
+
+    let color
+    if (blinded) {
+      const [tr, tg, tb] = p.team === 'ct' ? [79, 195, 247] : [255, 149, 0]
+      const fr = Math.round(255 * flashI + tr * (1 - flashI))
+      const fg = Math.round(255 * flashI + tg * (1 - flashI))
+      const fb = Math.round(255 * flashI + tb * (1 - flashI))
+      color = `rgb(${fr},${fg},${fb})`
+    } else {
+      color = (Date.now() < (_flashUntil[id] ?? 0)) ? '#FF1744' : viewerPlayerColor(p.team)
+    }
+
+    if (p.yaw != null) {
+      const yawRad = p.yaw * Math.PI / 180
+      const dir = tc(p.x + Math.cos(yawRad) * 300, p.y + Math.sin(yawRad) * 300)
+      const angle = Math.atan2(dir.y - y, dir.x - x)
+      const notchAngle = 22 * Math.PI / 180
+      const tipDist = dotR * 0.45
+      ctx.save()
+      ctx.beginPath()
+      ctx.arc(x, y, dotR, angle + notchAngle, angle - notchAngle)
+      ctx.lineTo(x + Math.cos(angle) * (dotR + tipDist), y + Math.sin(angle) * (dotR + tipDist))
+      ctx.closePath()
+      ctx.fillStyle = color; ctx.strokeStyle = 'rgba(255,255,255,0.88)'; ctx.lineWidth = 1.5
+      ctx.fill(); ctx.stroke()
+      ctx.beginPath(); ctx.arc(x, y, dotR * 0.28, 0, Math.PI * 2)
+      ctx.fillStyle = 'rgba(255,255,255,0.82)'; ctx.fill()
+      ctx.restore()
+    } else {
+      ctx.save()
+      ctx.beginPath(); ctx.arc(x, y, dotR, 0, Math.PI * 2)
+      ctx.fillStyle = color; ctx.strokeStyle = 'rgba(255,255,255,0.88)'; ctx.lineWidth = 1.5
+      ctx.fill(); ctx.stroke()
+      ctx.restore()
+    }
+  }
+
+  // ── Name pills + weapon icons (above each living player) ──
+  const playersMeta = full.players_meta || {}
+  for (const p of frame.players) {
+    if (!p.is_alive) continue
+    const { x, y } = tc(p.x, p.y)
+    if (!Number.isFinite(x) || !Number.isFinite(y)) continue
+    const name = (playersMeta[p.steam_id]?.name ?? p.name ?? '').slice(0, 13)
+    drawPlayerPill(x, y - dotR, name, viewerPlayerColor(p.team), pillFont, pillFontSz)
+
+    const rawWeapon = (p.weapon || '').replace('weapon_', '')
+    const iconName  = WEAPON_ICON_MAP[rawWeapon] ?? rawWeapon
+    const wIcon     = WEAPON_CANVAS_ICONS[iconName]
+    if (wIcon && wIcon.complete && wIcon.naturalWidth) {
+      const sz = Math.round(mapSize * 0.018)
+      const ph = pillFontSz + 5
+      const py = (y - dotR) - ph - 2
+      ctx.drawImage(wIcon, x - sz / 2, py - sz - 2, sz, sz)
+    }
+  }
+
+  // ── Shot beams + muzzle flashes ──
+  const shots = full.shots || []
+  const BEAM_DURATION = 9
+  ctx.save(); ctx.lineCap = 'round'
+  for (const shot of shots) {
+    if (shot.tick < startTick || shot.tick > targetTick) continue
+    const age = targetTick - shot.tick
+    if (age > BEAM_DURATION) continue
+    const player = frame.players.find(p => p.steam_id === shot.steam_id)
+    if (!player || !player.is_alive || player.yaw == null) continue
+    const { x, y } = tc(player.x, player.y)
+    if (!Number.isFinite(x) || !Number.isFinite(y)) continue
+    const fade   = 1 - age / BEAM_DURATION
+    const yawRad = player.yaw * Math.PI / 180
+    const beam   = tc(player.x + Math.cos(yawRad) * 520, player.y + Math.sin(yawRad) * 520)
+    const isct   = player.team === 'ct'
+    const teamRgb = isct ? '79,195,247' : '255,149,0'
+    const teamHex = isct ? CT_COLOR : T_COLOR
+
+    const glowGrad = ctx.createLinearGradient(x, y, beam.x, beam.y)
+    glowGrad.addColorStop(0,    `rgba(${teamRgb},${(fade * 0.35).toFixed(2)})`)
+    glowGrad.addColorStop(0.55, `rgba(${teamRgb},${(fade * 0.15).toFixed(2)})`)
+    glowGrad.addColorStop(1,    `rgba(${teamRgb},0)`)
+    ctx.globalAlpha = 1; ctx.strokeStyle = glowGrad; ctx.lineWidth = 5.5
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(beam.x, beam.y); ctx.stroke()
+
+    const coreGrad = ctx.createLinearGradient(x, y, beam.x, beam.y)
+    coreGrad.addColorStop(0,    `rgba(255,255,255,${(fade * 0.95).toFixed(2)})`)
+    coreGrad.addColorStop(0.45, `rgba(255,255,255,${(fade * 0.55).toFixed(2)})`)
+    coreGrad.addColorStop(1,    'rgba(255,255,255,0)')
+    ctx.strokeStyle = coreGrad; ctx.lineWidth = 1.3
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(beam.x, beam.y); ctx.stroke()
+
+    if (age <= 3) {
+      const ft = age / 3
+      ctx.globalAlpha = (1 - ft) * 0.85
+      ctx.beginPath(); ctx.arc(x, y, mapSize * 0.005 + mapSize * 0.015 * ft, 0, Math.PI * 2)
+      ctx.strokeStyle = teamHex; ctx.lineWidth = 1.5; ctx.stroke()
+      ctx.globalAlpha = (1 - ft) * 0.75
+      ctx.beginPath(); ctx.arc(x, y, mapSize * 0.0045 * (1 - ft * 0.6), 0, Math.PI * 2)
+      ctx.fillStyle = '#fff'; ctx.fill()
+    }
+  }
+  ctx.restore()
+}
+
+// Slim-only fallback used while full match_data is still loading. Uses team
+// colors and yaw arrows but no HP/names/weapons (those fields are stripped).
+function renderSingleRoundSlimFallback(tc, mapSize, r) {
+  const tickRate = state.rounds[0]?._payload?.meta?.tick_rate ?? 64
+  const targetTick = r.freezeEndTick + Math.floor(playback.relTick)
+  if (targetTick > r.endTick) return
+
+  const grenades = grenadesForRound(r._payload, r.roundIdx)
+  for (const g of grenades) {
+    if (state.utilSoloType && g.type !== state.utilSoloType) continue
+    drawGrenade(tc, g, targetTick, tickRate, mapSize, viewerPlayerColor(g.thrower_team))
+  }
+
+  const frames = framesForRound(r._payload, r.roundIdx)
+  if (!frames.length) return
+  let lo = 0, hi = frames.length - 1, idx = 0
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1
+    if (frames[mid].tick <= targetTick) { idx = mid; lo = mid + 1 } else hi = mid - 1
+  }
+  const frame = frames[idx]
+  for (const player of frame.players) {
+    drawPlayer(tc, player, viewerPlayerColor(player.team), mapSize)
+  }
+}
+
 function refreshPlayerPanel() {
   const listEl  = document.getElementById('pp-list')
   const clearEl = document.getElementById('pp-clear')
@@ -870,10 +1176,13 @@ function refreshSoloRoundNav() {
     `Round ${state.viewRoundIdx + 1} / ${tot} · ${sideLabel}`
 }
 
-function gotoSoloRound(delta) {
+async function gotoSoloRound(delta) {
   if (state.viewRoundIdx == null || !state.rounds.length) return
   const n = state.rounds.length
-  state.viewRoundIdx = (state.viewRoundIdx + delta + n) % n
+  const next = (state.viewRoundIdx + delta + n) % n
+  const r = state.rounds[next]
+  if (r) await fetchFullMatch(r.demoId)
+  state.viewRoundIdx = next
   playback.relTick = 0
   recomputePlaybackBounds()
   updateTimelineUi()
@@ -906,7 +1215,7 @@ document.getElementById('pp-round-next').addEventListener('click', () => gotoSol
 // Click a player icon on the map → enter single-round playback for that round
 // at the current playback time (seamless transition). Click anywhere on the map
 // while in single-round mode → exit back to multi-round overlay.
-canvas.addEventListener('click', e => {
+canvas.addEventListener('click', async e => {
   if (state.mode !== 'overlay' || !state.rounds.length) return
 
   // In single-round mode any click exits — no hit test needed.
@@ -957,6 +1266,11 @@ canvas.addEventListener('click', e => {
 
   const idx = state.rounds.indexOf(best.round)
   if (idx < 0) return
+
+  // Fetch full match_data BEFORE entering single-round so the viewer-style
+  // render can use HP/names/weapons/shots from the very first frame.
+  await fetchFullMatch(best.round.demoId)
+
   state.viewRoundIdx = idx
   // Preserve current playback time, clamped to this round's length, for a
   // seamless transition into single-round playback.
