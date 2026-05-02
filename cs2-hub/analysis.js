@@ -12,6 +12,7 @@ renderSidebar('analysis')
 const state = {
   team:        null,         // selected team name (string)
   mode:        'overlay',    // 'overlay' | 'grenade'
+  soloSid:     null,         // when set, overlay shows only this player
   filters: {
     map:        null,        // string
     side:       'ct',        // 'ct' | 't' | 'both'
@@ -498,9 +499,11 @@ function renderGrenadeMode(tc, mapSize) {
 // 5 distinct colors for the 5 players on the user's team. Stable per-sid across the session.
 const TEAM_PALETTE = ['#FF6B6B', '#FFD93D', '#6BCB77', '#4D96FF', '#C56CF0']
 const _playerColorBySid = new Map()
+const _playerNameBySid  = new Map()
 
 function buildPlayerColorMap() {
   _playerColorBySid.clear()
+  _playerNameBySid.clear()
   const sids = new Set()
   for (const r of state.rounds) {
     const frames = framesForRound(r._payload, r.roundIdx)
@@ -508,110 +511,208 @@ function buildPlayerColorMap() {
     for (const p of frames[0].players) {
       if (p.team === r.teamSide) sids.add(p.steam_id)
     }
+    const meta = r._payload.meta?.players || {}
+    for (const sid of Object.keys(meta)) {
+      if (!_playerNameBySid.has(sid) && meta[sid]?.name) {
+        _playerNameBySid.set(sid, meta[sid].name)
+      }
+    }
   }
   const sorted = [...sids].sort()
   for (let i = 0; i < sorted.length; i++) {
     _playerColorBySid.set(sorted[i], TEAM_PALETTE[i % TEAM_PALETTE.length])
   }
+  // If solo'd player is no longer in the roster, clear it
+  if (state.soloSid && !_playerColorBySid.has(state.soloSid)) state.soloSid = null
+  refreshPlayerPanel()
 }
 
 function getPlayerColor(sid) {
   return _playerColorBySid.get(sid) || '#888'
 }
 
-// Util-in-flight active windows (in ticks). Keep loose; visual aid only.
-const UTIL_DURATION_S = { smoke: 18, molotov: 7, flash: 0.5, he: 0.4 }
+// Grenade visual durations (mirrors demo-viewer.js constants)
+const GRENADE_DURATION_S = { smoke: 22, molotov: 7, flash: 0.5, he: 1.0 }
+const GRENADE_ICONS = {}
+;['smoke:smokegrenade', 'flash:flashbang', 'he:hegrenade', 'molotov:molotov'].forEach(entry => {
+  const [type, filename] = entry.split(':')
+  const img = new Image()
+  img.src = `images/weapons/${filename}.svg`
+  GRENADE_ICONS[type] = img
+})
 
-function utilActiveAt(g, targetTick, tickRate) {
-  const start = g.det_tick ?? g.throw_tick
-  const dur   = (UTIL_DURATION_S[g.type] || 0.4) * tickRate
-  return targetTick >= start && targetTick <= start + dur
-}
+function drawPlayer(tc, p, color, mapSize) {
+  const { x, y } = tc(p.x, p.y)
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return
+  const dotR = Math.max(3, Math.round(mapSize * 0.009))
 
-function utilProgress(g, targetTick, tickRate) {
-  const start = g.det_tick ?? g.throw_tick
-  const dur   = (UTIL_DURATION_S[g.type] || 0.4) * tickRate
-  return Math.min(1, Math.max(0, (targetTick - start) / dur))
-}
+  if (!p.alive) {
+    ctx.save()
+    ctx.globalAlpha = 0.28
+    ctx.beginPath()
+    ctx.arc(x, y, dotR * 0.75, 0, Math.PI * 2)
+    ctx.fillStyle   = '#777'
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)'
+    ctx.lineWidth   = 1
+    ctx.fill()
+    ctx.stroke()
+    ctx.restore()
+    return
+  }
 
-function drawPlayer(tc, x, y, yaw, color, mapSize) {
-  const cx_cy = tc(x, y)
-  if (!Number.isFinite(cx_cy.x) || !Number.isFinite(cx_cy.y)) return
-  const cx = cx_cy.x, cy = cx_cy.y
-  const r = Math.max(3, mapSize * 0.009)
-
-  // Yaw indicator: arc with notch facing direction (mirrors demo viewer)
-  if (Number.isFinite(yaw)) {
-    const facing = -yaw * Math.PI / 180   // CS yaw to screen radians (y inverts)
-    const halfArc = (22 * Math.PI) / 180
+  if (Number.isFinite(p.yaw)) {
+    const yawRad = p.yaw * Math.PI / 180
+    const dir = tc(p.x + Math.cos(yawRad) * 300, p.y + Math.sin(yawRad) * 300)
+    const angle      = Math.atan2(dir.y - y, dir.x - x)
+    const notchAngle = 22 * Math.PI / 180
+    const tipDist    = dotR * 0.45
+    ctx.save()
+    ctx.beginPath()
+    ctx.arc(x, y, dotR, angle + notchAngle, angle - notchAngle)
+    ctx.lineTo(x + Math.cos(angle) * (dotR + tipDist), y + Math.sin(angle) * (dotR + tipDist))
+    ctx.closePath()
     ctx.fillStyle   = color
     ctx.strokeStyle = 'rgba(255,255,255,0.88)'
     ctx.lineWidth   = 1.5
-    ctx.beginPath()
-    ctx.arc(cx, cy, r, facing + halfArc, facing - halfArc + Math.PI * 2)
-    ctx.lineTo(cx, cy)
-    ctx.closePath()
     ctx.fill()
     ctx.stroke()
-    // Direction line
     ctx.beginPath()
-    ctx.moveTo(cx, cy)
-    ctx.lineTo(cx + Math.cos(facing) * r * 1.4, cy + Math.sin(facing) * r * 1.4)
-    ctx.strokeStyle = 'rgba(255,255,255,0.9)'
-    ctx.lineWidth = 1
-    ctx.stroke()
+    ctx.arc(x, y, dotR * 0.28, 0, Math.PI * 2)
+    ctx.fillStyle = 'rgba(255,255,255,0.82)'
+    ctx.fill()
+    ctx.restore()
   } else {
-    ctx.fillStyle = color
-    ctx.strokeStyle = 'rgba(255,255,255,0.88)'
-    ctx.lineWidth = 1.5
+    ctx.save()
     ctx.beginPath()
-    ctx.arc(cx, cy, r, 0, Math.PI * 2)
+    ctx.arc(x, y, dotR, 0, Math.PI * 2)
+    ctx.fillStyle   = color
+    ctx.strokeStyle = 'rgba(255,255,255,0.88)'
+    ctx.lineWidth   = 1.5
     ctx.fill()
     ctx.stroke()
+    ctx.restore()
   }
 }
 
-function drawUtility(tc, g, targetTick, tickRate, mapSize) {
+function drawCountdown(x, y, secs, color) {
+  if (secs <= 0) return
+  ctx.save()
+  ctx.font = '600 10px Inter, system-ui, sans-serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillStyle = color
+  ctx.fillText(String(secs), x, y)
+  ctx.restore()
+}
+
+function drawGrenade(tc, g, targetTick, tickRate, mapSize, teamColor) {
+  const tickStart = g.det_tick
+  const throwT    = g.throw_tick ?? g.det_tick
+  const trajTicks = (g.type === 'smoke' ? 7 : g.type === 'molotov' ? 6 : g.type === 'he' ? 5 : 2) * tickRate
+  const totalS    = GRENADE_DURATION_S[g.type] ?? 1
+  const elapsedS  = (targetTick - tickStart) / tickRate
+
+  const inFlight = throwT <= targetTick && targetTick < tickStart
+  const active   = tickStart <= targetTick && elapsedS < totalS
+  const showTraj = tickStart <= targetTick && (targetTick - tickStart) < trajTicks && !(g.type === 'flash' && active)
+  if (!inFlight && !active && !showTraj) return
+
   const { x, y } = tc(g.land_x, g.land_y)
   if (!Number.isFinite(x) || !Number.isFinite(y)) return
-  const t = g.type
+  const typeColor = g.type === 'smoke'   ? 'rgba(200,200,200,0.6)'
+                  : g.type === 'molotov' ? 'rgba(255,140,0,0.6)'
+                  : g.type === 'flash'   ? 'rgba(255,255,255,0.5)'
+                  :                        'rgba(255,220,0,0.6)'
 
-  if (t === 'smoke') {
-    ctx.fillStyle = 'rgba(200,200,200,0.45)'
-    ctx.strokeStyle = 'rgba(230,230,230,0.7)'
-    ctx.lineWidth = 1
-    ctx.beginPath()
-    ctx.arc(x, y, mapSize * 0.035, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.stroke()
-  } else if (t === 'molotov') {
-    ctx.fillStyle = 'rgba(255,122,48,0.55)'
-    ctx.strokeStyle = 'rgba(255,170,90,0.85)'
-    ctx.lineWidth = 1
-    ctx.beginPath()
-    ctx.arc(x, y, mapSize * 0.028, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.stroke()
-  } else if (t === 'flash') {
-    const p = utilProgress(g, targetTick, tickRate)
-    const alpha = 1 - p
-    ctx.fillStyle = `rgba(255,245,180,${alpha * 0.7})`
-    ctx.strokeStyle = `rgba(255,255,220,${alpha})`
+  // ── Trajectory ──────────────────────────────────────────────
+  const pathPts = g.trajectory
+  if (pathPts && pathPts.length >= 2) {
+    const canvasPts = pathPts.map(([wx, wy]) => tc(wx, wy))
+    ctx.save()
+    ctx.setLineDash([3, 5])
     ctx.lineWidth = 1.5
-    ctx.beginPath()
-    ctx.arc(x, y, mapSize * 0.03 * (1 - p * 0.4), 0, Math.PI * 2)
-    ctx.fill()
-    ctx.stroke()
-  } else if (t === 'he') {
-    const p = utilProgress(g, targetTick, tickRate)
-    const alpha = 1 - p
-    ctx.fillStyle = `rgba(255,80,80,${alpha * 0.6})`
-    ctx.strokeStyle = `rgba(255,140,140,${alpha})`
-    ctx.lineWidth = 1.5
-    ctx.beginPath()
-    ctx.arc(x, y, mapSize * 0.03 * (1 + p * 0.5), 0, Math.PI * 2)
-    ctx.fill()
-    ctx.stroke()
+
+    if (inFlight) {
+      const duration = tickStart - throwT
+      const progress = duration > 0 ? Math.min(1, (targetTick - throwT) / duration) : 1
+      const totalSegs = canvasPts.length - 1
+      const rawT = progress * totalSegs
+      const seg  = Math.min(Math.floor(rawT), totalSegs - 1)
+      const t    = rawT - seg
+      const p0   = canvasPts[seg]
+      const p1   = canvasPts[seg + 1]
+      const iconX = p0.x + (p1.x - p0.x) * t
+      const iconY = p0.y + (p1.y - p0.y) * t
+      const arcScale = 1 + 0.5 * 4 * progress * (1 - progress)
+
+      ctx.strokeStyle = typeColor
+      ctx.globalAlpha = 0.75
+      ctx.beginPath()
+      ctx.moveTo(canvasPts[0].x, canvasPts[0].y)
+      for (let i = 1; i <= seg; i++) ctx.lineTo(canvasPts[i].x, canvasPts[i].y)
+      ctx.lineTo(iconX, iconY)
+      ctx.stroke()
+      ctx.setLineDash([])
+      const icon = GRENADE_ICONS[g.type]
+      if (icon && icon.complete && icon.naturalWidth) {
+        const iconSz = mapSize * 0.022 * arcScale
+        ctx.globalAlpha = 0.9
+        ctx.drawImage(icon, iconX - iconSz / 2, iconY - iconSz / 2, iconSz, iconSz)
+      } else {
+        ctx.beginPath(); ctx.arc(iconX, iconY, mapSize * 0.008 * arcScale, 0, Math.PI * 2)
+        ctx.fillStyle = typeColor; ctx.fill()
+      }
+      ctx.restore()
+      return
+    } else if (showTraj) {
+      const alpha = 1 - (targetTick - tickStart) / trajTicks
+      ctx.strokeStyle = typeColor
+      ctx.globalAlpha = alpha * 0.65
+      ctx.beginPath()
+      ctx.moveTo(canvasPts[0].x, canvasPts[0].y)
+      for (let i = 1; i < canvasPts.length; i++) ctx.lineTo(canvasPts[i].x, canvasPts[i].y)
+      ctx.stroke()
+      ctx.setLineDash([])
+      ctx.globalAlpha = alpha * 0.5
+      ctx.beginPath(); ctx.arc(canvasPts[0].x, canvasPts[0].y, mapSize * 0.005, 0, Math.PI * 2)
+      ctx.fillStyle = typeColor; ctx.fill()
+    }
+    ctx.restore()
+  }
+
+  if (!active) return
+
+  // ── Active overlay ──────────────────────────────────────────
+  if (g.type === 'smoke') {
+    const r = mapSize * 0.032
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2)
+    ctx.fillStyle   = 'rgba(180,180,180,0.35)'
+    ctx.strokeStyle = teamColor || 'rgba(200,200,200,0.5)'
+    ctx.lineWidth   = 1.2
+    ctx.fill(); ctx.stroke()
+    drawCountdown(x, y, Math.ceil(totalS - elapsedS), 'rgba(255,255,255,0.9)')
+  } else if (g.type === 'molotov') {
+    const r = mapSize * 0.028
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2)
+    ctx.fillStyle   = 'rgba(255,100,0,0.3)'
+    ctx.strokeStyle = teamColor || 'rgba(255,140,0,0.6)'
+    ctx.lineWidth   = 1.2
+    ctx.fill(); ctx.stroke()
+    drawCountdown(x, y, Math.ceil(totalS - elapsedS), '#FF9500')
+  } else if (g.type === 'flash') {
+    const progress = totalS > 0 ? Math.min(1, elapsedS / totalS) : 1
+    const r = mapSize * 0.03 * (1 - progress)
+    if (r > 0) {
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2)
+      ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fill()
+    }
+  } else if (g.type === 'he') {
+    const progress = totalS > 0 ? Math.min(1, elapsedS / totalS) : 1
+    const r = mapSize * 0.03 * (1 - progress)
+    if (r > 0) {
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2)
+      ctx.fillStyle = 'rgba(220,50,50,0.6)'; ctx.fill()
+    }
   }
 }
 
@@ -619,27 +720,27 @@ function renderOverlay(tc, mapSize) {
   if (!state.rounds.length) return
 
   const tickRate = state.rounds[0]?._payload?.meta?.tick_rate ?? 64
+  const teamColors = { ct: '#4FC3F7', t: '#FF9500' }
 
-  // Pass 1: utility (drawn under players so dots stay visible on top of smokes)
+  // Pass 1: grenades (under players)
   for (const r of state.rounds) {
     const targetTick = r.freezeEndTick + Math.floor(playback.relTick)
     if (targetTick > r.endTick) continue
     const grenades = grenadesForRound(r._payload, r.roundIdx)
     for (const g of grenades) {
-      if (g.thrower_team !== r.teamSide) continue   // hide opponent util
-      if (!utilActiveAt(g, targetTick, tickRate)) continue
-      drawUtility(tc, g, targetTick, tickRate, mapSize)
+      if (g.thrower_team !== r.teamSide) continue
+      if (state.soloSid && g.thrower_sid !== state.soloSid) continue
+      drawGrenade(tc, g, targetTick, tickRate, mapSize, teamColors[r.teamSide])
     }
   }
 
-  // Pass 2: players (filtered to user's team)
+  // Pass 2: players (filtered to user's team, optionally solo'd)
   for (const r of state.rounds) {
     const targetTick = r.freezeEndTick + Math.floor(playback.relTick)
     if (targetTick > r.endTick) continue
     const frames = framesForRound(r._payload, r.roundIdx)
     if (!frames.length) continue
 
-    // Binary search for nearest frame at-or-before targetTick
     let lo = 0, hi = frames.length - 1, idx = 0
     while (lo <= hi) {
       const mid = (lo + hi) >> 1
@@ -647,13 +748,13 @@ function renderOverlay(tc, mapSize) {
     }
     const frame = frames[idx]
 
-    // Trails (off by default) — uses each player's color
     if (playback.showTrails) {
       const trailFrames = 30
       const trailStart  = Math.max(0, idx - trailFrames)
       ctx.lineWidth = 1.2
       for (const player of frame.players) {
         if (player.team !== r.teamSide) continue
+        if (state.soloSid && player.steam_id !== state.soloSid) continue
         if (!player.alive) continue
         ctx.beginPath()
         let started = false
@@ -665,19 +766,54 @@ function renderOverlay(tc, mapSize) {
           if (!Number.isFinite(x) || !Number.isFinite(y)) { started = false; continue }
           if (!started) { ctx.moveTo(x, y); started = true } else ctx.lineTo(x, y)
         }
-        const c = getPlayerColor(player.steam_id)
-        ctx.strokeStyle = c + '66'  // ~40% alpha
+        ctx.strokeStyle = getPlayerColor(player.steam_id) + '66'
         ctx.stroke()
       }
     }
 
     for (const player of frame.players) {
       if (player.team !== r.teamSide) continue
-      if (!player.alive) continue
-      drawPlayer(tc, player.x, player.y, player.yaw, getPlayerColor(player.steam_id), mapSize)
+      if (state.soloSid && player.steam_id !== state.soloSid) continue
+      drawPlayer(tc, player, getPlayerColor(player.steam_id), mapSize)
     }
   }
 }
+
+function refreshPlayerPanel() {
+  const listEl  = document.getElementById('pp-list')
+  const clearEl = document.getElementById('pp-clear')
+  if (!listEl) return
+
+  const items = [..._playerColorBySid.entries()].map(([sid, color]) => ({
+    sid,
+    color,
+    name: _playerNameBySid.get(sid) || sid.slice(-5),
+  }))
+
+  listEl.innerHTML = items.map(it => `
+    <div class="pp-item ${state.soloSid === it.sid ? 'active' : ''}" data-sid="${it.sid}">
+      <span class="pp-swatch" style="background:${it.color}"></span>
+      <span>${escapeHtml(it.name)}</span>
+    </div>
+  `).join('')
+
+  clearEl.style.display = state.soloSid ? 'block' : 'none'
+
+  for (const el of listEl.querySelectorAll('.pp-item')) {
+    el.addEventListener('click', () => {
+      const sid = el.dataset.sid
+      state.soloSid = (state.soloSid === sid) ? null : sid
+      refreshPlayerPanel()
+      render()
+    })
+  }
+}
+
+document.getElementById('pp-clear').addEventListener('click', () => {
+  state.soloSid = null
+  refreshPlayerPanel()
+  render()
+})
 
 function updateTimelineUi() {
   const fillEl  = document.getElementById('tl-fill')
@@ -786,6 +922,7 @@ function applyMode() {
   }
   document.getElementById('analysis-bottom').classList.toggle('hidden', state.mode !== 'overlay')
   document.getElementById('grenade-panel').classList.toggle('show', state.mode === 'grenade')
+  document.getElementById('player-panel').classList.toggle('show', state.mode === 'overlay')
   if (state.mode !== 'overlay') {
     playback.playing = false
     document.getElementById('play-btn').textContent = '▶'
