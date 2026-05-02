@@ -85,6 +85,44 @@ const mapName = state.match.meta?.map || demo.map || ''
 document.title = `${mapName} — MIDROUND`
 console.log('[viewer] map:', mapName, '| rounds:', state.match.rounds.length, '| frames:', state.match.frames.length, '| tick_rate:', state.match.meta.tick_rate)
 
+// Diag: log grenade clusters that look like duplicates so we can see whether
+// the parser-side orphan drop is missing them. A "cluster" = same type, within
+// 512 ticks AND 600 u of another entry. Print each cluster once.
+;(() => {
+  const gs = state.match.grenades ?? []
+  const seen = new Set()
+  const clusters = []
+  for (let i = 0; i < gs.length; i++) {
+    if (seen.has(i)) continue
+    const cluster = [i]
+    for (let j = i + 1; j < gs.length; j++) {
+      if (seen.has(j)) continue
+      if (gs[i].type !== gs[j].type) continue
+      if (Math.abs(gs[i].tick - gs[j].tick) > 512) continue
+      const dx = (gs[i].x ?? 0) - (gs[j].x ?? 0)
+      const dy = (gs[i].y ?? 0) - (gs[j].y ?? 0)
+      if (dx * dx + dy * dy > 600 * 600) continue
+      cluster.push(j)
+      seen.add(j)
+    }
+    if (cluster.length > 1) clusters.push(cluster.map(k => gs[k]))
+  }
+  if (clusters.length) {
+    console.warn('[viewer] grenade duplicate clusters:', clusters.length)
+    for (const c of clusters.slice(0, 8)) {
+      console.warn('  cluster:', c.map(g => ({
+        type: g.type, tick: g.tick, sid: g.steam_id,
+        x: Math.round(g.x), y: Math.round(g.y),
+        hasPath: !!(g.path && g.path.length >= 2),
+        pathLen: g.path?.length ?? 0,
+        origin_tick: g.origin_tick,
+      })))
+    }
+  } else {
+    console.log('[viewer] no grenade duplicate clusters detected')
+  }
+})()
+
 mapImg     = new Image()
 mapImg.src = `images/maps/${mapName}_viewer.png`
 mapImg.onload  = () => { console.log('[viewer] viewer map loaded'); mapLoaded = true }
