@@ -13,7 +13,7 @@ const state = {
   team:        null,         // selected team name (string)
   mode:        'overlay',    // 'overlay' | 'grenade'
   soloSid:     null,         // when set, overlay shows only this player
-  soloRoundIdx: 0,           // when soloSid set, which round in state.rounds is being viewed
+  viewRoundIdx: null,        // when set, overlay drops to single-round playback for this round (everyone visible)
   utilSoloType: null,        // when set, overlay shows only this util type (smoke/molotov/flash/he)
   filters: {
     map:        null,        // string
@@ -389,8 +389,8 @@ const playback = {
 
 function recomputePlaybackBounds() {
   let max = 0
-  if (state.soloSid && state.rounds[state.soloRoundIdx]) {
-    const r = state.rounds[state.soloRoundIdx]
+  if (state.viewRoundIdx != null && state.rounds[state.viewRoundIdx]) {
+    const r = state.rounds[state.viewRoundIdx]
     max = r.endTick - r.freezeEndTick
   } else {
     for (const r of state.rounds) {
@@ -531,6 +531,8 @@ function buildPlayerColorMap() {
   }
   // If solo'd player is no longer in the roster, clear it
   if (state.soloSid && !_playerColorBySid.has(state.soloSid)) state.soloSid = null
+  // Single-round view is tied to a specific round index — invalidate when the set changes
+  if (state.viewRoundIdx != null && !state.rounds[state.viewRoundIdx]) state.viewRoundIdx = null
   refreshPlayerPanel()
   refreshUtilPanel()
 }
@@ -730,9 +732,10 @@ function renderOverlay(tc, mapSize) {
   const tickRate = state.rounds[0]?._payload?.meta?.tick_rate ?? 64
   const TEAM_BASE = { ct: '#4FC3F7', t: '#FF9500' }
 
-  // Solo mode: render ONE round with everyone (teammates + opponents + all util)
-  if (state.soloSid) {
-    const r = state.rounds[Math.min(state.soloRoundIdx, state.rounds.length - 1)]
+  // Single-round playback: triggered by clicking a player icon on the map.
+  // Renders ONE round with everyone visible (teammates + opponents + all util).
+  if (state.viewRoundIdx != null) {
+    const r = state.rounds[Math.min(state.viewRoundIdx, state.rounds.length - 1)]
     if (!r) return
     const targetTick = r.freezeEndTick + Math.floor(playback.relTick)
     if (targetTick > r.endTick) return
@@ -753,8 +756,9 @@ function renderOverlay(tc, mapSize) {
     const frame = frames[idx]
 
     for (const player of frame.players) {
-      // Solo'd player: their unique palette color. Everyone else: team color.
-      const color = (player.steam_id === state.soloSid)
+      // Teammates use their palette color; opponents use the team-side base color.
+      const isTeammate = (player.team === r.teamSide)
+      const color = isTeammate
         ? getPlayerColor(player.steam_id)
         : TEAM_BASE[player.team]
       drawPlayer(tc, player, color, mapSize)
@@ -762,7 +766,8 @@ function renderOverlay(tc, mapSize) {
     return
   }
 
-  // Normal multi-round overlay (team-only)
+  // Normal multi-round overlay (team-only). Legend click sets soloSid to filter
+  // to a single player across all rounds.
   for (const r of state.rounds) {
     const targetTick = r.freezeEndTick + Math.floor(playback.relTick)
     if (targetTick > r.endTick) continue
@@ -770,6 +775,7 @@ function renderOverlay(tc, mapSize) {
     for (const g of grenades) {
       if (g.thrower_team !== r.teamSide) continue
       if (state.utilSoloType && g.type !== state.utilSoloType) continue
+      if (state.soloSid && g.thrower_sid !== state.soloSid) continue
       drawGrenade(tc, g, targetTick, tickRate, mapSize, TEAM_BASE[r.teamSide])
     }
   }
@@ -794,6 +800,7 @@ function renderOverlay(tc, mapSize) {
       for (const player of frame.players) {
         if (player.team !== r.teamSide) continue
         if (!player.alive) continue
+        if (state.soloSid && player.steam_id !== state.soloSid) continue
         ctx.beginPath()
         let started = false
         for (let i = trailStart; i <= idx; i++) {
@@ -811,6 +818,7 @@ function renderOverlay(tc, mapSize) {
 
     for (const player of frame.players) {
       if (player.team !== r.teamSide) continue
+      if (state.soloSid && player.steam_id !== state.soloSid) continue
       drawPlayer(tc, player, getPlayerColor(player.steam_id), mapSize)
     }
   }
@@ -840,10 +848,6 @@ function refreshPlayerPanel() {
     el.addEventListener('click', () => {
       const sid = el.dataset.sid
       state.soloSid = (state.soloSid === sid) ? null : sid
-      state.soloRoundIdx = 0
-      playback.relTick = 0
-      recomputePlaybackBounds()
-      updateTimelineUi()
       refreshPlayerPanel()
       render()
     })
@@ -854,22 +858,32 @@ function refreshPlayerPanel() {
 function refreshSoloRoundNav() {
   const nav = document.getElementById('pp-round-nav')
   if (!nav) return
-  if (!state.soloSid || !state.rounds.length) {
+  if (state.viewRoundIdx == null || !state.rounds.length) {
     nav.style.display = 'none'
     return
   }
   nav.style.display = 'flex'
-  const r = state.rounds[state.soloRoundIdx]
+  const r = state.rounds[state.viewRoundIdx]
   const tot = state.rounds.length
   const sideLabel = r ? r.teamSide.toUpperCase() : '?'
   document.getElementById('pp-round-label').textContent =
-    `Round ${state.soloRoundIdx + 1} / ${tot} · ${sideLabel}`
+    `Round ${state.viewRoundIdx + 1} / ${tot} · ${sideLabel}`
 }
 
 function gotoSoloRound(delta) {
-  if (!state.soloSid || !state.rounds.length) return
+  if (state.viewRoundIdx == null || !state.rounds.length) return
   const n = state.rounds.length
-  state.soloRoundIdx = (state.soloRoundIdx + delta + n) % n
+  state.viewRoundIdx = (state.viewRoundIdx + delta + n) % n
+  playback.relTick = 0
+  recomputePlaybackBounds()
+  updateTimelineUi()
+  refreshSoloRoundNav()
+  render()
+}
+
+function exitSingleRound() {
+  if (state.viewRoundIdx == null) return
+  state.viewRoundIdx = null
   playback.relTick = 0
   recomputePlaybackBounds()
   updateTimelineUi()
@@ -879,16 +893,77 @@ function gotoSoloRound(delta) {
 
 document.getElementById('pp-clear').addEventListener('click', () => {
   state.soloSid = null
-  state.soloRoundIdx = 0
-  playback.relTick = 0
-  recomputePlaybackBounds()
-  updateTimelineUi()
   refreshPlayerPanel()
   render()
 })
 
 document.getElementById('pp-round-prev').addEventListener('click', () => gotoSoloRound(-1))
 document.getElementById('pp-round-next').addEventListener('click', () => gotoSoloRound(+1))
+
+// Click a player icon on the map → toggle single-round playback for that round.
+// Click any icon while in single-round mode → exit back to multi-round overlay.
+canvas.addEventListener('click', e => {
+  if (state.mode !== 'overlay' || !state.rounds.length) return
+
+  const rect = canvas.getBoundingClientRect()
+  const cx = e.clientX - rect.left
+  const cy = e.clientY - rect.top
+
+  const cw = canvas.width
+  const ch = canvas.height
+  const mapSize = Math.min(cw, ch)
+  const mapX    = Math.round((cw - mapSize) / 2)
+  const mapY    = Math.round((ch - mapSize) / 2)
+  const tc = (wx, wy) => {
+    const { x, y } = worldToCanvas(wx, wy, state.filters.map, mapSize, mapSize)
+    return { x: x + mapX, y: y + mapY }
+  }
+  const dotR = Math.max(3, Math.round(mapSize * 0.009))
+  const hitR = dotR * 1.8
+
+  // Rounds to scan: just the active one in single-round mode, otherwise all.
+  const scan = (state.viewRoundIdx != null)
+    ? [state.rounds[state.viewRoundIdx]].filter(Boolean)
+    : state.rounds
+
+  let best = null
+  for (const r of scan) {
+    const targetTick = r.freezeEndTick + Math.floor(playback.relTick)
+    if (targetTick > r.endTick) continue
+    const frames = framesForRound(r._payload, r.roundIdx)
+    if (!frames.length) continue
+    let lo = 0, hi = frames.length - 1, idx = 0
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1
+      if (frames[mid].tick <= targetTick) { idx = mid; lo = mid + 1 } else hi = mid - 1
+    }
+    const frame = frames[idx]
+    for (const p of frame.players) {
+      // Multi-round: only hit teammates (opponents aren't drawn). Single-round: hit anyone drawn.
+      if (state.viewRoundIdx == null && p.team !== r.teamSide) continue
+      if (state.soloSid && p.steam_id !== state.soloSid && state.viewRoundIdx == null) continue
+      if (!p.alive) continue
+      const { x, y } = tc(p.x, p.y)
+      if (!Number.isFinite(x) || !Number.isFinite(y)) continue
+      const d2 = (x - cx) * (x - cx) + (y - cy) * (y - cy)
+      if (d2 <= hitR * hitR && (!best || d2 < best.d2)) best = { d2, round: r }
+    }
+  }
+  if (!best) return
+
+  if (state.viewRoundIdx != null) {
+    exitSingleRound()
+  } else {
+    const idx = state.rounds.indexOf(best.round)
+    if (idx < 0) return
+    state.viewRoundIdx = idx
+    playback.relTick = 0
+    recomputePlaybackBounds()
+    updateTimelineUi()
+    refreshSoloRoundNav()
+    render()
+  }
+})
 
 const UTIL_TYPES = [
   { type: 'smoke',   label: 'Smoke',    color: '#b3b3b3' },
