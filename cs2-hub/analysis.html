@@ -279,6 +279,19 @@
       cursor: pointer;
     }
     .pp-clear:hover { color: #cfcff0; border-color: rgba(102,102,183,0.45); }
+    .pp-round-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      margin: 6px; padding: 6px 8px;
+      background: rgba(102,102,183,0.10);
+      border: 1px solid rgba(102,102,183,0.30);
+      border-radius: 4px;
+    }
+    .pp-nav-btn {
+      background: transparent; border: none; cursor: pointer;
+      color: #cfcff0; font-size: 12px; padding: 2px 8px;
+    }
+    .pp-nav-btn:hover { color: #fff; }
+    .pp-round-label { font-size: 11px; color: #cfcff0; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -311,6 +324,11 @@
         <aside class="player-panel" id="player-panel">
           <div class="pp-header">Players</div>
           <div class="pp-list" id="pp-list"></div>
+          <div class="pp-round-nav" id="pp-round-nav" style="display:none">
+            <button class="pp-nav-btn" id="pp-round-prev">◀</button>
+            <span class="pp-round-label" id="pp-round-label">Round 1 / 1</span>
+            <button class="pp-nav-btn" id="pp-round-next">▶</button>
+          </div>
           <button class="pp-clear" id="pp-clear" style="display:none">Clear solo</button>
           <div class="pp-header" style="border-top:1px solid rgba(255,255,255,0.06)">Utility</div>
           <div class="pp-list" id="pp-util-list"></div>

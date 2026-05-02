@@ -13,6 +13,7 @@ const state = {
   team:        null,         // selected team name (string)
   mode:        'overlay',    // 'overlay' | 'grenade'
   soloSid:     null,         // when set, overlay shows only this player
+  soloRoundIdx: 0,           // when soloSid set, which round in state.rounds is being viewed
   utilSoloType: null,        // when set, overlay shows only this util type (smoke/molotov/flash/he)
   filters: {
     map:        null,        // string
@@ -388,9 +389,14 @@ const playback = {
 
 function recomputePlaybackBounds() {
   let max = 0
-  for (const r of state.rounds) {
-    const span = r.endTick - r.freezeEndTick
-    if (span > max) max = span
+  if (state.soloSid && state.rounds[state.soloRoundIdx]) {
+    const r = state.rounds[state.soloRoundIdx]
+    max = r.endTick - r.freezeEndTick
+  } else {
+    for (const r of state.rounds) {
+      const span = r.endTick - r.freezeEndTick
+      if (span > max) max = span
+    }
   }
   playback.maxTick = max
   if (playback.relTick > max) playback.relTick = 0
@@ -722,22 +728,52 @@ function renderOverlay(tc, mapSize) {
   if (!state.rounds.length) return
 
   const tickRate = state.rounds[0]?._payload?.meta?.tick_rate ?? 64
-  const teamColors = { ct: '#4FC3F7', t: '#FF9500' }
+  const TEAM_BASE = { ct: '#4FC3F7', t: '#FF9500' }
 
-  // Pass 1: grenades (under players)
+  // Solo mode: render ONE round with everyone (teammates + opponents + all util)
+  if (state.soloSid) {
+    const r = state.rounds[Math.min(state.soloRoundIdx, state.rounds.length - 1)]
+    if (!r) return
+    const targetTick = r.freezeEndTick + Math.floor(playback.relTick)
+    if (targetTick > r.endTick) return
+
+    const grenades = grenadesForRound(r._payload, r.roundIdx)
+    for (const g of grenades) {
+      if (state.utilSoloType && g.type !== state.utilSoloType) continue
+      drawGrenade(tc, g, targetTick, tickRate, mapSize, TEAM_BASE[g.thrower_team])
+    }
+
+    const frames = framesForRound(r._payload, r.roundIdx)
+    if (!frames.length) return
+    let lo = 0, hi = frames.length - 1, idx = 0
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1
+      if (frames[mid].tick <= targetTick) { idx = mid; lo = mid + 1 } else hi = mid - 1
+    }
+    const frame = frames[idx]
+
+    for (const player of frame.players) {
+      // Solo'd player: their unique palette color. Everyone else: team color.
+      const color = (player.steam_id === state.soloSid)
+        ? getPlayerColor(player.steam_id)
+        : TEAM_BASE[player.team]
+      drawPlayer(tc, player, color, mapSize)
+    }
+    return
+  }
+
+  // Normal multi-round overlay (team-only)
   for (const r of state.rounds) {
     const targetTick = r.freezeEndTick + Math.floor(playback.relTick)
     if (targetTick > r.endTick) continue
     const grenades = grenadesForRound(r._payload, r.roundIdx)
     for (const g of grenades) {
       if (g.thrower_team !== r.teamSide) continue
-      if (state.soloSid && g.thrower_sid !== state.soloSid) continue
       if (state.utilSoloType && g.type !== state.utilSoloType) continue
-      drawGrenade(tc, g, targetTick, tickRate, mapSize, teamColors[r.teamSide])
+      drawGrenade(tc, g, targetTick, tickRate, mapSize, TEAM_BASE[r.teamSide])
     }
   }
 
-  // Pass 2: players (filtered to user's team, optionally solo'd)
   for (const r of state.rounds) {
     const targetTick = r.freezeEndTick + Math.floor(playback.relTick)
     if (targetTick > r.endTick) continue
@@ -757,7 +793,6 @@ function renderOverlay(tc, mapSize) {
       ctx.lineWidth = 1.2
       for (const player of frame.players) {
         if (player.team !== r.teamSide) continue
-        if (state.soloSid && player.steam_id !== state.soloSid) continue
         if (!player.alive) continue
         ctx.beginPath()
         let started = false
@@ -776,7 +811,6 @@ function renderOverlay(tc, mapSize) {
 
     for (const player of frame.players) {
       if (player.team !== r.teamSide) continue
-      if (state.soloSid && player.steam_id !== state.soloSid) continue
       drawPlayer(tc, player, getPlayerColor(player.steam_id), mapSize)
     }
   }
@@ -806,17 +840,55 @@ function refreshPlayerPanel() {
     el.addEventListener('click', () => {
       const sid = el.dataset.sid
       state.soloSid = (state.soloSid === sid) ? null : sid
+      state.soloRoundIdx = 0
+      playback.relTick = 0
+      recomputePlaybackBounds()
+      updateTimelineUi()
       refreshPlayerPanel()
       render()
     })
   }
+  refreshSoloRoundNav()
+}
+
+function refreshSoloRoundNav() {
+  const nav = document.getElementById('pp-round-nav')
+  if (!nav) return
+  if (!state.soloSid || !state.rounds.length) {
+    nav.style.display = 'none'
+    return
+  }
+  nav.style.display = 'flex'
+  const r = state.rounds[state.soloRoundIdx]
+  const tot = state.rounds.length
+  const sideLabel = r ? r.teamSide.toUpperCase() : '?'
+  document.getElementById('pp-round-label').textContent =
+    `Round ${state.soloRoundIdx + 1} / ${tot} · ${sideLabel}`
+}
+
+function gotoSoloRound(delta) {
+  if (!state.soloSid || !state.rounds.length) return
+  const n = state.rounds.length
+  state.soloRoundIdx = (state.soloRoundIdx + delta + n) % n
+  playback.relTick = 0
+  recomputePlaybackBounds()
+  updateTimelineUi()
+  refreshSoloRoundNav()
+  render()
 }
 
 document.getElementById('pp-clear').addEventListener('click', () => {
   state.soloSid = null
+  state.soloRoundIdx = 0
+  playback.relTick = 0
+  recomputePlaybackBounds()
+  updateTimelineUi()
   refreshPlayerPanel()
   render()
 })
+
+document.getElementById('pp-round-prev').addEventListener('click', () => gotoSoloRound(-1))
+document.getElementById('pp-round-next').addEventListener('click', () => gotoSoloRound(+1))
 
 const UTIL_TYPES = [
   { type: 'smoke',   label: 'Smoke',    color: '#b3b3b3' },
