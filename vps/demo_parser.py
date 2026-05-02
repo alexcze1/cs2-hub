@@ -292,6 +292,67 @@ def _build_grenade_paths(grenades, raw_tracks) -> None:
             g["path_throw_tick"] = best.get("throw_tick", 0)
             g["path_det_tick"]   = best.get("det_tick", 0)
 
+
+def _drop_path_orphan_duplicates(grenades: list) -> list:
+    """Drop grenades with no Go-track path when a sibling of same type WITH a
+    real path detonates nearby in tick AND position.
+
+    These orphans are demoparser2 ghost duplicates that survived
+    _dedupe_grenades — typically a second detonate event for the same physical
+    projectile that didn't merge because it landed jittered (>300 u from the
+    first event for smokes, or >32 ticks apart with a different attributed
+    steam_id). The Go binary tracks the real projectile once, so the path
+    attaches to the first matched entry and the orphan is left path-less.
+
+    The viewer used to hide the orphan's linear fallback at render time
+    (hasPathSibling), but cleaning at the data layer means the analysis tool
+    and any other consumer also see correct counts and trajectories.
+
+    Window: 512 ticks (~8 s @ 64 Hz, ~4 s @ 128 Hz) and 600 u — wider than
+    the previous viewer-side 256/400 window because some demos exhibit larger
+    jitter on the duplicate event's reported coords. Within these bounds, two
+    real same-type throws at the same spot don't happen in real play.
+    """
+    TICK_WIN = 512
+    DIST_SQ_WIN = 600 * 600
+
+    keep: list = []
+    drop_count = 0
+    for g in grenades:
+        if g.get("path"):
+            keep.append(g)
+            continue
+        gtype = g.get("type", "")
+        gtick = g.get("tick", 0)
+        gx = g.get("x", 0.0)
+        gy = g.get("y", 0.0)
+        is_orphan = False
+        for o in grenades:
+            if o is g:
+                continue
+            if o.get("type") != gtype:
+                continue
+            o_path = o.get("path")
+            if not (o_path and len(o_path) >= 2):
+                continue
+            if abs(o.get("tick", 0) - gtick) > TICK_WIN:
+                continue
+            dx = o.get("x", 0.0) - gx
+            dy = o.get("y", 0.0) - gy
+            if dx * dx + dy * dy > DIST_SQ_WIN:
+                continue
+            is_orphan = True
+            break
+        if is_orphan:
+            drop_count += 1
+            continue
+        keep.append(g)
+
+    if drop_count > 0:
+        print(f"[parser] dropped {drop_count} path-orphan grenade duplicates")
+    return keep
+
+
 def _parse_grenades(p) -> list:
     grenades = []
 
@@ -777,6 +838,7 @@ def parse_demo(dem_path: str) -> dict:
     grenades = _dedupe_grenades(grenades)
     _add_throw_origins(grenades, shots_df, by_tick, sorted(sampled))
     _build_grenade_paths(grenades, raw_tracks)
+    grenades = _drop_path_orphan_duplicates(grenades)
     bomb     = _parse_bomb(p, by_tick, sampled)
     print(f"[parser] grenades: {len(grenades)}  bomb events: {len(bomb)}")
 

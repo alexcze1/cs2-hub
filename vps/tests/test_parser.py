@@ -314,6 +314,99 @@ def test_build_grenade_paths_consumed_track_not_reused():
     assert "origin_tick" not in grenades[1]
 
 
+# ── _drop_path_orphan_duplicates ──────────────────────────────
+
+def test_drop_orphan_when_path_sibling_nearby():
+    """Real throw + ghost duplicate: ghost has no path, real has Go path → ghost dropped."""
+    from demo_parser import _drop_path_orphan_duplicates
+    grenades = [
+        {"tick": 1000, "type": "smoke", "x": 100.0, "y": 100.0, "steam_id": "A",
+         "path": [[10, 10], [50, 50], [100, 100]], "origin_tick": 900},
+        {"tick": 1100, "type": "smoke", "x": 250.0, "y": 250.0, "steam_id": "A",
+         "origin_x": 0, "origin_y": 0, "origin_tick": 950},  # no path → orphan
+    ]
+    out = _drop_path_orphan_duplicates(grenades)
+    assert len(out) == 1
+    assert out[0]["tick"] == 1000
+
+
+def test_drop_orphan_with_jittered_position_within_600u():
+    """Orphan at the dedupe-pass-2 escape edge (>400 u jitter) still gets caught."""
+    from demo_parser import _drop_path_orphan_duplicates
+    grenades = [
+        {"tick": 1000, "type": "smoke", "x": 100.0, "y": 100.0, "steam_id": "A",
+         "path": [[10, 10], [100, 100]], "origin_tick": 900},
+        {"tick": 1010, "type": "smoke", "x": 600.0, "y": 100.0, "steam_id": "B"},  # 500 u away
+    ]
+    out = _drop_path_orphan_duplicates(grenades)
+    assert len(out) == 1
+    assert out[0]["tick"] == 1000
+
+
+def test_keep_orphan_with_no_path_sibling():
+    """Lone orphan (Go binary missed the track) — keep it; viewer falls back to linear."""
+    from demo_parser import _drop_path_orphan_duplicates
+    grenades = [
+        {"tick": 1000, "type": "smoke", "x": 100.0, "y": 100.0, "steam_id": "A",
+         "origin_x": 0, "origin_y": 0, "origin_tick": 900},
+    ]
+    out = _drop_path_orphan_duplicates(grenades)
+    assert len(out) == 1
+    assert out[0]["tick"] == 1000
+
+
+def test_keep_two_real_path_having_throws():
+    """Two real throws with paths — both kept regardless of proximity."""
+    from demo_parser import _drop_path_orphan_duplicates
+    grenades = [
+        {"tick": 1000, "type": "smoke", "x": 100.0, "y": 100.0, "steam_id": "A",
+         "path": [[0, 0], [100, 100]], "origin_tick": 900},
+        {"tick": 1010, "type": "smoke", "x": 110.0, "y": 110.0, "steam_id": "B",
+         "path": [[5, 5], [110, 110]], "origin_tick": 910},
+    ]
+    out = _drop_path_orphan_duplicates(grenades)
+    assert len(out) == 2
+
+
+def test_keep_orphan_far_in_tick_from_path_sibling():
+    """Orphan more than 512 ticks away — different throw, keep it."""
+    from demo_parser import _drop_path_orphan_duplicates
+    grenades = [
+        {"tick": 1000, "type": "smoke", "x": 100.0, "y": 100.0, "steam_id": "A",
+         "path": [[0, 0], [100, 100]], "origin_tick": 900},
+        {"tick": 2000, "type": "smoke", "x": 105.0, "y": 105.0, "steam_id": "A",
+         "origin_x": 0, "origin_y": 0, "origin_tick": 1900},  # 1000 ticks later
+    ]
+    out = _drop_path_orphan_duplicates(grenades)
+    assert len(out) == 2
+
+
+def test_keep_orphan_far_in_distance_from_path_sibling():
+    """Orphan more than 600 u away — distinct landing spot, keep it."""
+    from demo_parser import _drop_path_orphan_duplicates
+    grenades = [
+        {"tick": 1000, "type": "smoke", "x": 100.0, "y": 100.0, "steam_id": "A",
+         "path": [[0, 0], [100, 100]], "origin_tick": 900},
+        {"tick": 1050, "type": "smoke", "x": 800.0, "y": 100.0, "steam_id": "A",
+         "origin_x": 700, "origin_y": 0, "origin_tick": 950},  # 700 u apart
+    ]
+    out = _drop_path_orphan_duplicates(grenades)
+    assert len(out) == 2
+
+
+def test_orphan_drop_respects_type():
+    """Smoke orphan near a molotov path — different types, keep the smoke."""
+    from demo_parser import _drop_path_orphan_duplicates
+    grenades = [
+        {"tick": 1000, "type": "molotov", "x": 100.0, "y": 100.0, "steam_id": "A",
+         "path": [[0, 0], [100, 100]], "origin_tick": 900},
+        {"tick": 1020, "type": "smoke", "x": 110.0, "y": 110.0, "steam_id": "A",
+         "origin_x": 0, "origin_y": 0, "origin_tick": 920},
+    ]
+    out = _drop_path_orphan_duplicates(grenades)
+    assert len(out) == 2
+
+
 # ── _is_knife_round ───────────────────────────────────────────
 
 def test_is_knife_round_short_with_only_knife_kills():
