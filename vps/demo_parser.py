@@ -272,11 +272,22 @@ def _build_grenade_paths(grenades, raw_tracks) -> None:
         best = None
         best_i = None
         best_score = None
+        # The Go binary's det_tick comes from GrenadeProjectileDestroy, which
+        # fires at smoke fade for smokes (~18-23s after the actual smoke
+        # detonation event). Use a generous match window and rely on the
+        # post-match plausibility check to discard bad pairings.
+        win = 2048 if gtype == "smoke" else 256
         for i, t in enumerate(candidates):
             if i in consumed[gtype]:
                 continue
-            d = abs(t.get("det_tick", 0) - g.get("tick", 0))
-            if d >= 256:
+            # Prefer matching by throw-tick proximity for smokes (det_tick
+            # from Go is unreliable). For other nades, det_tick proximity is
+            # solid because the projectile is destroyed at detonation.
+            if gtype == "smoke":
+                d = abs(t.get("throw_tick", 0) - (g.get("tick", 0) - 64))
+            else:
+                d = abs(t.get("det_tick", 0) - g.get("tick", 0))
+            if d >= win:
                 continue
             same_thrower = (t.get("steam_id", "") == g.get("steam_id", ""))
             score = (0 if same_thrower else 1, d)
@@ -284,13 +295,33 @@ def _build_grenade_paths(grenades, raw_tracks) -> None:
                 best, best_i, best_score = t, i, score
         if best is not None:
             consumed[gtype].add(best_i)
-            g["path"]            = [[pt["x"], pt["y"]] for pt in best["path"]]
-            g["path_ticks"]      = [pt["tick"] for pt in best["path"]] if best["path"] and "tick" in best["path"][0] else None
-            g["origin_x"]        = best["path"][0]["x"]
-            g["origin_y"]        = best["path"][0]["y"]
-            g["origin_tick"]     = best.get("throw_tick", 0)
-            g["path_throw_tick"] = best.get("throw_tick", 0)
-            g["path_det_tick"]   = best.get("det_tick", 0)
+            # Truncate at the real detonation tick (g["tick"] from the Python
+            # event stream). The Go binary's path keeps sampling until
+            # GrenadeProjectileDestroy fires, which for smokes is at smoke fade
+            # (~22s post-detonation) — leaving the icon "in flight" all that
+            # time. We trust g["tick"] over Go's det_tick for the cutoff and
+            # allow a small tail (16 ticks) so the last in-flight sample isn't
+            # clipped at sub-tick boundaries.
+            g_det_tick = g.get("tick", 0)
+            raw_path = best["path"]
+            if raw_path and "tick" in raw_path[0]:
+                flight_path = [pt for pt in raw_path if pt.get("tick", 0) <= g_det_tick + 16]
+            else:
+                flight_path = list(raw_path)
+            plausible = len(flight_path) >= 1
+            if plausible and "tick" in flight_path[0]:
+                flight_ticks = g_det_tick - flight_path[0].get("tick", 0)
+                # 768 ticks = ~6s @ 128Hz, generous upper bound on real flight.
+                if flight_ticks < 0 or flight_ticks > 768:
+                    plausible = False
+            if plausible:
+                g["path"]            = [[pt["x"], pt["y"]] for pt in flight_path]
+                g["path_ticks"]      = [pt["tick"] for pt in flight_path] if "tick" in flight_path[0] else None
+                g["origin_x"]        = flight_path[0]["x"]
+                g["origin_y"]        = flight_path[0]["y"]
+                g["origin_tick"]     = flight_path[0].get("tick", best.get("throw_tick", 0))
+                g["path_throw_tick"] = flight_path[0].get("tick", best.get("throw_tick", 0))
+                g["path_det_tick"]   = g_det_tick
 
 
 def _drop_path_orphan_duplicates(grenades: list) -> list:

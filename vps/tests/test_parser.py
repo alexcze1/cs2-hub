@@ -314,6 +314,96 @@ def test_build_grenade_paths_consumed_track_not_reused():
     assert "origin_tick" not in grenades[1]
 
 
+def test_build_grenade_paths_truncates_post_detonation_samples():
+    """Smokes: Go binary's GrenadeProjectileDestroy fires at smoke fade
+    (~22s post-det), so the path includes long stretches of static cloud
+    samples. We must clip to the real detonation tick from the Python
+    event stream (g["tick"]) plus a small slack."""
+    from demo_parser import _build_grenade_paths
+    grenades = [{"tick": 1000, "type": "smoke", "steam_id": "A", "x": 0, "y": 0}]
+    # Throw at tick 900, real det at 1000, but Go track keeps sampling the
+    # static cloud out to tick 3800 (~22s @ 128Hz).
+    raw_tracks = [{
+        "steam_id": "A", "type": "smoke", "throw_tick": 900, "det_tick": 3800,
+        "path": [
+            {"x": 1.0, "y": 1.0, "tick":  900},
+            {"x": 5.0, "y": 5.0, "tick":  950},
+            {"x": 9.0, "y": 9.0, "tick": 1000},
+            # All of the below are post-detonation static cloud samples.
+            {"x": 9.0, "y": 9.0, "tick": 1500},
+            {"x": 9.0, "y": 9.0, "tick": 2500},
+            {"x": 9.0, "y": 9.0, "tick": 3800},
+        ],
+    }]
+    _build_grenade_paths(grenades, raw_tracks)
+    # All post-det samples dropped; only flight kept.
+    assert grenades[0]["path"] == [[1.0, 1.0], [5.0, 5.0], [9.0, 9.0]]
+    assert grenades[0]["path_ticks"] == [900, 950, 1000]
+    # path_det_tick is the real detonation tick, not Go's destroy tick.
+    assert grenades[0]["path_det_tick"] == 1000
+    assert grenades[0]["origin_tick"] == 900
+
+
+def test_build_grenade_paths_keeps_normal_flight_intact():
+    """A flash with a clean short flight should pass through untouched."""
+    from demo_parser import _build_grenade_paths
+    grenades = [{"tick": 1100, "type": "flash", "steam_id": "A", "x": 0, "y": 0}]
+    raw_tracks = [{
+        "steam_id": "A", "type": "flash", "throw_tick": 1000, "det_tick": 1100,
+        "path": [
+            {"x": 0.0, "y": 0.0, "tick": 1000},
+            {"x": 1.0, "y": 1.0, "tick": 1050},
+            {"x": 2.0, "y": 2.0, "tick": 1100},
+        ],
+    }]
+    _build_grenade_paths(grenades, raw_tracks)
+    assert grenades[0]["path"] == [[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]]
+    assert grenades[0]["path_det_tick"] == 1100
+    assert grenades[0]["origin_tick"] == 1000
+
+
+def test_build_grenade_paths_rejects_implausibly_long_flight():
+    """If the first kept path point precedes the detonation tick by more than
+    768 ticks (~6s), the match is bogus — reject rather than attach garbage."""
+    from demo_parser import _build_grenade_paths
+    grenades = [{"tick": 2000, "type": "smoke", "steam_id": "A", "x": 0, "y": 0}]
+    # Path starts at tick 100 — 1900 ticks before detonation (~15s flight).
+    raw_tracks = [{
+        "steam_id": "A", "type": "smoke", "throw_tick": 100, "det_tick": 2000,
+        "path": [
+            {"x": 0.0, "y": 0.0, "tick":  100},
+            {"x": 1.0, "y": 1.0, "tick":  500},
+            {"x": 2.0, "y": 2.0, "tick": 2000},
+        ],
+    }]
+    _build_grenade_paths(grenades, raw_tracks)
+    # Match was within tick window (det_tick==2000, |2000-2000|=0 < 256),
+    # so the track is consumed — but the path is implausible, so no fields
+    # are written onto the grenade.
+    assert "path" not in grenades[0]
+    assert "origin_tick" not in grenades[0]
+
+
+def test_build_grenade_paths_origin_tick_reflects_first_kept_point():
+    """When the path is truncated, origin_tick should point at the first
+    surviving sample (which is the actual throw), not at Go's throw_tick
+    field (which can drift on picked-up grenades)."""
+    from demo_parser import _build_grenade_paths
+    grenades = [{"tick": 1000, "type": "smoke", "steam_id": "A", "x": 0, "y": 0}]
+    raw_tracks = [{
+        "steam_id": "A", "type": "smoke", "throw_tick": 950, "det_tick": 1500,
+        "path": [
+            {"x": 1.0, "y": 1.0, "tick":  950},
+            {"x": 2.0, "y": 2.0, "tick": 1000},
+            {"x": 9.0, "y": 9.0, "tick": 1500},  # post-det, dropped
+        ],
+    }]
+    _build_grenade_paths(grenades, raw_tracks)
+    assert grenades[0]["origin_tick"] == 950
+    assert grenades[0]["path_throw_tick"] == 950
+    assert grenades[0]["path"] == [[1.0, 1.0], [2.0, 2.0]]
+
+
 # ── _drop_path_orphan_duplicates ──────────────────────────────
 
 def test_drop_orphan_when_path_sibling_nearby():
