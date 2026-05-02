@@ -27,6 +27,12 @@ const state = {
   fullCache:   new Map(),    // demoId → full match_data (loaded on single-round entry only)
   fullLoading: new Set(),    // demoIds currently being fetched (debounce)
   rounds:      [],           // computed RenderRound[] (built in Task 9)
+  gren: {
+    selectedKeys: new Set(),  // grenade keys selected via drag-rect: "demoId|roundIdx|throw_tick"
+    drag:         null,       // {x0,y0,x1,y1} canvas pixels while dragging, else null
+    playlist:     null,       // [round indices into state.rounds] when in playlist mode, else null
+    playlistPos:  0,
+  },
 }
 
 // ── URL helpers ──────────────────────────────────────────────
@@ -364,6 +370,13 @@ async function reloadRoundSet() {
   // 4. Narrow rounds.
   state.rounds = narrowRoundsForTeam(enriched, state.filters)
 
+  // Stale grenade selection refers to rounds that may no longer exist after a
+  // filter change. Drop it (and any active playlist) to avoid orphan keys.
+  state.gren.selectedKeys.clear()
+  state.gren.playlist    = null
+  state.gren.playlistPos = 0
+  refreshGrenSelectionButton?.()
+
   buildPlayerColorMap()
   recomputePlaybackBounds()
   updateTimelineUi()
@@ -443,6 +456,20 @@ function recomputePlaybackBounds() {
   if (playback.relTick > max) playback.relTick = 0
 }
 
+function advancePlaylist() {
+  const pl = state.gren.playlist
+  if (!pl || !pl.length) return
+  state.gren.playlistPos = (state.gren.playlistPos + 1) % pl.length
+  const nextIdx = pl[state.gren.playlistPos]
+  state.viewRoundIdx = nextIdx
+  playback.relTick = 0
+  recomputePlaybackBounds()
+  // Fire-and-forget — slim payload covers positions; full data populates HP
+  // / weapons / shots once it arrives.
+  fetchFullMatch(state.rounds[nextIdx].demoId)
+  refreshSoloRoundNav()
+}
+
 function loop(ts) {
   if (playback.playing) {
     if (!playback.lastTs) playback.lastTs = ts
@@ -451,7 +478,12 @@ function loop(ts) {
     const tickRate = state.rounds[0]?._payload?.meta?.tick_rate ?? 64
     playback.relTick += dt * tickRate * playback.speed
     if (playback.relTick > playback.maxTick) {
-      playback.relTick = 0  // loop
+      // Playlist mode: advance to next round in the playlist (loops at end).
+      if (state.gren.playlist && state.viewRoundIdx != null) {
+        advancePlaylist()
+      } else {
+        playback.relTick = 0  // loop within current view
+      }
     }
     updateTimelineUi()
     render()
@@ -504,44 +536,87 @@ const GREN_RADII = { smoke: 0.024, molotov: 0.014, flash: 0.012, he: 0.012 }
 
 let _highlightedGrenadeKey = null  // demoId|roundIdx|throw_tick — used for click highlight
 
-// Task 13 (grenade) fills this in
+// Renders selected team's grenade trajectories (no opponents).
+// Each grenade is drawn as a polyline from throw → land using the slim
+// payload's `trajectory` waypoints, with a small dot at the start and a
+// larger marker at the landing point. A drag-selection rectangle is drawn
+// on top while the user is dragging.
 function renderGrenadeMode(tc, mapSize) {
   if (!state.rounds.length) return
 
   const typeFilter = document.getElementById('gp-type-filter')?.value ?? 'all'
+  const anySelected = state.gren.selectedKeys.size > 0
+  const startR = Math.max(2, mapSize * 0.004)
+  const endR   = Math.max(3, mapSize * 0.007)
 
   for (const r of state.rounds) {
     const grenades = grenadesForRound(r._payload, r.roundIdx)
     for (const g of grenades) {
       if (typeFilter !== 'all' && g.type !== typeFilter) continue
+      // Selected team only — drop opponents.
+      if (g.thrower_team !== r.teamSide) continue
 
       const colors = GREN_COLORS[g.type] || GREN_COLORS.smoke
-      const radius = (GREN_RADII[g.type] || 0.012) * mapSize
-      const { x, y } = tc(g.land_x, g.land_y)
-      if (!Number.isFinite(x) || !Number.isFinite(y)) continue
       const key = `${r.demoId}|${r.roundIdx}|${g.throw_tick}`
-      const dimmed = _highlightedGrenadeKey && _highlightedGrenadeKey !== key
+      const isSelected = state.gren.selectedKeys.has(key)
+      const dimmed = anySelected && !isSelected
 
-      ctx.globalAlpha = dimmed ? 0.20 : 1.0
+      ctx.globalAlpha = dimmed ? 0.18 : 1.0
 
-      ctx.fillStyle   = colors.fill
-      ctx.strokeStyle = colors.stroke
-      ctx.lineWidth   = 1
-      ctx.beginPath()
-      ctx.arc(x, y, radius, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.stroke()
-
-      if (_highlightedGrenadeKey === key) {
+      // Trajectory polyline (throw → land). Falls back to landing dot only
+      // if the slim payload has no path waypoints.
+      const traj = g.trajectory || []
+      if (traj.length >= 2) {
+        ctx.strokeStyle = colors.stroke
+        ctx.lineWidth   = isSelected ? 2.5 : 1.5
         ctx.beginPath()
-        ctx.arc(x, y, radius + 4, 0, Math.PI * 2)
-        ctx.strokeStyle = '#fff'
-        ctx.lineWidth = 1.5
+        let first = true
+        for (const [wx, wy] of traj) {
+          const { x, y } = tc(wx, wy)
+          if (!Number.isFinite(x) || !Number.isFinite(y)) continue
+          if (first) { ctx.moveTo(x, y); first = false } else { ctx.lineTo(x, y) }
+        }
         ctx.stroke()
+
+        // Start dot
+        const start = tc(traj[0][0], traj[0][1])
+        if (Number.isFinite(start.x)) {
+          ctx.fillStyle = colors.stroke
+          ctx.beginPath(); ctx.arc(start.x, start.y, startR, 0, Math.PI * 2); ctx.fill()
+        }
+      }
+
+      // Landing marker (always drawn even if trajectory is empty)
+      const end = tc(g.land_x, g.land_y)
+      if (Number.isFinite(end.x) && Number.isFinite(end.y)) {
+        ctx.fillStyle   = colors.fill
+        ctx.strokeStyle = colors.stroke
+        ctx.lineWidth   = isSelected ? 2 : 1
+        ctx.beginPath(); ctx.arc(end.x, end.y, endR, 0, Math.PI * 2)
+        ctx.fill(); ctx.stroke()
+
+        if (isSelected) {
+          ctx.beginPath()
+          ctx.arc(end.x, end.y, endR + 3, 0, Math.PI * 2)
+          ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5
+          ctx.stroke()
+        }
       }
     }
   }
   ctx.globalAlpha = 1.0
+
+  // Drag-selection rectangle
+  const d = state.gren.drag
+  if (d) {
+    const x = Math.min(d.x0, d.x1), y = Math.min(d.y0, d.y1)
+    const w = Math.abs(d.x1 - d.x0), h = Math.abs(d.y1 - d.y0)
+    ctx.fillStyle   = 'rgba(120,160,255,0.10)'
+    ctx.strokeStyle = 'rgba(150,180,255,0.85)'
+    ctx.lineWidth   = 1
+    ctx.fillRect(x, y, w, h)
+    ctx.strokeRect(x + 0.5, y + 0.5, w, h)
+  }
 }
 
 // ── Viewer-style helpers (used in single-round playback with full match_data) ──
@@ -1254,6 +1329,9 @@ function exitSingleRound() {
   if (state.viewRoundIdx == null) return
   const prev = playback.relTick
   state.viewRoundIdx = null
+  // Exiting single-round always cancels the playlist — the user clicked away.
+  state.gren.playlist    = null
+  state.gren.playlistPos = 0
   recomputePlaybackBounds()
   // Preserve playback time across the transition (multi-round bound is the
   // longest round, so the previous tick is always within the new max).
@@ -1336,6 +1414,135 @@ canvas.addEventListener('click', async e => {
   refreshSoloRoundNav()
   render()
 })
+
+// ── Grenade mode: drag-rectangle selection ────────────────────────────
+// Drag inside the canvas to select trajectories whose landing point falls
+// within the rectangle. A click without drag (<4px) clears any selection.
+const DRAG_CLICK_THRESHOLD = 4
+let _grenDragInProgress = false
+
+function canvasMapTransform() {
+  const cw = canvas.width, ch = canvas.height
+  const mapSize = Math.min(cw, ch)
+  const mapX = Math.round((cw - mapSize) / 2)
+  const mapY = Math.round((ch - mapSize) / 2)
+  const tc = (wx, wy) => {
+    const { x, y } = worldToCanvas(wx, wy, state.filters.map, mapSize, mapSize)
+    return { x: x + mapX, y: y + mapY }
+  }
+  return { tc, mapSize }
+}
+
+canvas.addEventListener('mousedown', e => {
+  if (state.mode !== 'grenade' || !state.rounds.length) return
+  if (e.button !== 0) return
+  const rect = canvas.getBoundingClientRect()
+  const x = e.clientX - rect.left, y = e.clientY - rect.top
+  state.gren.drag = { x0: x, y0: y, x1: x, y1: y }
+  _grenDragInProgress = true
+})
+
+canvas.addEventListener('mousemove', e => {
+  if (!_grenDragInProgress || !state.gren.drag) return
+  const rect = canvas.getBoundingClientRect()
+  state.gren.drag.x1 = e.clientX - rect.left
+  state.gren.drag.y1 = e.clientY - rect.top
+  render()
+})
+
+window.addEventListener('mouseup', e => {
+  if (!_grenDragInProgress) return
+  _grenDragInProgress = false
+  const d = state.gren.drag
+  state.gren.drag = null
+  if (!d) { render(); return }
+
+  const dx = Math.abs(d.x1 - d.x0), dy = Math.abs(d.y1 - d.y0)
+  const typeFilter = document.getElementById('gp-type-filter')?.value ?? 'all'
+
+  // Click without drag → clear selection
+  if (dx < DRAG_CLICK_THRESHOLD && dy < DRAG_CLICK_THRESHOLD) {
+    state.gren.selectedKeys.clear()
+    refreshGrenSelectionButton()
+    render()
+    return
+  }
+
+  const { tc } = canvasMapTransform()
+  const left = Math.min(d.x0, d.x1), right  = Math.max(d.x0, d.x1)
+  const top  = Math.min(d.y0, d.y1), bottom = Math.max(d.y0, d.y1)
+
+  state.gren.selectedKeys.clear()
+  for (const r of state.rounds) {
+    const grenades = grenadesForRound(r._payload, r.roundIdx)
+    for (const g of grenades) {
+      if (typeFilter !== 'all' && g.type !== typeFilter) continue
+      if (g.thrower_team !== r.teamSide) continue
+      const { x, y } = tc(g.land_x, g.land_y)
+      if (!Number.isFinite(x) || !Number.isFinite(y)) continue
+      if (x >= left && x <= right && y >= top && y <= bottom) {
+        state.gren.selectedKeys.add(`${r.demoId}|${r.roundIdx}|${g.throw_tick}`)
+      }
+    }
+  }
+  refreshGrenSelectionButton()
+  render()
+})
+
+function refreshGrenSelectionButton() {
+  const btn = document.getElementById('gp-play-selection')
+  if (!btn) return
+  const n = state.gren.selectedKeys.size
+  // Count unique rounds across the selection
+  const rounds = new Set()
+  if (n > 0) {
+    for (const key of state.gren.selectedKeys) {
+      const [demoId, roundIdx] = key.split('|')
+      rounds.add(`${demoId}|${roundIdx}`)
+    }
+  }
+  btn.style.display = n > 0 ? '' : 'none'
+  btn.textContent = rounds.size <= 1
+    ? 'Play round'
+    : `Play ${rounds.size} rounds`
+}
+
+async function playSelectionAsPlaylist() {
+  if (state.gren.selectedKeys.size === 0) return
+  // Build ordered playlist of unique state.rounds[] indices that contain a
+  // selected grenade. Order = the order rounds appear in state.rounds[].
+  const wanted = new Set()
+  for (const key of state.gren.selectedKeys) {
+    const [demoId, roundIdxStr] = key.split('|')
+    wanted.add(`${demoId}|${roundIdxStr}`)
+  }
+  const playlist = []
+  for (let i = 0; i < state.rounds.length; i++) {
+    const r = state.rounds[i]
+    if (wanted.has(`${r.demoId}|${r.roundIdx}`)) playlist.push(i)
+  }
+  if (!playlist.length) return
+
+  state.gren.playlist    = playlist
+  state.gren.playlistPos = 0
+  state.mode = 'overlay'
+  writeUrl()
+  applyMode()
+
+  const firstIdx = playlist[0]
+  await fetchFullMatch(state.rounds[firstIdx].demoId)
+  state.viewRoundIdx = firstIdx
+  playback.relTick   = 0
+  recomputePlaybackBounds()
+  // Auto-play — the user picked a playlist; they want it rolling.
+  playback.playing = true
+  document.getElementById('play-btn').textContent = '⏸'
+  updateTimelineUi()
+  refreshSoloRoundNav()
+  render()
+}
+
+document.getElementById('gp-play-selection')?.addEventListener('click', playSelectionAsPlaylist)
 
 const UTIL_TYPES = [
   { type: 'smoke',   label: 'Smoke',    color: '#b3b3b3' },
@@ -1486,7 +1693,13 @@ function applyMode() {
     playback.playing = false
     document.getElementById('play-btn').textContent = '▶'
   }
-  if (state.mode === 'grenade') refreshGrenadePanel()
+  if (state.mode === 'grenade') {
+    // Switching INTO grenade mode while a playlist is in flight would leave
+    // single-round playback orphaned. Drop out of it cleanly first.
+    if (state.viewRoundIdx != null) exitSingleRound()
+    refreshGrenadePanel()
+    refreshGrenSelectionButton()
+  }
   render()
 }
 

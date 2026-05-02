@@ -267,6 +267,19 @@
       padding: 3px 6px;
       font-size: 11px; color: #ddd;
     }
+    .gp-play-selection {
+      margin: 8px 12px 0;
+      padding: 8px 10px;
+      background: linear-gradient(135deg, #6666b7, #4f4f9d);
+      color: #fff; font-size: 12px; font-weight: 700;
+      border: none; border-radius: 4px; cursor: pointer;
+      letter-spacing: 0.3px;
+    }
+    .gp-play-selection:hover { filter: brightness(1.1); }
+    .gp-hint {
+      padding: 6px 12px 0;
+      font-size: 10px; color: #777; font-style: italic;
+    }
     .gp-list { flex: 1; overflow-y: auto; padding: 6px; }
     .gp-item {
       padding: 6px 8px; cursor: pointer;
@@ -389,6 +402,8 @@
               </select>
             </div>
           </div>
+          <button class="gp-play-selection" id="gp-play-selection" style="display:none">Play round</button>
+          <div class="gp-hint">Drag a box on the map to select trajectories</div>
           <div class="gp-list" id="gp-list"></div>
         </aside>
       </div>
