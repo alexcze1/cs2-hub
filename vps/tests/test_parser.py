@@ -142,6 +142,19 @@ def test_dedupe_grenades_keeps_same_tick_far_apart_positions():
     assert len(out) == 2
 
 
+def test_dedupe_grenades_collapses_he_ghost_duplicate():
+    """demoparser2 emits ghost-duplicate hegrenade_detonate events ~150 ticks
+    after the original (same bug as smokegrenade_detonate). They must merge."""
+    from demo_parser import _dedupe_grenades
+    grenades = [
+        {"tick": 1000, "type": "he", "x": 100.0, "y": 100.0, "steam_id": "A"},
+        {"tick": 1150, "type": "he", "x": 110.0, "y": 110.0, "steam_id": "A"},
+    ]
+    out = _dedupe_grenades(grenades)
+    assert len(out) == 1
+    assert out[0]["tick"] == 1000
+
+
 def test_dedupe_grenades_assigns_synthetic_ids():
     from demo_parser import _dedupe_grenades
     grenades = [

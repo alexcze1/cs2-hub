@@ -499,7 +499,12 @@ def _dedupe_grenades(grenades: list) -> list:
         "molotov": (256, 500 * 500),
         "smoke":   (256, 300 * 300),
         "flash":   (64,  300 * 300),
-        "he":      (64,  300 * 300),
+        # HE: widened to match smoke. demoparser2 emits ghost duplicate
+        # hegrenade_detonate events ~150 ticks after the original, similarly
+        # to smokegrenade_detonate. A single player physically cannot throw
+        # two real HEs to within 300 u of each other within 256 ticks (~4 s) —
+        # the first has already exploded and the second isn't off the pin yet.
+        "he":      (256, 300 * 300),
     }
     sorted_g = sorted(
         grenades,
