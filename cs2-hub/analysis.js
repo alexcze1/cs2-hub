@@ -860,7 +860,7 @@ function renderOverlay(tc, mapSize) {
   // Normal multi-round overlay (team-only). Legend click sets soloSid to filter
   // to a single player across all rounds.
   for (const r of state.rounds) {
-    const targetTick = r.freezeEndTick + Math.floor(playback.relTick)
+    const targetTick = r.freezeEndTick + playback.relTick
     if (targetTick > r.endTick) continue
     const grenades = grenadesForRound(r._payload, r.roundIdx)
     for (const g of grenades) {
@@ -872,19 +872,20 @@ function renderOverlay(tc, mapSize) {
   }
 
   for (const r of state.rounds) {
-    const targetTick = r.freezeEndTick + Math.floor(playback.relTick)
+    const targetTick = r.freezeEndTick + playback.relTick
     if (targetTick > r.endTick) continue
     const frames = framesForRound(r._payload, r.roundIdx)
     if (!frames.length) continue
-
-    let lo = 0, hi = frames.length - 1, idx = 0
-    while (lo <= hi) {
-      const mid = (lo + hi) >> 1
-      if (frames[mid].tick <= targetTick) { idx = mid; lo = mid + 1 } else hi = mid - 1
-    }
-    const frame = frames[idx]
+    const frame = interpolatedPlayers(frames, targetTick)
+    if (!frame) continue
 
     if (playback.showTrails) {
+      // Trails still snap to discrete sampled frames (segment count is small).
+      let lo = 0, hi = frames.length - 1, idx = 0
+      while (lo <= hi) {
+        const mid = (lo + hi) >> 1
+        if (frames[mid].tick <= targetTick) { idx = mid; lo = mid + 1 } else hi = mid - 1
+      }
       const trailFrames = 30
       const trailStart  = Math.max(0, idx - trailFrames)
       ctx.lineWidth = 1.2
@@ -915,6 +916,39 @@ function renderOverlay(tc, mapSize) {
   }
 }
 
+// Lerp between the two frames straddling targetTick so motion is smooth at
+// 60fps despite the parser only sampling positions ~4Hz. Works on both slim
+// frames (alive) and full frames (is_alive). Skips interpolation across
+// alive/dead transitions and gaps larger than MAX_GAP ticks (round resets).
+function interpolatedPlayers(frames, targetTick, MAX_GAP = 48) {
+  if (!frames.length) return null
+  let lo = 0, hi = frames.length - 1
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1
+    if (frames[mid].tick <= targetTick) lo = mid
+    else hi = mid - 1
+  }
+  const prev = frames[lo]
+  const next = frames[lo + 1]
+  if (!next || next.tick <= prev.tick || next.tick - prev.tick > MAX_GAP) return prev
+  const t = Math.min(1, Math.max(0, (targetTick - prev.tick) / (next.tick - prev.tick)))
+  if (t <= 0) return prev
+  const players = prev.players.map(pp => {
+    const np = next.players.find(n => n.steam_id === pp.steam_id)
+    const aliveP = pp.is_alive ?? pp.alive
+    const aliveN = np ? (np.is_alive ?? np.alive) : false
+    if (!np || !aliveP || !aliveN) return pp
+    const dyaw = (np.yaw - pp.yaw + 540) % 360 - 180
+    return {
+      ...pp,
+      x: pp.x + (np.x - pp.x) * t,
+      y: pp.y + (np.y - pp.y) * t,
+      yaw: pp.yaw + dyaw * t,
+    }
+  })
+  return { tick: targetTick, players, round_idx: prev.round_idx }
+}
+
 // Viewer-style single-round render. Falls back to slim render if full data
 // hasn't loaded yet (rare — fetch is awaited before viewRoundIdx is set).
 function renderSingleRoundViewerStyle(tc, mapSize) {
@@ -932,19 +966,12 @@ function renderSingleRoundViewerStyle(tc, mapSize) {
   const tickRate = full.meta?.tick_rate ?? 64
   const startTick = fullRound.freeze_end_tick ?? fullRound.start_tick ?? 0
   const endTick   = fullRound.end_tick ?? startTick
-  const targetTick = startTick + Math.floor(playback.relTick)
+  const targetTick = startTick + playback.relTick   // float — lerp handles sub-tick
   if (targetTick > endTick) return
 
-  // ── Frame at targetTick (binary search across full.frames in round window)
-  const frames = full.frames || []
-  if (!frames.length) return
-  let lo = 0, hi = frames.length - 1, idx = 0
-  while (lo <= hi) {
-    const mid = (lo + hi) >> 1
-    if (frames[mid].tick <= targetTick) { idx = mid; lo = mid + 1 } else hi = mid - 1
-  }
-  const frame = frames[idx]
-  if (!frame || frame.tick < startTick) return
+  // Interpolated frame at targetTick (smooths positions/yaw at 60fps).
+  const frame = interpolatedPlayers(full.frames || [], targetTick)
+  if (!frame || frame.tick < startTick - 1) return
 
   // ── Grenades (use slim grenades since they already carry det/throw/trajectory) ──
   const grenades = grenadesForRound(r._payload, r.roundIdx)
@@ -1108,7 +1135,7 @@ function renderSingleRoundViewerStyle(tc, mapSize) {
 // colors and yaw arrows but no HP/names/weapons (those fields are stripped).
 function renderSingleRoundSlimFallback(tc, mapSize, r) {
   const tickRate = state.rounds[0]?._payload?.meta?.tick_rate ?? 64
-  const targetTick = r.freezeEndTick + Math.floor(playback.relTick)
+  const targetTick = r.freezeEndTick + playback.relTick
   if (targetTick > r.endTick) return
 
   const grenades = grenadesForRound(r._payload, r.roundIdx)
@@ -1117,14 +1144,8 @@ function renderSingleRoundSlimFallback(tc, mapSize, r) {
     drawGrenade(tc, g, targetTick, tickRate, mapSize, viewerPlayerColor(g.thrower_team))
   }
 
-  const frames = framesForRound(r._payload, r.roundIdx)
-  if (!frames.length) return
-  let lo = 0, hi = frames.length - 1, idx = 0
-  while (lo <= hi) {
-    const mid = (lo + hi) >> 1
-    if (frames[mid].tick <= targetTick) { idx = mid; lo = mid + 1 } else hi = mid - 1
-  }
-  const frame = frames[idx]
+  const frame = interpolatedPlayers(framesForRound(r._payload, r.roundIdx), targetTick)
+  if (!frame) return
   for (const player of frame.players) {
     drawPlayer(tc, player, viewerPlayerColor(player.team), mapSize)
   }
@@ -1242,16 +1263,12 @@ canvas.addEventListener('click', async e => {
 
   let best = null
   for (const r of state.rounds) {
-    const targetTick = r.freezeEndTick + Math.floor(playback.relTick)
+    const targetTick = r.freezeEndTick + playback.relTick
     if (targetTick > r.endTick) continue
     const frames = framesForRound(r._payload, r.roundIdx)
     if (!frames.length) continue
-    let lo = 0, hi = frames.length - 1, idx = 0
-    while (lo <= hi) {
-      const mid = (lo + hi) >> 1
-      if (frames[mid].tick <= targetTick) { idx = mid; lo = mid + 1 } else hi = mid - 1
-    }
-    const frame = frames[idx]
+    const frame = interpolatedPlayers(frames, targetTick)
+    if (!frame) continue
     for (const p of frame.players) {
       if (p.team !== r.teamSide) continue
       if (state.soloSid && p.steam_id !== state.soloSid) continue
