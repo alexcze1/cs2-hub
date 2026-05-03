@@ -419,7 +419,7 @@ fileInput.addEventListener('change', async () => {
 
   for (const f of files) {
     if (!f.name.endsWith('.dem')) { alert('Please select .dem files only.'); return }
-    if (f.size > 500 * 1024 * 1024) { alert(`${f.name} is too large (max 500 MB).`); return }
+    if (f.size > 1024 * 1024 * 1024) { alert(`${f.name} is too large (max 1 GB).`); return }
   }
 
   const seriesId = files.length > 1 ? crypto.randomUUID() : null
