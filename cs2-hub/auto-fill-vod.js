@@ -75,3 +75,25 @@ export function pickBestVod(candidates, demo) {
   })
   return sorted[0]
 }
+
+// Map team_a_score / team_b_score to score_us / score_them given who the
+// opponent is. Requires team_a_first_side to know which team the team_a_*
+// totals belong to (the team that started on that side becomes that side's
+// "team_a" in the parser's accounting).
+//
+// Returns null if any required field is missing or the opponent name doesn't
+// match either team — those demos can't be auto-filled.
+export function scoresFromDemo(demo, opponentName) {
+  const a = demo.team_a_score
+  const b = demo.team_b_score
+  const fs = demo.team_a_first_side
+  if (a == null || b == null || !fs) return null
+  if (fs !== 'ct' && fs !== 't') return null
+
+  const teamAName = fs === 'ct' ? demo.ct_team_name : demo.t_team_name
+  const teamBName = fs === 'ct' ? demo.t_team_name  : demo.ct_team_name
+  const opp = normName(opponentName)
+  if (normName(teamAName) === opp) return { score_us: b, score_them: a }
+  if (normName(teamBName) === opp) return { score_us: a, score_them: b }
+  return null
+}
