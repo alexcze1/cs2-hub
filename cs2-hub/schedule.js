@@ -3,7 +3,7 @@ import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
 import { attachTeamAutocomplete, getTeamLogo, teamLogoEl } from './team-autocomplete.js'
-import { computePraccVodsToInsert } from './pracc-sync.js'
+import { computePraccVodsToInsert, computePraccVodsToBackfill } from './pracc-sync.js'
 
 function esc(text) {
   const d = document.createElement('div')
@@ -61,20 +61,28 @@ async function loadEvents() {
   allEvents = [...filtered, ...externalEvents].sort((a, b) => new Date(a.date) - new Date(b.date))
   renderCalendar()
 
-  // Sync: ensure each pracc event has a corresponding vod entry.
+  // Sync: ensure each pracc event has a corresponding vod entry, and backfill
+  // map info on older auto-created vods that were inserted before map parsing.
   // Fire-and-forget so calendar render is never blocked.
   if (praccEvents.length) {
     ;(async () => {
       const uids = praccEvents.map(e => e.id)
       const { data: existing } = await supabase
         .from('vods')
-        .select('external_uid')
+        .select('id, external_uid, maps')
         .eq('team_id', teamId)
         .in('external_uid', uids)
-      const existingUids = new Set((existing ?? []).map(v => v.external_uid))
+      const existingVods = existing ?? []
+      const existingUids = new Set(existingVods.map(v => v.external_uid))
       const newPayloads = computePraccVodsToInsert(praccEvents, existingUids, teamId)
       if (newPayloads.length) {
         await supabase.from('vods').insert(newPayloads)
+      }
+      const backfills = computePraccVodsToBackfill(praccEvents, existingVods)
+      if (backfills.length) {
+        await Promise.all(backfills.map(u =>
+          supabase.from('vods').update({ maps: u.maps }).eq('id', u.id)
+        ))
       }
     })()
   }

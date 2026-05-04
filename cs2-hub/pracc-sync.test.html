@@ -2,7 +2,7 @@
 <html>
 <body>
 <script type="module">
-import { computePraccVodsToInsert } from './pracc-sync.js'
+import { computePraccVodsToInsert, computePraccVodsToBackfill } from './pracc-sync.js'
 
 function assert(condition, msg) {
   if (!condition) { console.error('FAIL:', msg); return; }
@@ -79,6 +79,48 @@ const TEAM = 'team-abc'
   const events = [{ id: 'pracc-uid-1', title: 'A', opponent: 'A', date: '2026-05-10T18:00:00Z' }]
   const out = computePraccVodsToInsert(events, new Set(['pracc-uid-1']), TEAM)
   assert(out.length === 0, 'all-existing yields empty array')
+}
+
+// Test 6: backfill — empty maps + event has map → update produced
+{
+  const events = [{ id: 'pracc-uid-1', map: 'mirage', date: '2026-05-10T18:00:00Z' }]
+  const existing = [{ id: 'vod-1', external_uid: 'pracc-uid-1', maps: [] }]
+  const out = computePraccVodsToBackfill(events, existing)
+  assert(out.length === 1, 'backfill: empty maps gets update')
+  assert(out[0].id === 'vod-1', 'backfill: vod id passed through')
+  assert(out[0].maps[0].map === 'mirage', 'backfill: map filled in')
+}
+
+// Test 7: backfill — non-empty maps left alone (don't overwrite manual edits)
+{
+  const events = [{ id: 'pracc-uid-1', map: 'mirage', date: '2026-05-10T18:00:00Z' }]
+  const existing = [{ id: 'vod-1', external_uid: 'pracc-uid-1', maps: [{ map: 'inferno', score_us: 13 }] }]
+  const out = computePraccVodsToBackfill(events, existing)
+  assert(out.length === 0, 'backfill: non-empty maps untouched')
+}
+
+// Test 8: backfill — event with no map yields no update
+{
+  const events = [{ id: 'pracc-uid-1', date: '2026-05-10T18:00:00Z' }]
+  const existing = [{ id: 'vod-1', external_uid: 'pracc-uid-1', maps: [] }]
+  const out = computePraccVodsToBackfill(events, existing)
+  assert(out.length === 0, 'backfill: no map on event yields no update')
+}
+
+// Test 9: backfill — no matching vod yields no update
+{
+  const events = [{ id: 'pracc-uid-1', map: 'mirage', date: '2026-05-10T18:00:00Z' }]
+  const existing = []
+  const out = computePraccVodsToBackfill(events, existing)
+  assert(out.length === 0, 'backfill: no existing vod yields no update')
+}
+
+// Test 10: backfill — null maps treated as empty
+{
+  const events = [{ id: 'pracc-uid-1', map: 'mirage', date: '2026-05-10T18:00:00Z' }]
+  const existing = [{ id: 'vod-1', external_uid: 'pracc-uid-1', maps: null }]
+  const out = computePraccVodsToBackfill(events, existing)
+  assert(out.length === 1, 'backfill: null maps treated as empty')
 }
 
 console.log('All pracc-sync tests done')
