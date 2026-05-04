@@ -150,11 +150,12 @@ Today `showAssignTeamsModal` takes only the id-or-array and resolves to `{ nameA
 
 ```ts
 type AssignTeamsModalOpts = {
+  onSave?:   () => void   // called after Save persists names (used for list refresh)
   onCancel?: () => void   // called when user cancels (resolve(null) is still emitted)
 }
 ```
 
-`opts` is optional and defaults to no-op. `demos.js` does not pass it. `demo-viewer.js` passes `onCancel` to redirect.
+`opts` is optional and defaults to no-op. `demos.js` passes `{ onSave: loadDemos }` so the list refreshes after Save (this replaces the old inline `loadDemos()` call inside the modal). `demo-viewer.js` passes `onCancel` to redirect on cancel and reloads the page itself after the save resolves.
 
 We do not change the modal's resolve shape, so existing callers keep working.
 

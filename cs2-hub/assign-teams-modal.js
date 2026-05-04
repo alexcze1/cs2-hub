@@ -11,7 +11,12 @@ function esc(s) { const d = document.createElement('div'); d.textContent = s ?? 
 // or an array of demos that share a series. opts may include:
 //   - onSave():    invoked after Save persists names (use for list refresh)
 //   - onCancel():  invoked when user cancels (button or overlay click)
-// Resolves to { nameA, nameB } on save, null on cancel.
+// Resolves on save with one of two shapes depending on which path ran:
+//   - { nameA, nameB }  — the roster-aware path (rosters confidently detected)
+//   - { ct, t }         — the legacy by-side fallback (mixed lineups)
+// Resolves to null on cancel. Callers that only branch on truthiness (e.g.
+// the viewer entry gate) work either way; callers that read named keys must
+// account for both shapes.
 export async function showAssignTeamsModal(demoIdOrSeries, opts = {}) {
   // Normalise to a list of demos with match_data.
   let demos = []
