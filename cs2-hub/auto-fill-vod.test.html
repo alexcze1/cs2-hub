@@ -8,6 +8,7 @@ import {
   findCandidateVods,
   pickBestVod,
   scoresFromDemo,
+  computeVodPatch,
 } from './auto-fill-vod.js'
 
 function assert(condition, msg) {
@@ -168,7 +169,110 @@ const baseDemo = {
   assert(r && r.score_us === 7, 'case-insensitive opponent comparison')
 }
 
-console.log('Tasks 1-3 tests done')
+// ---- computeVodPatch ----
+function makeDemo(over = {}) {
+  return {
+    id: 'd1', map: 'mirage',
+    ct_team_name: 'NaVi', t_team_name: 'Astralis',
+    team_a_first_side: 'ct', team_a_score: 13, team_b_score: 7,
+    series_id: null,
+    ...over,
+  }
+}
+
+{
+  const vod = { id: 'v', opponent: 'NaVi', maps: [{ map: 'mirage' }] }
+  const p = computeVodPatch(makeDemo(), vod)
+  assert(p && p.maps[0].score_us === 7 && p.maps[0].score_them === 13, 'single demo fills matching map')
+  assert(p.result === 'loss', 'single map all-filled derives result (us=7, them=13 → loss)')
+  assert(p.demo_link === 'demo-viewer.html?id=d1', 'single non-series demo sets demo_link')
+}
+{
+  const vod = { id: 'v', opponent: 'NaVi', maps: [] }
+  const p = computeVodPatch(makeDemo(), vod)
+  assert(p.maps.length === 1 && p.maps[0].map === 'mirage', 'empty maps[] gets new slot')
+  assert(p.maps[0].score_us === 7, 'score_us correct')
+}
+{
+  const vod = { id: 'v', opponent: 'NaVi', maps: [{ map: 'mirage', score_us: 5, score_them: 13 }] }
+  const p = computeVodPatch(makeDemo(), vod)
+  assert(p === null, 'never overwrite → null patch')
+}
+{
+  const vod = { id: 'v', opponent: 'NaVi', maps: [{ map: 'inferno' }] }
+  const p = computeVodPatch(makeDemo({ map: 'mirage' }), vod)
+  assert(p.maps.length === 2, 'mismatched-map demo appends new slot')
+  assert(p.maps[1].map === 'mirage' && p.maps[1].score_us === 7, 'new slot scored')
+  assert(!p.result, 'result not derived while a slot is still empty')
+}
+{
+  const vod = { id: 'v', opponent: 'NaVi', maps: [{}] }
+  const p = computeVodPatch(makeDemo(), vod)
+  assert(p.maps[0].map === 'mirage', 'empty-named slot gets the demo map name')
+  assert(p.maps[0].score_us === 7, 'empty-named slot gets the score')
+}
+{
+  const vod = { id: 'v', opponent: 'NaVi', maps: [{ map: 'mirage' }, { map: 'inferno' }, { map: 'nuke' }] }
+  const demos = [
+    makeDemo({ id: 'd1', map: 'mirage',  series_id: 's1', team_a_score: 13, team_b_score: 7 }),
+    makeDemo({ id: 'd2', map: 'inferno', series_id: 's1', team_a_score: 5,  team_b_score: 13 }),
+    makeDemo({ id: 'd3', map: 'nuke',    series_id: 's1', team_a_score: 13, team_b_score: 11 }),
+  ]
+  const p = computeVodPatch(demos, vod)
+  assert(p.result === 'loss', 'series 1-2 → loss')
+  assert(!p.demo_link, 'series does not set demo_link')
+}
+{
+  const vod = { id: 'v', opponent: 'NaVi', maps: [
+    { map: 'mirage',  score_us: 13, score_them: 7 },
+    { map: 'inferno', score_us: 5,  score_them: 13 },
+    { map: 'nuke' },
+  ] }
+  const demos = [
+    makeDemo({ id: 'd1', map: 'mirage',  series_id: 's1' }),
+    makeDemo({ id: 'd3', map: 'nuke',    series_id: 's1', team_a_score: 13, team_b_score: 11 }),
+  ]
+  const p = computeVodPatch(demos, vod)
+  assert(p.maps[0].score_us === 13, 'pre-existing mirage score preserved')
+  assert(p.maps[2].score_us === 11, 'nuke filled')
+  assert(p.result === 'loss', 'series 1-2 (us wins one, opponent wins two) → loss')
+}
+{
+  const vod = { id: 'v', opponent: 'NaVi', maps: [
+    { map: 'mirage' }, { map: 'inferno' }, { map: 'nuke' }, { map: 'ancient' },
+  ] }
+  const demos = [
+    makeDemo({ id: 'd1', map: 'mirage',  series_id: 's1' }),
+    makeDemo({ id: 'd2', map: 'inferno', series_id: 's1' }),
+    makeDemo({ id: 'd3', map: 'nuke',    series_id: 's1' }),
+  ]
+  const p = computeVodPatch(demos, vod)
+  assert(p.maps[3].score_us == null, 'fourth slot remains empty')
+  assert(!p.result, 'result not derived when a slot remains empty')
+}
+{
+  const vod = { id: 'v', opponent: 'NaVi', maps: [{ map: 'mirage' }, { map: 'inferno' }] }
+  const demos = [
+    makeDemo({ id: 'd1', map: 'mirage', series_id: 's1' }),
+    makeDemo({ id: 'd2', map: 'inferno', series_id: 's1', team_a_first_side: null }),
+  ]
+  const p = computeVodPatch(demos, vod)
+  assert(p.maps[0].score_us === 7, 'first slot filled')
+  assert(p.maps[1].score_us == null, 'second slot still empty (skipped demo)')
+  assert(!p.result, 'result not derived')
+}
+{
+  const vod = { id: 'v', opponent: 'Vitality', maps: [{ map: 'mirage' }] }
+  const p = computeVodPatch(makeDemo(), vod)
+  assert(p === null, 'no opponent match → null')
+}
+{
+  const vod = { id: 'v', opponent: 'NaVi', maps: [{ map: 'mirage' }], demo_link: 'demo-viewer.html?id=existing' }
+  const p = computeVodPatch(makeDemo(), vod)
+  assert(p.demo_link === undefined, 'existing demo_link not overwritten')
+}
+
+console.log('Tasks 1-4 tests done')
 </script>
 </body>
 </html>

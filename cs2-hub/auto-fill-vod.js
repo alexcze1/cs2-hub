@@ -97,3 +97,82 @@ export function scoresFromDemo(demo, opponentName) {
   if (normName(teamBName) === opp) return { score_us: a, score_them: b }
   return null
 }
+
+// Build a patch for `vod` from one or more demos (a series can apply
+// multiple demos to the same vod). Returns null if no slot would be filled.
+//
+// Patch shape: { maps, result?, demo_link?, _filledMapNames }
+// _filledMapNames is metadata for the caller (toast/log); strip before
+// sending to Supabase.
+//
+// Rules:
+//   - Match each demo to a slot by map name (case-insensitive). If no name
+//     match, claim the first slot whose .map is empty. If no empty slot,
+//     append a new slot.
+//   - NEVER overwrite a slot that already has score_us or score_them.
+//   - After applying all demos, if every slot in maps has both scores set,
+//     derive `result` (win/loss/draw) from map-wins.
+//   - For a single non-series demo: also set demo_link if vod has none.
+export function computeVodPatch(demosArg, vod) {
+  if (!vod) return null
+  const demos = Array.isArray(demosArg) ? demosArg : [demosArg]
+  if (!demos.length) return null
+
+  const newMaps = (vod.maps ?? []).map(s => ({ ...s }))
+  const filledMapNames = []
+  let filledAny = false
+
+  for (const demo of demos) {
+    const scores = scoresFromDemo(demo, vod.opponent)
+    if (!scores) continue
+    const demoMap = (demo.map || '').toLowerCase()
+
+    // (a) map-name match
+    let slotIdx = demoMap
+      ? newMaps.findIndex(s => (s.map || '').toLowerCase() === demoMap)
+      : -1
+
+    // (b) empty-name slot — claim it
+    if (slotIdx === -1) {
+      slotIdx = newMaps.findIndex(s => !s.map)
+      if (slotIdx !== -1 && demo.map) newMaps[slotIdx].map = demo.map
+    }
+
+    // (c) append new slot
+    if (slotIdx === -1) {
+      newMaps.push({ map: demo.map })
+      slotIdx = newMaps.length - 1
+    }
+
+    const slot = newMaps[slotIdx]
+    if (slot.score_us != null || slot.score_them != null) continue   // never overwrite
+
+    slot.score_us = scores.score_us
+    slot.score_them = scores.score_them
+    filledAny = true
+    if (demo.map) filledMapNames.push(demo.map)
+  }
+
+  if (!filledAny) return null
+
+  const patch = { maps: newMaps, _filledMapNames: filledMapNames }
+
+  // Result: only if every slot has both scores.
+  if (newMaps.every(s => s.score_us != null && s.score_them != null)) {
+    let usWins = 0, themWins = 0
+    for (const s of newMaps) {
+      if (s.score_us > s.score_them) usWins++
+      else if (s.score_us < s.score_them) themWins++
+    }
+    if (usWins > themWins) patch.result = 'win'
+    else if (themWins > usWins) patch.result = 'loss'
+    else patch.result = 'draw'
+  }
+
+  // Demo link: only for single non-series demos.
+  if (demos.length === 1 && !demos[0].series_id && !vod.demo_link && demos[0].id) {
+    patch.demo_link = `demo-viewer.html?id=${demos[0].id}`
+  }
+
+  return patch
+}
