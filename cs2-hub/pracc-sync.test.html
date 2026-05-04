@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script type="module">
+import { computePraccVodsToInsert } from './pracc-sync.js'
+
+function assert(condition, msg) {
+  if (!condition) { console.error('FAIL:', msg); return; }
+  console.log('PASS:', msg);
+}
+
+const TEAM = 'team-abc'
+
+// Test 1: empty pracc events → empty payloads
+{
+  const out = computePraccVodsToInsert([], new Set(), TEAM)
+  assert(Array.isArray(out) && out.length === 0, 'no pracc events yields empty array')
+}
+
+// Test 2: single pracc event with no existing vod → one payload
+{
+  const events = [{
+    id: 'pracc-uid-1',
+    title: 'Scrim vs NaVi',
+    opponent: 'NaVi',
+    date: '2026-05-10T18:00:00Z',
+  }]
+  const out = computePraccVodsToInsert(events, new Set(), TEAM)
+  assert(out.length === 1, 'single new event yields one payload')
+  assert(out[0].team_id === TEAM, 'team_id set')
+  assert(out[0].external_uid === 'pracc-uid-1', 'external_uid copied from event id')
+  assert(out[0].opponent === 'NaVi', 'opponent copied')
+  assert(out[0].match_type === 'scrim', 'match_type is scrim')
+  assert(out[0].match_date === '2026-05-10', 'match_date is YYYY-MM-DD')
+  assert(Array.isArray(out[0].maps) && out[0].maps.length === 0, 'maps initialized empty')
+}
+
+// Test 3: existing UID is skipped
+{
+  const events = [
+    { id: 'pracc-uid-1', title: 'A', opponent: 'A', date: '2026-05-10T18:00:00Z' },
+    { id: 'pracc-uid-2', title: 'B', opponent: 'B', date: '2026-05-11T18:00:00Z' },
+  ]
+  const existing = new Set(['pracc-uid-1'])
+  const out = computePraccVodsToInsert(events, existing, TEAM)
+  assert(out.length === 1, 'only the new event yields a payload')
+  assert(out[0].external_uid === 'pracc-uid-2', 'correct event passed through')
+}
+
+// Test 4: opponent falls back to title when null
+{
+  const events = [{
+    id: 'pracc-uid-3',
+    title: 'Practice block',
+    opponent: null,
+    date: '2026-05-12T18:00:00Z',
+  }]
+  const out = computePraccVodsToInsert(events, new Set(), TEAM)
+  assert(out[0].opponent === 'Practice block', 'opponent falls back to title')
+}
+
+// Test 5: all UIDs already exist → empty
+{
+  const events = [{ id: 'pracc-uid-1', title: 'A', opponent: 'A', date: '2026-05-10T18:00:00Z' }]
+  const out = computePraccVodsToInsert(events, new Set(['pracc-uid-1']), TEAM)
+  assert(out.length === 0, 'all-existing yields empty array')
+}
+
+console.log('All pracc-sync tests done')
+</script>
+</body>
+</html>
