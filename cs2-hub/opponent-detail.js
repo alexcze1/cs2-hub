@@ -4,6 +4,7 @@ import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
 import { attachTeamAutocomplete, getTeamLogo, teamLogoEl } from './team-autocomplete.js'
 import { MAP_POSITIONS } from './map-positions.js'
+import { renderPositionsGrid, renderPlanSheet, ensureMapAntistrat } from './antistrat-editor.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -38,18 +39,6 @@ let selectedMaps = []
 let antistrat = {}
 let activeMapIdx = 0
 
-function ensureMapData(map) {
-  if (antistrat[map]) return
-  const tPos = {}; MAP_POSITIONS[map].t.forEach(p => { tPos[p] = '' })
-  const ctPos = {}; MAP_POSITIONS[map].ct.forEach(p => { ctPos[p] = '' })
-  antistrat[map] = {
-    t_positions:  tPos,
-    ct_positions: ctPos,
-    ct_plan: Object.fromEntries(GP_FIELDS.map(f => [f, ''])),
-    t_plan:  Object.fromEntries(GP_FIELDS.map(f => [f, ''])),
-  }
-}
-
 // ── Map Selector ────────────────────────────────────────────
 function renderMapSelector() {
   const el = document.getElementById('map-selector')
@@ -72,7 +61,7 @@ function renderMapSelector() {
       activeMapIdx = Math.min(activeMapIdx, Math.max(0, selectedMaps.length - 1))
     } else {
       selectedMaps.push(map)
-      ensureMapData(map)
+      ensureMapAntistrat(antistrat, map)
       activeMapIdx = selectedMaps.length - 1
     }
     renderMapSelector()
@@ -110,78 +99,51 @@ function renderMapTabs() {
   }))
 }
 
-function posGridHTML(map, side) {
-  const positions = MAP_POSITIONS[map][side]
-  const data = antistrat[map]?.[`${side}_positions`] ?? {}
-  return `<div class="pos-grid">
-    ${positions.map(pos => `
-      <div class="pos-cell">
-        <div class="pos-label">${esc(pos)}</div>
-        <input class="form-input pos-input" style="padding:6px 8px;font-size:13px"
-          data-map="${esc(map)}" data-side="${side}" data-pos="${esc(pos)}"
-          placeholder="player" value="${esc(data[pos] ?? '')}"/>
-      </div>
-    `).join('')}
-  </div>`
-}
-
-function gpSheetHTML(map, prefix, title, subtitle, titleClass) {
-  const d = antistrat[map]?.[`${prefix}_plan`] ?? {}
-  const pairs = [['pistols','style'], ['antiecos','forces']]
-  const singles = ['tendencies','exploits','solutions']
-
-  const posSide = prefix === 'ct' ? 't' : 'ct'
-  const posLabelClass = prefix === 'ct' ? 't-positions-label' : 'ct-positions-label'
-  const posHeading = prefix === 'ct' ? 'THEIR T-SIDE LINEUP' : 'THEIR CT-SIDE LINEUP'
-
-  return `<div class="gameplan-sheet" style="margin-top:16px">
-    <div class="gameplan-title ${titleClass}">${esc(title)} <span style="font-weight:400;opacity:0.7">— ${esc(subtitle)}</span></div>
-    <div class="gameplan-section-label ${posLabelClass}">${posHeading}</div>
-    <div style="padding:10px 14px 14px">${posGridHTML(map, posSide)}</div>
-    ${pairs.map(([a, b]) => `
-      <div class="gameplan-split">
-        <div class="gameplan-block">
-          <div class="gameplan-section-label ${GP_CLASSES[a]}">${GP_LABELS[a]}</div>
-          <textarea class="form-textarea gameplan-textarea gp-field" data-map="${esc(map)}" data-prefix="${prefix}" data-field="${a}" placeholder="${esc(GP_PLACEHOLDERS[a])}">${esc(d[a] ?? '')}</textarea>
-        </div>
-        <div class="gameplan-block">
-          <div class="gameplan-section-label ${GP_CLASSES[b]}">${GP_LABELS[b]}</div>
-          <textarea class="form-textarea gameplan-textarea gp-field" data-map="${esc(map)}" data-prefix="${prefix}" data-field="${b}" placeholder="${esc(GP_PLACEHOLDERS[b])}">${esc(d[b] ?? '')}</textarea>
-        </div>
-      </div>
-    `).join('')}
-    ${singles.map(f => `
-      <div class="gameplan-section-label ${GP_CLASSES[f]}">${GP_LABELS[f]}</div>
-      <textarea class="form-textarea gameplan-textarea gp-field" style="min-height:70px" data-map="${esc(map)}" data-prefix="${prefix}" data-field="${f}" placeholder="${esc(GP_PLACEHOLDERS[f])}">${esc(d[f] ?? '')}</textarea>
-    `).join('')}
-  </div>`
-}
-
 function renderGameplans() {
   const el = document.getElementById('gameplan-panels')
   const map = selectedMaps[activeMapIdx]
   if (!map) { el.innerHTML = ''; return }
-  ensureMapData(map)
-  el.innerHTML = gpSheetHTML(map, 'ct', 'CT GAMEPLAN', 'vs their T side', 'ct-title')
-               + gpSheetHTML(map, 't',  'T GAMEPLAN',  'vs their CT side', 't-title')
+  ensureMapAntistrat(antistrat, map)
 
+  const ctPositions = renderPositionsGrid(map, 't',  antistrat) // their T lineup, rendered above CT plan
+  const tPositions  = renderPositionsGrid(map, 'ct', antistrat) // their CT lineup, rendered above T plan
+  const ctPlan      = renderPlanSheet(map, 'ct', antistrat)
+  const tPlan       = renderPlanSheet(map, 't',  antistrat)
+
+  el.innerHTML = `
+    <div class="gameplan-sheet" style="margin-top:16px">
+      <div class="gameplan-title ct-title">CT GAMEPLAN <span style="font-weight:400;opacity:0.7">— vs their T side</span></div>
+      <div class="gameplan-section-label t-positions-label">THEIR T-SIDE LINEUP</div>
+      <div style="padding:10px 14px 14px">${ctPositions.html}</div>
+      ${ctPlan.html}
+    </div>
+    <div class="gameplan-sheet" style="margin-top:16px">
+      <div class="gameplan-title t-title">T GAMEPLAN <span style="font-weight:400;opacity:0.7">— vs their CT side</span></div>
+      <div class="gameplan-section-label ct-positions-label">THEIR CT-SIDE LINEUP</div>
+      <div style="padding:10px 14px 14px">${tPositions.html}</div>
+      ${tPlan.html}
+    </div>
+  `
+
+  ctPositions.wire(el); tPositions.wire(el)
+  ctPlan.wire(el);      tPlan.wire(el)
+
+  // Auto-grow textareas (preserve existing behavior).
   el.querySelectorAll('.gameplan-textarea').forEach(ta => {
     autoExpand(ta)
     ta.addEventListener('input', () => autoExpand(ta))
   })
-
-  el.querySelectorAll('.pos-input').forEach(inp => inp.addEventListener('input', e => {
-    const { map: m, side, pos } = e.target.dataset
-    if (antistrat[m]) antistrat[m][`${side}_positions`][pos] = e.target.value
-  }))
 }
 
 function saveActivePlan() {
   const map = selectedMaps[activeMapIdx]
   if (!map || !antistrat[map]) return
   document.querySelectorAll('.gp-field').forEach(ta => {
-    const { map: m, prefix, field } = ta.dataset
-    if (antistrat[m]) antistrat[m][`${prefix}_plan`][field] = ta.value
+    // Editor module emits data-side; legacy markup used data-prefix. Either is OK.
+    const { map: m, prefix, side, field } = ta.dataset
+    const p = prefix ?? side
+    if (!p || !field) return
+    if (antistrat[m]?.[`${p}_plan`]) antistrat[m][`${p}_plan`][field] = ta.value
   })
 }
 
@@ -238,7 +200,7 @@ window.printAntistrat = function() {
 
   printArea.innerHTML = `<div class="pprint-header">${esc(name)}</div>`
     + selectedMaps.map(map => {
-        ensureMapData(map)
+        ensureMapAntistrat(antistrat, map)
         return `<div class="pprint-map-label">${esc(MAP_LABELS[map])}</div>`
              + printSheetHTML(map, 'ct', 'CT GAMEPLAN — vs their T side')
              + printSheetHTML(map, 't',  'T GAMEPLAN — vs their CT side')
@@ -261,7 +223,7 @@ if (isEdit) {
   document.getElementById('f-name').value = opp.name ?? ''
   selectedMaps = opp.favored_maps ?? []
   antistrat    = opp.antistrat    ?? {}
-  selectedMaps.forEach(ensureMapData)
+  selectedMaps.forEach(m => ensureMapAntistrat(antistrat, m))
 }
 
 renderMapSelector()
