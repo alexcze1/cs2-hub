@@ -54,11 +54,11 @@ Two new files; existing `opponent-detail.js` becomes a consumer.
 
 2. **Open.** First open per session triggers a one-shot fetch:
    ```js
-   supabase.from('opponents').select('id, name, antistrat, selected_maps').eq('team_id', teamId).order('name')
+   supabase.from('opponents').select('id, name, antistrat, favored_maps').eq('team_id', teamId).order('name')
    ```
    Result cached in module-local memory. Header dropdown populates with opponent names. If opponents list is empty: drawer body shows an empty state with a link to `opponents.html`.
 
-3. **Pick opponent.** Sets `state.opponentId`, persists to localStorage, repopulates the map dropdown from the chosen opponent's `selected_maps[]`. If empty: drawer body shows "Add maps to this opponent" with a link to `opponent-detail.html?id=<opponentId>`.
+3. **Pick opponent.** Sets `state.opponentId`, persists to localStorage, repopulates the map dropdown from the chosen opponent's `favored_maps[]`. If empty: drawer body shows "Add maps to this opponent" with a link to `opponent-detail.html?id=<opponentId>`.
 
 4. **Pick map + side.** State updates and the body re-renders via `antistrat-editor.js` for the chosen `(opponent.antistrat[map], side)`.
 
@@ -91,7 +91,7 @@ Two new files; existing `opponent-detail.js` becomes a consumer.
 |---|---|
 | First visit, drawer never opened | Pill visible, drawer closed |
 | Open drawer, no opponents in DB | Empty state with link to opponents.html |
-| Pick opponent with no `selected_maps` | Body shows "Add maps to this opponent" + link |
+| Pick opponent with no `favored_maps` | Body shows "Add maps to this opponent" + link |
 | Edit a position note | 500ms after last keystroke → autosave + ✓ indicator |
 | Save error (network) | Red dot indicator, console.warn, retry on next change |
 | Close drawer with pending save | Pending save flushes immediately |
