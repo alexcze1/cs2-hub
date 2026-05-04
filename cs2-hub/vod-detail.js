@@ -292,7 +292,11 @@ document.getElementById('save-btn').addEventListener('click', async () => {
 // ── Delete ─────────────────────────────────────────────────
 document.getElementById('delete-btn').addEventListener('click', async () => {
   if (!confirm('Delete this match?')) return
-  const { error } = await supabase.from('vods').delete().eq('id', id)
+  const { data: row } = await supabase.from('vods').select('external_uid').eq('id', id).single()
+  const op = row?.external_uid
+    ? supabase.from('vods').update({ dismissed: true }).eq('id', id)
+    : supabase.from('vods').delete().eq('id', id)
+  const { error } = await op
   if (error) {
     document.getElementById('save-error').textContent = `Delete failed: ${error.message}`
     document.getElementById('save-error').style.display = 'block'
