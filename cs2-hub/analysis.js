@@ -1,6 +1,7 @@
 import { requireAuth }           from './auth.js'
 import { renderSidebar }         from './layout.js'
-import { supabase }              from './supabase.js'
+import { supabase, getTeamId }   from './supabase.js'
+import { mountAntistratDrawer } from './antistrat-drawer.js'
 import { attachTeamAutocomplete } from './team-autocomplete.js'
 import { narrowRoundsForTeam, framesForRound, grenadesForRound } from './analysis-rounds.js'
 import { worldToCanvas } from './demo-map-data.js'
@@ -1789,3 +1790,7 @@ applyMode()  // initial sync from URL
 
 // Export for tests (no-op in browser)
 export { state, readUrl, writeUrl }
+
+// Antistrat drawer (no-op on narrow viewports).
+mountAntistratDrawer({ teamId: getTeamId() })
+
