@@ -32,7 +32,22 @@ const TEAM = 'team-abc'
   assert(out[0].opponent === 'NaVi', 'opponent copied')
   assert(out[0].match_type === 'scrim', 'match_type is scrim')
   assert(out[0].match_date === '2026-05-10', 'match_date is YYYY-MM-DD')
-  assert(Array.isArray(out[0].maps) && out[0].maps.length === 0, 'maps initialized empty')
+  assert(Array.isArray(out[0].maps) && out[0].maps.length === 0, 'maps empty when event has no map')
+}
+
+// Test 2b: event with map → maps prefilled with one entry
+{
+  const events = [{
+    id: 'pracc-uid-1m',
+    title: 'NaVi',
+    opponent: 'NaVi',
+    map: 'mirage',
+    date: '2026-05-10T18:00:00Z',
+  }]
+  const out = computePraccVodsToInsert(events, new Set(), TEAM)
+  assert(out[0].maps.length === 1, 'maps has one entry when event has map')
+  assert(out[0].maps[0].map === 'mirage', 'map name copied through')
+  assert(out[0].maps[0].score_us === undefined, 'no score yet — fillable later')
 }
 
 // Test 3: existing UID is skipped

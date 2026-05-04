@@ -6,7 +6,7 @@ export function computePraccVodsToInsert(praccEvents, existingUids, teamId) {
       opponent: e.opponent || e.title,
       match_type: 'scrim',
       match_date: e.date.slice(0, 10),
-      maps: [],
+      maps: e.map ? [{ map: e.map }] : [],
       external_uid: e.id,
     }))
 }

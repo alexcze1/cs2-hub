@@ -26,17 +26,20 @@ function parseICS(text) {
       return `${Y}-${M}-${D}T${h}:${min}:${s}${z}`
     }
 
-    const title = summary || 'Pracc Match'
-    const vsMatch = title.match(/vs\.?\s+(.+)/i)
-    const opponent = vsMatch ? vsMatch[1].trim() : null
+    const fullTitle = summary || 'Pracc Match'
+    const mapMatch = fullTitle.match(/\(Map:\s*([^)]+)\)/i)
+    const map = mapMatch ? mapMatch[1].replace(/^de_/i, '').trim().toLowerCase() : null
+    const displayTitle = fullTitle.replace(/\s*\(Map:\s*[^)]+\)\s*/i, '').trim()
+    const opponent = displayTitle || null
 
     events.push({
       id:       `pracc-${uid}`,
-      title,
+      title:    displayTitle,
       type:     'scrim',
       date:     parseDate(dtstart),
       end_date: parseDate(dtend),
       opponent,
+      map,
       notes:    desc || null,
       source:   'pracc',
     })
