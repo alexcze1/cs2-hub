@@ -145,6 +145,42 @@ function rosterFrame({ ctIds = ['1','2','3','4','5'], tIds = ['6','7','8','9','1
   assert(r.rosterA.length === 0 && r.rosterB.length === 0, 'detectRosters: no crash, empty rosters')
 }
 
+import { namesForDemo } from './assign-teams.js'
+
+// Test 12: roster A on CT, full lineup → ct_team_name === nameA
+{
+  const demo = makeDemo('m', [rosterFrame()])
+  const rosterA = [{steam_id:'1'},{steam_id:'2'},{steam_id:'3'},{steam_id:'4'},{steam_id:'5'}]
+  const rosterB = [{steam_id:'6'},{steam_id:'7'},{steam_id:'8'},{steam_id:'9'},{steam_id:'10'}]
+  const r = namesForDemo(demo, rosterA, rosterB, 'NaVi', 'G2')
+  assert(r.ct_team_name === 'NaVi' && r.t_team_name === 'G2', 'namesForDemo: rosterA on CT')
+}
+
+// Test 13: sides swapped → roster A on T, ct_team_name === nameB
+{
+  const demo = makeDemo('m', [rosterFrame({ ctIds: ['6','7','8','9','10'], tIds: ['1','2','3','4','5'] })])
+  const rosterA = [{steam_id:'1'},{steam_id:'2'},{steam_id:'3'},{steam_id:'4'},{steam_id:'5'}]
+  const rosterB = [{steam_id:'6'},{steam_id:'7'},{steam_id:'8'},{steam_id:'9'},{steam_id:'10'}]
+  const r = namesForDemo(demo, rosterA, rosterB, 'NaVi', 'G2')
+  assert(r.ct_team_name === 'G2' && r.t_team_name === 'NaVi', 'namesForDemo: rosterA on T → ct gets nameB')
+}
+
+// Test 14: 4-of-5 overlap with rosterA on CT → ct_team_name === nameA
+{
+  const demo = makeDemo('m', [rosterFrame({ ctIds: ['1','2','3','4','99'] })])
+  const rosterA = [{steam_id:'1'},{steam_id:'2'},{steam_id:'3'},{steam_id:'4'},{steam_id:'5'}]
+  const rosterB = [{steam_id:'6'},{steam_id:'7'},{steam_id:'8'},{steam_id:'9'},{steam_id:'10'}]
+  const r = namesForDemo(demo, rosterA, rosterB, 'NaVi', 'G2')
+  assert(r.ct_team_name === 'NaVi', 'namesForDemo: 4/5 overlap still picks rosterA')
+}
+
+// Test 15: no frames → both nulls
+{
+  const demo = makeDemo('m', [])
+  const r = namesForDemo(demo, [{steam_id:'1'}], [{steam_id:'6'}], 'NaVi', 'G2')
+  assert(r.ct_team_name === null && r.t_team_name === null, 'namesForDemo: no frames → null pair')
+}
+
 console.log('All assign-teams tests done')
 </script>
 </body>

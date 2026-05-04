@@ -58,3 +58,20 @@ export function detectRosters(demos) {
   }
   return { rosterA, rosterB, confident }
 }
+
+// Decide which roster name goes on each side for a specific demo.
+// Uses the same majority-overlap rule as detectRosters: whichever roster
+// has more CT-side players in this demo's start frame wins ct_team_name.
+// Returns { ct_team_name, t_team_name } where either may be null when the
+// demo has no usable frame.
+export function namesForDemo(demo, rosterA, rosterB, nameA, nameB) {
+  const fr = pickStartFrame(demo?.match_data)
+  if (!fr) return { ct_team_name: null, t_team_name: null }
+  const idsA = new Set(rosterA.map(p => p.steam_id))
+  const ctIds = (fr.players ?? []).filter(p => p.team === 'ct').map(p => p.steam_id)
+  const overlapA = ctIds.filter(id => idsA.has(id)).length
+  const ctIsA = overlapA > (ctIds.length - overlapA)
+  return ctIsA
+    ? { ct_team_name: nameA, t_team_name: nameB }
+    : { ct_team_name: nameB, t_team_name: nameA }
+}
