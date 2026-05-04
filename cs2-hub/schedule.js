@@ -4,6 +4,11 @@ import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
 import { attachTeamAutocomplete, getTeamLogo, teamLogoEl } from './team-autocomplete.js'
 import { computePraccVodsToInsert, computePraccVodsToBackfill, localDateStr } from './pracc-sync.js'
+import {
+  findCandidateVods,
+  pickBestVod,
+  computeVodPatch,
+} from './auto-fill-vod.js'
 
 function esc(text) {
   const d = document.createElement('div')
@@ -75,14 +80,61 @@ async function loadEvents() {
       const existingVods = existing ?? []
       const existingUids = new Set(existingVods.map(v => v.external_uid))
       const newPayloads = computePraccVodsToInsert(praccEvents, existingUids, teamId)
+      let insertedVods = []
       if (newPayloads.length) {
-        await supabase.from('vods').insert(newPayloads)
+        const { data: inserted } = await supabase
+          .from('vods')
+          .insert(newPayloads)
+          .select('id, opponent, match_date, maps, result, demo_link, created_at')
+        insertedVods = inserted ?? []
       }
       const backfills = computePraccVodsToBackfill(praccEvents, existingVods)
       if (backfills.length) {
         await Promise.all(backfills.map(({ id, ...patch }) =>
           supabase.from('vods').update(patch).eq('id', id)
         ))
+      }
+      // Auto-link: if any of the just-inserted vods has a matching uploaded demo
+      // (same opponent, ±1 day, named), patch the vod's scores. Silent on
+      // failure — this is opportunistic.
+      if (insertedVods.length) {
+        try {
+          const dates = insertedVods.map(v => v.match_date).sort()
+          const widen = (d, delta) => {
+            const dt = new Date(`${d}T00:00:00`)
+            dt.setDate(dt.getDate() + delta)
+            return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+          }
+          const { data: demos } = await supabase
+            .from('demos')
+            .select('id, series_id, ct_team_name, t_team_name, map, team_a_score, team_b_score, team_a_first_side, played_at, created_at')
+            .eq('team_id', teamId)
+            .eq('status', 'ready')
+            .not('ct_team_name', 'is', null)
+            .gte('played_at', `${widen(dates[0], -1)}T00:00:00`)
+            .lte('played_at', `${widen(dates[dates.length - 1], 1)}T23:59:59`)
+
+          if (demos?.length) {
+            const groups = new Map()
+            for (const demo of demos) {
+              const cands = findCandidateVods(demo, insertedVods)
+              const chosen = pickBestVod(cands, demo)
+              if (!chosen) continue
+              let g = groups.get(chosen.id)
+              if (!g) { g = { vod: chosen, demos: [] }; groups.set(chosen.id, g) }
+              g.demos.push(demo)
+            }
+            for (const { vod, demos: ds } of groups.values()) {
+              const patch = computeVodPatch(ds, vod)
+              if (!patch) continue
+              const { _filledMapNames, ...dbPatch } = patch
+              await supabase.from('vods').update(dbPatch).eq('id', vod.id)
+              console.log('[auto-fill] linked vod', vod.id, 'maps', _filledMapNames)
+            }
+          }
+        } catch (e) {
+          console.warn('[auto-fill] pracc-sync trigger failed:', e)
+        }
       }
     })()
   }
