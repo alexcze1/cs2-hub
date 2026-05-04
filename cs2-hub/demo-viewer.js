@@ -3,6 +3,7 @@ import { renderSidebar } from './layout.js'
 import { supabase }      from './supabase.js'
 import { worldToCanvas } from './demo-map-data.js'
 import { getTeamLogo }   from './team-autocomplete.js'
+import { showAssignTeamsModal } from './assign-teams-modal.js'
 
 await requireAuth()
 renderSidebar('demos')
@@ -48,6 +49,25 @@ if (error || !demo || demo.status !== 'ready') {
     demo?.status === 'error'      ? 'Demo processing failed.'   :
     'Demo not found.'
   throw new Error('not ready')
+}
+
+// Block the viewer until team names exist. For a series, load all maps
+// so saving names them all in one shot. Cancel returns to the list.
+if (!demo.ct_team_name || !demo.t_team_name) {
+  let target = demoId
+  if (demo.series_id) {
+    const { data: sib } = await supabase
+      .from('demos')
+      .select('id,series_id,match_data,ct_team_name,t_team_name,created_at')
+      .eq('series_id', demo.series_id)
+      .order('created_at', { ascending: true })
+    if (sib?.length) target = sib
+  }
+  const result = await showAssignTeamsModal(target, {
+    onCancel: () => { window.location.href = 'demos.html' },
+  })
+  if (!result) return
+  window.location.reload()
 }
 
 state.match         = demo.match_data
