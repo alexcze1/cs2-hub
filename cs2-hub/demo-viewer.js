@@ -1,9 +1,10 @@
 import { requireAuth }   from './auth.js'
 import { renderSidebar } from './layout.js'
-import { supabase }      from './supabase.js'
+import { supabase, getTeamId } from './supabase.js'
 import { worldToCanvas } from './demo-map-data.js'
 import { getTeamLogo }   from './team-autocomplete.js'
 import { showAssignTeamsModal } from './assign-teams-modal.js'
+import { mountAntistratDrawer } from './antistrat-drawer.js'
 
 await requireAuth()
 renderSidebar('demos')
@@ -1560,3 +1561,6 @@ window.jumpToRound = jumpToRound
 jumpToRound(0)
 updateTimelineKills()
 requestAnimationFrame(ts => { state.lastTs = ts; loop(ts) })
+
+// Antistrat drawer (no-op on narrow viewports).
+mountAntistratDrawer({ teamId: getTeamId() })
