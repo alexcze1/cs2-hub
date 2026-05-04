@@ -37,9 +37,14 @@ create table vods (
   match_date date,
   maps jsonb default '[]',
   notes text,
+  external_uid text,
+  dismissed boolean default false,
   created_at timestamptz default now(),
   created_by uuid references auth.users(id)
 );
+
+create unique index if not exists vods_team_external_uid_idx
+  on vods(team_id, external_uid) where external_uid is not null;
 
 -- Migration (run if table already exists):
 -- alter table vods add column if not exists opponent text;
@@ -47,6 +52,9 @@ create table vods (
 -- alter table vods drop column if exists score;
 -- alter table vods drop column if exists notes;
 -- alter table vods add column if not exists notes text;
+-- alter table vods add column if not exists external_uid text;
+-- alter table vods add column if not exists dismissed boolean default false;
+-- create unique index if not exists vods_team_external_uid_idx on vods(team_id, external_uid) where external_uid is not null;
 
 create table opponents (
   id uuid primary key default gen_random_uuid(),
