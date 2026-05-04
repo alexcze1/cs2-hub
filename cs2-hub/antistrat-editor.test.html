@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script type="module">
+import {
+  renderPositionsGrid,
+  renderPlanSheet,
+  ensureMapAntistrat,
+} from './antistrat-editor.js'
+import { MAP_POSITIONS } from './map-positions.js'
+
+function assert(condition, msg) {
+  if (!condition) { console.error('FAIL:', msg); return }
+  console.log('PASS:', msg)
+}
+
+// ---- ensureMapAntistrat ----
+{
+  const a = {}
+  ensureMapAntistrat(a, 'mirage')
+  assert(a.mirage, 'creates entry for missing map')
+  assert(Object.keys(a.mirage.t_positions).length === 5, 't_positions seeded with 5 keys')
+  assert(Object.keys(a.mirage.ct_positions).length === 5, 'ct_positions seeded with 5 keys')
+  assert(a.mirage.t_plan.tendencies === '', 't_plan fields seeded empty')
+  assert(a.mirage.ct_plan.solutions === '', 'ct_plan fields seeded empty')
+}
+{
+  const existing = { mirage: { t_positions: { A: 'foo' }, ct_positions: {}, t_plan: {}, ct_plan: {} } }
+  ensureMapAntistrat(existing, 'mirage')
+  assert(existing.mirage.t_positions.A === 'foo', 'does not overwrite existing data')
+}
+
+// ---- renderPositionsGrid ----
+{
+  const data = { mirage: { t_positions: { A: 'player1', MID: '' }, ct_positions: {}, t_plan: {}, ct_plan: {} } }
+  const { html } = renderPositionsGrid('mirage', 't', data)
+  for (const pos of MAP_POSITIONS.mirage.t) {
+    assert(html.includes(`data-pos="${pos}"`), `grid contains input for position ${pos}`)
+  }
+  assert(html.includes('value="player1"'), 'prefills A=player1')
+}
+if (typeof document !== 'undefined') {
+  // wire fires onChange with normalized payload (browser-only — needs DOM)
+  const data = { mirage: { t_positions: { A: '' }, ct_positions: {}, t_plan: {}, ct_plan: {} } }
+  let last = null
+  const root = document.createElement('div')
+  const { html, wire } = renderPositionsGrid('mirage', 't', data, p => { last = p })
+  root.innerHTML = html
+  wire(root)
+  const input = root.querySelector('input[data-pos="A"]')
+  input.value = 'newplayer'
+  input.dispatchEvent(new Event('input'))
+  assert(last && last.kind === 'position', 'onChange payload kind=position')
+  assert(last.map === 'mirage' && last.side === 't', 'onChange payload map+side')
+  assert(last.pos === 'A' && last.value === 'newplayer', 'onChange payload pos+value')
+  assert(data.mirage.t_positions.A === 'newplayer', 'wire mutates working copy in place')
+}
+{
+  // empty antistratData[map] does not throw
+  const { html } = renderPositionsGrid('mirage', 't', {})
+  assert(html.length > 0, 'renders with empty data, no crash')
+  assert(!html.includes('value="player'), 'no prefilled values when data missing')
+}
+
+// ---- renderPlanSheet ----
+{
+  const data = { mirage: { t_positions: {}, ct_positions: {}, t_plan: {}, ct_plan: { tendencies: 'they rush B' } } }
+  const { html } = renderPlanSheet('mirage', 'ct', data)
+  for (const f of ['pistols','antiecos','tendencies','exploits','solutions','style','forces']) {
+    assert(html.includes(`data-field="${f}"`), `plan sheet contains textarea for ${f}`)
+  }
+  assert(html.includes('they rush B'), 'plan sheet prefills existing field')
+}
+if (typeof document !== 'undefined') {
+  // wire fires onChange for plan field (browser-only — needs DOM)
+  const data = { mirage: { t_positions: {}, ct_positions: {}, t_plan: {}, ct_plan: {} } }
+  let last = null
+  const root = document.createElement('div')
+  const { html, wire } = renderPlanSheet('mirage', 'ct', data, p => { last = p })
+  root.innerHTML = html
+  wire(root)
+  const ta = root.querySelector('textarea[data-field="tendencies"]')
+  ta.value = 'observation'
+  ta.dispatchEvent(new Event('input'))
+  assert(last && last.kind === 'plan', 'onChange payload kind=plan')
+  assert(last.map === 'mirage' && last.side === 'ct', 'plan onChange payload map+side')
+  assert(last.field === 'tendencies' && last.value === 'observation', 'plan onChange payload field+value')
+  assert(data.mirage.ct_plan.tendencies === 'observation', 'wire mutates plan in place')
+}
+
+console.log('antistrat-editor tests done')
+</script>
+</body>
+</html>
