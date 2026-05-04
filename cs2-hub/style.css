@@ -63,7 +63,6 @@ body {
   max-width: 140px;
   height: auto;
   object-fit: contain;
-  filter: invert(1);
   margin-bottom: 10px;
   display: block;
 }
