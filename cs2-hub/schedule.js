@@ -3,7 +3,7 @@ import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
 import { attachTeamAutocomplete, getTeamLogo, teamLogoEl } from './team-autocomplete.js'
-import { computePraccVodsToInsert, computePraccVodsToBackfill } from './pracc-sync.js'
+import { computePraccVodsToInsert, computePraccVodsToBackfill, localDateStr } from './pracc-sync.js'
 
 function esc(text) {
   const d = document.createElement('div')
@@ -69,7 +69,7 @@ async function loadEvents() {
       const uids = praccEvents.map(e => e.id)
       const { data: existing } = await supabase
         .from('vods')
-        .select('id, external_uid, maps')
+        .select('id, external_uid, maps, match_date')
         .eq('team_id', teamId)
         .in('external_uid', uids)
       const existingVods = existing ?? []
@@ -80,8 +80,8 @@ async function loadEvents() {
       }
       const backfills = computePraccVodsToBackfill(praccEvents, existingVods)
       if (backfills.length) {
-        await Promise.all(backfills.map(u =>
-          supabase.from('vods').update({ maps: u.maps }).eq('id', u.id)
+        await Promise.all(backfills.map(({ id, ...patch }) =>
+          supabase.from('vods').update(patch).eq('id', id)
         ))
       }
     })()
@@ -116,8 +116,8 @@ function renderCalendar() {
   grid.innerHTML = cells.map(d => {
     const isCurrentMonth = d.getMonth() === month
     const isToday = d.getTime() === today.getTime()
-    const dateStr = d.toISOString().slice(0, 10)
-    const dayEvents = allEvents.filter(e => e.date.slice(0, 10) === dateStr)
+    const dateStr = localDateStr(d)
+    const dayEvents = allEvents.filter(e => localDateStr(new Date(e.date)) === dateStr)
 
     return `
       <div class="cal-cell ${!isCurrentMonth ? 'cal-other' : ''} ${isToday ? 'cal-today' : ''}" data-date="${dateStr}">

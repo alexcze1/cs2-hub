@@ -2,7 +2,7 @@
 <html>
 <body>
 <script type="module">
-import { computePraccVodsToInsert, computePraccVodsToBackfill } from './pracc-sync.js'
+import { computePraccVodsToInsert, computePraccVodsToBackfill, localDateStr } from './pracc-sync.js'
 
 function assert(condition, msg) {
   if (!condition) { console.error('FAIL:', msg); return; }
@@ -10,6 +10,9 @@ function assert(condition, msg) {
 }
 
 const TEAM = 'team-abc'
+
+// Note: dates intentionally have no Z suffix so they parse as LOCAL time
+// in any timezone the test runs in — keeps assertions deterministic.
 
 // Test 1: empty pracc events → empty payloads
 {
@@ -23,7 +26,7 @@ const TEAM = 'team-abc'
     id: 'pracc-uid-1',
     title: 'Scrim vs NaVi',
     opponent: 'NaVi',
-    date: '2026-05-10T18:00:00Z',
+    date: '2026-05-10T18:00:00',
   }]
   const out = computePraccVodsToInsert(events, new Set(), TEAM)
   assert(out.length === 1, 'single new event yields one payload')
@@ -31,7 +34,7 @@ const TEAM = 'team-abc'
   assert(out[0].external_uid === 'pracc-uid-1', 'external_uid copied from event id')
   assert(out[0].opponent === 'NaVi', 'opponent copied')
   assert(out[0].match_type === 'scrim', 'match_type is scrim')
-  assert(out[0].match_date === '2026-05-10', 'match_date is YYYY-MM-DD')
+  assert(out[0].match_date === '2026-05-10', 'match_date is local YYYY-MM-DD')
   assert(Array.isArray(out[0].maps) && out[0].maps.length === 0, 'maps empty when event has no map')
 }
 
@@ -42,7 +45,7 @@ const TEAM = 'team-abc'
     title: 'NaVi',
     opponent: 'NaVi',
     map: 'mirage',
-    date: '2026-05-10T18:00:00Z',
+    date: '2026-05-10T18:00:00',
   }]
   const out = computePraccVodsToInsert(events, new Set(), TEAM)
   assert(out[0].maps.length === 1, 'maps has one entry when event has map')
@@ -53,8 +56,8 @@ const TEAM = 'team-abc'
 // Test 3: existing UID is skipped
 {
   const events = [
-    { id: 'pracc-uid-1', title: 'A', opponent: 'A', date: '2026-05-10T18:00:00Z' },
-    { id: 'pracc-uid-2', title: 'B', opponent: 'B', date: '2026-05-11T18:00:00Z' },
+    { id: 'pracc-uid-1', title: 'A', opponent: 'A', date: '2026-05-10T18:00:00' },
+    { id: 'pracc-uid-2', title: 'B', opponent: 'B', date: '2026-05-11T18:00:00' },
   ]
   const existing = new Set(['pracc-uid-1'])
   const out = computePraccVodsToInsert(events, existing, TEAM)
@@ -68,7 +71,7 @@ const TEAM = 'team-abc'
     id: 'pracc-uid-3',
     title: 'Practice block',
     opponent: null,
-    date: '2026-05-12T18:00:00Z',
+    date: '2026-05-12T18:00:00',
   }]
   const out = computePraccVodsToInsert(events, new Set(), TEAM)
   assert(out[0].opponent === 'Practice block', 'opponent falls back to title')
@@ -76,51 +79,72 @@ const TEAM = 'team-abc'
 
 // Test 5: all UIDs already exist → empty
 {
-  const events = [{ id: 'pracc-uid-1', title: 'A', opponent: 'A', date: '2026-05-10T18:00:00Z' }]
+  const events = [{ id: 'pracc-uid-1', title: 'A', opponent: 'A', date: '2026-05-10T18:00:00' }]
   const out = computePraccVodsToInsert(events, new Set(['pracc-uid-1']), TEAM)
   assert(out.length === 0, 'all-existing yields empty array')
 }
 
-// Test 6: backfill — empty maps + event has map → update produced
+// Test 6: backfill — empty maps + correct date → only map patch
 {
-  const events = [{ id: 'pracc-uid-1', map: 'mirage', date: '2026-05-10T18:00:00Z' }]
-  const existing = [{ id: 'vod-1', external_uid: 'pracc-uid-1', maps: [] }]
+  const events = [{ id: 'pracc-uid-1', map: 'mirage', date: '2026-05-10T18:00:00' }]
+  const existing = [{ id: 'vod-1', external_uid: 'pracc-uid-1', maps: [], match_date: '2026-05-10' }]
   const out = computePraccVodsToBackfill(events, existing)
   assert(out.length === 1, 'backfill: empty maps gets update')
   assert(out[0].id === 'vod-1', 'backfill: vod id passed through')
   assert(out[0].maps[0].map === 'mirage', 'backfill: map filled in')
+  assert(!('match_date' in out[0]), 'backfill: no date patch when date already correct')
 }
 
-// Test 7: backfill — non-empty maps left alone (don't overwrite manual edits)
+// Test 7: backfill — non-empty maps + correct date → no patch
 {
-  const events = [{ id: 'pracc-uid-1', map: 'mirage', date: '2026-05-10T18:00:00Z' }]
-  const existing = [{ id: 'vod-1', external_uid: 'pracc-uid-1', maps: [{ map: 'inferno', score_us: 13 }] }]
+  const events = [{ id: 'pracc-uid-1', map: 'mirage', date: '2026-05-10T18:00:00' }]
+  const existing = [{ id: 'vod-1', external_uid: 'pracc-uid-1', maps: [{ map: 'inferno', score_us: 13 }], match_date: '2026-05-10' }]
   const out = computePraccVodsToBackfill(events, existing)
-  assert(out.length === 0, 'backfill: non-empty maps untouched')
+  assert(out.length === 0, 'backfill: non-empty maps + correct date untouched')
 }
 
-// Test 8: backfill — event with no map yields no update
+// Test 8: backfill — wrong date alone → only date patch
 {
-  const events = [{ id: 'pracc-uid-1', date: '2026-05-10T18:00:00Z' }]
-  const existing = [{ id: 'vod-1', external_uid: 'pracc-uid-1', maps: [] }]
+  const events = [{ id: 'pracc-uid-1', map: 'mirage', date: '2026-05-10T18:00:00' }]
+  const existing = [{ id: 'vod-1', external_uid: 'pracc-uid-1', maps: [{ map: 'mirage' }], match_date: '2026-05-11' }]
   const out = computePraccVodsToBackfill(events, existing)
-  assert(out.length === 0, 'backfill: no map on event yields no update')
+  assert(out.length === 1, 'backfill: wrong date gets update')
+  assert(out[0].match_date === '2026-05-10', 'backfill: date corrected')
+  assert(!('maps' in out[0]), 'backfill: no maps patch when maps already populated')
 }
 
-// Test 9: backfill — no matching vod yields no update
+// Test 9: backfill — wrong date AND empty maps → both patches
 {
-  const events = [{ id: 'pracc-uid-1', map: 'mirage', date: '2026-05-10T18:00:00Z' }]
-  const existing = []
+  const events = [{ id: 'pracc-uid-1', map: 'mirage', date: '2026-05-10T18:00:00' }]
+  const existing = [{ id: 'vod-1', external_uid: 'pracc-uid-1', maps: [], match_date: '2026-05-11' }]
   const out = computePraccVodsToBackfill(events, existing)
+  assert(out.length === 1, 'backfill: combined patch produced')
+  assert(out[0].match_date === '2026-05-10', 'backfill: date corrected in combined patch')
+  assert(out[0].maps[0].map === 'mirage', 'backfill: map filled in combined patch')
+}
+
+// Test 10: backfill — no matching vod yields no update
+{
+  const events = [{ id: 'pracc-uid-1', map: 'mirage', date: '2026-05-10T18:00:00' }]
+  const out = computePraccVodsToBackfill(events, [])
   assert(out.length === 0, 'backfill: no existing vod yields no update')
 }
 
-// Test 10: backfill — null maps treated as empty
+// Test 11: backfill — null maps treated as empty
 {
-  const events = [{ id: 'pracc-uid-1', map: 'mirage', date: '2026-05-10T18:00:00Z' }]
-  const existing = [{ id: 'vod-1', external_uid: 'pracc-uid-1', maps: null }]
+  const events = [{ id: 'pracc-uid-1', map: 'mirage', date: '2026-05-10T18:00:00' }]
+  const existing = [{ id: 'vod-1', external_uid: 'pracc-uid-1', maps: null, match_date: '2026-05-10' }]
   const out = computePraccVodsToBackfill(events, existing)
   assert(out.length === 1, 'backfill: null maps treated as empty')
+  assert(out[0].maps[0].map === 'mirage', 'backfill: null maps gets filled')
+}
+
+// Test 12: localDateStr — local-tz date formatting (TZ-independent because input is local)
+{
+  const d = new Date(2026, 4, 4, 23, 30) // May 4, 23:30 local
+  assert(localDateStr(d) === '2026-05-04', 'localDateStr formats local date correctly')
+  const d2 = new Date(2026, 0, 1, 0, 0)
+  assert(localDateStr(d2) === '2026-01-01', 'localDateStr zero-pads single-digit month/day')
 }
 
 console.log('All pracc-sync tests done')
