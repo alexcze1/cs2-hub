@@ -155,9 +155,9 @@ export async function showAssignTeamsModal(demoIdOrSeries, opts = {}) {
     `
     overlay.innerHTML = `
       <div style="
-        background:#0a0a0f;border:1px solid rgba(102,102,183,0.22);border-radius:14px;
+        background:#0a0a0a;border:1px solid rgba(216,26,29,0.22);border-radius:14px;
         padding:28px 32px;width:520px;max-width:94vw;
-        box-shadow:0 0 40px rgba(102,102,183,0.12);
+        box-shadow:0 0 40px rgba(216,26,29,0.12);
       ">
         <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:6px">Assign Teams</div>
         <div style="font-size:11px;color:#666;margin-bottom:20px">${demos.length > 1 ? `Applies to all ${demos.length} maps in this series.` : 'Applies to this map.'}</div>
@@ -238,7 +238,7 @@ export async function showLegacyBySideModal(demoId, opts = {}) {
     const overlay = document.createElement('div')
     overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);`
     overlay.innerHTML = `
-      <div style="background:#0a0a0f;border:1px solid rgba(102,102,183,0.22);border-radius:14px;padding:28px 32px;width:480px;max-width:94vw;box-shadow:0 0 40px rgba(102,102,183,0.12);">
+      <div style="background:#0a0a0a;border:1px solid rgba(216,26,29,0.22);border-radius:14px;padding:28px 32px;width:480px;max-width:94vw;box-shadow:0 0 40px rgba(216,26,29,0.12);">
         <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:20px">Assign Teams (per-side)</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
           <div style="background:rgba(79,195,247,0.05);border:1px solid rgba(79,195,247,0.14);border-radius:8px;padding:12px">

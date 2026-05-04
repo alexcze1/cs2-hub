@@ -769,7 +769,7 @@ function drawPlayerPill(x, dotTopY, label, color, pillFont, pillFontSz) {
   const py  = dotTopY - ph - 2
   // Dark glass background
   drawRoundRect(ctx, px, py, pw, ph, ph / 2)
-  ctx.fillStyle   = 'rgba(3,7,18,0.82)'
+  ctx.fillStyle   = 'rgba(0,0,0,0.82)'
   ctx.fill()
   // Team-color outline
   drawRoundRect(ctx, px, py, pw, ph, ph / 2)
@@ -823,7 +823,7 @@ function render() {
   ctx.clearRect(0, 0, cw, ch)
 
   // Dark fill — letterbox areas match body bg
-  ctx.fillStyle = '#030712'
+  ctx.fillStyle = '#000000'
   ctx.fillRect(0, 0, cw, ch)
 
   // Map region: object-fit:contain centered square
@@ -849,10 +849,10 @@ function render() {
     ctx.fillRect(mapX, mapY, mapSize, mapSize)
     // Edge vignette — blends map into letterbox bg, removes visible box border
     const vign = mapSize * 0.07
-    const bg   = '#030712'
+    const bg   = '#000000'
     const makeGrad = (x0, y0, x1, y1) => {
       const g = ctx.createLinearGradient(x0, y0, x1, y1)
-      g.addColorStop(0, bg); g.addColorStop(1, 'rgba(3,7,18,0)')
+      g.addColorStop(0, bg); g.addColorStop(1, 'rgba(0,0,0,0)')
       return g
     }
     ctx.fillStyle = makeGrad(mapX,                    0, mapX + vign,              0); ctx.fillRect(mapX,                    mapY, vign,    mapSize)
@@ -860,7 +860,7 @@ function render() {
     ctx.fillStyle = makeGrad(0, mapY,                    0, mapY + vign              ); ctx.fillRect(mapX, mapY,                    mapSize, vign)
     ctx.fillStyle = makeGrad(0, mapY + mapSize,          0, mapY + mapSize - vign    ); ctx.fillRect(mapX, mapY + mapSize - vign,   mapSize, vign)
   } else {
-    ctx.fillStyle = '#030712'
+    ctx.fillStyle = '#000000'
     ctx.fillRect(mapX, mapY, mapSize, mapSize)
   }
   const frame = getInterpolatedFrame(state.tick)
@@ -1029,7 +1029,7 @@ function render() {
     const label      = '✏  DRAW  [D] exit  [C] color  [R] clear'
     const lw         = ctx.measureText(label).width
     drawRoundRect(ctx, 10, 10, lw + 20, 26, 6)
-    ctx.fillStyle = 'rgba(3,7,18,0.82)'
+    ctx.fillStyle = 'rgba(0,0,0,0.82)'
     ctx.fill()
     drawRoundRect(ctx, 10, 10, lw + 20, 26, 6)
     ctx.strokeStyle = indColor
@@ -1160,8 +1160,8 @@ function showSetposToast(playerName) {
     toast.id = 'setpos-toast'
     toast.style.cssText = `
       position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-      background: rgba(3,7,18,0.92); color: #fff; padding: 9px 16px;
-      border: 1px solid rgba(102,102,183,0.45); border-radius: 8px;
+      background: rgba(0,0,0,0.92); color: #fff; padding: 9px 16px;
+      border: 1px solid rgba(216,26,29,0.45); border-radius: 8px;
       font: 600 12px Inter, system-ui, sans-serif; z-index: 1000;
       pointer-events: none; transition: opacity 0.2s; opacity: 0;
     `

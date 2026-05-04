@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="style.css"/>
   <style>
     /* Override body gradient — full-screen viewer needs uniform dark bg */
-    body { background: #030712; }
+    body { background: #000000; }
 
     /* ── Layout shell ───────────────────────────────────────── */
     .viewer-shell {
@@ -31,9 +31,9 @@
       align-items: center;
       justify-content: center;
       gap: 24px;
-      background: linear-gradient(135deg, rgba(102,102,183,0.12) 0%, rgba(3,7,18,0.97) 65%);
-      border: 1px solid rgba(102,102,183,0.22);
-      box-shadow: 0 0 24px rgba(102,102,183,0.10), inset 0 1px 0 rgba(102,102,183,0.10);
+      background: linear-gradient(135deg, rgba(216,26,29,0.12) 0%, rgba(0,0,0,0.97) 65%);
+      border: 1px solid rgba(216,26,29,0.22);
+      box-shadow: 0 0 24px rgba(216,26,29,0.10), inset 0 1px 0 rgba(216,26,29,0.10);
       border-radius: 10px;
       padding: 6px 24px;
       white-space: nowrap;
@@ -133,8 +133,8 @@
       align-items: center;
       gap: 5px;
       padding: 3px 8px 3px 7px;
-      background: linear-gradient(135deg, rgba(102,102,183,0.08) 0%, rgba(3,7,18,0.95) 100%);
-      border: 1px solid rgba(102,102,183,0.16);
+      background: linear-gradient(135deg, rgba(216,26,29,0.08) 0%, rgba(0,0,0,0.95) 100%);
+      border: 1px solid rgba(216,26,29,0.16);
       border-radius: 6px;
       cursor: pointer;
       transition: border-color 0.15s, box-shadow 0.15s;
@@ -143,13 +143,13 @@
       height: 26px;
     }
     .map-sw-pill:hover {
-      border-color: rgba(102,102,183,0.38);
-      box-shadow: 0 0 8px rgba(102,102,183,0.12);
+      border-color: rgba(216,26,29,0.38);
+      box-shadow: 0 0 8px rgba(216,26,29,0.12);
     }
     .map-sw-pill.active {
-      border-color: rgba(102,102,183,0.5);
-      box-shadow: 0 0 10px rgba(102,102,183,0.18);
-      background: linear-gradient(135deg, rgba(102,102,183,0.16) 0%, rgba(3,7,18,0.96) 100%);
+      border-color: rgba(216,26,29,0.5);
+      box-shadow: 0 0 10px rgba(216,26,29,0.18);
+      background: linear-gradient(135deg, rgba(216,26,29,0.16) 0%, rgba(0,0,0,0.96) 100%);
     }
     .map-sw-num {
       font-size: 8px;
@@ -181,7 +181,7 @@
       min-height: 0;
       position: relative;
       overflow: hidden;
-      background: #030712;
+      background: #000000;
     }
     #map-canvas {
       position: absolute;
@@ -216,14 +216,14 @@
       transition: opacity 0.15s, filter 0.15s;
     }
     .player-card { cursor: pointer; }
-    .player-card:hover { background: rgba(102,102,183,0.12); }
+    .player-card:hover { background: rgba(216,26,29,0.12); }
     .ct-panel .player-card {
-      background: linear-gradient(135deg, rgba(79,195,247,0.09) 0%, rgba(3,7,18,0.97) 65%);
+      background: linear-gradient(135deg, rgba(79,195,247,0.09) 0%, rgba(0,0,0,0.97) 65%);
       border: 1px solid rgba(79,195,247,0.18);
       box-shadow: 0 0 16px rgba(79,195,247,0.07), inset 0 1px 0 rgba(79,195,247,0.08);
     }
     .t-panel .player-card {
-      background: linear-gradient(135deg, rgba(255,149,0,0.09) 0%, rgba(3,7,18,0.97) 65%);
+      background: linear-gradient(135deg, rgba(255,149,0,0.09) 0%, rgba(0,0,0,0.97) 65%);
       border: 1px solid rgba(255,149,0,0.18);
       box-shadow: 0 0 16px rgba(255,149,0,0.07), inset 0 1px 0 rgba(255,149,0,0.08);
     }
@@ -364,13 +364,13 @@
       transition: opacity 0.3s;
     }
     .kf-row.ct-kill {
-      background: linear-gradient(135deg, rgba(79,195,247,0.09) 0%, rgba(3,7,18,0.97) 70%);
+      background: linear-gradient(135deg, rgba(79,195,247,0.09) 0%, rgba(0,0,0,0.97) 70%);
       border: 1px solid rgba(79,195,247,0.16);
       border-left: 2px solid #4FC3F7;
       box-shadow: 0 0 10px rgba(79,195,247,0.06);
     }
     .kf-row.t-kill {
-      background: linear-gradient(135deg, rgba(255,149,0,0.09) 0%, rgba(3,7,18,0.97) 70%);
+      background: linear-gradient(135deg, rgba(255,149,0,0.09) 0%, rgba(0,0,0,0.97) 70%);
       border: 1px solid rgba(255,149,0,0.16);
       border-left: 2px solid #FF9500;
       box-shadow: 0 0 10px rgba(255,149,0,0.06);
@@ -392,7 +392,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--bg, #030712);
+      background: var(--bg, #000000);
       z-index: 10;
       font-size: 14px;
       color: var(--text-secondary, #A1A1AA);
@@ -401,8 +401,8 @@
     /* ── Bottom controls ────────────────────────────────────── */
     .viewer-bottom {
       flex-shrink: 0;
-      background: linear-gradient(180deg, rgba(102,102,183,0.05) 0%, rgba(3,7,18,0.99) 100%);
-      border-top: 1px solid rgba(102,102,183,0.16);
+      background: linear-gradient(180deg, rgba(216,26,29,0.05) 0%, rgba(0,0,0,0.99) 100%);
+      border-top: 1px solid rgba(216,26,29,0.16);
       padding: 8px 12px;
       display: flex;
       flex-direction: column;
@@ -458,9 +458,9 @@
       opacity: 0.85;
     }
     .round-sq:hover    { opacity: 1; transform: scale(1.08); }
-    .round-sq.current  { outline: 2px solid rgba(102,102,183,0.9); outline-offset: 1px; opacity: 1; box-shadow: 0 0 10px rgba(102,102,183,0.3); }
-    .round-sq.ct       { background: linear-gradient(135deg, rgba(79,195,247,0.18) 0%, rgba(3,7,18,0.9) 100%); border: 1px solid rgba(79,195,247,0.30); color: #4FC3F7; box-shadow: 0 0 8px rgba(79,195,247,0.10); }
-    .round-sq.t        { background: linear-gradient(135deg, rgba(255,149,0,0.16) 0%, rgba(3,7,18,0.9) 100%);  border: 1px solid rgba(255,149,0,0.30);  color: #FF9500; box-shadow: 0 0 8px rgba(255,149,0,0.10); }
+    .round-sq.current  { outline: 2px solid rgba(216,26,29,0.9); outline-offset: 1px; opacity: 1; box-shadow: 0 0 10px rgba(216,26,29,0.3); }
+    .round-sq.ct       { background: linear-gradient(135deg, rgba(79,195,247,0.18) 0%, rgba(0,0,0,0.9) 100%); border: 1px solid rgba(79,195,247,0.30); color: #4FC3F7; box-shadow: 0 0 8px rgba(79,195,247,0.10); }
+    .round-sq.t        { background: linear-gradient(135deg, rgba(255,149,0,0.16) 0%, rgba(0,0,0,0.9) 100%);  border: 1px solid rgba(255,149,0,0.30);  color: #FF9500; box-shadow: 0 0 8px rgba(255,149,0,0.10); }
 
     /* ── Timeline ───────────────────────────────────────────── */
     .viewer-timeline {
@@ -471,11 +471,11 @@
     .play-btn {
       width: 34px;
       height: 34px;
-      background: linear-gradient(135deg, rgba(102,102,183,0.22) 0%, rgba(3,7,18,0.97) 100%);
-      border: 1px solid rgba(102,102,183,0.38);
-      box-shadow: 0 0 12px rgba(102,102,183,0.12), inset 0 1px 0 rgba(102,102,183,0.12);
+      background: linear-gradient(135deg, rgba(216,26,29,0.22) 0%, rgba(0,0,0,0.97) 100%);
+      border: 1px solid rgba(216,26,29,0.38);
+      box-shadow: 0 0 12px rgba(216,26,29,0.12), inset 0 1px 0 rgba(216,26,29,0.12);
       border-radius: 5px;
-      color: #9999dd;
+      color: #FF6666;
       font-size: 12px;
       cursor: pointer;
       display: flex;
@@ -486,9 +486,9 @@
       padding: 0;
     }
     .play-btn:hover {
-      background: linear-gradient(135deg, rgba(102,102,183,0.34) 0%, rgba(3,7,18,0.97) 100%);
-      border-color: rgba(102,102,183,0.6);
-      box-shadow: 0 0 18px rgba(102,102,183,0.2), inset 0 1px 0 rgba(102,102,183,0.15);
+      background: linear-gradient(135deg, rgba(216,26,29,0.34) 0%, rgba(0,0,0,0.97) 100%);
+      border-color: rgba(216,26,29,0.6);
+      box-shadow: 0 0 18px rgba(216,26,29,0.2), inset 0 1px 0 rgba(216,26,29,0.15);
     }
     .tl-main {
       flex: 1;
@@ -505,15 +505,15 @@
     .tl-lane-bg {
       position: absolute;
       inset: 0;
-      background: linear-gradient(135deg, rgba(102,102,183,0.07) 0%, rgba(3,7,18,0.85) 100%);
+      background: linear-gradient(135deg, rgba(216,26,29,0.07) 0%, rgba(0,0,0,0.85) 100%);
       border-radius: 5px;
-      border: 1px solid rgba(102,102,183,0.14);
-      box-shadow: inset 0 1px 0 rgba(102,102,183,0.08);
+      border: 1px solid rgba(216,26,29,0.14);
+      box-shadow: inset 0 1px 0 rgba(216,26,29,0.08);
     }
     .tl-lane-fill {
       position: absolute;
       top: 0; left: 0; bottom: 0;
-      background: linear-gradient(90deg, rgba(102,102,183,0.22), rgba(102,102,183,0.08));
+      background: linear-gradient(90deg, rgba(216,26,29,0.22), rgba(216,26,29,0.08));
       border-radius: 5px 0 0 5px;
       pointer-events: none;
     }
@@ -523,7 +523,7 @@
       width: 2px;
       background: rgba(140,140,220,0.8);
       border-radius: 1px;
-      box-shadow: 0 0 6px rgba(102,102,183,0.6);
+      box-shadow: 0 0 6px rgba(216,26,29,0.6);
       pointer-events: none;
     }
     .tl-thumb {
@@ -534,7 +534,7 @@
       height: 14px;
       background: #fff;
       border-radius: 50%;
-      box-shadow: 0 0 0 3px rgba(102,102,183,0.4), 0 0 10px rgba(102,102,183,0.5);
+      box-shadow: 0 0 0 3px rgba(216,26,29,0.4), 0 0 10px rgba(216,26,29,0.5);
       pointer-events: none;
     }
     .tl-time-row {
@@ -575,8 +575,8 @@
       flex-shrink: 0;
     }
     .speed-btn {
-      background: linear-gradient(135deg, rgba(102,102,183,0.05) 0%, rgba(3,7,18,0.9) 100%);
-      border: 1px solid rgba(102,102,183,0.12);
+      background: linear-gradient(135deg, rgba(216,26,29,0.05) 0%, rgba(0,0,0,0.9) 100%);
+      border: 1px solid rgba(216,26,29,0.12);
       border-radius: 4px;
       padding: 4px 9px;
       font-size: 9.5px;
@@ -584,12 +584,12 @@
       cursor: pointer;
       transition: border-color 0.15s, color 0.15s, background 0.15s, box-shadow 0.15s;
     }
-    .speed-btn:hover  { border-color: rgba(102,102,183,0.38); color: #9999dd; }
+    .speed-btn:hover  { border-color: rgba(216,26,29,0.38); color: #FF6666; }
     .speed-btn.active {
-      background: linear-gradient(135deg, rgba(102,102,183,0.20) 0%, rgba(3,7,18,0.97) 100%);
-      border-color: rgba(102,102,183,0.45);
+      background: linear-gradient(135deg, rgba(216,26,29,0.20) 0%, rgba(0,0,0,0.97) 100%);
+      border-color: rgba(216,26,29,0.45);
       color: #aaaaee;
-      box-shadow: 0 0 8px rgba(102,102,183,0.12), inset 0 1px 0 rgba(102,102,183,0.1);
+      box-shadow: 0 0 8px rgba(216,26,29,0.12), inset 0 1px 0 rgba(216,26,29,0.1);
     }
   </style>
 </head>

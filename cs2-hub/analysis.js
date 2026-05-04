@@ -502,7 +502,7 @@ function render() {
   const cw = canvas.width
   const ch = canvas.height
   ctx.clearRect(0, 0, cw, ch)
-  ctx.fillStyle = '#030712'
+  ctx.fillStyle = '#000000'
   ctx.fillRect(0, 0, cw, ch)
 
   // Letterbox: square map region, centered
@@ -675,7 +675,7 @@ function drawPlayerPill(x, dotTopY, label, color, pillFont, pillFontSz) {
   const px = x - pw / 2
   const py = dotTopY - ph - 2
   drawRoundRect(ctx, px, py, pw, ph, ph / 2)
-  ctx.fillStyle = 'rgba(3,7,18,0.82)'; ctx.fill()
+  ctx.fillStyle = 'rgba(0,0,0,0.82)'; ctx.fill()
   drawRoundRect(ctx, px, py, pw, ph, ph / 2)
   ctx.strokeStyle = color; ctx.globalAlpha = 0.75; ctx.lineWidth = 1; ctx.stroke()
   ctx.globalAlpha = 1
