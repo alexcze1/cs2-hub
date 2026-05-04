@@ -2,7 +2,7 @@
 import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
-import { showAssignTeamsModal, showLegacyBySideModal } from './assign-teams-modal.js'
+import { showAssignTeamsModal } from './assign-teams-modal.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 function formatDate(d) { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) }
