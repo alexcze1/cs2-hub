@@ -1226,3 +1226,11 @@ body {
 .antistrat-drawer-body { flex: 1; overflow: auto; padding: 12px 14px; }
 .antistrat-drawer-empty { padding: 24px 14px; opacity: 0.7; font-size: 13px; }
 .antistrat-drawer-empty a { color: var(--accent); }
+
+/* When the drawer is open, slide the sidebar off-screen and shift main
+   content so nothing is covered. Transitions live on the base rules so
+   only these specific property changes animate. */
+.sidebar     { transition: transform 200ms ease; }
+.main-content { transition: margin-left 200ms ease, margin-right 200ms ease; }
+body.antistrat-drawer-open .sidebar      { transform: translateX(-100%); }
+body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; }

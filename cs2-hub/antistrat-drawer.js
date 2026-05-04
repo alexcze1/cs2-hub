@@ -80,6 +80,7 @@ export function mountAntistratDrawer({ teamId }) {
   function setOpen(open) {
     state.open = open
     drawer.classList.toggle('open', open)
+    document.body.classList.toggle('antistrat-drawer-open', open)
     writeLs(teamId, 'open', open)
     if (open && state.opponents == null) loadOpponents()
     if (open) renderBody()
@@ -164,6 +165,16 @@ export function mountAntistratDrawer({ teamId }) {
     `
     positions.wire(bodyEl)
     plan.wire(bodyEl)
+
+    // Auto-grow textareas. Modern browsers honour `field-sizing: content`
+    // already set on .gameplan-textarea; this is the JS fallback.
+    if (!CSS.supports?.('field-sizing', 'content')) {
+      bodyEl.querySelectorAll('textarea').forEach(ta => {
+        const grow = () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px' }
+        grow()
+        ta.addEventListener('input', grow)
+      })
+    }
   }
 
   // ---- Save ----
