@@ -18,7 +18,7 @@ const MAP_IMG = { dust2: 'dust' }
 function mapImgUrl(map) { return `images/maps/${MAP_IMG[map] ?? map}.png` }
 
 const el = document.getElementById('vods-list')
-const { data: vods, error } = await supabase.from('vods').select('*').eq('team_id', getTeamId()).order('match_date', { ascending: false })
+const { data: vods, error } = await supabase.from('vods').select('*').eq('team_id', getTeamId()).eq('dismissed', false).order('match_date', { ascending: false })
 
 if (error) {
   el.innerHTML = `<div class="empty-state"><h3>Failed to load matches</h3><p>${esc(error.message)}</p></div>`
@@ -151,7 +151,7 @@ if (error) {
       <a class="list-row" href="vod-detail.html?id=${v.id}">
         ${teamLogoEl(logos[vi], oppName, 40)}
         <div class="flex-1">
-          <div class="row-name">vs ${esc(oppName)}</div>
+          <div class="row-name">vs ${esc(oppName)}${v.external_uid ? ' <span class="pracc-badge">PRACC</span>' : ''}</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">${mapsStr}</div>
         </div>
         <div class="row-meta" style="text-align:right">
