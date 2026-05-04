@@ -202,7 +202,7 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     ;({ error } = await supabase.from('events').update(payload).eq('id', editingId))
   } else {
     ;({ error } = await supabase.from('events').insert(payload))
-    if (!error && (type === 'scrim' || type === 'tournament')) {
+    if (!error && type === 'tournament') {
       const { data: vod } = await supabase.from('vods').insert({
         team_id: getTeamId(),
         opponent: opponent || title,
