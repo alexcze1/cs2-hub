@@ -4,8 +4,88 @@
 import { supabase } from './supabase.js'
 import { attachTeamAutocomplete } from './team-autocomplete.js'
 import { detectRosters, namesForDemo } from './assign-teams.js'
+import {
+  findCandidateVods,
+  pickBestVod,
+  computeVodPatch,
+  demoLocalDate,
+} from './auto-fill-vod.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
+
+// Lightweight one-shot toast. Appended to <body>, fades out after 4s.
+// Inline to keep this module self-contained — promote to a util later if a
+// third caller appears.
+function showToast(msg) {
+  const el = document.createElement('div')
+  el.textContent = msg
+  el.style.cssText = [
+    'position:fixed', 'right:24px', 'bottom:24px', 'z-index:99999',
+    'background:#2b2b2b', 'color:#fff', 'padding:12px 16px',
+    'border-radius:6px', 'font-family:sans-serif', 'font-size:14px',
+    'box-shadow:0 4px 12px rgba(0,0,0,0.3)',
+    'opacity:0', 'transition:opacity 200ms ease-out',
+    'max-width:360px',
+  ].join(';')
+  document.body.appendChild(el)
+  requestAnimationFrame(() => { el.style.opacity = '1' })
+  setTimeout(() => {
+    el.style.opacity = '0'
+    setTimeout(() => el.remove(), 250)
+  }, 4000)
+}
+
+// After demo names are saved, look for matching vods and fill in scores.
+// Idempotent + best-effort: any DB error is logged and swallowed so it never
+// breaks the modal save.
+async function tryAutoFillVods(savedDemos, teamId) {
+  if (!savedDemos?.length || !teamId) return
+  try {
+    const dates = savedDemos.map(demoLocalDate).filter(Boolean).sort()
+    if (!dates.length) return
+    const minDate = dates[0]
+    const maxDate = dates[dates.length - 1]
+    const widen = (d, delta) => {
+      const dt = new Date(`${d}T00:00:00`)
+      dt.setDate(dt.getDate() + delta)
+      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+    }
+    const { data: vods, error } = await supabase
+      .from('vods')
+      .select('id, opponent, match_date, maps, result, demo_link, created_at')
+      .eq('team_id', teamId)
+      .gte('match_date', widen(minDate, -1))
+      .lte('match_date', widen(maxDate, 1))
+    if (error) { console.warn('[auto-fill] vod fetch failed:', error.message); return }
+    if (!vods?.length) return
+
+    const groups = new Map()
+    for (const demo of savedDemos) {
+      const cands = findCandidateVods(demo, vods)
+      const chosen = pickBestVod(cands, demo)
+      if (!chosen) continue
+      let g = groups.get(chosen.id)
+      if (!g) { g = { vod: chosen, demos: [] }; groups.set(chosen.id, g) }
+      g.demos.push(demo)
+    }
+
+    const filledLines = []
+    for (const { vod, demos } of groups.values()) {
+      const patch = computeVodPatch(demos, vod)
+      if (!patch) continue
+      const { _filledMapNames, ...dbPatch } = patch
+      const { error: upErr } = await supabase.from('vods').update(dbPatch).eq('id', vod.id)
+      if (upErr) { console.warn('[auto-fill] vod update failed:', upErr.message); continue }
+      filledLines.push(`${vod.opponent} (${_filledMapNames.join(', ')})`)
+    }
+
+    if (filledLines.length) {
+      showToast(`Linked match: ${filledLines.join('; ')}`)
+    }
+  } catch (e) {
+    console.warn('[auto-fill] unexpected error:', e)
+  }
+}
 
 // Roster-aware modal. demoIdOrSeries is either a single demo id (string)
 // or an array of demos that share a series. opts may include:
@@ -25,14 +105,14 @@ export async function showAssignTeamsModal(demoIdOrSeries, opts = {}) {
   } else {
     const { data: d, error } = await supabase
       .from('demos')
-      .select('id,series_id,match_data,ct_team_name,t_team_name,created_at')
+      .select('id,series_id,match_data,ct_team_name,t_team_name,created_at,team_id,played_at,team_a_score,team_b_score,team_a_first_side,map')
       .eq('id', demoIdOrSeries)
       .single()
     if (error || !d) { alert('Could not load demo data.'); return }
     if (d.series_id) {
       const { data: sib } = await supabase
         .from('demos')
-        .select('id,series_id,match_data,ct_team_name,t_team_name,created_at')
+        .select('id,series_id,match_data,ct_team_name,t_team_name,created_at,team_id,played_at,team_a_score,team_b_score,team_a_first_side,map')
         .eq('series_id', d.series_id)
         .order('created_at', { ascending: true })
       demos = sib || [d]
@@ -117,12 +197,15 @@ export async function showAssignTeamsModal(demoIdOrSeries, opts = {}) {
       const updates = []
       for (const d of demos) {
         const names = namesForDemo(d, rosterA, rosterB, nameA, nameB)
+        d.ct_team_name = names.ct_team_name
+        d.t_team_name  = names.t_team_name
         updates.push(supabase.from('demos').update({
           ct_team_name: names.ct_team_name || null,
           t_team_name:  names.t_team_name  || null,
         }).eq('id', d.id))
       }
       await Promise.all(updates)
+      await tryAutoFillVods(demos, demos[0]?.team_id)
       overlay.remove()
       resolve({ nameA, nameB })
       opts.onSave?.()
@@ -134,7 +217,7 @@ export async function showAssignTeamsModal(demoIdOrSeries, opts = {}) {
 export async function showLegacyBySideModal(demoId, opts = {}) {
   const { data, error } = await supabase
     .from('demos')
-    .select('match_data,ct_team_name,t_team_name')
+    .select('match_data,ct_team_name,t_team_name,series_id,team_id,map,played_at,created_at,team_a_score,team_b_score,team_a_first_side')
     .eq('id', demoId)
     .single()
   if (error || !data?.match_data) { alert('Could not load demo data.'); return null }
@@ -183,6 +266,15 @@ export async function showLegacyBySideModal(demoId, opts = {}) {
         ct_team_name: ct || null,
         t_team_name:  t  || null,
       }).eq('id', demoId)
+      const synthetic = {
+        id: demoId,
+        series_id: data.series_id ?? null,
+        ct_team_name: ct, t_team_name: t,
+        map: data.map, played_at: data.played_at, created_at: data.created_at,
+        team_a_score: data.team_a_score, team_b_score: data.team_b_score,
+        team_a_first_side: data.team_a_first_side,
+      }
+      await tryAutoFillVods([synthetic], data.team_id)
       overlay.remove()
       resolve({ ct, t })
       opts.onSave?.()
