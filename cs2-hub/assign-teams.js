@@ -37,8 +37,8 @@ export function detectRosters(demos) {
 
   const meta = m1?.match_data?.players_meta ?? {}
   const nameOf = p => meta[p.steam_id]?.name ?? p.name ?? ''
-  const rosterA = fr.players.filter(p => p.team === 'ct').map(p => ({ steam_id: p.steam_id, name: nameOf(p) }))
-  const rosterB = fr.players.filter(p => p.team === 't').map(p => ({ steam_id: p.steam_id, name: nameOf(p) }))
+  const rosterA = (fr.players ?? []).filter(p => p.team === 'ct').map(p => ({ steam_id: p.steam_id, name: nameOf(p) }))
+  const rosterB = (fr.players ?? []).filter(p => p.team === 't').map(p => ({ steam_id: p.steam_id, name: nameOf(p) }))
   const idsA = new Set(rosterA.map(p => p.steam_id))
   const idsB = new Set(rosterB.map(p => p.steam_id))
   let confident = (rosterA.length === 5 && rosterB.length === 5)
@@ -46,7 +46,7 @@ export function detectRosters(demos) {
   for (const d of sorted.slice(1)) {
     const fr2 = pickStartFrame(d?.match_data)
     if (!fr2) continue
-    const ctIds = fr2.players.filter(p => p.team === 'ct').map(p => p.steam_id)
+    const ctIds = (fr2.players ?? []).filter(p => p.team === 'ct').map(p => p.steam_id)
     if (ctIds.length < 5) continue
     const overlapA = ctIds.filter(id => idsA.has(id)).length
     const overlapB = ctIds.filter(id => idsB.has(id)).length

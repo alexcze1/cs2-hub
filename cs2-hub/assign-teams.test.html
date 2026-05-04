@@ -129,6 +129,22 @@ function rosterFrame({ ctIds = ['1','2','3','4','5'], tIds = ['6','7','8','9','1
   assert(r.rosterA.length === 0 && r.rosterB.length === 0, 'detectRosters: empty rosters')
 }
 
+// Test 11a: null players inside a frame doesn't crash
+{
+  const demos = [makeDemo('m1', [{ players: null }, rosterFrame()])]
+  const r = detectRosters(demos)
+  assert(r.confident === true, 'detectRosters: null-players frame is skipped, full frame found')
+  assert(r.rosterA.length === 5, 'detectRosters: rosterA built from full frame after null-players')
+}
+
+// Test 11b: only-null-players frame everywhere → not confident, no crash
+{
+  const demos = [makeDemo('m1', [{ players: null }])]
+  const r = detectRosters(demos)
+  assert(r.confident === false, 'detectRosters: only null-players → not confident')
+  assert(r.rosterA.length === 0 && r.rosterB.length === 0, 'detectRosters: no crash, empty rosters')
+}
+
 console.log('All assign-teams tests done')
 </script>
 </body>
