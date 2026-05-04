@@ -66,8 +66,11 @@ if (!demo.ct_team_name || !demo.t_team_name) {
   const result = await showAssignTeamsModal(target, {
     onCancel: () => { window.location.href = 'demos.html' },
   })
-  if (!result) return
-  window.location.reload()
+  if (result) window.location.reload()
+  // Halt module init either way: save is racing reload(); cancel is racing
+  // the redirect set by onCancel. Throw stops viewer code from running on
+  // stale (still-empty) team names.
+  throw new Error('awaiting team names')
 }
 
 state.match         = demo.match_data
