@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script type="module">
+import { pickStartFrame } from './assign-teams.js'
+
+function assert(condition, msg) {
+  if (!condition) { console.error('FAIL:', msg); return; }
+  console.log('PASS:', msg);
+}
+
+// Helper: build a frame with N ct + M t players. steam_ids 1..N+M.
+function frame(ctCount, tCount, idStart = 1) {
+  const players = []
+  let id = idStart
+  for (let i = 0; i < ctCount; i++) players.push({ steam_id: String(id++), team: 'ct', name: `ct${i}` })
+  for (let i = 0; i < tCount; i++)  players.push({ steam_id: String(id++), team: 't',  name: `t${i}` })
+  return { players }
+}
+
+// Test 1: full first frame returned as-is
+{
+  const md = { frames: [frame(5, 5)] }
+  const fr = pickStartFrame(md)
+  assert(fr === md.frames[0], 'pickStartFrame: returns first frame when it has 5+5')
+}
+
+// Test 2: warmup frame skipped, next 5+5 frame returned
+{
+  const md = { frames: [frame(4, 3), frame(5, 5)] }
+  const fr = pickStartFrame(md)
+  assert(fr === md.frames[1], 'pickStartFrame: skips partial frame, returns next 5+5')
+}
+
+// Test 3: all frames partial → falls back to frames[0]
+{
+  const md = { frames: [frame(4, 3), frame(3, 5), frame(5, 4)] }
+  const fr = pickStartFrame(md)
+  assert(fr === md.frames[0], 'pickStartFrame: falls back to frames[0] when no frame is 5+5')
+}
+
+// Test 4: empty frames → null
+{
+  assert(pickStartFrame({ frames: [] }) === null, 'pickStartFrame: empty frames returns null')
+  assert(pickStartFrame({}) === null, 'pickStartFrame: missing frames returns null')
+  assert(pickStartFrame(null) === null, 'pickStartFrame: null match_data returns null')
+}
+
+console.log('All pickStartFrame tests done')
+</script>
+</body>
+</html>
