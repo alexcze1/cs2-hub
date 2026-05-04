@@ -64,6 +64,10 @@ export function detectRosters(demos) {
 // has more CT-side players in this demo's start frame wins ct_team_name.
 // Returns { ct_team_name, t_team_name } where either may be null when the
 // demo has no usable frame.
+//
+// rosterB is accepted but not read: the non-A players in CT are by
+// definition from B (rosterA and rosterB are disjoint, both from the
+// same map-1 frame). The parameter exists so call sites read symmetrically.
 export function namesForDemo(demo, rosterA, rosterB, nameA, nameB) {
   const fr = pickStartFrame(demo?.match_data)
   if (!fr) return { ct_team_name: null, t_team_name: null }
