@@ -29,12 +29,13 @@ function parseICS(text) {
     const fullTitle = summary || 'Pracc Match'
     const mapMatch = fullTitle.match(/\(Map:\s*([^)]+)\)/i)
     const map = mapMatch ? mapMatch[1].replace(/^de_/i, '').trim().toLowerCase() : null
-    const displayTitle = fullTitle.replace(/\s*\(Map:\s*[^)]+\)\s*/i, '').trim()
-    const opponent = displayTitle || null
+    const titleNoMap = fullTitle.replace(/\s*\(Map:\s*[^)]+\)\s*/i, '').trim()
+    const cleanName = titleNoMap.replace(/^vs\.?\s+/i, '').trim()
+    const opponent = cleanName || null
 
     events.push({
       id:       `pracc-${uid}`,
-      title:    displayTitle,
+      title:    cleanName,
       type:     'scrim',
       date:     parseDate(dtstart),
       end_date: parseDate(dtend),

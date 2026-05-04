@@ -139,6 +139,40 @@ const TEAM = 'team-abc'
   assert(out[0].maps[0].map === 'mirage', 'backfill: null maps gets filled')
 }
 
+// Test 11a: backfill — opponent with "vs " prefix gets stripped
+{
+  const events = [{ id: 'pracc-uid-1', map: 'mirage', date: '2026-05-10T18:00:00' }]
+  const existing = [{ id: 'vod-1', external_uid: 'pracc-uid-1', maps: [{ map: 'mirage' }], match_date: '2026-05-10', opponent: 'vs NaVi' }]
+  const out = computePraccVodsToBackfill(events, existing)
+  assert(out.length === 1, 'backfill: vs-prefixed opponent gets update')
+  assert(out[0].opponent === 'NaVi', 'backfill: "vs " prefix stripped')
+}
+
+// Test 11b: backfill — opponent with "vs." prefix gets stripped (case-insensitive)
+{
+  const events = [{ id: 'pracc-uid-1', map: 'mirage', date: '2026-05-10T18:00:00' }]
+  const existing = [{ id: 'vod-1', external_uid: 'pracc-uid-1', maps: [{ map: 'mirage' }], match_date: '2026-05-10', opponent: 'VS. Natus Vincere' }]
+  const out = computePraccVodsToBackfill(events, existing)
+  assert(out.length === 1, 'backfill: VS.-prefixed opponent gets update')
+  assert(out[0].opponent === 'Natus Vincere', 'backfill: "VS." prefix stripped case-insensitively')
+}
+
+// Test 11c: backfill — opponent without "vs" prefix is untouched
+{
+  const events = [{ id: 'pracc-uid-1', map: 'mirage', date: '2026-05-10T18:00:00' }]
+  const existing = [{ id: 'vod-1', external_uid: 'pracc-uid-1', maps: [{ map: 'mirage' }], match_date: '2026-05-10', opponent: 'Natus Vincere' }]
+  const out = computePraccVodsToBackfill(events, existing)
+  assert(out.length === 0, 'backfill: clean opponent yields no update')
+}
+
+// Test 11d: backfill — opponent starting with "version" (not "vs ") is untouched
+{
+  const events = [{ id: 'pracc-uid-1', map: 'mirage', date: '2026-05-10T18:00:00' }]
+  const existing = [{ id: 'vod-1', external_uid: 'pracc-uid-1', maps: [{ map: 'mirage' }], match_date: '2026-05-10', opponent: 'Versus Esports' }]
+  const out = computePraccVodsToBackfill(events, existing)
+  assert(out.length === 0, 'backfill: "Versus Esports" not mistaken for "vs " prefix')
+}
+
 // Test 12: localDateStr — local-tz date formatting (TZ-independent because input is local)
 {
   const d = new Date(2026, 4, 4, 23, 30) // May 4, 23:30 local

@@ -38,6 +38,12 @@ export function computePraccVodsToBackfill(praccEvents, existingVods) {
     if (existing.match_date !== correctDate) {
       patch.match_date = correctDate
     }
+    // Legacy: opponents stored with leading "vs"/"vs." from older parsing.
+    // Strip it. Manual edits don't start with "vs" so are untouched.
+    if (existing.opponent && /^vs\.?\s+/i.test(existing.opponent)) {
+      const cleaned = existing.opponent.replace(/^vs\.?\s+/i, '').trim()
+      if (cleaned && cleaned !== existing.opponent) patch.opponent = cleaned
+    }
     if (Object.keys(patch).length) {
       updates.push({ id: existing.id, ...patch })
     }

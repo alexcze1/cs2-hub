@@ -69,7 +69,7 @@ async function loadEvents() {
       const uids = praccEvents.map(e => e.id)
       const { data: existing } = await supabase
         .from('vods')
-        .select('id, external_uid, maps, match_date')
+        .select('id, external_uid, maps, match_date, opponent')
         .eq('team_id', teamId)
         .in('external_uid', uids)
       const existingVods = existing ?? []
