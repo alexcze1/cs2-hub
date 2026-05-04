@@ -46,7 +46,90 @@ function frame(ctCount, tCount, idStart = 1) {
   assert(pickStartFrame(null) === null, 'pickStartFrame: null match_data returns null')
 }
 
-console.log('All pickStartFrame tests done')
+import { detectRosters } from './assign-teams.js'
+
+// Helpers for detectRosters tests
+function makeDemo(id, frames, createdAt = '2026-05-04T10:00:00Z') {
+  return { id, created_at: createdAt, match_data: { frames, players_meta: {} } }
+}
+
+// Build a 5+5 frame with stable steam_ids: ct = 1..5, t = 6..10. Optionally
+// override individual ids to simulate subs (e.g. swap player 3 with id 99).
+function rosterFrame({ ctIds = ['1','2','3','4','5'], tIds = ['6','7','8','9','10'] } = {}) {
+  return {
+    players: [
+      ...ctIds.map(id => ({ steam_id: id, team: 'ct', name: 'p' + id })),
+      ...tIds.map(id  => ({ steam_id: id, team: 't',  name: 'p' + id })),
+    ]
+  }
+}
+
+// Test 5: single demo, full lineup → confident
+{
+  const demos = [makeDemo('m1', [rosterFrame()])]
+  const r = detectRosters(demos)
+  assert(r.confident === true, 'detectRosters: single full demo → confident')
+  assert(r.rosterA.length === 5 && r.rosterB.length === 5, 'detectRosters: 5+5 rosters')
+  assert(r.rosterA[0].steam_id === '1', 'detectRosters: rosterA is CT side')
+  assert(r.rosterB[0].steam_id === '6', 'detectRosters: rosterB is T side')
+}
+
+// Test 6: two demos, sides swapped on map 2 (same 10 players) → confident
+{
+  const demos = [
+    makeDemo('m1', [rosterFrame()],                                                  '2026-05-04T10:00:00Z'),
+    makeDemo('m2', [rosterFrame({ ctIds: ['6','7','8','9','10'], tIds: ['1','2','3','4','5'] })], '2026-05-04T10:30:00Z'),
+  ]
+  const r = detectRosters(demos)
+  assert(r.confident === true, 'detectRosters: side swap with same lineup → confident')
+}
+
+// Test 7: one sub on map 2 (4-of-5 overlap) → confident
+{
+  const demos = [
+    makeDemo('m1', [rosterFrame()],                                              '2026-05-04T10:00:00Z'),
+    makeDemo('m2', [rosterFrame({ ctIds: ['1','2','3','4','99'] })],            '2026-05-04T10:30:00Z'),
+  ]
+  const r = detectRosters(demos)
+  assert(r.confident === true, 'detectRosters: 1 sub (4/5 overlap) → confident')
+}
+
+// Test 8: three subs on map 2 (only 2-of-5 overlap) → not confident
+{
+  const demos = [
+    makeDemo('m1', [rosterFrame()],                                              '2026-05-04T10:00:00Z'),
+    makeDemo('m2', [rosterFrame({ ctIds: ['1','2','97','98','99'] })],          '2026-05-04T10:30:00Z'),
+  ]
+  const r = detectRosters(demos)
+  assert(r.confident === false, 'detectRosters: 3 subs → not confident')
+}
+
+// Test 9: map 1 has partial frames[0] but full frames[1] → uses frames[1]
+{
+  const partial = { players: [{ steam_id: '1', team: 'ct' }, { steam_id: '6', team: 't' }] }
+  const demos = [makeDemo('m1', [partial, rosterFrame()])]
+  const r = detectRosters(demos)
+  assert(r.confident === true, 'detectRosters: skips partial map 1 frame[0]')
+  assert(r.rosterA.length === 5, 'detectRosters: full roster from later frame')
+}
+
+// Test 10: map 1 only has partial frames everywhere → not confident
+{
+  const partial = { players: [{ steam_id: '1', team: 'ct' }, { steam_id: '6', team: 't' }] }
+  const demos = [makeDemo('m1', [partial])]
+  const r = detectRosters(demos)
+  assert(r.confident === false, 'detectRosters: only-partial map 1 → not confident')
+  assert(r.rosterA.length === 1 && r.rosterB.length === 1, 'detectRosters: returns whatever it could find')
+}
+
+// Test 11: empty demo list → not confident
+{
+  const r = detectRosters([])
+  assert(r.confident === false, 'detectRosters: empty list → not confident')
+  assert(r.rosterA.length === 0 && r.rosterB.length === 0, 'detectRosters: empty rosters')
+}
+
+console.log('All assign-teams tests done')
 </script>
 </body>
 </html>
