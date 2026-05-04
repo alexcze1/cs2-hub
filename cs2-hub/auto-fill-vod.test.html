@@ -6,6 +6,7 @@ import {
   normName,
   demoLocalDate,
   findCandidateVods,
+  pickBestVod,
 } from './auto-fill-vod.js'
 
 function assert(condition, msg) {
@@ -80,7 +81,44 @@ const baseDemo = {
   assert(findCandidateVods(baseDemo, vods).length === 0, 'vod without opponent excluded')
 }
 
-console.log('Task 1 tests done')
+// ---- pickBestVod ----
+{
+  assert(pickBestVod([], baseDemo) === null, 'pickBestVod: empty → null')
+}
+{
+  const vods = [{ id: 'v1', opponent: 'Astralis', match_date: '2026-05-04', maps: [], created_at: '2026-05-04T10:00:00' }]
+  assert(pickBestVod(vods, baseDemo).id === 'v1', 'single candidate returned')
+}
+{
+  const vods = [
+    { id: 'filled', opponent: 'Astralis', match_date: '2026-05-04', maps: [{ map: 'mirage', score_us: 13, score_them: 7 }], created_at: '2026-05-04T09:00:00' },
+    { id: 'empty',  opponent: 'Astralis', match_date: '2026-05-04', maps: [], created_at: '2026-05-04T10:00:00' },
+  ]
+  assert(pickBestVod(vods, baseDemo).id === 'empty', 'empty-maps vod wins')
+}
+{
+  const vods = [
+    { id: 'filled',   opponent: 'Astralis', match_date: '2026-05-04', maps: [{ map: 'mirage', score_us: 13, score_them: 7 }] },
+    { id: 'unscored', opponent: 'Astralis', match_date: '2026-05-04', maps: [{ map: 'inferno' }] },
+  ]
+  assert(pickBestVod(vods, baseDemo).id === 'unscored', 'maps-without-scores treated as unscored')
+}
+{
+  const vods = [
+    { id: 'far',   opponent: 'Astralis', match_date: '2026-05-05', maps: [] },
+    { id: 'close', opponent: 'Astralis', match_date: '2026-05-04', maps: [] },
+  ]
+  assert(pickBestVod(vods, baseDemo).id === 'close', 'closer date wins among unscored')
+}
+{
+  const vods = [
+    { id: 'late',  opponent: 'Astralis', match_date: '2026-05-04', maps: [], created_at: '2026-05-04T15:00:00' },
+    { id: 'early', opponent: 'Astralis', match_date: '2026-05-04', maps: [], created_at: '2026-05-04T08:00:00' },
+  ]
+  assert(pickBestVod(vods, baseDemo).id === 'early', 'earlier created_at tiebreak')
+}
+
+console.log('Tasks 1-2 tests done')
 </script>
 </body>
 </html>

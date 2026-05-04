@@ -48,3 +48,30 @@ export function findCandidateVods(demo, vods) {
     return daysApart(v.match_date, demoDate) <= 1
   })
 }
+
+// True when no slot in vod.maps[] has scores. We prefer these vods because
+// they are usually fresh pracc stubs ready to be filled in.
+function isUnscored(vod) {
+  if (!vod.maps || vod.maps.length === 0) return true
+  return vod.maps.every(s => s.score_us == null && s.score_them == null)
+}
+
+// Pick the single best vod from candidates. Sort by:
+// 1. unscored (empty/all-empty maps) first — fresh stubs > already-filled
+// 2. closer to the demo's date — same-day before ±1
+// 3. earlier created_at — deterministic tiebreak
+// Returns null on empty.
+export function pickBestVod(candidates, demo) {
+  if (!candidates?.length) return null
+  const demoDate = demoLocalDate(demo)
+  const sorted = [...candidates].sort((a, b) => {
+    const au = isUnscored(a) ? 0 : 1
+    const bu = isUnscored(b) ? 0 : 1
+    if (au !== bu) return au - bu
+    const ad = daysApart(a.match_date, demoDate)
+    const bd = daysApart(b.match_date, demoDate)
+    if (ad !== bd) return ad - bd
+    return (a.created_at || '').localeCompare(b.created_at || '')
+  })
+  return sorted[0]
+}
