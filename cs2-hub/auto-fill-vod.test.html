@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script type="module">
+import {
+  normName,
+  demoLocalDate,
+  findCandidateVods,
+} from './auto-fill-vod.js'
+
+function assert(condition, msg) {
+  if (!condition) { console.error('FAIL:', msg); return }
+  console.log('PASS:', msg)
+}
+
+// ---- normName ----
+assert(normName('  NaVi  ') === 'navi', 'normName trims + lowercases')
+assert(normName(null) === '', 'normName: null → ""')
+assert(normName(undefined) === '', 'normName: undefined → ""')
+assert(normName('') === '', 'normName: empty → ""')
+
+// ---- demoLocalDate ----
+{
+  const d = { played_at: '2026-05-04T18:30:00' }
+  assert(demoLocalDate(d) === '2026-05-04', 'demoLocalDate: uses played_at')
+}
+{
+  const d = { played_at: null, created_at: '2026-05-04T22:00:00' }
+  assert(demoLocalDate(d) === '2026-05-04', 'demoLocalDate: falls back to created_at')
+}
+{
+  assert(demoLocalDate({}) === null, 'demoLocalDate: no timestamps → null')
+}
+
+// ---- findCandidateVods ----
+const baseDemo = {
+  played_at: '2026-05-04T18:00:00',
+  ct_team_name: 'NaVi',
+  t_team_name: 'Astralis',
+}
+{
+  const out = findCandidateVods(baseDemo, [])
+  assert(out.length === 0, 'findCandidateVods: empty vods → []')
+}
+{
+  const vods = [{ id: 'v1', opponent: 'Astralis', match_date: '2026-05-04', maps: [] }]
+  assert(findCandidateVods(baseDemo, vods).length === 1, 'same opponent + same day matches')
+}
+{
+  const vods = [{ id: 'v1', opponent: 'astralis', match_date: '2026-05-04', maps: [] }]
+  assert(findCandidateVods(baseDemo, vods).length === 1, 'case-insensitive opponent match')
+}
+{
+  const vods = [
+    { id: 'v1', opponent: 'Astralis', match_date: '2026-05-03', maps: [] },
+    { id: 'v2', opponent: 'Astralis', match_date: '2026-05-05', maps: [] },
+  ]
+  assert(findCandidateVods(baseDemo, vods).length === 2, '±1 day in either direction matches')
+}
+{
+  const vods = [{ id: 'v1', opponent: 'Astralis', match_date: '2026-05-02', maps: [] }]
+  assert(findCandidateVods(baseDemo, vods).length === 0, '±2 days rejected')
+}
+{
+  const vods = [{ id: 'v1', opponent: 'Vitality', match_date: '2026-05-04', maps: [] }]
+  assert(findCandidateVods(baseDemo, vods).length === 0, 'unrelated opponent rejected')
+}
+{
+  const demo = { ...baseDemo, ct_team_name: 'Astralis', t_team_name: 'NaVi' }
+  const vods = [{ id: 'v1', opponent: 'astralis', match_date: '2026-05-04', maps: [] }]
+  assert(findCandidateVods(demo, vods).length === 1, 'either ct or t side name matches')
+}
+{
+  const demo = { played_at: '2026-05-04T18:00:00' }
+  const vods = [{ id: 'v1', opponent: 'Astralis', match_date: '2026-05-04', maps: [] }]
+  assert(findCandidateVods(demo, vods).length === 0, 'no team names → no candidates')
+}
+{
+  const vods = [{ id: 'v1', opponent: null, match_date: '2026-05-04', maps: [] }]
+  assert(findCandidateVods(baseDemo, vods).length === 0, 'vod without opponent excluded')
+}
+
+console.log('Task 1 tests done')
+</script>
+</body>
+</html>
