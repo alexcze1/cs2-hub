@@ -4,6 +4,7 @@
 <script type="module">
 import {
   normName,
+  normMap,
   demoLocalDate,
   findCandidateVods,
   pickBestVod,
@@ -270,6 +271,51 @@ function makeDemo(over = {}) {
   const vod = { id: 'v', opponent: 'NaVi', maps: [{ map: 'mirage' }], demo_link: 'demo-viewer.html?id=existing' }
   const p = computeVodPatch(makeDemo(), vod)
   assert(p.demo_link === undefined, 'existing demo_link not overwritten')
+}
+
+// ---- normMap ----
+assert(normMap('de_ancient') === 'ancient', 'normMap strips de_ prefix')
+assert(normMap('DE_Mirage') === 'mirage', 'normMap is case-insensitive on prefix + name')
+assert(normMap('  de_nuke  ') === 'nuke', 'normMap trims whitespace')
+assert(normMap('ancient') === 'ancient', 'normMap leaves bare names alone')
+assert(normMap(null) === '', 'normMap: null → ""')
+assert(normMap('') === '', 'normMap: empty → ""')
+
+// ---- computeVodPatch: de_ prefix handling ----
+{
+  // Demo carries 'de_ancient', vod slot stored as 'ancient' (pracc form) — match.
+  const vod = { id: 'v', opponent: 'NaVi', maps: [{ map: 'ancient' }] }
+  const demo = {
+    id: 'd1', map: 'de_ancient',
+    ct_team_name: 'NaVi', t_team_name: 'Astralis',
+    team_a_first_side: 'ct', team_a_score: 13, team_b_score: 7,
+  }
+  const p = computeVodPatch(demo, vod)
+  assert(p && p.maps.length === 1, 'de_ancient demo matches ancient slot')
+  assert(p.maps[0].score_us === 7, 'matched slot scored')
+  assert(p._filledMapNames[0] === 'ancient', 'filled map name reported without de_ prefix')
+}
+{
+  // Demo carries 'de_inferno', vod has empty maps[] — append as 'inferno'.
+  const vod = { id: 'v', opponent: 'NaVi', maps: [] }
+  const demo = {
+    id: 'd1', map: 'de_inferno',
+    ct_team_name: 'NaVi', t_team_name: 'Astralis',
+    team_a_first_side: 'ct', team_a_score: 13, team_b_score: 7,
+  }
+  const p = computeVodPatch(demo, vod)
+  assert(p.maps[0].map === 'inferno', 'appended slot stored without de_ prefix')
+}
+{
+  // Empty-named slot claims the stripped name, not the raw.
+  const vod = { id: 'v', opponent: 'NaVi', maps: [{}] }
+  const demo = {
+    id: 'd1', map: 'de_nuke',
+    ct_team_name: 'NaVi', t_team_name: 'Astralis',
+    team_a_first_side: 'ct', team_a_score: 13, team_b_score: 7,
+  }
+  const p = computeVodPatch(demo, vod)
+  assert(p.maps[0].map === 'nuke', 'empty-named slot stamped with stripped map name')
 }
 
 console.log('Tasks 1-4 tests done')

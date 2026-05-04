@@ -76,6 +76,13 @@ export function pickBestVod(candidates, demo) {
   return sorted[0]
 }
 
+// Strip the `de_` prefix demos carry (e.g. "de_ancient" → "ancient").
+// Vods store the bare name (pracc-sync drops the prefix at calendar.js:31),
+// so this normalises across the two sources.
+export function normMap(s) {
+  return (s ?? '').trim().toLowerCase().replace(/^de_/, '')
+}
+
 // Map team_a_score / team_b_score to score_us / score_them given who the
 // opponent is. Requires team_a_first_side to know which team the team_a_*
 // totals belong to (the team that started on that side becomes that side's
@@ -125,22 +132,22 @@ export function computeVodPatch(demosArg, vod) {
   for (const demo of demos) {
     const scores = scoresFromDemo(demo, vod.opponent)
     if (!scores) continue
-    const demoMap = (demo.map || '').toLowerCase()
+    const demoMap = normMap(demo.map)
 
     // (a) map-name match
     let slotIdx = demoMap
-      ? newMaps.findIndex(s => (s.map || '').toLowerCase() === demoMap)
+      ? newMaps.findIndex(s => normMap(s.map) === demoMap)
       : -1
 
     // (b) empty-name slot — claim it
     if (slotIdx === -1) {
       slotIdx = newMaps.findIndex(s => !s.map)
-      if (slotIdx !== -1 && demo.map) newMaps[slotIdx].map = demo.map
+      if (slotIdx !== -1 && demoMap) newMaps[slotIdx].map = demoMap
     }
 
     // (c) append new slot
     if (slotIdx === -1) {
-      newMaps.push({ map: demo.map })
+      newMaps.push({ map: demoMap || null })
       slotIdx = newMaps.length - 1
     }
 
@@ -150,7 +157,7 @@ export function computeVodPatch(demosArg, vod) {
     slot.score_us = scores.score_us
     slot.score_them = scores.score_them
     filledAny = true
-    if (demo.map) filledMapNames.push(demo.map)
+    if (demoMap) filledMapNames.push(demoMap)
   }
 
   if (!filledAny) return null
