@@ -72,10 +72,8 @@ body {
 /* ── Sidebar ── */
 .sidebar {
   width: var(--sidebar-w);
-  background: rgba(0,0,0,0.88);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
-  border-right: 1px solid var(--glass-border);
+  background: var(--surface-side);
+  border-right: 1px solid var(--border);
   padding: 20px 0 0;
   display: flex;
   flex-direction: column;
@@ -88,7 +86,7 @@ body {
 
 .sidebar-brand {
   padding: 0 16px 16px;
-  border-bottom: 1px solid var(--glass-border);
+  border-bottom: 1px solid var(--border);
   margin-bottom: 8px;
 }
 .sidebar-logo-img {
@@ -100,7 +98,7 @@ body {
   display: block;
 }
 .team-name {
-  color: var(--muted);
+  color: var(--slate);
   font-weight: 600;
   letter-spacing: 1.5px;
   font-size: 10px;
@@ -108,11 +106,12 @@ body {
 }
 
 .nav-section {
-  color: var(--muted);
+  color: var(--slate);
   font-size: 9px;
-  letter-spacing: 2px;
+  letter-spacing: 0.18em;
   padding: 16px 16px 4px;
-  opacity: 0.5;
+  opacity: 0.7;
+  text-transform: uppercase;
 }
 
 .nav-icon {
@@ -122,7 +121,7 @@ body {
   width: 16px;
   height: 16px;
   flex-shrink: 0;
-  opacity: 0.6;
+  opacity: 0.7;
   margin-right: 9px;
 }
 .nav-icon svg {
@@ -134,11 +133,11 @@ body {
   display: flex;
   align-items: center;
   padding: 9px 16px;
-  color: var(--muted);
+  color: var(--slate);
   border-left: 3px solid transparent;
   font-size: 13px;
   text-decoration: none;
-  transition: all 0.12s;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
   background: none;
   border-top: none;
   border-right: none;
@@ -149,13 +148,13 @@ body {
   font-family: inherit;
 }
 
-.nav-item:hover { color: var(--text); background: rgba(216,26,29,0.08); }
+.nav-item:hover { color: var(--cream); background: rgba(115,38,84,0.30); }
 .nav-item:hover .nav-icon { opacity: 1; }
-.nav-item.active { color: var(--text); background: rgba(216,26,29,0.14); border-left-color: var(--accent); }
+.nav-item.active { color: var(--cream); background: rgba(115,38,84,0.50); border-left-color: var(--accent); }
 .nav-item.active .nav-icon { opacity: 1; color: var(--accent); }
 
 .sidebar-footer {
-  border-top: 1px solid var(--glass-border);
+  border-top: 1px solid var(--border);
   padding: 8px 0;
   margin-top: 8px;
 }
