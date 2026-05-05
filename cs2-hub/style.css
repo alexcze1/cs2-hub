@@ -906,7 +906,7 @@ body {
 .form-input:focus, .form-select:focus, .form-textarea:focus {
   outline: none;
   border-color: var(--accent);
-  background: #050505;
+  background: var(--input-bg);
   box-shadow: 0 0 0 1px var(--accent), 0 0 18px rgba(0,255,156,0.18);
 }
 .form-textarea { resize: vertical; min-height: 90px; }
@@ -1274,7 +1274,7 @@ body {
   transition: background .12s, color .12s, border-color .12s;
 }
 .review-map-tab:hover     { border-color: var(--accent); color: var(--accent); }
-.review-map-tab.active    { background: var(--accent); border-color: var(--accent); color: #000; }
+.review-map-tab.active    { background: var(--accent); border-color: var(--accent); color: var(--accent-on); }
 .review-map-tab.tab-win   { }
 .review-map-tab.tab-loss  { }
 
@@ -1808,9 +1808,9 @@ body {
 }
 
 /* demo library */
-.badge-success { background:rgba(76,175,80,.15);color:#4CAF50 }
-.badge-warning { background:rgba(255,193,7,.15);color:#FFC107 }
-.badge-error   { background:rgba(239,83,80,.15);color:#EF5350 }
+.badge-success { background:rgba(0,255,156,.15);color:var(--success) }
+.badge-warning { background:rgba(255,179,71,.15);color:var(--warning) }
+.badge-error   { background:rgba(255,77,77,.15);color:var(--danger) }
 .list-row-icon { width:44px;height:44px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0 }
 .list-row-body { flex:1;min-width:0 }
 .list-row-title { font-weight:500;font-size:14px;color:var(--text) }
@@ -1848,10 +1848,10 @@ body {
   padding: 4px 10px; border: 1px solid var(--border);
   background: var(--surface); cursor: pointer;
 }
-.antistrat-drawer-header .side-toggle button.active { background: var(--accent); color: #fff; }
+.antistrat-drawer-header .side-toggle button.active { background: var(--accent); color: var(--accent-on); }
 .antistrat-drawer-header .save-status { margin-left: auto; font-size: 11px; opacity: 0.7; }
-.antistrat-drawer-header .save-status.ok { color: #2c8f4a; opacity: 1; }
-.antistrat-drawer-header .save-status.err { color: #c0392b; opacity: 1; }
+.antistrat-drawer-header .save-status.ok { color: var(--success); opacity: 1; }
+.antistrat-drawer-header .save-status.err { color: var(--danger); opacity: 1; }
 .antistrat-drawer-header .close-btn,
 .antistrat-drawer-header .open-detail {
   background: transparent; border: 1px solid var(--border); padding: 4px 8px; cursor: pointer;
