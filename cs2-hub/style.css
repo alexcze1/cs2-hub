@@ -339,10 +339,10 @@ body {
 }
 .week-event-time  { display: block; font-weight: 700; opacity: .75; font-size: 10px; }
 .week-event-title { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.week-event-scrim      { background: rgba(0,255,156,0.15); color: var(--accent);   border-left: 3px solid var(--accent); }
-.week-event-tournament { background: rgba(0,255,156,0.15); color: var(--success); border-left: 3px solid var(--success); }
-.week-event-meeting    { background: rgba(0,255,156,0.15); color: var(--special); border-left: 3px solid var(--special); }
-.week-event-vod_review { background: rgba(255,185,95,0.15); color: var(--warning);  border-left: 3px solid var(--warning); }
+.week-event-scrim      { background: rgba(0,255,156,0.10);  color: var(--accent);   border-left: 3px solid var(--accent); }
+.week-event-tournament { background: rgba(0,255,156,0.20);  color: var(--accent);   border-left: 3px solid var(--accent); }
+.week-event-meeting    { background: rgba(58,160,255,0.15); color: var(--special);  border-left: 3px solid var(--special); }
+.week-event-vod_review { background: rgba(255,179,71,0.15); color: var(--warning);  border-left: 3px solid var(--warning); }
 .week-empty { color: var(--muted); font-size: 11px; text-align: center; padding-top: 4px; }
 
 /* ── Hero Match Card ── tactical XL card for next match */
@@ -813,10 +813,10 @@ body {
   text-transform: uppercase;
   flex-shrink: 0;
 }
-.badge-scrim       { background: rgba(0,255,156,0.15); color: var(--accent); }
-.badge-tournament  { background: rgba(0,255,156,0.15); color: var(--success); }
-.badge-meeting     { background: rgba(0,255,156,0.15); color: var(--special); }
-.badge-vod_review  { background: rgba(255,185,95,0.15); color: var(--warning); }
+.badge-scrim       { background: rgba(0,255,156,0.10);  color: var(--accent); }
+.badge-tournament  { background: rgba(0,255,156,0.20);  color: var(--accent); }
+.badge-meeting     { background: rgba(58,160,255,0.15); color: var(--special); }
+.badge-vod_review  { background: rgba(255,179,71,0.15); color: var(--warning); }
 .badge-win         { background: rgba(0,255,156,0.15); color: var(--success); }
 .badge-loss        { background: rgba(255,77,77,0.15);  color: var(--danger); }
 .badge-draw        { background: rgba(107,114,128,0.15);color: var(--muted); }
@@ -1065,6 +1065,96 @@ body {
 .detail-section { margin-bottom: 32px; }
 .detail-section .section-label { margin-top: 0; }
 
+/* ── Intel Cards (opponents) ── tactical dossiers */
+.intel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+}
+.intel-card {
+  position: relative;
+  display: flex; flex-direction: column;
+  padding: 18px 20px 16px;
+  background:
+    radial-gradient(500px 240px at -10% -20%, rgba(0,255,156,0.06), transparent 60%),
+    var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  text-decoration: none; color: inherit;
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,0.03);
+  transition: border-color 150ms, transform 150ms, box-shadow 200ms;
+  overflow: hidden;
+}
+.intel-card::after {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: var(--muted); opacity: 0.4;
+  transition: opacity 150ms, background 150ms;
+}
+.intel-card:hover {
+  border-color: rgba(0,255,156,0.30);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(0,0,0,0.35), 0 0 18px rgba(0,255,156,0.08);
+}
+.intel-card:hover::after { background: var(--accent); opacity: 1; }
+.intel-head {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 12px;
+}
+.intel-name {
+  font-family: var(--display-font);
+  font-size: 17px; font-weight: 600;
+  letter-spacing: -0.018em;
+  flex: 1; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.intel-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 8px;
+  border-radius: 2px;
+  font-family: var(--display-font);
+  font-size: 9px; font-weight: 700; letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.intel-tag-strong { background: rgba(255,77,77,0.15);  color: var(--danger);  }
+.intel-tag-even   { background: rgba(126,141,163,0.15); color: var(--muted);   }
+.intel-tag-weak   { background: rgba(0,255,156,0.15);  color: var(--success); }
+.intel-tag-new    { background: rgba(58,160,255,0.15); color: var(--special); }
+.intel-section-label {
+  font-family: var(--display-font);
+  font-size: 9px; font-weight: 700; letter-spacing: 0.2em;
+  color: var(--muted); text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.intel-maps {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.intel-map-chip {
+  position: relative;
+  width: 56px; height: 40px;
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.intel-map-chip img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; opacity: 0.55; pointer-events: none;
+  transition: opacity 150ms;
+}
+.intel-card:hover .intel-map-chip img { opacity: 0.7; }
+.intel-map-chip span {
+  position: absolute; bottom: 3px; left: 5px;
+  font-family: var(--display-font);
+  font-size: 9px; font-weight: 700; letter-spacing: 0.08em;
+  color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.85);
+}
+.intel-empty {
+  font-size: 12px; color: var(--muted); font-style: italic;
+}
+
 /* ── Calendar ── */
 .cal-month-label {
   font-size: 14px;
@@ -1133,10 +1223,10 @@ body {
   cursor: pointer;
 }
 
-.cal-event-scrim      { background: rgba(0,255,156,0.15); color: var(--accent);   border-left: 3px solid var(--accent); }
-.cal-event-tournament { background: rgba(0,255,156,0.15); color: var(--success); border-left: 3px solid var(--success); }
-.cal-event-meeting    { background: rgba(0,255,156,0.15); color: var(--special); border-left: 3px solid var(--special); }
-.cal-event-vod_review { background: rgba(255,185,95,0.15); color: var(--warning);  border-left: 3px solid var(--warning); }
+.cal-event-scrim      { background: rgba(0,255,156,0.10);  color: var(--accent);   border-left: 3px solid var(--accent); }
+.cal-event-tournament { background: rgba(0,255,156,0.20);  color: var(--accent);   border-left: 3px solid var(--accent); box-shadow: 0 0 8px rgba(0,255,156,0.18); }
+.cal-event-meeting    { background: rgba(58,160,255,0.15); color: var(--special);  border-left: 3px solid var(--special); }
+.cal-event-vod_review { background: rgba(255,179,71,0.15); color: var(--warning);  border-left: 3px solid var(--warning); }
 
 .cal-event-time { font-weight: 700; opacity: 0.85; margin-right: 3px; }
 .cal-event-pracc { border-left: 3px solid var(--accent); }
