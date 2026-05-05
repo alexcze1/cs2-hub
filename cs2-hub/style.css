@@ -164,29 +164,34 @@ body {
 .main-content {
   margin-left: var(--sidebar-w);
   flex: 1;
-  padding: 32px 36px;
+  padding: 28px 32px;
 }
 
 /* ── Page Header ── */
 .page-header {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: space-between;
-  margin-bottom: 28px;
+  margin-bottom: 22px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-strong);
 }
 
 .page-title {
-  font-size: 21px;
+  font-family: var(--display-font);
+  font-size: 56px;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  line-height: 0.9;
+  letter-spacing: -0.0036em;
   text-transform: uppercase;
+  color: var(--cream);
 }
 
-.page-sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
-.page-subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; }
+.page-sub { color: var(--accent); font-size: 10px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; margin-top: 6px; }
+.page-subtitle { color: var(--slate); font-size: 13px; margin-top: 4px; }
 
 .section-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
-.section-title { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+.section-title { font-size: 11px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); }
 
 /* ── Buttons (HOSHI: square corners, red primary, 150ms ease) ── */
 .btn {
@@ -285,10 +290,11 @@ body {
 .section-label {
   color: var(--accent);
   font-size: 10px;
-  letter-spacing: 2px;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
-  margin-bottom: 12px;
-  margin-top: 28px;
+  margin-bottom: 10px;
+  margin-top: 22px;
+  font-weight: 700;
 }
 
 /* ── List Rows ── */
