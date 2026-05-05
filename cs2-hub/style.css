@@ -616,9 +616,9 @@ body {
 .login-tagline { color: var(--muted); font-size: 13px; text-align: center; margin-bottom: 32px; }
 
 /* ── Utilities ── */
-.empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
-.empty-state h3 { font-size: 16px; color: var(--text); margin-bottom: 8px; }
-.loading { text-align: center; padding: 40px; color: var(--muted); }
+.empty-state { text-align: center; padding: 60px 20px; color: var(--slate); }
+.empty-state h3 { font-size: 16px; color: var(--cream); margin-bottom: 8px; font-family: var(--display-font); text-transform: uppercase; letter-spacing: 0.04em; }
+.loading { text-align: center; padding: 40px; color: var(--slate); font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; }
 .error-msg { color: var(--danger); font-size: 13px; margin-top: 8px; }
 .flex-1 { flex: 1; }
 .row-name { color: var(--cream); font-size: 13px; font-weight: 500; }
