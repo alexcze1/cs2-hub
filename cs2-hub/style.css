@@ -1,24 +1,39 @@
 /* cs2-hub/style.css */
-/* HOSHI ONE design tokens — red/black/cream, Oswald display + Inter body */
+/* v0.5 design system — navy / pink / cream / plum / slate */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Oswald:wght@400;600;700&display=swap');
 
 :root {
-  --bg: #000000;
-  --surface: #0a0a0a;
-  --border: rgba(255,255,255,0.07);
-  --border-solid: #111111;
-  --accent: #D81A1D;
-  --accent-dim: rgba(216,26,29,0.15);
-  --text: #ffffff;
-  --muted: #A1A1AA;
-  --success: #22c55e;
-  --danger: #FF3333;
-  --warning: #E9A514;
-  --special: #FF3333;
-  --glass-bg: rgba(0,0,0,0.55);
-  --glass-border: rgba(255,255,255,0.08);
-  --card-cream: #EBE6DB;
-  --card-cream-text: #111111;
+  /* canvas + surfaces */
+  --bg: #142030;
+  --surface: #1a2638;
+  --surface-side: #0e1826;
+
+  /* palette */
+  --accent: #ff5b8d;
+  --accent-deep: #732654;
+  --cream: #e9d8c8;
+  --slate: #86a3b3;
+
+  /* borders */
+  --border: rgba(134,163,179,0.15);
+  --border-strong: rgba(134,163,179,0.30);
+  --border-solid: #1f3045;
+
+  /* legacy aliases — keep classes that reference the old tokens working */
+  --text: #e9d8c8;
+  --text-secondary: #86a3b3;
+  --muted: #86a3b3;
+  --success: #e9d8c8;
+  --danger: #ff5b8d;
+  --warning: #732654;
+  --special: #ff5b8d;
+  --accent-dim: rgba(255,91,141,0.15);
+  --card-cream: #e9d8c8;
+  --card-cream-text: #142030;
+  --glass-bg: #1a2638;
+  --glass-border: rgba(134,163,179,0.15);
+
+  /* layout */
   --sidebar-w: 220px;
   --display-font: 'Oswald', 'Inter', system-ui, sans-serif;
 }
@@ -26,11 +41,8 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  background:
-    radial-gradient(ellipse at 12% 30%, rgba(216,26,29,0.10) 0%, transparent 55%),
-    radial-gradient(ellipse at 88% 8%,  rgba(255,51,51,0.06) 0%, transparent 45%),
-    linear-gradient(to top, #000 0%, #1a1a1a 100%);
-  color: var(--text);
+  background: var(--bg);
+  color: var(--cream);
   font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   font-size: 14px;
   letter-spacing: -0.012em;
