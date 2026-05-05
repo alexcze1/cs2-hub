@@ -137,10 +137,10 @@ document.getElementById('stat-vods-form').innerHTML = recentForm.map(r =>
 
 const { data: issuesData } = await supabase.from('issues').select('status').eq('team_id', teamId)
 const openIssues = (issuesData ?? []).filter(i => i.status !== 'resolved').length
-const issueColor = openIssues > 0 ? 'var(--danger)' : 'var(--success)'
-document.getElementById('stat-issues').innerHTML = `<span style="color:${issueColor}">${openIssues}</span>`
+const issueCard = document.getElementById('stat-issues-card')
+document.getElementById('stat-issues').textContent = openIssues
 document.getElementById('stat-issues-sub').textContent = openIssues === 0 ? 'All clear' : `${openIssues} need attention`
-document.getElementById('stat-issues-card').style.borderTopColor = issueColor
+issueCard.classList.toggle('stat-card--pink', openIssues > 0)
 
 const { data: recentStrats } = await supabase
   .from('strats')
@@ -154,7 +154,7 @@ if (!recentStrats?.length) {
   recentEl.innerHTML = `<div class="empty-state"><h3>No strats yet</h3><p>Add one in the Stratbook.</p></div>`
 } else {
   recentEl.innerHTML = recentStrats.map(s => {
-    const sideColor = s.side === 't' ? 'var(--danger)' : 'var(--accent)'
+    const sideColor = s.side === 't' ? 'var(--accent)' : 'var(--slate)'
     const mapFile = s.map === 'dust2' ? 'dust' : s.map
     return `
     <a class="list-row" href="stratbook-detail.html?id=${s.id}" style="border-left:3px solid ${sideColor};padding-left:12px">
