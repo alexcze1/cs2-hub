@@ -95,36 +95,38 @@ async function loadVetos() {
   const logos = await Promise.all(allVetos.map(v => getTeamLogo(v.opponent ?? v.title)))
 
   el.innerHTML = allVetos.map((v, vi) => {
-    const steps = v.steps ?? []
-    return `<div class="list-row" style="flex-direction:column;align-items:flex-start;gap:10px">
-      <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
-        <div style="display:flex;align-items:center;gap:12px">
+    const steps = (v.steps ?? []).filter(s => s.map)
+    const arrowSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>`
+    const stepsHtml = steps.map((s, i) => {
+      const teamLabel = s.team === 'home' ? (v.home || 'Us') : s.team === 'away' ? (v.away || 'Them') : 'Decider'
+      const img = MAP_IMAGES[s.map] ?? ''
+      const action = s.type === 'ban' ? 'BAN' : s.type === 'pick' ? 'PICK' : 'PLAYS'
+      return `${i > 0 ? `<div class="veto-arrow">${arrowSvg}</div>` : ''}
+        <div class="veto-step veto-step-${s.type}">
+          ${img ? `<div class="veto-step-bg" style="background-image:url('${img}')"></div>` : ''}
+          <div class="veto-step-content">
+            <span class="veto-step-num">#${i + 1}</span>
+            <span class="veto-step-action veto-step-action-${s.type}">${action}</span>
+            <div class="veto-step-map">${esc(MAP_LABELS[s.map] ?? s.map)}</div>
+            <div class="veto-step-team">${esc(teamLabel)}</div>
+          </div>
+        </div>`
+    }).join('')
+    return `<div class="veto-flow-card">
+      <div class="veto-flow-head">
+        <div style="display:flex;align-items:center;gap:12px;min-width:0">
           ${teamLogoEl(logos[vi], v.opponent ?? v.title, 40)}
-          <div>
-            <div class="row-name">${esc(v.title)}</div>
-            <div class="row-meta">${v.opponent ? esc(v.opponent) + ' · ' : ''}<span class="badge badge-scrim">${v.format.toUpperCase()}</span></div>
+          <div style="min-width:0">
+            <div class="veto-flow-title">${esc(v.title)}</div>
+            <div class="veto-flow-meta">${v.opponent ? esc(v.opponent) + ' · ' : ''}${v.format.toUpperCase()}</div>
           </div>
         </div>
-        <button class="btn btn-ghost" style="font-size:12px" data-edit="${v.id}">Edit</button>
+        <button class="btn btn-ghost btn-sm" data-edit="${v.id}">Edit</button>
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:4px">
-        ${steps.filter(s => s.map).map((s, i) => {
-          const color = s.type === 'ban' ? 'var(--danger)' : s.type === 'pick' ? 'var(--success)' : 'var(--accent)'
-          const teamLabel = s.team === 'home' ? (v.home || 'Us') : s.team === 'away' ? (v.away || 'Them') : '—'
-          const img = MAP_IMAGES[s.map] ?? ''
-          return `<div style="position:relative;overflow:hidden;border-radius:8px;width:120px;height:76px;border:1.5px solid ${color};flex-shrink:0">
-            ${img ? `<img src="${img}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.18;pointer-events:none">` : ''}
-            <div style="position:relative;padding:8px 10px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
-              <span style="font-size:9px;font-weight:700;letter-spacing:1.2px;color:${color}">${s.type.toUpperCase()}</span>
-              <div>
-                <div style="font-size:13px;font-weight:700;color:var(--text);line-height:1.2">${esc(MAP_LABELS[s.map] ?? s.map)}</div>
-                <div style="font-size:10px;color:var(--muted);margin-top:2px">${esc(teamLabel)}</div>
-              </div>
-            </div>
-          </div>`
-        }).join('')}
-      </div>
-      ${v.notes ? `<div style="color:var(--muted);font-size:12px">${esc(v.notes)}</div>` : ''}
+      ${steps.length
+        ? `<div class="veto-flow">${stepsHtml}</div>`
+        : `<div class="veto-step-empty" style="padding:8px 0">No veto steps recorded.</div>`}
+      ${v.notes ? `<div style="color:var(--muted);font-size:12px;margin-top:10px">${esc(v.notes)}</div>` : ''}
     </div>`
   }).join('')
 

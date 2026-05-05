@@ -132,31 +132,82 @@ if (error) {
   // ── Match list ────────────────────────────────────────────
   const logos = await Promise.all(vods.map(v => getTeamLogo(v.opponent ?? v.title)))
 
+  function deriveInsights(maps) {
+    if (!maps?.length) return []
+    const out = []
+    let totalUs = 0, totalThem = 0
+    let bestMap = null, worstMap = null
+    let closest = null
+    for (const m of maps) {
+      const us = m.score_us ?? 0, them = m.score_them ?? 0
+      totalUs += us; totalThem += them
+      const diff = us - them
+      if (!bestMap  || diff > bestMap.diff)         bestMap  = { ...m, diff, us, them }
+      if (!worstMap || diff < worstMap.diff)        worstMap = { ...m, diff, us, them }
+      const margin = Math.abs(diff)
+      if (us + them > 0 && (!closest || margin < Math.abs(closest.diff))) closest = { ...m, diff, us, them }
+    }
+    const overallDiff = totalUs - totalThem
+    if (Math.abs(overallDiff) >= 6) {
+      out.push({
+        text: `Round diff ${overallDiff > 0 ? '+' : ''}${overallDiff}`,
+        cls: overallDiff > 0 ? 'positive' : 'negative',
+      })
+    }
+    if (bestMap && bestMap.diff > 4) {
+      out.push({ text: `Strong on ${capitalize(bestMap.map)} ${bestMap.us}–${bestMap.them}`, cls: 'positive' })
+    }
+    if (worstMap && worstMap.diff < -4 && worstMap.map !== bestMap?.map) {
+      out.push({ text: `Lost ${capitalize(worstMap.map)} ${worstMap.us}–${worstMap.them}`, cls: 'negative' })
+    }
+    if (maps.length >= 2 && closest && Math.abs(closest.diff) <= 2 && closest.map !== bestMap?.map && closest.map !== worstMap?.map) {
+      out.push({ text: `Close fight on ${capitalize(closest.map)} ${closest.us}–${closest.them}`, cls: '' })
+    }
+    return out.slice(0, 3)
+  }
+
+  function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : '' }
+
+  function aggregateScore(maps) {
+    let mw = 0, ml = 0
+    for (const m of maps ?? []) {
+      if ((m.score_us ?? 0) > (m.score_them ?? 0)) mw++
+      else if ((m.score_them ?? 0) > (m.score_us ?? 0)) ml++
+    }
+    return { mw, ml }
+  }
+
   el.innerHTML = vods.map((v, vi) => {
     const maps = v.maps ?? []
-    const mapsStr = maps.map(m => {
-      const r = (m.score_us ?? 0) > (m.score_them ?? 0) ? 'win' : (m.score_them ?? 0) > (m.score_us ?? 0) ? 'loss' : 'draw'
-      const borderColor = r === 'win' ? 'var(--success)' : r === 'loss' ? 'var(--danger)' : 'var(--muted)'
-      const scoreColor  = r === 'win' ? 'var(--success)' : r === 'loss' ? 'var(--danger)' : 'var(--muted)'
-      return `<div style="position:relative;overflow:hidden;border-radius:6px;width:68px;height:50px;border:1.5px solid ${borderColor};flex-shrink:0">
-        <img src="${mapImgUrl(m.map)}" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.2;pointer-events:none">
-        <div style="position:relative;padding:5px 7px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
-          <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:var(--muted)">${m.map.slice(0,3).toUpperCase()}</span>
-          <span style="font-size:13px;font-weight:700;color:${scoreColor}">${m.score_us ?? '?'}–${m.score_them ?? '?'}</span>
-        </div>
-      </div>`
-    }).join('')
+    const { mw, ml } = aggregateScore(maps)
+    const result = mw > ml ? 'win' : ml > mw ? 'loss' : maps.length ? 'draw' : 'draw'
     const oppName = v.opponent ?? v.title
+    const mapsLabel = maps.length === 1
+      ? `${capitalize(maps[0].map)} · ${maps[0].score_us ?? '?'}–${maps[0].score_them ?? '?'}`
+      : maps.length > 1
+        ? `BO${maps.length} · ${maps.map(m => capitalize(m.map)).join(' / ')}`
+        : 'No maps'
+    const insights = deriveInsights(maps)
     return `
-      <a class="list-row" href="vod-detail.html?id=${v.id}">
-        ${teamLogoEl(logos[vi], oppName, 40)}
-        <div class="flex-1">
-          <div class="row-name">vs ${esc(oppName)}${v.external_uid ? ' <span class="pracc-badge">PRACC</span>' : ''}</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">${mapsStr}</div>
+      <a class="match-card match-card-${result}" href="vod-detail.html?id=${v.id}">
+        <div class="match-result">
+          <span class="match-result-tag match-result-${result}">${result === 'draw' ? 'DRAW' : result.toUpperCase()}</span>
+          <span class="match-result-score match-result-score-${result}">${mw}–${ml}</span>
         </div>
-        <div class="row-meta" style="text-align:right">
+        <div class="match-body">
+          <div class="match-opponent">
+            ${teamLogoEl(logos[vi], oppName, 28)}
+            <span>vs ${esc(oppName)}</span>
+            ${v.external_uid ? '<span class="pracc-badge">PRACC</span>' : ''}
+          </div>
+          <div class="match-opponent-meta">${esc(mapsLabel)}</div>
+          ${insights.length ? `<div class="match-bullets">${insights.map(i =>
+            `<span class="match-bullet ${i.cls ? 'match-bullet-' + i.cls : ''}">${esc(i.text)}</span>`
+          ).join('')}</div>` : ''}
+        </div>
+        <div class="match-meta">
           <div>${esc(v.match_type ?? '')}</div>
-          <div>${v.match_date ? formatDate(v.match_date) : '—'}</div>
+          <div class="match-meta-date">${v.match_date ? formatDate(v.match_date) : '—'}</div>
         </div>
       </a>
     `

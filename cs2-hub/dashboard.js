@@ -168,6 +168,74 @@ for (const v of vodData ?? []) {
 }
 const totalM = mw + ml + md
 const winPct = totalM ? Math.round((mw / totalM) * 100) : 0
+
+// Per-map performance for insights
+const mapAgg = {}
+for (const v of vodData ?? []) {
+  for (const m of v.maps ?? []) {
+    const us = m.score_us ?? 0, them = m.score_them ?? 0
+    const a = mapAgg[m.map] ??= { w: 0, l: 0, rw: 0, rl: 0 }
+    a.rw += us; a.rl += them
+    if (us > them) a.w++
+    else if (them > us) a.l++
+  }
+}
+
+function deriveDashboardInsights() {
+  const out = []
+  // Recent slump or streak
+  if (recentForm.length >= 3) {
+    const lossStreak = recentForm.findIndex(r => r !== 'L')
+    const winStreak  = recentForm.findIndex(r => r !== 'W')
+    if (lossStreak === -1 || lossStreak >= 3) {
+      out.push({ kind: 'warning', tag: 'Form Alert', text: `<strong>${lossStreak === -1 ? recentForm.length : lossStreak} losses</strong> in a row. Time to reset.`, sub: 'Recent match form' })
+    } else if (winStreak === -1 || winStreak >= 3) {
+      out.push({ kind: 'positive', tag: 'On a Roll', text: `<strong>${winStreak === -1 ? recentForm.length : winStreak} wins</strong> in a row. Keep the momentum.`, sub: 'Recent match form' })
+    }
+  }
+  // Best/worst maps (need 2+ games)
+  const ranked = Object.entries(mapAgg)
+    .filter(([, a]) => a.w + a.l >= 2)
+    .map(([map, a]) => ({ map, games: a.w + a.l, wp: Math.round((a.w / (a.w + a.l)) * 100), ...a }))
+  if (ranked.length) {
+    ranked.sort((a, b) => b.wp - a.wp)
+    const best = ranked[0]
+    const worst = ranked[ranked.length - 1]
+    if (best && best.wp >= 60 && best.games >= 2) {
+      out.push({ kind: 'positive', tag: 'Strong Map', text: `Pick <strong>${best.map.charAt(0).toUpperCase()+best.map.slice(1)}</strong> when possible — <strong>${best.wp}%</strong> win rate.`, sub: `${best.w}W — ${best.l}L over ${best.games} games` })
+    }
+    if (worst && worst !== best && worst.wp <= 40 && worst.games >= 2) {
+      out.push({ kind: 'warning', tag: 'Weak Map', text: `Ban <strong>${worst.map.charAt(0).toUpperCase()+worst.map.slice(1)}</strong> first — only <strong>${worst.wp}%</strong> win rate.`, sub: `${worst.w}W — ${worst.l}L over ${worst.games} games` })
+    }
+  }
+  // Round-win efficiency (needs maps to have rounds data)
+  let totRW = 0, totRL = 0
+  for (const a of Object.values(mapAgg)) { totRW += a.rw; totRL += a.rl }
+  if (totRW + totRL >= 30) {
+    const roundWp = Math.round((totRW / (totRW + totRL)) * 100)
+    if (roundWp >= 55) {
+      out.push({ kind: 'positive', tag: 'Round Control', text: `Winning <strong>${roundWp}%</strong> of rounds across all maps.`, sub: `${totRW}W — ${totRL}L rounds` })
+    } else if (roundWp <= 45) {
+      out.push({ kind: 'warning', tag: 'Round Control', text: `Only <strong>${roundWp}%</strong> round win rate — economy and trades need work.`, sub: `${totRW}W — ${totRL}L rounds` })
+    }
+  }
+  return out.slice(0, 3)
+}
+
+const insights = deriveDashboardInsights()
+if (insights.length) {
+  document.getElementById('insight-slot').innerHTML = `
+    <div class="section-label" style="margin-top:6px">Auto-Insights</div>
+    <div class="insight-grid">
+      ${insights.map(i => `
+        <div class="insight-card insight-card-${i.kind}">
+          <div class="insight-tag">${i.tag}</div>
+          <div class="insight-text">${i.text}</div>
+          <div class="insight-sub">${i.sub}</div>
+        </div>
+      `).join('')}
+    </div>`
+}
 document.getElementById('stat-vods').innerHTML = `<span style="color:var(--success)">${mw}W</span> <span style="color:var(--muted);font-size:16px">—</span> <span style="color:var(--danger)">${ml}L</span>`
 document.getElementById('stat-vods').insertAdjacentHTML('afterend', `
   <div style="margin-top:8px;height:4px;border-radius:2px;background:var(--border);overflow:hidden">
