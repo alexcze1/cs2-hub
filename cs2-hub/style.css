@@ -372,29 +372,31 @@ body {
 
 /* ── Badges ── */
 .badge {
-  font-size: 9px;
-  letter-spacing: 1.5px;
-  padding: 3px 9px;
-  border-radius: 20px;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  padding: 2px 7px;
+  border-radius: 0;
   font-weight: 700;
   text-transform: uppercase;
   flex-shrink: 0;
+  background: rgba(134,163,179,0.15);
+  color: var(--slate);
 }
-.badge-scrim       { background: rgba(216,26,29,0.15); color: var(--accent); }
-.badge-tournament  { background: rgba(34,197,94,0.15);  color: var(--success); }
-.badge-meeting     { background: rgba(255,51,51,0.15); color: var(--special); }
-.badge-vod_review  { background: rgba(249,115,22,0.15); color: var(--warning); }
-.badge-win         { background: rgba(34,197,94,0.15);  color: var(--success); }
-.badge-loss        { background: rgba(239,68,68,0.15);  color: var(--danger); }
-.badge-draw        { background: rgba(107,114,128,0.15);color: var(--muted); }
+.badge-scrim       { background: rgba(134,163,179,0.15); color: var(--slate); }
+.badge-tournament  { background: rgba(134,163,179,0.15); color: var(--slate); }
+.badge-meeting     { background: rgba(134,163,179,0.15); color: var(--slate); }
+.badge-vod_review  { background: rgba(134,163,179,0.15); color: var(--slate); }
+.badge-win         { background: rgba(233,216,200,0.15); color: var(--cream); }
+.badge-loss        { background: rgba(255,91,141,0.15);  color: var(--accent); }
+.badge-draw        { background: rgba(134,163,179,0.15); color: var(--slate); }
 
 /* ── Tags ── */
 .tag {
   display: inline-block;
-  background: rgba(216,26,29,0.12);
-  color: var(--accent);
+  background: rgba(134,163,179,0.15);
+  color: var(--slate);
   padding: 2px 8px;
-  border-radius: 20px;
+  border-radius: 0;
   font-size: 11px;
   margin: 2px 4px 2px 0;
 }
