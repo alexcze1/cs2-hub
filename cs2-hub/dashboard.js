@@ -154,7 +154,7 @@ if (!recentStrats?.length) {
   recentEl.innerHTML = `<div class="empty-state"><h3>No strats yet</h3><p>Add one in the Stratbook.</p></div>`
 } else {
   recentEl.innerHTML = recentStrats.map(s => {
-    const sideColor = s.side === 't' ? 'var(--danger)' : 'var(--accent)'
+    const sideColor = s.side === 't' ? 'var(--side-t)' : 'var(--side-ct)'
     const mapFile = s.map === 'dust2' ? 'dust' : s.map
     return `
     <a class="list-row" href="stratbook-detail.html?id=${s.id}" style="border-left:3px solid ${sideColor};padding-left:12px">

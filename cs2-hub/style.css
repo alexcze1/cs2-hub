@@ -32,11 +32,15 @@
   --accent-glow: 0 0 24px rgba(255,184,0,0.22);
 
   /* Semantic */
-  --success: #00d7fe;
+  --success: #4ade80;
   --warning: #ffb95f;
-  --danger: #ffb4ab;
-  --danger-bg: #93000a;
+  --danger: #ef4444;
+  --danger-bg: #5a1212;
   --special: #abebff;
+
+  /* CS2 sides */
+  --side-t:  #ff9500;
+  --side-ct: #4fc3f7;
 
   /* Marquee card */
   --card-cream: #ffb800;
@@ -331,7 +335,7 @@ body {
 .week-event-time  { display: block; font-weight: 700; opacity: .75; font-size: 10px; }
 .week-event-title { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .week-event-scrim      { background: rgba(255,184,0,0.15); color: var(--accent);   border-left: 3px solid var(--accent); }
-.week-event-tournament { background: rgba(0,215,254,0.15);  color: var(--success);  border-left: 3px solid var(--success); }
+.week-event-tournament { background: rgba(74,222,128,0.15); color: var(--success); border-left: 3px solid var(--success); }
 .week-event-meeting    { background: rgba(255,184,0,0.15); color: var(--special); border-left: 3px solid var(--special); }
 .week-event-vod_review { background: rgba(255,185,95,0.15); color: var(--warning);  border-left: 3px solid var(--warning); }
 .week-empty { color: var(--muted); font-size: 11px; text-align: center; padding-top: 4px; }
@@ -385,11 +389,11 @@ body {
   flex-shrink: 0;
 }
 .badge-scrim       { background: rgba(255,184,0,0.15); color: var(--accent); }
-.badge-tournament  { background: rgba(0,215,254,0.15);  color: var(--success); }
+.badge-tournament  { background: rgba(74,222,128,0.15); color: var(--success); }
 .badge-meeting     { background: rgba(255,184,0,0.15); color: var(--special); }
 .badge-vod_review  { background: rgba(255,185,95,0.15); color: var(--warning); }
-.badge-win         { background: rgba(0,215,254,0.15);  color: var(--success); }
-.badge-loss        { background: rgba(255,184,0,0.15);  color: var(--danger); }
+.badge-win         { background: rgba(74,222,128,0.15); color: var(--success); }
+.badge-loss        { background: rgba(239,68,68,0.15);  color: var(--danger); }
 .badge-draw        { background: rgba(107,114,128,0.15);color: var(--muted); }
 
 /* ── Tags ── */
@@ -705,7 +709,7 @@ body {
 }
 
 .cal-event-scrim      { background: rgba(255,184,0,0.15); color: var(--accent);   border-left: 3px solid var(--accent); }
-.cal-event-tournament { background: rgba(0,215,254,0.15);  color: var(--success);  border-left: 3px solid var(--success); }
+.cal-event-tournament { background: rgba(74,222,128,0.15); color: var(--success); border-left: 3px solid var(--success); }
 .cal-event-meeting    { background: rgba(255,184,0,0.15); color: var(--special); border-left: 3px solid var(--special); }
 .cal-event-vod_review { background: rgba(255,185,95,0.15); color: var(--warning);  border-left: 3px solid var(--warning); }
 
@@ -783,9 +787,9 @@ body {
   margin-bottom: 10px;
 }
 .review-pane-label svg { flex-shrink: 0; opacity: .7; }
-.review-pane-label-t  { color: #e5e2e1; }
+.review-pane-label-t  { color: var(--side-t); }
 .review-pane-label-t  svg { opacity: 1; }
-.review-pane-label-ct { color: var(--accent); }
+.review-pane-label-ct { color: var(--side-ct); }
 .review-pane-label-ct svg { opacity: 1; }
 
 .review-divider       { height: 1px; background: var(--border); }
@@ -855,8 +859,8 @@ body {
   padding: 2px 6px;
   border-radius: var(--r-sm);
 }
-.map-chip-win  { background: rgba(0,215,254,0.15);  color: var(--success); }
-.map-chip-loss { background: rgba(255,184,0,0.15);  color: var(--danger); }
+.map-chip-win  { background: rgba(74,222,128,0.15); color: var(--success); }
+.map-chip-loss { background: rgba(239,68,68,0.15);  color: var(--danger); }
 .map-chip-draw { background: rgba(107,114,128,0.15);color: var(--muted); }
 
 .map-breakdown-grid {
@@ -909,8 +913,8 @@ body {
   font-weight: 800;
   letter-spacing: 0;
 }
-.form-dot-win  { background: rgba(0,215,254,0.2);  color: var(--success); }
-.form-dot-loss { background: rgba(255,184,0,0.2);  color: var(--danger); }
+.form-dot-win  { background: rgba(74,222,128,0.2); color: var(--success); }
+.form-dot-loss { background: rgba(239,68,68,0.2);  color: var(--danger); }
 .form-dot-draw { background: rgba(107,114,128,0.2);color: var(--muted); }
 
 /* ── Stratbook ── */
@@ -926,8 +930,8 @@ body {
 
 .tab-t  { }
 .tab-ct { }
-.tab-t.active  { background: rgba(255,184,0,0.18);  color: #e5e2e1;       border-color: rgba(255,184,0,0.4); }
-.tab-ct.active { background: rgba(255,184,0,0.18); color: var(--accent); border-color: rgba(255,184,0,0.4); }
+.tab-t.active  { background: rgba(255,149,0,0.18);  color: var(--side-t);  border-color: rgba(255,149,0,0.45); }
+.tab-ct.active { background: rgba(79,195,247,0.18); color: var(--side-ct); border-color: rgba(79,195,247,0.45); }
 
 .strat-card {
   display: block;
@@ -943,8 +947,8 @@ body {
   transition: border-color .15s, transform .1s;
 }
 .strat-card:hover { border-color: var(--accent); transform: translateX(2px); }
-.strat-card-t  { border-left-color: #e5e2e1; }
-.strat-card-ct { border-left-color: var(--accent); }
+.strat-card-t  { border-left-color: var(--side-t); }
+.strat-card-ct { border-left-color: var(--side-ct); }
 
 .strat-card-header {
   display: flex;
@@ -1070,8 +1074,8 @@ body {
   padding: 10px 16px;
 }
 
-.ct-title { background: rgba(255,184,0,0.15); color: var(--accent); }
-.t-title  { background: rgba(255,184,0,0.15); color: var(--special); }
+.ct-title { background: rgba(79,195,247,0.15); color: var(--side-ct); }
+.t-title  { background: rgba(255,149,0,0.15);  color: var(--side-t); }
 
 .gameplan-split {
   display: grid;
@@ -1091,15 +1095,15 @@ body {
   border-top: 1px solid var(--border);
 }
 
-.t-positions-label  { background: rgba(248,113,113,0.12); color: #e5e2e1; }
-.ct-positions-label { background: rgba(255,184,0,0.12);  color: #ffb800; }
+.t-positions-label  { background: rgba(255,149,0,0.12);  color: var(--side-t); }
+.ct-positions-label { background: rgba(79,195,247,0.12); color: var(--side-ct); }
 .pistols-label   { background: rgba(20,184,166,0.18); color: #2dd4bf; }
 .style-label     { background: rgba(251,113,133,0.18); color: #fb7185; }
 .antiecos-label  { background: rgba(20,184,166,0.18); color: #2dd4bf; }
 .forces-label    { background: rgba(236,72,153,0.18); color: #f472b6; }
 .tendencies-label { background: rgba(255,184,0,0.18); color: var(--special); }
 .exploits-label  { background: rgba(251,191,36,0.18); color: #fbbf24; }
-.solutions-label { background: rgba(0,215,254,0.18);  color: var(--success); }
+.solutions-label { background: rgba(74,222,128,0.18); color: var(--success); }
 
 .gameplan-textarea {
   border-radius: var(--r-sm);
