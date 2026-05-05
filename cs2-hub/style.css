@@ -404,8 +404,8 @@ body {
 /* ── Map Badge ── */
 .map-badge {
   width: 32px; height: 32px;
-  background: rgba(255,255,255,0.06);
-  border-radius: 5px;
+  background: var(--accent-deep);
+  border-radius: 0;
   overflow: hidden;
   flex-shrink: 0;
   position: relative;
@@ -415,13 +415,17 @@ body {
   color: var(--accent);
   font-size: 10px;
   font-weight: 700;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
+  font-family: var(--display-font);
 }
 .map-badge img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+  opacity: 0.7;
+  mix-blend-mode: luminosity;
 }
 
 /* ── Tabs ── */
@@ -882,21 +886,22 @@ body {
 .map-stat-pct   { font-weight: 700; font-size: 13px; }
 .map-stat-rounds { color: var(--muted); font-size: 11px; }
 
-.form-dots { display: flex; gap: 5px; align-items: center; }
+/* ── Form Dots (recent W/L/D markers) ── */
+.form-dots { display: flex; gap: 4px; }
 .form-dot {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  display: flex;
+  width: 14px; height: 14px;
+  border-radius: 0;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
-  font-weight: 800;
+  font-size: 9px;
+  font-weight: 700;
   letter-spacing: 0;
+  color: transparent;
 }
-.form-dot-win  { background: rgba(34,197,94,0.2);  color: var(--success); }
-.form-dot-loss { background: rgba(239,68,68,0.2);  color: var(--danger); }
-.form-dot-draw { background: rgba(107,114,128,0.2);color: var(--muted); }
+.form-dot-win  { background: var(--cream); }
+.form-dot-loss { background: var(--accent); }
+.form-dot-draw { background: rgba(233,216,200,0.20); }
 
 /* ── Stratbook ── */
 .strat-filters { margin-bottom: 20px; }
