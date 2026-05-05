@@ -11,10 +11,10 @@
   --accent-dim: rgba(175,163,254,0.15);
   --text: #eaf0f7;
   --muted: #6e7da8;
-  --success: #eaf0f7;
+  --success: #fffa63;
   --danger: #afa3fe;
   --warning: #fffa63;
-  --special: #afa3fe;
+  --special: #fffa63;
   --glass-bg: rgba(0,0,0,0.55);
   --glass-border: rgba(234,240,247,0.08);
   --card-cream: #eaf0f7;
@@ -26,10 +26,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  background:
-    radial-gradient(ellipse at 12% 30%, rgba(175,163,254,0.10) 0%, transparent 55%),
-    radial-gradient(ellipse at 88% 8%,  rgba(234,240,247,0.06) 0%, transparent 45%),
-    linear-gradient(to top, #000000 0%, #111111 100%);
+  background: #000000;
   color: var(--text);
   font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   font-size: 14px;
