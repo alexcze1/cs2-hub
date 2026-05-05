@@ -19,12 +19,15 @@
       </div>
     </div>
 
-    <div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
-      <div class="stat-card" style="border-top:3px solid var(--accent)">
-        <div class="stat-label">Next Event</div>
-        <div class="stat-value" id="stat-next-event" style="font-size:15px;margin-top:4px">—</div>
-        <div class="stat-sub" id="stat-next-date">No upcoming events</div>
-      </div>
+    <div id="hero-slot"><div class="loading">Loading…</div></div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;margin-bottom:8px">
+      <div class="section-label" style="margin:0">Next 14 Days</div>
+      <a href="schedule.html" style="font-size:12px;color:var(--accent);text-decoration:none">View schedule →</a>
+    </div>
+    <div id="timeline-slot"><div class="loading">Loading…</div></div>
+
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
       <div class="stat-card" style="border-top:3px solid var(--special)">
         <div class="stat-label">Strats Saved</div>
         <div class="stat-value" id="stat-strats">—</div>
@@ -41,12 +44,6 @@
         <div class="stat-sub" id="stat-issues-sub">Loading…</div>
       </div>
     </div>
-
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:24px;margin-bottom:8px">
-      <div class="section-label" style="margin:0">Upcoming This Week</div>
-      <a href="schedule.html" style="font-size:12px;color:var(--accent);text-decoration:none">View schedule →</a>
-    </div>
-    <div id="upcoming-events"><div class="loading">Loading…</div></div>
 
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:24px;margin-bottom:8px">
       <div class="section-label" style="margin:0">Recently Added Strats</div>

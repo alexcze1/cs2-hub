@@ -24,19 +24,20 @@ const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Go
 document.getElementById('date-sub').textContent = now.toLocaleDateString('en-GB', {
   weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
 })
-const weekLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+const horizon = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000)
 
 const { data: teamRow } = await supabase.from('teams').select('name, pracc_url').eq('id', teamId).single()
 if (teamRow?.name) document.getElementById('page-greeting').textContent = `${greeting}, ${teamRow.name}`
 
-const [{ data: dbEvents }, pracc] = await Promise.all([
-  supabase.from('events').select('*').eq('team_id', teamId).gte('date', now.toISOString()).lte('date', weekLater.toISOString()).order('date', { ascending: true }),
+const [{ data: dbEvents }, pracc, { data: vodMatchHist }] = await Promise.all([
+  supabase.from('events').select('*').eq('team_id', teamId).gte('date', now.toISOString()).lte('date', horizon.toISOString()).order('date', { ascending: true }),
   teamRow?.pracc_url
     ? fetch(`/api/calendar?url=${encodeURIComponent(teamRow.pracc_url)}`).then(r => r.json()).catch(() => [])
-    : Promise.resolve([])
+    : Promise.resolve([]),
+  supabase.from('vods').select('maps').eq('team_id', teamId).order('created_at', { ascending: false }).limit(5)
 ])
 
-const praccEvents = (Array.isArray(pracc) ? pracc : []).filter(e => e.date >= now.toISOString() && e.date <= weekLater.toISOString())
+const praccEvents = (Array.isArray(pracc) ? pracc : []).filter(e => e.date >= now.toISOString() && e.date <= horizon.toISOString())
 const filtered = (dbEvents ?? []).filter(se => {
   const seStart = new Date(se.date).getTime()
   const seEnd   = se.end_date ? new Date(se.end_date).getTime() : seStart + 3600000
@@ -48,53 +49,104 @@ const filtered = (dbEvents ?? []).filter(se => {
 })
 const events = [...filtered, ...praccEvents].sort((a, b) => new Date(a.date) - new Date(b.date))
 
-const upcomingEl = document.getElementById('upcoming-events')
-if (!events?.length) {
-  upcomingEl.innerHTML = `<div class="empty-state"><h3>No events this week</h3><p>Add one in the Schedule section.</p></div>`
-} else {
-  const next = events[0]
-  const msUntil = new Date(next.date) - now
-  const hoursUntil = Math.floor(msUntil / 36e5)
-  const timeUntil = hoursUntil < 1 ? 'Starting soon' : hoursUntil < 24 ? `In ${hoursUntil}h` : `In ${Math.floor(hoursUntil/24)}d`
-  document.getElementById('stat-next-event').innerHTML = `${esc(next.title)} <span style="font-size:11px;font-weight:600;color:var(--accent);background:var(--accent)18;padding:2px 7px;border-radius:4px;margin-left:4px">${timeUntil}</span>`
-  document.getElementById('stat-next-date').textContent = formatDate(next.date)
+const matchTypes = ['tournament', 'scrim']
+const nextMatch = events.find(e => matchTypes.includes(e.type)) ?? events[0] ?? null
 
-  function localDateStr(d) {
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+function formatCountdown(ms) {
+  if (ms < 60_000)         return { value: 'NOW',                 unit: '' }
+  const mins  = Math.floor(ms / 60_000)
+  if (mins < 60)           return { value: String(mins),          unit: 'min' }
+  const hours = Math.floor(mins / 60)
+  if (hours < 24)          return { value: String(hours),         unit: hours === 1 ? 'hour' : 'hours' }
+  const days  = Math.floor(hours / 24)
+  return                          { value: String(days),          unit: days === 1 ? 'day' : 'days' }
+}
+
+const recentForm = (vodMatchHist ?? []).map(v => {
+  let w = 0, l = 0
+  for (const m of v.maps ?? []) {
+    if ((m.score_us ?? 0) > (m.score_them ?? 0)) w++
+    else if ((m.score_them ?? 0) > (m.score_us ?? 0)) l++
   }
+  return w > l ? 'W' : l > w ? 'L' : 'D'
+})
 
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(now)
-    d.setDate(d.getDate() + i)
-    d.setHours(0, 0, 0, 0)
-    return d
-  })
+const heroSlot = document.getElementById('hero-slot')
+if (!nextMatch) {
+  heroSlot.innerHTML = `
+    <div class="hero-empty">
+      <div class="hero-empty-title">No matches scheduled</div>
+      <div class="hero-empty-sub">Add a scrim or tournament in the Schedule section.</div>
+    </div>`
+} else {
+  const ms = new Date(nextMatch.date) - now
+  const cd = formatCountdown(Math.max(0, ms))
+  const isMatch = matchTypes.includes(nextMatch.type)
+  const tagLabel = isMatch
+    ? (nextMatch.type === 'tournament' ? 'OFFICIAL · NEXT MATCH' : 'SCRIM · NEXT MATCH')
+    : `${TYPE_LABELS[nextMatch.type] ?? 'EVENT'} · NEXT UP`
+  const opponent = isMatch ? esc(nextMatch.title.replace(/^vs\s+/i, '')) : esc(nextMatch.title)
+  const vsLine = isMatch ? `<div class="hero-vs">vs</div>` : ''
+  const formDotsHtml = recentForm.length
+    ? `<div class="hero-form">
+         <span class="hero-form-label">Recent form · last ${recentForm.length}</span>
+         <div class="hero-form-dots">${recentForm.map(r =>
+           `<span class="form-dot form-dot-${r === 'W' ? 'win' : r === 'L' ? 'loss' : 'draw'}">${r}</span>`
+         ).join('')}</div>
+       </div>`
+    : ''
 
-  upcomingEl.innerHTML = `<div class="week-grid">${days.map(day => {
-    const dateStr = localDateStr(day)
-    const dayLabel = day.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase()
-    const dayNum   = day.getDate()
-    const isToday  = day.getDate() === now.getDate() && day.getMonth() === now.getMonth() && day.getFullYear() === now.getFullYear()
-    const dayEvents = events.filter(e => e.date.slice(0, 10) === dateStr)
-
-    return `
-      <div class="week-col ${isToday ? 'week-col-today' : ''}">
-        <div class="week-day-header">
-          <span class="week-day-name">${dayLabel}</span>
-          <span class="week-day-num ${isToday ? 'week-day-num-today' : ''}">${dayNum}</span>
-        </div>
-        <div class="week-day-events">
-          ${dayEvents.length ? dayEvents.map(e => `
-            <a class="week-event week-event-${e.type}" href="schedule.html">
-              <span class="week-event-time">${new Date(e.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
-              <span class="week-event-title">${esc(e.title)}</span>
-            </a>
-          `).join('') : `<div class="week-empty">—</div>`}
+  heroSlot.innerHTML = `
+    <div class="hero-card">
+      <div>
+        <div class="hero-tag">${tagLabel}</div>
+        ${vsLine}
+        <div class="hero-opponent">${opponent}</div>
+        <div class="hero-meta">
+          <span>${formatDate(nextMatch.date)}</span>
+          ${nextMatch.location ? `<span class="hero-meta-divider"></span><span>${esc(nextMatch.location)}</span>` : ''}
         </div>
       </div>
-    `
-  }).join('')}</div>`
+      <div class="hero-right">
+        <div>
+          <div class="hero-countdown-label">Starts in</div>
+          <div class="hero-countdown">${cd.value}<span class="hero-countdown-unit">${cd.unit}</span></div>
+        </div>
+        ${formDotsHtml}
+      </div>
+    </div>`
 }
+
+function localDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+}
+
+const timelineDays = Array.from({ length: 14 }, (_, i) => {
+  const d = new Date(now)
+  d.setDate(d.getDate() + i)
+  d.setHours(0, 0, 0, 0)
+  return d
+})
+
+document.getElementById('timeline-slot').innerHTML = `
+  <div class="timeline-strip">${timelineDays.map(day => {
+    const dateStr = localDateStr(day)
+    const dayLabel = day.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase()
+    const dayNum = day.getDate()
+    const isToday = day.getDate() === now.getDate() && day.getMonth() === now.getMonth() && day.getFullYear() === now.getFullYear()
+    const dayEvents = events.filter(e => e.date.slice(0, 10) === dateStr)
+    const dotsHtml = dayEvents.length
+      ? dayEvents.slice(0, 4).map(e => `<span class="timeline-dot timeline-dot-${e.type}" title="${esc(e.title)}"></span>`).join('')
+      : `<span class="timeline-day-empty">—</span>`
+    return `
+      <a class="timeline-day ${isToday ? 'timeline-day-today' : ''}" href="schedule.html">
+        <div class="timeline-day-head">
+          <span class="timeline-day-name">${isToday ? 'TODAY' : dayLabel}</span>
+          <span class="timeline-day-num">${dayNum}</span>
+        </div>
+        <div class="timeline-day-events">${dotsHtml}</div>
+      </a>`
+  }).join('')}</div>`
 
 const { count: stratCount } = await supabase.from('strats').select('*', { count: 'exact', head: true }).eq('team_id', teamId)
 document.getElementById('stat-strats').textContent = stratCount ?? 0
@@ -114,14 +166,6 @@ for (const v of vodData ?? []) {
   }
   if (w > l) mw++; else if (l > w) ml++; else if (maps.length) md++
 }
-const recentForm = (vodData ?? []).slice(0, 5).map(v => {
-  let w = 0, l = 0
-  for (const m of v.maps ?? []) {
-    if ((m.score_us ?? 0) > (m.score_them ?? 0)) w++
-    else if ((m.score_them ?? 0) > (m.score_us ?? 0)) l++
-  }
-  return w > l ? 'W' : l > w ? 'L' : 'D'
-})
 const totalM = mw + ml + md
 const winPct = totalM ? Math.round((mw / totalM) * 100) : 0
 document.getElementById('stat-vods').innerHTML = `<span style="color:var(--success)">${mw}W</span> <span style="color:var(--muted);font-size:16px">—</span> <span style="color:var(--danger)">${ml}L</span>`
