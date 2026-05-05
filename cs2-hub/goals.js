@@ -21,7 +21,7 @@ const CATEGORIES = {
   competition:   { label: 'Competition',   color: '#4ade80' },
   strategy:      { label: 'Strategy',      color: '#60a5fa' },
   aim:           { label: 'Aim & Mech',    color: '#f87171' },
-  communication: { label: 'Communication', color: '#a78bfa' },
+  communication: { label: 'Communication', color: '#c084fc' },
   mental:        { label: 'Mental',        color: '#facc15' },
   other:         { label: 'Other',         color: '#64748b' },
 }

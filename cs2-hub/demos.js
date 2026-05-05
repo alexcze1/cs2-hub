@@ -104,7 +104,7 @@ async function loadDemos() {
 
     return `
       <div class="list-row" id="demo-row-${d.id}">
-        <div class="list-row-icon" style="background:var(--surface-2);font-size:11px;font-weight:600;color:var(--text-secondary)">${esc(mapName.slice(0,3).toUpperCase())}</div>
+        <div class="list-row-icon" style="background:var(--surface-high);font-size:11px;font-weight:600;color:var(--text-variant)">${esc(mapName.slice(0,3).toUpperCase())}</div>
         <div class="list-row-body">
           <div class="list-row-title">${title} — ${esc(d.map ?? '?')}</div>
           <div class="list-row-sub">${d.played_at ? formatDate(d.played_at) : formatDate(d.created_at)}${score ? ` · ${score}` : ''}</div>
@@ -124,7 +124,7 @@ async function loadDemos() {
       ? `${esc(td.left)} vs ${esc(td.right)}`
       : first.opponent_name ? `vs ${esc(first.opponent_name)}` : 'Series'
     html += `
-      <div style="margin-bottom:4px;padding:4px 0 2px 4px;font-size:10px;font-weight:700;color:#555;letter-spacing:0.1em;text-transform:uppercase">
+      <div style="margin-bottom:4px;padding:4px 0 2px 4px;font-size:10px;font-weight:700;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase">
         BO${demos.length > 3 ? 5 : 3} Series · ${seriesLabel}
       </div>`
     demos.forEach((d, i) => {

@@ -1161,7 +1161,7 @@ function showSetposToast(playerName) {
     toast.style.cssText = `
       position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
       background: rgba(0,0,0,0.92); color: #fff; padding: 9px 16px;
-      border: 1px solid rgba(175,163,254,0.45); border-radius: 8px;
+      border: 1px solid rgba(0,255,156,0.45); border-radius: 8px;
       font: 600 12px Inter, system-ui, sans-serif; z-index: 1000;
       pointer-events: none; transition: opacity 0.2s; opacity: 0;
     `

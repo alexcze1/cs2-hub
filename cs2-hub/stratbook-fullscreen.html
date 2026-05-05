@@ -36,7 +36,7 @@
       background: var(--bg);
       border: 1px solid var(--border);
       border-radius: 5px;
-      color: var(--text-secondary);
+      color: var(--text-variant);
       cursor: pointer;
       font-family: inherit;
       font-size: 11px;
@@ -46,8 +46,8 @@
     }
     .fs-tab:hover    { border-color: var(--accent); color: var(--accent); }
     .fs-tab.active   { background: var(--accent); border-color: var(--accent); color: #000; }
-    .fs-tab-t.active  { background: #f87171; border-color: #f87171; color: #000; }
-    .fs-tab-ct.active { background: var(--accent); border-color: var(--accent); color: #000; }
+    .fs-tab-t.active  { background: var(--side-t); border-color: var(--side-t); color: #000; }
+    .fs-tab-ct.active { background: var(--side-ct); border-color: var(--side-ct); color: #000; }
 
     .fs-sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
 
@@ -57,7 +57,7 @@
       background: var(--border);
       border: none;
       border-radius: 5px;
-      color: var(--text-secondary);
+      color: var(--text-variant);
       cursor: pointer;
       font-size: 11px;
       font-weight: 600;
@@ -86,8 +86,8 @@
       margin-bottom: 6px;
       break-inside: avoid;
     }
-    .fs-card-t  { border-left-color: #f87171; }
-    .fs-card-ct { border-left-color: var(--accent); }
+    .fs-card-t  { border-left-color: var(--side-t); }
+    .fs-card-ct { border-left-color: var(--side-ct); }
 
     .fs-card-top {
       display: flex;
@@ -114,8 +114,8 @@
       border-radius: 3px;
       text-transform: uppercase;
     }
-    .fs-badge-t    { background: rgba(239,68,68,0.15);  color: #f87171; }
-    .fs-badge-ct   { background: rgba(0,255,156,0.15); color: var(--accent); }
+    .fs-badge-t    { background: rgba(255,149,0,0.15);  color: var(--side-t); }
+    .fs-badge-ct   { background: rgba(79,195,247,0.15); color: var(--side-ct); }
     .fs-badge-type { background: var(--border); color: var(--muted); }
 
     .fs-roles {

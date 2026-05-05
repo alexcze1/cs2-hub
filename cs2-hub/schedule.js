@@ -25,6 +25,54 @@ function formatTime(iso) {
   return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 
+function formatCountdown(ms) {
+  if (ms < 60_000) return { value: 'NOW', unit: '' }
+  const mins = Math.floor(ms / 60_000)
+  if (mins < 60) return { value: String(mins), unit: 'min' }
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return { value: String(hours), unit: hours === 1 ? 'hour' : 'hours' }
+  const days = Math.floor(hours / 24)
+  return { value: String(days), unit: days === 1 ? 'day' : 'days' }
+}
+
+function renderHeroNextMatch() {
+  const slot = document.getElementById('schedule-hero-slot')
+  if (!slot) return
+  const now = Date.now()
+  const upcoming = allEvents.filter(e => new Date(e.date).getTime() > now)
+  const matchTypes = ['tournament', 'scrim']
+  const next = upcoming.find(e => matchTypes.includes(e.type)) ?? null
+  if (!next) {
+    slot.innerHTML = ''
+    return
+  }
+  const start = new Date(next.date)
+  const cd = formatCountdown(start.getTime() - now)
+  const opp = next.opponent || next.title
+  const sourceLabel = next.source === 'pracc' ? ' · PRACC' : next.source === 'gcal' ? ' · GCAL' : ''
+  const dateLabel = start.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase()
+  slot.innerHTML = `
+    <div class="hero-card">
+      <div>
+        <div class="hero-tag">Next ${TYPE_LABELS[next.type] ?? 'MATCH'}${sourceLabel}</div>
+        <div class="hero-vs">vs</div>
+        <div class="hero-opponent">${esc(opp)}</div>
+        <div class="hero-meta">
+          <span>${dateLabel}</span>
+          <span class="hero-meta-divider"></span>
+          <span>${formatTime(next.date)}${next.end_date ? ' – ' + formatTime(next.end_date) : ''}</span>
+        </div>
+      </div>
+      <div class="hero-right">
+        <div>
+          <div class="hero-countdown-label">Starts in</div>
+          <div class="hero-countdown">${cd.value}<span class="hero-countdown-unit">${cd.unit}</span></div>
+        </div>
+      </div>
+    </div>
+  `
+}
+
 let allEvents = []
 let editingId = null
 let currentMonth = new Date()
@@ -64,6 +112,7 @@ async function loadEvents() {
     })
   })
   allEvents = [...filtered, ...externalEvents].sort((a, b) => new Date(a.date) - new Date(b.date))
+  renderHeroNextMatch()
   renderCalendar()
 
   // Sync: ensure each pracc event has a corresponding vod entry, and backfill

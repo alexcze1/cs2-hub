@@ -66,7 +66,7 @@ export async function attachPlayerAutocomplete(input, onSelect) {
   function setActive(i) {
     activeIdx = i
     drop.querySelectorAll('.ac-item').forEach((el, idx) => {
-      el.style.background = idx === i ? 'rgba(175,163,254,0.12)' : ''
+      el.style.background = idx === i ? 'rgba(0,255,156,0.12)' : ''
     })
   }
 

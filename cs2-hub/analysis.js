@@ -138,7 +138,7 @@ async function onTeamChanged() {
 function renderFilterRail() {
   const rail = document.getElementById('filter-rail')
   if (!state.team || !state.corpus.length) {
-    rail.innerHTML = `<div class="label">Filters</div><div style="font-size:11px;color:#555">No demos for this team yet.</div>`
+    rail.innerHTML = `<div class="label">Filters</div><div style="font-size:11px;color:var(--muted)">No demos for this team yet.</div>`
     setEmptyMessage(state.team ? 'No demos found for this team.' : 'Pick a team to begin.')
     return
   }
@@ -194,7 +194,7 @@ function renderFilterRail() {
     <div class="label">Matches</div>
     <div class="match-list" id="f-matches">
       ${demosForMap.length === 0
-        ? `<div style="padding:7px;font-size:11px;color:#555">No matches.</div>`
+        ? `<div style="padding:7px;font-size:11px;color:var(--muted)">No matches.</div>`
         : demosForMap.map(d => `
           <label class="match-row">
             <input type="checkbox" data-id="${d.id}" ${selectedIds.has(d.id) ? 'checked' : ''}>
