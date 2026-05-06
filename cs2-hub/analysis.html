@@ -513,6 +513,7 @@
           <div class="pp-round-nav" id="pp-round-nav" style="display:none">
             <button class="pp-nav-btn" id="pp-round-prev">◀</button>
             <span class="pp-round-label" id="pp-round-label">Round 1 / 1</span>
+            <button class="pp-nav-btn pp-save-btn" id="pp-save-btn" title="Save round to playlist">☆</button>
             <button class="pp-nav-btn" id="pp-round-next">▶</button>
           </div>
           <button class="pp-clear" id="pp-clear" style="display:none">Clear solo</button>
@@ -554,6 +555,10 @@
             <button class="gp-play-selection" id="gp-play-selection">Play round</button>
           </div>
         </aside>
+
+        <aside class="playlist-rail" id="playlist-rail">
+          <!-- Rail content rendered by playlist-rail.js -->
+        </aside>
       </div>
 
       <div class="analysis-bottom hidden" id="analysis-bottom">
@@ -573,6 +578,9 @@
         </div>
       </div>
     </div>
+    <div id="save-popover" class="save-popover" hidden></div>
+    <div id="kb-help-overlay" class="kb-help-overlay" hidden></div>
+    <div id="onboarding-hint" class="onboarding-hint" hidden></div>
   </main>
 </div>
 <script type="module" src="analysis.js"></script>
