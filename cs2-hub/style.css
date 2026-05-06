@@ -737,6 +737,18 @@ body {
   justify-content: flex-end;
 }
 
+.demo-delete-btn {
+  color: var(--muted);
+  padding: 4px 9px;
+  min-width: 0;
+  font-size: 12px;
+}
+.demo-delete-btn:hover {
+  color: var(--danger);
+  background: rgba(255,77,77,0.08);
+  border-color: rgba(255,77,77,0.3);
+}
+
 @media (max-width: 720px) {
   .demo-card { grid-template-columns: auto 1fr; }
   .demo-card-side { grid-column: 1 / -1; flex-direction: row; justify-content: space-between; align-items: center; }

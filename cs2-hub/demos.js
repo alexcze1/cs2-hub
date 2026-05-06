@@ -41,7 +41,7 @@ const progressBar  = document.getElementById('upload-progress-bar')
 async function loadDemos() {
   const { data, error } = await supabase
     .from('demos')
-    .select('id,status,error_message,map,played_at,score_ct,score_t,team_a_score,team_b_score,team_a_first_side,opponent_name,ct_team_name,t_team_name,series_id,created_at')
+    .select('id,status,error_message,map,played_at,score_ct,score_t,team_a_score,team_b_score,team_a_first_side,opponent_name,ct_team_name,t_team_name,series_id,storage_path,created_at')
     .eq('team_id', teamId)
     .order('created_at', { ascending: false })
 
@@ -128,6 +128,10 @@ async function loadDemos() {
     return `<button class="btn btn-ghost btn-sm" disabled>▶ Watch</button>`
   }
 
+  function deleteBtn(d) {
+    return `<button class="btn btn-ghost btn-sm demo-delete-btn" title="Delete demo" onclick="deleteDemo('${d.id}')">✕</button>`
+  }
+
   function teamRow(name, score, isWinner, hasResult, logoSize = 26) {
     const logo = teamLogoEl(logoMap[name] ?? null, name ?? '???', logoSize)
     const cls = !hasResult ? 'demo-score-none' : isWinner ? 'demo-score-win' : 'demo-score-loss'
@@ -164,6 +168,7 @@ async function loadDemos() {
             ${statusBadge(d)}
             ${teamsBtn(d, td)}
             ${watchBtn(d)}
+            ${deleteBtn(d)}
           </div>
         </div>
       </div>`
@@ -193,6 +198,7 @@ async function loadDemos() {
           ${statusBadge(d)}
           ${teamsBtn(d, td)}
           ${watchBtn(d)}
+          ${deleteBtn(d)}
         </div>
       </div>`
   }
@@ -216,10 +222,12 @@ async function loadDemos() {
     const dateStr = formatDate(first.played_at ?? first.created_at)
     const leftName  = td.left  ?? first.opponent_name ?? null
     const rightName = td.right ?? null
+    const seriesId = first.series_id
     return `
       <div class="demo-series">
         <div class="demo-series-head">
           <div class="demo-series-head-tag">${boLabel} SERIES · ${dateStr}</div>
+          <button class="btn btn-ghost btn-sm demo-delete-btn" title="Delete entire series" onclick="deleteSeries('${seriesId}', ${demos.length})">✕ Delete series</button>
         </div>
         <div class="demo-series-teams">
           ${teamRow(leftName,  mapsLeftWon,  leftWin,  decided, 32)}
@@ -276,6 +284,37 @@ async function maybeAutoOpenAssignModal(updated) {
 }
 
 window.assignTeams = id => showAssignTeamsModal(id, { onSave: loadDemos })
+
+async function purgeDemos(rows) {
+  const paths = rows.map(r => r.storage_path).filter(Boolean)
+  if (paths.length) {
+    const { error: storageErr } = await supabase.storage.from('demos').remove(paths)
+    if (storageErr) console.warn('Storage delete failed:', storageErr.message)
+  }
+  const ids = rows.map(r => r.id)
+  const { error: rowErr } = await supabase.from('demos').delete().in('id', ids)
+  if (rowErr) {
+    alert(`Failed to delete: ${rowErr.message}`)
+    return false
+  }
+  return true
+}
+
+window.deleteDemo = async id => {
+  const { data: row } = await supabase.from('demos').select('id,storage_path,map,series_id').eq('id', id).single()
+  if (!row) return
+  const label = row.map ? row.map.replace(/^de_/, '') : 'this demo'
+  const inSeries = row.series_id ? ' (will leave the rest of the series intact)' : ''
+  if (!confirm(`Delete ${label}?${inSeries}\n\nThis cannot be undone.`)) return
+  if (await purgeDemos([row])) loadDemos()
+}
+
+window.deleteSeries = async (seriesId, count) => {
+  if (!confirm(`Delete this entire series (${count} map${count === 1 ? '' : 's'})?\n\nThis cannot be undone.`)) return
+  const { data: rows } = await supabase.from('demos').select('id,storage_path').eq('series_id', seriesId)
+  if (!rows?.length) return
+  if (await purgeDemos(rows)) loadDemos()
+}
 
 // ── Upload ────────────────────────────────────────────────────
 uploadBtn.addEventListener('click', () => fileInput.click())
