@@ -170,6 +170,8 @@ async function onTeamChanged() {
 
 function renderFilterRail() {
   const rail = document.getElementById('filter-rail')
+  const collapsed = localStorage.getItem('cs2hub_filter_rail_collapsed') === '1'
+  rail.classList.toggle('collapsed', collapsed)
   if (!state.team || !state.corpus.length) {
     rail.innerHTML = `<div class="label">Filters</div><div style="font-size:11px;color:var(--muted)">No demos for this team yet.</div>`
     setEmptyMessage(state.team ? 'No demos found for this team.' : 'Pick a team to begin.')
@@ -206,6 +208,7 @@ function renderFilterRail() {
   const buyLabel    = { fullbuy: 'Full', antieco: 'Anti-eco', eco: 'Eco', pistol: 'Pistol' }
 
   rail.innerHTML = `
+    <button class="filter-rail-toggle" id="f-toggle" title="Collapse">‹</button>
     <div class="label">Map</div>
     <select id="f-map">
       ${maps.map(m => `<option value="${m}" ${m === state.filters.map ? 'selected' : ''}>${mapShort(m)}</option>`).join('')}
@@ -298,6 +301,10 @@ function renderFilterRail() {
     writeUrl()
     renderFilterRail()
     reloadRoundSet()
+  })
+  rail.querySelector('#f-toggle').addEventListener('click', () => {
+    const collapsed = rail.classList.toggle('collapsed')
+    localStorage.setItem('cs2hub_filter_rail_collapsed', collapsed ? '1' : '0')
   })
 }
 
