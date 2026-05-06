@@ -1584,7 +1584,7 @@ window.addEventListener('mouseup',   ()  => { dragging = false })
 window.jumpToRound = jumpToRound
 
 // ── Kick off ──────────────────────────────────────────────────
-jumpToRound(0)
+jumpToRound(state.roundIdx)
 refreshSaveBtnState()
 updateTimelineKills()
 requestAnimationFrame(ts => { state.lastTs = ts; loop(ts) })
