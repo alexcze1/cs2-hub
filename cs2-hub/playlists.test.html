@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h1>playlists.js tests</h1>
+<pre id="out"></pre>
+<script type="module">
+import { nextPosition, sortByPosition, dedupeKey, isRoundInPlaylist } from './playlists.js'
+
+const out = document.getElementById('out')
+let pass = 0, fail = 0
+function assert(cond, msg) {
+  const line = (cond ? '✓ ' : '✗ ') + msg
+  out.textContent += line + '\n'
+  if (cond) pass++; else fail++
+}
+
+// nextPosition: appends after the largest position; empty list returns 0.
+assert(nextPosition([])           === 0, 'nextPosition([]) === 0')
+assert(nextPosition([{position:0}]) === 1, 'nextPosition([0]) === 1')
+assert(nextPosition([{position:5},{position:2},{position:9}]) === 10,
+       'nextPosition picks max+1 even when unsorted')
+
+// sortByPosition: stable ascending, does not mutate input.
+const input = [{id:'b',position:2},{id:'a',position:0},{id:'c',position:1}]
+const sorted = sortByPosition(input)
+assert(sorted.map(r=>r.id).join(',') === 'a,c,b', 'sortByPosition orders ascending')
+assert(input[0].id === 'b', 'sortByPosition does not mutate input')
+
+// dedupeKey: stable identity for (demoId, roundIdx).
+assert(dedupeKey('d1', 0) === dedupeKey('d1', 0), 'same key same demo+round')
+assert(dedupeKey('d1', 0) !== dedupeKey('d1', 1), 'different round → different key')
+assert(dedupeKey('d1', 0) !== dedupeKey('d2', 0), 'different demo → different key')
+
+// isRoundInPlaylist: true when any row matches.
+const rows = [{demo_id:'d1',round_idx:3},{demo_id:'d2',round_idx:0}]
+assert(isRoundInPlaylist(rows, 'd1', 3)  === true,  'matches existing row')
+assert(isRoundInPlaylist(rows, 'd1', 0)  === false, 'wrong round')
+assert(isRoundInPlaylist(rows, 'd9', 3)  === false, 'wrong demo')
+assert(isRoundInPlaylist([],   'd1', 3)  === false, 'empty list')
+
+out.textContent += `\n${pass} passed, ${fail} failed`
+</script>
+</body>
+</html>
