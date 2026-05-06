@@ -2401,3 +2401,24 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
   pointer-events: auto;
 }
 .canvas-empty-reset:hover { background: rgba(0,255,156,0.10); }
+
+/* ── Onboarding hint ──────────────────────────────────────────── */
+.onboarding-hint {
+  position: fixed; top: 64px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 1500;
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(0,255,156,0.10);
+  border: 1px solid rgba(0,255,156,0.35);
+  color: var(--text);
+  padding: 8px 14px;
+  border-radius: var(--r-md);
+  font-size: 12px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+}
+.onboarding-hint[hidden] { display: none; }
+.onboarding-hint .onb-x {
+  background: transparent; border: none; cursor: pointer;
+  color: var(--muted); font-size: 16px; padding: 0 4px;
+}
+.onboarding-hint .onb-x:hover { color: var(--accent); }

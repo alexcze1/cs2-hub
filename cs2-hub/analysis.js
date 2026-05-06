@@ -102,6 +102,27 @@ function setEmptyMessage(text, kind = 'text') {
   }
 }
 
+function maybeShowOnboardingHint() {
+  if (state.team) return
+  const dismissedFor = localStorage.getItem('cs2hub_analysis_hint_dismissed_user')
+  // Best-effort: tie dismissal to the auth user so a different user on the
+  // same machine still sees the hint once.
+  supabase.auth.getUser().then(({ data }) => {
+    const uid = data.user?.id ?? 'anon'
+    if (dismissedFor === uid) return
+    const el = document.getElementById('onboarding-hint')
+    el.innerHTML = `
+      <span>Pick a team, then click a player on the map to dive into a single round.</span>
+      <button class="onb-x" title="Dismiss">×</button>
+    `
+    el.hidden = false
+    el.querySelector('.onb-x').addEventListener('click', () => {
+      el.hidden = true
+      localStorage.setItem('cs2hub_analysis_hint_dismissed_user', uid)
+    })
+  })
+}
+
 // ── Team picker ──────────────────────────────────────────────
 const teamInput = document.getElementById('team-pick')
 attachTeamAutocomplete(teamInput, async team => {
@@ -119,6 +140,7 @@ if (state.team) {
   teamInput.value = state.team
   await onTeamChanged()
 }
+maybeShowOnboardingHint()
 
 async function loadCorpus(teamName) {
   try {
