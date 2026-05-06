@@ -2,6 +2,7 @@ import { requireAuth }           from './auth.js'
 import { renderSidebar }         from './layout.js'
 import { supabase, getTeamId }   from './supabase.js'
 import { mountAntistratDrawer } from './antistrat-drawer.js'
+import { toast } from './toast.js'
 import { attachTeamAutocomplete } from './team-autocomplete.js'
 import { narrowRoundsForTeam, framesForRound, grenadesForRound } from './analysis-rounds.js'
 import { worldToCanvas } from './demo-map-data.js'
@@ -159,6 +160,7 @@ async function onTeamChanged() {
         const r = state.rounds[state.viewRoundIdx]
         if (r && r.demoId === demoId && r.roundIdx === roundIdx) refreshStarState()
       },
+      onLoadRound: loadPlaylistRound,
     })
     railEl.dataset.mounted = '1'
   }
@@ -773,6 +775,47 @@ async function fetchFullMatch(demoId) {
     state.fullLoading.delete(demoId)
     hideChip('Loading round details…')
   }
+}
+
+async function ensureRoundLoaded(demoId, roundIdx) {
+  // Already in state.rounds? Just find the index.
+  let idx = state.rounds.findIndex(r => r.demoId === demoId && r.roundIdx === roundIdx)
+  if (idx >= 0) {
+    await fetchFullMatch(demoId)
+    return idx
+  }
+
+  // Otherwise: pull the slim payload, build a RenderRound entry, append.
+  await fetchSlimPayloads([demoId])  // populates state.slimCache
+  const slim = state.slimCache.get(demoId)
+  if (!slim) return -1
+
+  // narrowRoundsForTeam handles all the side/winner/bombSite logic. Pass a
+  // single-payload list with side='both' and outcome='all' so we get every
+  // round; then pick the one we want.
+  const corpusRow = await (async () => {
+    const fromCorpus = state.corpus.find(d => d.id === demoId)
+    if (fromCorpus) return fromCorpus
+    const { data } = await supabase.from('demos')
+      .select('id, ct_team_name, t_team_name, team_a_first_side')
+      .eq('id', demoId).maybeSingle()
+    return data
+  })()
+  if (!corpusRow) return -1
+
+  const isRosterA = corpusRow.team_a_first_side
+    ? (corpusRow.team_a_first_side === 'ct' ? corpusRow.ct_team_name === state.team
+                                             : corpusRow.t_team_name  === state.team)
+    : corpusRow.ct_team_name === state.team
+  const bound = Object.assign({ _is_roster_a: isRosterA, _demo_id: demoId }, slim)
+  const all = narrowRoundsForTeam([bound], { side: 'both', outcome: 'all', bombSite: 'all' })
+  const target = all.find(r => r.roundIdx === roundIdx)
+  if (!target) return -1
+
+  state.rounds.push(target)
+  recomputePlaybackBounds()
+  await fetchFullMatch(demoId)
+  return state.rounds.length - 1
 }
 
 // 5 distinct colors for the 5 players on the user's team. Stable per-sid across the session.
@@ -1392,6 +1435,20 @@ async function gotoSoloRound(delta) {
   render()
 }
 
+async function loadPlaylistRound(playlistRow) {
+  const idx = await ensureRoundLoaded(playlistRow.demo_id, playlistRow.round_idx)
+  if (idx < 0) { toast('Could not load this round', 'error'); return }
+  state.viewRoundIdx = idx
+  state.gren.playlist = null  // clicking a row exits play-all mode
+  state.gren.playlistPos = 0
+  playback.relTick = 0
+  recomputePlaybackBounds()
+  updateTimelineUi()
+  refreshSoloRoundNav()
+  render()
+  playlistRail.setActiveRoundKey(`${playlistRow.demo_id}|${playlistRow.round_idx}`)
+}
+
 function exitSingleRound() {
   if (state.viewRoundIdx == null) return
   const prev = playback.relTick
@@ -1405,6 +1462,7 @@ function exitSingleRound() {
   playback.relTick = Math.min(prev, playback.maxTick)
   updateTimelineUi()
   refreshSoloRoundNav()
+  playlistRail.setActiveRoundKey(null)
   render()
 }
 
