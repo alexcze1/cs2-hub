@@ -5,6 +5,7 @@ import { mountAntistratDrawer } from './antistrat-drawer.js'
 import { attachTeamAutocomplete } from './team-autocomplete.js'
 import { narrowRoundsForTeam, framesForRound, grenadesForRound } from './analysis-rounds.js'
 import { worldToCanvas } from './demo-map-data.js'
+import * as playlistRail from './playlist-rail.js'
 
 await requireAuth()
 renderSidebar('analysis')
@@ -133,6 +134,17 @@ async function onTeamChanged() {
   if (state.filters.map) loadMapImage(state.filters.map)
   // Round set built once filters apply — Task 9
   await reloadRoundSet()
+
+  // Mount + populate the playlist rail (added by Task 5).
+  const railEl = document.getElementById('playlist-rail')
+  railEl.classList.add('show')
+  if (!railEl.dataset.mounted) {
+    playlistRail.mount(railEl, {
+      // Hooks added across Tasks 6-9. Task 5 only needs setTeam.
+    })
+    railEl.dataset.mounted = '1'
+  }
+  await playlistRail.setTeam(getTeamId())
 }
 
 function renderFilterRail() {
