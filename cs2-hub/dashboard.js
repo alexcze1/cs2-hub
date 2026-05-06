@@ -24,7 +24,7 @@ const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Go
 document.getElementById('date-sub').textContent = now.toLocaleDateString('en-GB', {
   weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
 })
-const horizon = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000)
+const horizon = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
 
 const { data: teamRow } = await supabase.from('teams').select('name, pracc_url').eq('id', teamId).single()
 if (teamRow?.name) document.getElementById('page-greeting').textContent = `${greeting}, ${teamRow.name}`
@@ -121,7 +121,7 @@ function localDateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
 }
 
-const timelineDays = Array.from({ length: 14 }, (_, i) => {
+const timelineDays = Array.from({ length: 7 }, (_, i) => {
   const d = new Date(now)
   d.setDate(d.getDate() + i)
   d.setHours(0, 0, 0, 0)
