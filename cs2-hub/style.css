@@ -2422,3 +2422,19 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
   color: var(--muted); font-size: 16px; padding: 0 4px;
 }
 .onboarding-hint .onb-x:hover { color: var(--accent); }
+
+/* ── Demo viewer: save button ─────────────────────────────────── */
+.vh-save-btn {
+  background: transparent;
+  border: 1px solid var(--border-solid);
+  color: var(--muted);
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  cursor: pointer;
+  line-height: 1.4;
+  transition: color 0.15s, border-color 0.15s;
+}
+.vh-save-btn:hover { color: var(--accent); border-color: var(--accent); }
+.vh-save-btn.saved { color: var(--accent); border-color: var(--accent); }
