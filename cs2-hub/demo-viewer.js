@@ -1399,6 +1399,7 @@ function loop(ts) {
         const nextIdx = state.roundIdx + 1
         if (nextIdx < state.match.rounds.length) {
           state.roundIdx = nextIdx
+          refreshSaveBtnState()
           state.tick     = freezeEnd(currentRound())
           updateRoundRow()
           updateTimelineKills()
