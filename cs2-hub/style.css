@@ -2376,3 +2376,28 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
   font-size: 10px; color: var(--text);
   text-align: center;
 }
+
+/* ── Canvas empty/loading states ──────────────────────────────── */
+.canvas-empty { flex-direction: row; gap: 10px; }
+.canvas-empty-spinner {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.15);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: ce-spin 0.9s linear infinite;
+}
+@keyframes ce-spin { to { transform: rotate(360deg); } }
+.canvas-empty-reset {
+  margin-left: 14px;
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: 4px 12px;
+  font-family: var(--display-font);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.1em;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  pointer-events: auto;
+}
+.canvas-empty-reset:hover { background: rgba(0,255,156,0.10); }

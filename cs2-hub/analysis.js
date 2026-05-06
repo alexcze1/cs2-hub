@@ -85,10 +85,21 @@ function hideChip(text) {
   if (el) { el.remove(); _chips.delete(text) }
 }
 
-function setEmptyMessage(text) {
+function setEmptyMessage(text, kind = 'text') {
   const el = document.getElementById('canvas-empty')
-  el.textContent = text
-  el.style.display = text ? 'flex' : 'none'
+  if (!text) { el.style.display = 'none'; el.innerHTML = ''; return }
+  el.style.display = 'flex'
+  if (kind === 'loading') {
+    el.innerHTML = `<div class="canvas-empty-spinner"></div><div style="margin-left:10px">${text}</div>`
+  } else if (kind === 'reset') {
+    el.innerHTML = `<div>${text}</div>
+      <button class="canvas-empty-reset" id="canvas-reset-btn">Reset filters</button>`
+    el.querySelector('#canvas-reset-btn').addEventListener('click', () => {
+      document.getElementById('f-reset')?.click()
+    })
+  } else {
+    el.textContent = text
+  }
 }
 
 // ── Team picker ──────────────────────────────────────────────
@@ -128,9 +139,9 @@ async function loadCorpus(teamName) {
 
 async function onTeamChanged() {
   if (!state.team) return
-  showChip('Loading corpus…', 'info')
+  setEmptyMessage('Loading rounds…', 'loading')
   state.corpus = await loadCorpus(state.team)
-  hideChip('Loading corpus…')
+  setEmptyMessage('')
   renderFilterRail()
   if (state.filters.map) loadMapImage(state.filters.map)
   // Round set built once filters apply — Task 9
@@ -425,9 +436,22 @@ async function reloadRoundSet() {
   recomputePlaybackBounds()
   updateTimelineUi()
   updateReadout(state.rounds.length, demos.length)
-  setEmptyMessage(state.rounds.length === 0 ? '0 rounds match — try widening filters.' : '')
   requestRender()
   if (state.mode === 'grenade') refreshGrenadePanel()
+
+  if (!state.rounds.length && state.team) {
+    const hasNarrowFilters =
+      state.filters.side !== 'ct' ||
+      state.filters.opponent !== 'any' ||
+      state.filters.buyTypes.size > 0 ||
+      (state.filters.matchIds && state.filters.matchIds.size === 0)
+    setEmptyMessage(
+      hasNarrowFilters ? 'No rounds match these filters' : 'No rounds found.',
+      hasNarrowFilters ? 'reset' : 'text'
+    )
+  } else if (state.rounds.length) {
+    setEmptyMessage('')
+  }
 }
 
 function updateReadout(rounds, demos) {
