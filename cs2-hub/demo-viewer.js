@@ -13,6 +13,10 @@ renderSidebar('demos')
 
 const params = new URLSearchParams(location.search)
 const demoId = params.get('id')
+const initialRound = (() => {
+  const r = parseInt(params.get('round') ?? '', 10)
+  return Number.isFinite(r) && r >= 0 ? r : 0
+})()
 if (!demoId) { location.href = 'demos.html'; throw new Error('no id') }
 
 // ── State ─────────────────────────────────────────────────────
@@ -98,6 +102,12 @@ if (!state.match.frames[0]?.players?.length) {
 if (!state.match.rounds.length) {
   loadingEl.textContent = 'No round data — try re-uploading.'
   throw new Error('no rounds')
+}
+
+if (initialRound > 0 && initialRound < state.match.rounds.length) {
+  state.roundIdx = initialRound
+} else if (initialRound > 0) {
+  console.warn('[demo-viewer] ?round=' + initialRound + ' out of range; falling back to round 0')
 }
 
 // Names live in players_meta on new demos (per-frame name was dropped to shrink
