@@ -2160,13 +2160,21 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
 
 .pr-round-row {
   display: grid;
-  grid-template-columns: 28px 1fr 14px;
-  gap: 8px; align-items: center;
+  grid-template-columns: 14px 28px 1fr 14px;
+  gap: 6px; align-items: center;
   padding: 6px 8px; cursor: pointer;
   border-radius: var(--r-sm);
   border-left: 2px solid transparent;
   transition: background-color 0.12s, border-color 0.12s;
 }
+.pr-round-handle {
+  cursor: grab; color: var(--muted); font-size: 14px;
+  user-select: none;
+}
+.pr-round-handle:active { cursor: grabbing; }
+.pr-round-row.dragging { opacity: 0.4; }
+.pr-round-row.drop-above { box-shadow: inset 0 2px 0 var(--accent); }
+.pr-round-row.drop-below { box-shadow: inset 0 -2px 0 var(--accent); }
 .pr-round-row:hover { background: rgba(0,255,156,0.06); }
 .pr-round-row.active {
   background: rgba(0,255,156,0.10);

@@ -12,7 +12,7 @@ import {
   loadPlaylists, loadPlaylistRounds,
   createPlaylist, renamePlaylist, deletePlaylist,
   addRoundToPlaylist, removeRoundFromPlaylist, updateRoundNote,
-  findRoundMemberships, sortByPosition,
+  findRoundMemberships, sortByPosition, reorderPlaylistRound,
 } from './playlists.js'
 
 let host = null
@@ -179,7 +179,8 @@ async function hydrateRoundRows() {
     const active = state.activeRoundKey === key ? ' active' : ''
     const thumb = info.mapFile ? `images/maps/${info.mapFile}.png` : ''
     return `
-      <div class="pr-round-row${active}" data-row-id="${esc(r.id)}" data-key="${esc(key)}">
+      <div class="pr-round-row${active}" data-row-id="${esc(r.id)}" data-key="${esc(key)}" draggable="true">
+        <div class="pr-round-handle" title="Drag to reorder">≡</div>
         <div class="pr-round-thumb" style="background-image:url('${esc(thumb)}')"></div>
         <div class="pr-round-meta">
           <div class="pr-round-title">
@@ -204,6 +205,40 @@ async function hydrateRoundRows() {
     x.addEventListener('click', e => {
       e.stopPropagation()
       onRemoveRoundClick(x.dataset.rowId)
+    })
+  }
+
+  let dragId = null
+  for (const row of listEl.querySelectorAll('.pr-round-row')) {
+    row.addEventListener('dragstart', (e) => {
+      dragId = row.dataset.rowId
+      row.classList.add('dragging')
+      e.dataTransfer.effectAllowed = 'move'
+      e.dataTransfer.setData('text/plain', dragId)
+    })
+    row.addEventListener('dragend', () => {
+      row.classList.remove('dragging')
+      listEl.querySelectorAll('.drop-above,.drop-below').forEach(r => r.classList.remove('drop-above','drop-below'))
+    })
+    row.addEventListener('dragover', (e) => {
+      if (!dragId || row.dataset.rowId === dragId) return
+      e.preventDefault()
+      const rect = row.getBoundingClientRect()
+      const above = (e.clientY - rect.top) < rect.height / 2
+      row.classList.toggle('drop-above', above)
+      row.classList.toggle('drop-below', !above)
+    })
+    row.addEventListener('dragleave', () => {
+      row.classList.remove('drop-above','drop-below')
+    })
+    row.addEventListener('drop', async (e) => {
+      e.preventDefault()
+      const targetId = row.dataset.rowId
+      if (!dragId || targetId === dragId) return
+      const above = row.classList.contains('drop-above')
+      row.classList.remove('drop-above','drop-below')
+      await commitReorder(dragId, targetId, above)
+      dragId = null
     })
   }
 }
@@ -246,6 +281,31 @@ function onPlayAllClick() {
 
 function currentPlaylist() {
   return state.playlists.find(p => p.id === state.openId)
+}
+
+async function commitReorder(srcId, targetId, above) {
+  const rows = state.openRows.slice()
+  const srcIdx = rows.findIndex(r => r.id === srcId)
+  if (srcIdx < 0) return
+  const [moved] = rows.splice(srcIdx, 1)
+  let targetIdx = rows.findIndex(r => r.id === targetId)
+  if (targetIdx < 0) return
+  if (!above) targetIdx += 1
+  rows.splice(targetIdx, 0, moved)
+
+  // Reassign positions sequentially. Persist in parallel.
+  const updates = []
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].position !== i) {
+      rows[i].position = i
+      updates.push(reorderPlaylistRound(rows[i].id, i, state.openId))
+    }
+  }
+  state.openRows = rows
+  render()
+  try { await Promise.all(updates) } catch (e) {
+    console.error(e); toast('Reorder failed', 'error')
+  }
 }
 
 // ── Save popover ────────────────────────────────────────────────
