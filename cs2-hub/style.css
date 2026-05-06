@@ -2337,3 +2337,42 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
 }
 .filter-rail.collapsed > *:not(.filter-rail-toggle) { display: none; }
 .filter-rail.collapsed .filter-rail-toggle { transform: rotate(180deg); }
+
+/* ── Keyboard help overlay ────────────────────────────────────── */
+.kb-help-overlay {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.58);
+  z-index: 2000;
+}
+.kb-help-overlay[hidden] { display: none; }
+.kb-help-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  padding: 18px 22px;
+  min-width: 320px;
+  color: var(--text);
+}
+.kb-help-card h3 {
+  margin: 0 0 12px;
+  font-family: var(--display-font);
+  font-size: 12px; font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase; letter-spacing: 0.18em;
+}
+.kb-help-card table { font-size: 12px; line-height: 1.8; border-collapse: collapse; }
+.kb-help-card td { padding: 2px 14px 2px 0; vertical-align: middle; }
+.kb-help-card td:first-child { white-space: nowrap; }
+.kb-help-card kbd {
+  display: inline-block;
+  padding: 1px 6px; min-width: 18px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border-solid);
+  border-radius: var(--r-sm);
+  font-family: var(--display-font);
+  font-size: 10px; color: var(--text);
+  text-align: center;
+}

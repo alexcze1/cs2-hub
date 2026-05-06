@@ -1962,3 +1962,74 @@ export { state, readUrl, writeUrl }
 // Antistrat drawer (no-op on narrow viewports).
 mountAntistratDrawer({ teamId: getTeamId() })
 
+// ── Keyboard shortcuts ───────────────────────────────────────
+//
+// Active when the analysis page has focus and the user is not typing in an
+// input. Shortcuts:
+//   Space      — play/pause
+//   ← / →      — prev/next round (or playlist entry, in playlist playback)
+//   B          — open save popover (single-round playback only)
+//   Esc        — exit single-round / clear solo / close popover
+//   ?          — toggle keyboard-help overlay
+window.addEventListener('keydown', (e) => {
+  // Ignore when typing in an input/textarea/contenteditable.
+  const t = e.target
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
+
+  switch (e.key) {
+    case ' ': {
+      e.preventDefault()
+      const btn = document.getElementById('play-btn')
+      btn.click()
+      break
+    }
+    case 'ArrowLeft':
+      e.preventDefault(); gotoSoloRound(-1); break
+    case 'ArrowRight':
+      e.preventDefault(); gotoSoloRound(+1); break
+    case 'b':
+    case 'B': {
+      if (state.viewRoundIdx == null) return
+      const btn = document.getElementById('pp-save-btn')
+      if (btn) btn.click()
+      break
+    }
+    case 'Escape':
+      if (playlistRail.isPopoverOpen()) playlistRail.closeSavePopover()
+      else if (document.getElementById('kb-help-overlay').hidden === false) toggleKbHelp(false)
+      else if (state.viewRoundIdx != null) exitSingleRound()
+      else if (state.soloSid) { state.soloSid = null; refreshPlayerPanel(); render() }
+      break
+    case '?':
+      toggleKbHelp()
+      break
+  }
+})
+
+function toggleKbHelp(force) {
+  const overlay = document.getElementById('kb-help-overlay')
+  const open = (typeof force === 'boolean') ? force : overlay.hidden
+  if (open) {
+    overlay.innerHTML = `
+      <div class="kb-help-card" role="dialog" aria-label="Keyboard shortcuts">
+        <h3>Keyboard shortcuts</h3>
+        <table>
+          <tr><td><kbd>Space</kbd></td>            <td>Play / pause</td></tr>
+          <tr><td><kbd>←</kbd> / <kbd>→</kbd></td> <td>Prev / next round (or playlist entry)</td></tr>
+          <tr><td><kbd>B</kbd></td>                <td>Save round to playlist</td></tr>
+          <tr><td><kbd>Esc</kbd></td>              <td>Exit single round / close popover</td></tr>
+          <tr><td><kbd>?</kbd></td>                <td>Toggle this help</td></tr>
+        </table>
+        <p style="margin-top:10px;font-size:11px;color:var(--muted)">Press any key to close.</p>
+      </div>
+    `
+    overlay.hidden = false
+    const close = () => toggleKbHelp(false)
+    document.addEventListener('keydown', close, { once: true })
+    overlay.addEventListener('click', close, { once: true })
+  } else {
+    overlay.hidden = true
+    overlay.innerHTML = ''
+  }
+}
+
