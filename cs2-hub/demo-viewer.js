@@ -5,6 +5,8 @@ import { worldToCanvas } from './demo-map-data.js'
 import { getTeamLogo }   from './team-autocomplete.js'
 import { showAssignTeamsModal } from './assign-teams-modal.js'
 import { mountAntistratDrawer } from './antistrat-drawer.js'
+import { openSavePopoverFor, closeSavePopover, isPopoverOpen } from './save-popover.js'
+import { findRoundMemberships } from './playlists.js'
 
 await requireAuth()
 renderSidebar('demos')
@@ -291,6 +293,7 @@ function freezeEnd(round) { return round.freeze_end_tick ?? round.start_tick }
 
 function jumpToRound(idx) {
   state.roundIdx  = Math.max(0, Math.min(idx, state.match.rounds.length - 1))
+  refreshSaveBtnState()
   state.tick      = freezeEnd(currentRound())
   state.playing   = true
   state.lastTs    = performance.now()
@@ -1293,6 +1296,18 @@ function updateTimer() {
 }
 
 // ── UI updates ────────────────────────────────────────────────
+async function refreshSaveBtnState() {
+  const btn = document.getElementById('vh-save-btn')
+  if (!btn) return
+  const teamId = getTeamId()
+  if (!teamId) { btn.textContent = '☆'; btn.classList.remove('saved'); return }
+  try {
+    const ms = await findRoundMemberships(teamId, demoId, state.roundIdx)
+    if (ms.length) { btn.textContent = '★'; btn.classList.add('saved') }
+    else           { btn.textContent = '☆'; btn.classList.remove('saved') }
+  } catch (e) { console.warn('[demo-viewer] refreshSaveBtnState failed:', e) }
+}
+
 function updateRoundRow() {
   if (state.roundIdx === _lastRoundIdx) return
   _lastRoundIdx = state.roundIdx
@@ -1559,8 +1574,28 @@ window.jumpToRound = jumpToRound
 
 // ── Kick off ──────────────────────────────────────────────────
 jumpToRound(0)
+refreshSaveBtnState()
 updateTimelineKills()
 requestAnimationFrame(ts => { state.lastTs = ts; loop(ts) })
 
 // Antistrat drawer (no-op on narrow viewports).
 mountAntistratDrawer({ teamId: getTeamId() })
+
+document.getElementById('vh-save-btn').addEventListener('click', async (e) => {
+  const rect = e.currentTarget.getBoundingClientRect()
+  await openSavePopoverFor({
+    demoId,
+    roundIdx:   state.roundIdx,
+    anchorRect: rect,
+    teamId:     getTeamId(),
+    onChanged:  () => refreshSaveBtnState(),
+  })
+})
+
+document.addEventListener('click', (e) => {
+  if (!isPopoverOpen()) return
+  const pop = document.getElementById('save-popover')
+  if (pop.contains(e.target)) return
+  if (e.target.closest('#vh-save-btn')) return
+  closeSavePopover()
+})
