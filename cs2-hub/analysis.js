@@ -161,6 +161,7 @@ async function onTeamChanged() {
         if (r && r.demoId === demoId && r.roundIdx === roundIdx) refreshStarState()
       },
       onLoadRound: loadPlaylistRound,
+      onPlayAll:   playPlaylistAll,
     })
     railEl.dataset.mounted = '1'
   }
@@ -495,7 +496,13 @@ function recomputePlaybackBounds() {
 function advancePlaylist() {
   const pl = state.gren.playlist
   if (!pl || !pl.length) return
-  state.gren.playlistPos = (state.gren.playlistPos + 1) % pl.length
+  // Stop at end (v1 — no loop).
+  if (state.gren.playlistPos + 1 >= pl.length) {
+    playback.playing = false
+    document.getElementById('play-btn').textContent = '▶'
+    return
+  }
+  state.gren.playlistPos += 1
   const nextIdx = pl[state.gren.playlistPos]
   state.viewRoundIdx = nextIdx
   playback.relTick = 0
@@ -504,6 +511,8 @@ function advancePlaylist() {
   // / weapons / shots once it arrives.
   fetchFullMatch(state.rounds[nextIdx].demoId)
   refreshSoloRoundNav()
+  const r = state.rounds[nextIdx]
+  if (r) playlistRail.setActiveRoundKey(`${r.demoId}|${r.roundIdx}`)
 }
 
 function loop(ts) {
@@ -1447,6 +1456,33 @@ async function loadPlaylistRound(playlistRow) {
   refreshSoloRoundNav()
   render()
   playlistRail.setActiveRoundKey(`${playlistRow.demo_id}|${playlistRow.round_idx}`)
+}
+
+async function playPlaylistAll(playlistRows) {
+  if (!playlistRows.length) return
+  // Pre-load every round into state.rounds and collect their indices.
+  showChip('Loading playlist…', 'info')
+  const indices = []
+  for (const row of playlistRows) {
+    const idx = await ensureRoundLoaded(row.demo_id, row.round_idx)
+    if (idx >= 0) indices.push(idx)
+  }
+  hideChip('Loading playlist…')
+  if (!indices.length) { toast('No rounds loaded', 'error'); return }
+
+  state.gren.playlist    = indices
+  state.gren.playlistPos = 0
+  state.viewRoundIdx     = indices[0]
+  playback.relTick       = 0
+  recomputePlaybackBounds()
+  // Auto-play — user explicitly asked to walk through rounds.
+  playback.playing = true
+  document.getElementById('play-btn').textContent = '⏸'
+  updateTimelineUi()
+  refreshSoloRoundNav()
+  render()
+  const first = playlistRows[0]
+  playlistRail.setActiveRoundKey(`${first.demo_id}|${first.round_idx}`)
 }
 
 function exitSingleRound() {
