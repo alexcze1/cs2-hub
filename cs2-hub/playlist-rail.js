@@ -142,18 +142,106 @@ async function openPlaylist(id) {
   render()
 }
 
-// Detail view stubs — Task 6 fills these in.
 function renderDetail() {
+  const pl = currentPlaylist()
+  const skel = state.loadingDetail
+    ? `<div class="pr-skel"></div><div class="pr-skel"></div>`
+    : ''
+  const empty = !state.loadingDetail && !state.openRows.length
+    ? `<div class="pr-empty">Empty playlist · click ★ on a round to add one.</div>`
+    : ''
+
   host.innerHTML = `
     <div class="pr-detail-header">
-      <button class="pr-back" id="pr-back">←</button>
-      <span class="pr-detail-name">${esc(currentPlaylist()?.name ?? '')}</span>
+      <button class="pr-back" id="pr-back" title="Back">←</button>
+      <span class="pr-detail-name">${esc(pl?.name ?? '')}</span>
+      ${state.openRows.length ? `<button class="pr-play-all" id="pr-play-all">▶ Play all</button>` : ''}
     </div>
-    <div class="pr-list"><div class="pr-empty">Detail view coming in Task 6.</div></div>
+    <div class="pr-list" id="pr-rounds">${skel}${empty}</div>
   `
+
   host.querySelector('#pr-back').addEventListener('click', () => {
     state.openId = null; state.openRows = []; render()
   })
+  host.querySelector('#pr-play-all')?.addEventListener('click', onPlayAllClick)
+
+  if (!state.loadingDetail && state.openRows.length) hydrateRoundRows()
+}
+
+async function hydrateRoundRows() {
+  const listEl = host.querySelector('#pr-rounds')
+  const metas = await Promise.all(state.openRows.map(r => hooks.getDemoMeta(r.demo_id)))
+
+  listEl.innerHTML = state.openRows.map((r, i) => {
+    const meta = metas[i]
+    const info = describeRound(r, meta)
+    const key  = `${r.demo_id}|${r.round_idx}`
+    const active = state.activeRoundKey === key ? ' active' : ''
+    const thumb = info.mapFile ? `images/maps/${info.mapFile}.png` : ''
+    return `
+      <div class="pr-round-row${active}" data-row-id="${esc(r.id)}" data-key="${esc(key)}">
+        <div class="pr-round-thumb" style="background-image:url('${esc(thumb)}')"></div>
+        <div class="pr-round-meta">
+          <div class="pr-round-title">
+            <span class="pr-round-side-dot ${info.side}"></span>R${r.round_idx + 1} · ${esc(info.score)}
+          </div>
+          <div class="pr-round-note" title="${esc(r.note ?? '')}">${esc(r.note ?? '')}</div>
+        </div>
+        <button class="pr-round-x" data-row-id="${esc(r.id)}" title="Remove">✕</button>
+      </div>
+    `
+  }).join('')
+
+  for (const row of listEl.querySelectorAll('.pr-round-row')) {
+    row.addEventListener('click', e => {
+      if (e.target.closest('.pr-round-x')) return  // remove button handled below
+      const id = row.dataset.rowId
+      const playlistRow = state.openRows.find(x => x.id === id)
+      if (playlistRow) hooks.onLoadRound?.(playlistRow)
+    })
+  }
+  for (const x of listEl.querySelectorAll('.pr-round-x')) {
+    x.addEventListener('click', e => {
+      e.stopPropagation()
+      onRemoveRoundClick(x.dataset.rowId)
+    })
+  }
+}
+
+/** Build display fields (side, score, mapFile) from a playlist_rounds row
+    and the demo metadata. Mirrors the score-derivation rules already used
+    in analysis.js / demos.js. */
+function describeRound(row, meta) {
+  if (!meta) return { side: 'ct', score: '?–?', mapFile: '' }
+  // Side: rough heuristic — pre-halftime (round_idx < 12) the row's
+  // ct_team_name is the CT side; after halftime sides flip.
+  // We don't know which team owns the playlist viewer, so we just show
+  // the round's CT/T mapping by index. The dot reads "what side did the
+  // first-named team play this round" which is a reasonable display.
+  const half  = Math.floor(row.round_idx / 12)
+  const side  = (half % 2 === 0) ? 'ct' : 't'
+  const score = (meta.score_ct != null && meta.score_t != null)
+    ? `${meta.score_ct}–${meta.score_t}`
+    : '—'
+  const mapFile = (meta.map ?? '').replace(/^de_/, '').toLowerCase() || ''
+  return { side, score, mapFile }
+}
+
+async function onRemoveRoundClick(rowId) {
+  if (!confirm('Remove round from playlist?')) return
+  const row = state.openRows.find(x => x.id === rowId)
+  if (!row) return
+  try {
+    await removeRoundFromPlaylist(row.id, state.openId)
+    state.openRows = state.openRows.filter(x => x.id !== rowId)
+    toast('Removed')
+    render()
+  } catch (e) { console.error(e); toast('Failed to remove', 'error') }
+}
+
+function onPlayAllClick() {
+  if (!state.openRows.length) return
+  hooks.onPlayAll?.(state.openRows.slice())
 }
 
 function currentPlaylist() {

@@ -140,7 +140,19 @@ async function onTeamChanged() {
   railEl.classList.add('show')
   if (!railEl.dataset.mounted) {
     playlistRail.mount(railEl, {
-      // Hooks added across Tasks 6-9. Task 5 only needs setTeam.
+      getDemoMeta: async (demoId) => {
+        // Try the corpus first (zero round-trips for the common case where
+        // the playlist references a demo for the same team).
+        const fromCorpus = state.corpus.find(d => d.id === demoId)
+        if (fromCorpus) return fromCorpus
+        // Fallback: pull just the metadata columns we need.
+        const { data, error } = await supabase
+          .from('demos')
+          .select('id, map, played_at, ct_team_name, t_team_name, score_ct, score_t, team_a_first_side, team_a_score, team_b_score')
+          .eq('id', demoId).maybeSingle()
+        if (error) { console.warn('[analysis] getDemoMeta failed:', error); return null }
+        return data
+      },
     })
     railEl.dataset.mounted = '1'
   }
