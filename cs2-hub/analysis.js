@@ -153,6 +153,12 @@ async function onTeamChanged() {
         if (error) { console.warn('[analysis] getDemoMeta failed:', error); return null }
         return data
       },
+      onMembershipChanged: (demoId, roundIdx) => {
+        // Recompute ★ state for the currently-displayed round.
+        if (state.viewRoundIdx == null) return
+        const r = state.rounds[state.viewRoundIdx]
+        if (r && r.demoId === demoId && r.roundIdx === roundIdx) refreshStarState()
+      },
     })
     railEl.dataset.mounted = '1'
   }
@@ -1346,6 +1352,22 @@ function refreshSoloRoundNav() {
     (pl && pl.length)
       ? `Playlist ${state.gren.playlistPos + 1} / ${pl.length} · ${sideLabel}`
       : `Round ${state.viewRoundIdx + 1} / ${state.rounds.length} · ${sideLabel}`
+  refreshStarState()
+}
+
+async function refreshStarState() {
+  const btn = document.getElementById('pp-save-btn')
+  if (!btn || state.viewRoundIdx == null) return
+  const r = state.rounds[state.viewRoundIdx]
+  if (!r) { btn.textContent = '☆'; btn.classList.remove('saved'); return }
+  try {
+    const teamId = getTeamId()
+    if (!teamId) return
+    const { findRoundMemberships } = await import('./playlists.js')
+    const ms = await findRoundMemberships(teamId, r.demoId, r.roundIdx)
+    if (ms.length) { btn.textContent = '★'; btn.classList.add('saved') }
+    else           { btn.textContent = '☆'; btn.classList.remove('saved') }
+  } catch (e) { console.warn('star state failed:', e) }
 }
 
 async function gotoSoloRound(delta) {
@@ -1394,6 +1416,27 @@ document.getElementById('pp-clear').addEventListener('click', () => {
 
 document.getElementById('pp-round-prev').addEventListener('click', () => gotoSoloRound(-1))
 document.getElementById('pp-round-next').addEventListener('click', () => gotoSoloRound(+1))
+
+document.getElementById('pp-save-btn').addEventListener('click', async (e) => {
+  if (state.viewRoundIdx == null) return
+  const r = state.rounds[state.viewRoundIdx]
+  if (!r) return
+  const rect = e.currentTarget.getBoundingClientRect()
+  await playlistRail.openSavePopoverFor({
+    demoId:    r.demoId,
+    roundIdx:  r.roundIdx,
+    anchorRect: rect,
+  })
+})
+
+// Close popover on outside click.
+document.addEventListener('click', (e) => {
+  if (!playlistRail.isPopoverOpen()) return
+  const pop = document.getElementById('save-popover')
+  if (pop.contains(e.target)) return
+  if (e.target.closest('#pp-save-btn')) return
+  playlistRail.closeSavePopover()
+})
 
 // Click a player icon on the map → enter single-round playback for that round
 // at the current playback time (seamless transition). Click anywhere on the map

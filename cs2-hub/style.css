@@ -2235,3 +2235,72 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
 
 .pp-save-btn { font-size: 14px; color: var(--accent); }
 .pp-save-btn.saved { color: var(--accent); }
+
+/* ── Save popover ─────────────────────────────────────────────── */
+.save-popover {
+  position: fixed; z-index: 1000;
+  width: 260px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+  padding: 10px;
+  font-size: 12px;
+  color: var(--text);
+}
+.save-popover[hidden] { display: none; }
+.save-popover h4 {
+  margin: 0 0 8px;
+  font-family: var(--display-font);
+  font-size: 10px; font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase; letter-spacing: 0.18em;
+}
+.save-popover-list { max-height: 180px; overflow-y: auto; margin-bottom: 8px; }
+.save-popover-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 6px;
+  cursor: pointer; border-radius: var(--r-sm);
+}
+.save-popover-row:hover { background: rgba(0,255,156,0.06); }
+.save-popover-row input[type="radio"] { accent-color: var(--accent); }
+.save-popover-row .name  { flex: 1; min-width: 0; }
+.save-popover-row .count { font-size: 10px; color: var(--muted); }
+.save-popover-row .x {
+  background: transparent; border: none; cursor: pointer;
+  color: var(--muted); font-size: 13px; padding: 0 4px;
+}
+.save-popover-row .x:hover { color: var(--danger); }
+.save-popover input[type="text"] {
+  width: 100%; box-sizing: border-box;
+  background: var(--input-bg);
+  border: 1px solid var(--border-solid);
+  border-radius: var(--r-sm);
+  padding: 5px 7px; font-size: 12px;
+  color: var(--text);
+}
+.save-popover-actions {
+  display: flex; gap: 6px; margin-top: 8px;
+}
+.save-popover-actions button {
+  flex: 1; padding: 5px 0;
+  font-family: var(--display-font);
+  font-size: 11px; font-weight: 700;
+  border-radius: var(--r-sm); cursor: pointer;
+  letter-spacing: 0.06em;
+}
+.save-popover .btn-primary {
+  background: var(--accent); color: var(--accent-on); border: none;
+}
+.save-popover .btn-secondary {
+  background: transparent; color: var(--muted);
+  border: 1px solid var(--border-solid);
+}
+.save-popover .btn-secondary:hover { color: var(--accent); border-color: var(--accent); }
+.save-popover .new-link {
+  display: block; margin-top: 4px; padding: 5px 6px;
+  color: var(--accent); cursor: pointer; font-size: 11px;
+}
+.save-popover .new-link:hover { background: rgba(0,255,156,0.06); border-radius: var(--r-sm); }
