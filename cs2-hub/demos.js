@@ -3,9 +3,26 @@ import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { showAssignTeamsModal } from './assign-teams-modal.js'
+import { getTeamLogo, teamLogoEl } from './team-autocomplete.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 function formatDate(d) { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) }
+function mapFileFor(map) {
+  if (!map) return null
+  const m = map.replace(/^de_/, '')
+  return m === 'dust2' ? 'dust' : m
+}
+function mapDisplay(map) {
+  if (!map) return '—'
+  const m = map.replace(/^de_/, '')
+  return m.charAt(0).toUpperCase() + m.slice(1)
+}
+function mapImg(map, cls) {
+  const file = mapFileFor(map)
+  if (!file) return `<div class="${cls} demo-map-empty">?</div>`
+  const fallback = file.slice(0, 3).toUpperCase()
+  return `<div class="${cls}"><img src="images/maps/${file}.png" alt="${esc(map)}" onerror="this.parentElement.innerHTML='<span>${fallback}</span>'"/></div>`
+}
 
 await requireAuth()
 renderSidebar('demos')
@@ -40,10 +57,26 @@ async function loadDemos() {
     return
   }
 
-  // Group by series_id
+  // Resolve "left vs right" team labels and scores using per-roster columns when
+  // available (correct after halftime swap), falling back to per-side columns
+  // for old demos parsed before team_a_score was added.
+  function teamDisplay(d) {
+    const teamsSet = d.ct_team_name && d.t_team_name
+    const haveRoster = d.team_a_score != null && d.team_b_score != null && d.team_a_first_side
+    if (teamsSet && haveRoster) {
+      const nameA = d.team_a_first_side === 'ct' ? d.ct_team_name : d.t_team_name
+      const nameB = d.team_a_first_side === 'ct' ? d.t_team_name  : d.ct_team_name
+      return { left: nameA, right: nameB, leftScore: d.team_a_score, rightScore: d.team_b_score }
+    }
+    if (teamsSet) {
+      return { left: d.ct_team_name, right: d.t_team_name, leftScore: d.score_ct, rightScore: d.score_t }
+    }
+    return { left: null, right: null, leftScore: d.score_ct, rightScore: d.score_t }
+  }
+
+  // Group demos into entries (single or series), then sort by most recent.
   const seriesMap = new Map()
   const singles   = []
-
   for (const d of data) {
     if (d.series_id) {
       if (!seriesMap.has(d.series_id)) seriesMap.set(d.series_id, [])
@@ -52,90 +85,155 @@ async function loadDemos() {
       singles.push(d)
     }
   }
-
-  // Resolve "left vs right" team labels and scores using per-roster columns when
-  // available (correct after halftime swap), falling back to per-side columns
-  // for old demos parsed before team_a_score was added. Returns null fields if
-  // team names not set so the caller can pick a different label format.
-  function teamDisplay(d) {
-    const teamsSet = d.ct_team_name && d.t_team_name
-    const haveRoster = d.team_a_score != null && d.team_b_score != null && d.team_a_first_side
-    if (teamsSet && haveRoster) {
-      // team_a_first_side tells us which name belongs to roster A
-      const nameA = d.team_a_first_side === 'ct' ? d.ct_team_name : d.t_team_name
-      const nameB = d.team_a_first_side === 'ct' ? d.t_team_name  : d.ct_team_name
-      return { left: nameA, right: nameB, leftScore: d.team_a_score, rightScore: d.team_b_score }
-    }
-    if (teamsSet) {
-      // Old demo (no per-roster columns) — best-effort: use CT/T mapping (wrong post-halftime)
-      return { left: d.ct_team_name, right: d.t_team_name, leftScore: d.score_ct, rightScore: d.score_t }
-    }
-    // No team names — show side-based label
-    return { left: null, right: null, leftScore: d.score_ct, rightScore: d.score_t }
+  const entries = []
+  for (const demos of seriesMap.values()) {
+    demos.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    const latestAt = Math.max(...demos.map(d => +new Date(d.created_at)))
+    entries.push({ kind: 'series', demos, latestAt })
   }
+  for (const d of singles) {
+    entries.push({ kind: 'single', demos: [d], latestAt: +new Date(d.created_at) })
+  }
+  entries.sort((a, b) => b.latestAt - a.latestAt)
 
-  function demoRow(d, label) {
-    const mapName   = d.map ? d.map.replace('de_', '') : '?'
-    const td        = teamDisplay(d)
-    const score     = td.leftScore != null ? `${td.leftScore}–${td.rightScore}` : ''
-    const teamLabel = td.left
-      ? `${esc(td.left)} vs ${esc(td.right)}`
-      : d.opponent_name ? `vs ${esc(d.opponent_name)}` : 'Demo'
-    const title = label || teamLabel
+  // Pre-resolve HLTV team logos for all visible team names.
+  const names = new Set()
+  for (const d of data) {
+    if (d.ct_team_name) names.add(d.ct_team_name)
+    if (d.t_team_name)  names.add(d.t_team_name)
+    if (d.opponent_name) names.add(d.opponent_name)
+  }
+  const logoMap = {}
+  await Promise.all([...names].map(async n => { logoMap[n] = await getTeamLogo(n) }))
 
-    const badge = {
+  function statusBadge(d) {
+    return {
       pending:    `<span class="badge badge-warning">Processing</span>`,
       processing: `<span class="badge badge-warning">Processing</span>`,
-      ready:      `<span class="badge badge-success">Ready</span>`,
+      ready:      ``,
       error:      `<span class="badge badge-error" title="${esc(d.error_message ?? '')}">Error</span>`,
     }[d.status] ?? ''
+  }
 
-    const assignBtn = d.status === 'ready'
-      ? `<button class="btn btn-ghost btn-sm" onclick="assignTeams('${d.id}')">
-           ${td.left ? '✎ Teams' : '+ Teams'}
-         </button>`
-      : ''
+  function teamsBtn(d, td) {
+    if (d.status !== 'ready') return ''
+    return `<button class="btn btn-ghost btn-sm" onclick="assignTeams('${d.id}')">${td.left ? '✎ Teams' : '+ Teams'}</button>`
+  }
 
-    const watchBtn = d.status === 'ready'
-      ? `<a class="btn btn-primary btn-sm" href="demo-viewer.html?id=${d.id}">▶ Watch</a>`
-      : d.status === 'error'
-        ? `<button class="btn btn-ghost btn-sm" onclick="retryDemo('${d.id}')">Retry</button>`
-        : `<button class="btn btn-ghost btn-sm" disabled>▶ Watch</button>`
+  function watchBtn(d) {
+    if (d.status === 'ready')
+      return `<a class="btn btn-primary btn-sm" href="demo-viewer.html?id=${d.id}">▶ Watch</a>`
+    if (d.status === 'error')
+      return `<button class="btn btn-ghost btn-sm" onclick="retryDemo('${d.id}')">Retry</button>`
+    return `<button class="btn btn-ghost btn-sm" disabled>▶ Watch</button>`
+  }
 
+  function teamRow(name, score, isWinner, hasResult, logoSize = 26) {
+    const logo = teamLogoEl(logoMap[name] ?? null, name ?? '???', logoSize)
+    const cls = !hasResult ? 'demo-score-none' : isWinner ? 'demo-score-win' : 'demo-score-loss'
+    const displayName = name ?? '—'
     return `
-      <div class="list-row" id="demo-row-${d.id}">
-        <div class="list-row-icon" style="background:var(--surface-high);font-size:11px;font-weight:600;color:var(--text-variant)">${esc(mapName.slice(0,3).toUpperCase())}</div>
-        <div class="list-row-body">
-          <div class="list-row-title">${title} — ${esc(d.map ?? '?')}</div>
-          <div class="list-row-sub">${d.played_at ? formatDate(d.played_at) : formatDate(d.created_at)}${score ? ` · ${score}` : ''}</div>
+      <div class="demo-team-row ${isWinner && hasResult ? 'demo-team-row-winner' : ''}">
+        ${logo}
+        <span class="demo-team-name">${esc(displayName)}</span>
+        <span class="demo-score ${cls}">${score ?? '—'}</span>
+      </div>`
+  }
+
+  function singleCard(d) {
+    const td = teamDisplay(d)
+    const hasResult = td.leftScore != null && td.rightScore != null && d.status === 'ready'
+    const leftWin  = hasResult && td.leftScore  > td.rightScore
+    const rightWin = hasResult && td.rightScore > td.leftScore
+    const dateStr = d.played_at ? formatDate(d.played_at) : formatDate(d.created_at)
+    const leftName  = td.left  ?? d.opponent_name ?? null
+    const rightName = td.right ?? null
+    return `
+      <div class="demo-card" id="demo-row-${d.id}">
+        <div class="demo-card-map">
+          ${mapImg(d.map, 'demo-map-lg')}
+          <div class="demo-card-map-label">${esc(mapDisplay(d.map))}</div>
         </div>
-        ${badge}
-        ${assignBtn}
-        ${watchBtn}
+        <div class="demo-card-body">
+          ${teamRow(leftName,  td.leftScore,  leftWin,  hasResult, 28)}
+          ${teamRow(rightName, td.rightScore, rightWin, hasResult, 28)}
+        </div>
+        <div class="demo-card-side">
+          <div class="demo-card-meta">${dateStr}</div>
+          <div class="demo-card-actions">
+            ${statusBadge(d)}
+            ${teamsBtn(d, td)}
+            ${watchBtn(d)}
+          </div>
+        </div>
       </div>`
   }
 
-  let html = ''
+  function seriesMapRow(d, i) {
+    const td = teamDisplay(d)
+    const hasResult = td.leftScore != null && td.rightScore != null && d.status === 'ready'
+    const leftWin  = hasResult && td.leftScore  > td.rightScore
+    const scoreCls = !hasResult ? 'demo-score-none' : ''
+    const winnerName = !hasResult ? '' : (leftWin ? td.left : td.right) ?? ''
+    return `
+      <div class="demo-series-row" id="demo-row-${d.id}">
+        ${mapImg(d.map, 'demo-map-sm')}
+        <div class="demo-series-row-name">
+          <div class="demo-series-row-map">Map ${i + 1} · ${esc(mapDisplay(d.map))}</div>
+          ${winnerName ? `<div class="demo-series-row-winner">${esc(winnerName)} won</div>` : ''}
+        </div>
+        <div class="demo-series-row-score ${scoreCls}">
+          ${hasResult
+            ? `<span class="${leftWin ? 'demo-score-win' : 'demo-score-loss'}">${td.leftScore}</span>
+               <span class="demo-score-sep">—</span>
+               <span class="${!leftWin ? 'demo-score-win' : 'demo-score-loss'}">${td.rightScore}</span>`
+            : '— —'}
+        </div>
+        <div class="demo-series-row-actions">
+          ${statusBadge(d)}
+          ${teamsBtn(d, td)}
+          ${watchBtn(d)}
+        </div>
+      </div>`
+  }
 
-  for (const [, demos] of seriesMap) {
+  function seriesCard(demos) {
     const first = demos[0]
-    const td = teamDisplay(first)
-    const seriesLabel = td.left
-      ? `${esc(td.left)} vs ${esc(td.right)}`
-      : first.opponent_name ? `vs ${esc(first.opponent_name)}` : 'Series'
-    html += `
-      <div style="margin-bottom:4px;padding:4px 0 2px 4px;font-size:10px;font-weight:700;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase">
-        BO${demos.length > 3 ? 5 : 3} Series · ${seriesLabel}
+    const named = demos.find(d => d.ct_team_name && d.t_team_name) ?? first
+    const td = teamDisplay(named)
+    let mapsLeftWon = 0, mapsRightWon = 0
+    for (const d of demos) {
+      const t = teamDisplay(d)
+      if (d.status !== 'ready' || t.leftScore == null) continue
+      if (t.leftScore  > t.rightScore) mapsLeftWon++
+      else if (t.rightScore > t.leftScore) mapsRightWon++
+    }
+    const decided = mapsLeftWon !== mapsRightWon
+    const leftWin  = decided && mapsLeftWon  > mapsRightWon
+    const rightWin = decided && mapsRightWon > mapsLeftWon
+    const total = demos.length
+    const boLabel = total <= 1 ? 'BO1' : total <= 3 ? 'BO3' : total <= 5 ? 'BO5' : `BO${total}`
+    const dateStr = formatDate(first.played_at ?? first.created_at)
+    const leftName  = td.left  ?? first.opponent_name ?? null
+    const rightName = td.right ?? null
+    return `
+      <div class="demo-series">
+        <div class="demo-series-head">
+          <div class="demo-series-head-tag">${boLabel} SERIES · ${dateStr}</div>
+        </div>
+        <div class="demo-series-teams">
+          ${teamRow(leftName,  mapsLeftWon,  leftWin,  decided, 32)}
+          ${teamRow(rightName, mapsRightWon, rightWin, decided, 32)}
+        </div>
+        <div class="demo-series-maps">
+          ${demos.map((d, i) => seriesMapRow(d, i)).join('')}
+        </div>
       </div>`
-    demos.forEach((d, i) => {
-      html += demoRow(d, `Map ${i + 1} — ${d.map?.replace('de_','') ?? '?'}`)
-    })
-    html += `<div style="height:12px"></div>`
   }
 
-  for (const d of singles) html += demoRow(d)
-
-  listEl.innerHTML = html
+  listEl.innerHTML = entries.map(e =>
+    e.kind === 'series' ? seriesCard(e.demos) : singleCard(e.demos[0])
+  ).join('')
 }
 
 supabase.channel('demos-status')
