@@ -135,8 +135,18 @@ document.getElementById('timeline-slot').innerHTML = `
     const dayNum = day.getDate()
     const isToday = day.getDate() === now.getDate() && day.getMonth() === now.getMonth() && day.getFullYear() === now.getFullYear()
     const dayEvents = events.filter(e => e.date.slice(0, 10) === dateStr)
-    const dotsHtml = dayEvents.length
-      ? dayEvents.slice(0, 4).map(e => `<span class="timeline-dot timeline-dot-${e.type}" title="${esc(e.title)}"></span>`).join('')
+    const visible = dayEvents.slice(0, 3)
+    const overflow = dayEvents.length - visible.length
+    const eventsHtml = dayEvents.length
+      ? visible.map(e => {
+          const t = new Date(e.date)
+          const time = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`
+          const label = e.title?.trim() || TYPE_LABELS[e.type] || 'Event'
+          return `<div class="timeline-event timeline-event-${e.type}" title="${esc(label)}">
+            <span class="timeline-event-time">${time}</span>
+            <span class="timeline-event-title">${esc(label)}</span>
+          </div>`
+        }).join('') + (overflow > 0 ? `<div class="timeline-event-more">+${overflow} more</div>` : '')
       : `<span class="timeline-day-empty">—</span>`
     return `
       <a class="timeline-day ${isToday ? 'timeline-day-today' : ''}" href="schedule.html">
@@ -144,7 +154,7 @@ document.getElementById('timeline-slot').innerHTML = `
           <span class="timeline-day-name">${isToday ? 'TODAY' : dayLabel}</span>
           <span class="timeline-day-num">${dayNum}</span>
         </div>
-        <div class="timeline-day-events">${dotsHtml}</div>
+        <div class="timeline-day-events">${eventsHtml}</div>
       </a>`
   }).join('')}</div>`
 

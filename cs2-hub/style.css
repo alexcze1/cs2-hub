@@ -477,7 +477,7 @@ body {
 .timeline-strip::-webkit-scrollbar-thumb { background: var(--border-solid); border-radius: 3px; }
 .timeline-day {
   flex: 1 0 auto;
-  min-width: 96px;
+  min-width: 132px;
   padding: 10px 12px;
   background: var(--glass-bg);
   backdrop-filter: blur(20px);
@@ -511,7 +511,7 @@ body {
   font-size: 18px; font-weight: 700; color: var(--text);
 }
 .timeline-day-events {
-  display: flex; flex-wrap: wrap; gap: 3px; min-height: 14px;
+  display: flex; flex-direction: column; gap: 3px; min-height: 14px;
 }
 .timeline-dot {
   display: inline-block; width: 6px; height: 6px; border-radius: 50%;
@@ -521,6 +521,41 @@ body {
 .timeline-dot-meeting    { background: var(--special); }
 .timeline-dot-vod_review { background: var(--warning); }
 .timeline-day-empty { color: var(--muted); font-size: 10px; opacity: 0.5; }
+
+.timeline-event {
+  display: flex; align-items: baseline; gap: 5px;
+  padding: 2px 6px;
+  border-left: 2px solid var(--muted);
+  background: rgba(255,255,255,0.03);
+  border-radius: 0 3px 3px 0;
+  font-size: 11px;
+  line-height: 1.35;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.timeline-event-time {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+.timeline-event-title {
+  color: var(--text);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.timeline-event-tournament { border-left-color: var(--accent); background: rgba(0,255,156,0.08); }
+.timeline-event-tournament .timeline-event-title { color: var(--accent); }
+.timeline-event-scrim      { border-left-color: var(--accent); background: rgba(0,255,156,0.04); }
+.timeline-event-meeting    { border-left-color: var(--special); background: rgba(58,160,255,0.08); }
+.timeline-event-vod_review { border-left-color: var(--warning); background: rgba(255,179,71,0.08); }
+.timeline-event-more {
+  font-size: 10px; color: var(--muted);
+  padding: 1px 6px;
+  letter-spacing: 0.04em;
+}
 
 /* ── Match Card (history) ── colored left border + auto-bullets */
 .match-card {
