@@ -2438,3 +2438,4 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
 }
 .vh-save-btn:hover { color: var(--accent); border-color: var(--accent); }
 .vh-save-btn.saved { color: var(--accent); border-color: var(--accent); }
+.sp-empty { padding: 6px; color: var(--muted); font-size: 11px; }
