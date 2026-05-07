@@ -65,6 +65,10 @@ function render(root, state) {
 
 function renderPlayerTables(container, players, side) {
   const filtered = players.filter(p => p.side === side)
+  if (!filtered.length) {
+    container.innerHTML = `<div class="sb-empty">No data for this side.</div>`
+    return
+  }
   const teamA = filtered.filter(p => p.team === 'a').sort((a, b) => (b.rating || 0) - (a.rating || 0))
   const teamB = filtered.filter(p => p.team === 'b').sort((a, b) => (b.rating || 0) - (a.rating || 0))
   const orphans = filtered.filter(p => p.team !== 'a' && p.team !== 'b')
@@ -109,7 +113,7 @@ function row(p) {
       <td>${p.kills ?? 0}</td>
       <td>${p.deaths ?? 0}</td>
       <td>${p.assists ?? 0}</td>
-      <td class="${pmClass}">${plusMinus > 0 ? '+' : ''}${plusMinus}</td>
+      <td class="${pmClass}">${plusMinus >= 0 ? '+' : ''}${plusMinus}</td>
       <td>${(p.adr ?? 0).toFixed(1)}</td>
       <td>${pct(p.hs_pct)}</td>
       <td>${pct(p.kast_pct)}</td>
