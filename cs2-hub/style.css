@@ -2440,3 +2440,102 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
   flex: 1;
   min-height: 0;
 }
+
+/* === Scoreboard tab === */
+#scoreboard-root { padding: 14px 16px; }
+
+.sb-loading, .sb-empty {
+  padding: 20px; text-align: center; color: var(--muted);
+}
+
+.sb-toolbar {
+  display: flex; gap: 6px; align-items: center;
+  margin-bottom: 14px;
+}
+.sb-label {
+  font-size: 11px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin-right: 6px;
+}
+.sb-side-btn {
+  background: transparent; color: var(--muted);
+  border: 1px solid #2a3038;
+  padding: 5px 12px; border-radius: 3px;
+  font-size: 12px; cursor: pointer;
+}
+.sb-side-btn.is-active {
+  background: #2a3038; color: #fff; border-color: #2a3038;
+}
+
+.sb-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 12px; margin-bottom: 18px;
+}
+.sb-table thead th {
+  text-align: center;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: #666;
+  padding: 6px 4px;
+  border-bottom: 1px solid #2a3038;
+}
+.sb-table thead th.sb-col-name { text-align: left; }
+.sb-table thead th.sb-col-rating { color: #fff; }
+.sb-table tbody td {
+  text-align: center;
+  padding: 7px 4px;
+  border-bottom: 1px solid #1a1d22;
+}
+.sb-table tbody td.sb-col-name {
+  text-align: left; font-weight: 500;
+}
+.sb-table tbody td.sb-col-rating {
+  font-weight: 600; color: #fff;
+}
+.sb-pos { color: #7ed957; }
+.sb-neg { color: #e6534b; }
+
+.sb-team-block { margin-bottom: 18px; }
+.sb-team-header {
+  display: flex; justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #2a3038;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.sb-team-a .sb-team-header { color: #5fa8ff; }
+.sb-team-b .sb-team-header { color: #e6534b; }
+.sb-team-other .sb-team-header { color: var(--muted); }
+
+.sb-team-stats {
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: #0a0c0f;
+  border-top: 1px solid #222;
+  border-radius: 6px;
+}
+.sb-team-stats-label {
+  font-size: 11px; color: #666;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+.sb-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px 24px;
+}
+.sb-tile-label {
+  font-size: 10px; color: #888;
+  text-transform: uppercase;
+}
+.sb-tile-big {
+  font-size: 18px; font-weight: 600; margin-top: 2px;
+}
+.sb-tile-sub {
+  font-size: 11px; color: #666;
+}
+
+@media (max-width: 900px) {
+  .sb-tiles { grid-template-columns: repeat(2, 1fr); }
+}
