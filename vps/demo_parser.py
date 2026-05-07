@@ -1514,3 +1514,148 @@ def _empty_player_bucket() -> dict:
         "clutches_won": 0, "clutches_lost": 0,
         "flash_assists": 0, "traded_deaths": 0,
     }
+
+
+def compute_team_stats(parsed: dict) -> list[dict]:
+    """Returns 2 rows: team='a' and team='b'."""
+    try:
+        rounds        = parsed.get("rounds") or []
+        kills         = parsed.get("kills") or []
+        frames        = parsed.get("frames") or []
+        bomb          = parsed.get("bomb") or []
+        meta          = parsed.get("meta") or {}
+        team_a_first  = meta.get("team_a_first_side")  # 'ct' | 't' | None
+
+        first_kill_per_round = _first_event_per_round(kills, rounds)
+        alive_counts         = _alive_counts_per_round(rounds, frames)
+
+        # Initialize stats for both teams
+        def empty():
+            return {
+                "pistol_wins": 0, "pistol_played": 0,
+                "five_v_four_wins": 0, "five_v_four_played": 0,
+                "five_v_four_t_wins": 0, "five_v_four_t_played": 0,
+                "five_v_four_ct_wins": 0, "five_v_four_ct_played": 0,
+                "first_kills": 0, "first_deaths": 0,
+                "first_kills_t": 0, "first_kills_ct": 0,
+                "first_deaths_t": 0, "first_deaths_ct": 0,
+                "eco_wins": 0, "eco_played": 0,
+                "force_wins": 0, "force_played": 0,
+                "full_buy_wins": 0, "full_buy_played": 0,
+                "bomb_plants": 0, "bomb_defuses": 0,
+                "ct_round_wins": 0, "ct_rounds_played": 0,
+                "t_round_wins": 0, "t_rounds_played": 0,
+            }
+
+        a, b = empty(), empty()
+
+        for ri, rnd in enumerate(rounds):
+            a_side = rnd.get("team_a_side")  # 'ct' or 't'
+            b_side = "t" if a_side == "ct" else "ct"
+            winner = rnd.get("winner_side")
+
+            # Side win/loss
+            if a_side == "ct":
+                a["ct_rounds_played"] += 1
+                a["ct_round_wins"]    += 1 if winner == "ct" else 0
+                b["t_rounds_played"]  += 1
+                b["t_round_wins"]     += 1 if winner == "t" else 0
+            else:
+                a["t_rounds_played"]  += 1
+                a["t_round_wins"]     += 1 if winner == "t" else 0
+                b["ct_rounds_played"] += 1
+                b["ct_round_wins"]    += 1 if winner == "ct" else 0
+
+            # Pistol
+            if _is_pistol_round(rounds, ri):
+                a["pistol_played"] += 1
+                b["pistol_played"] += 1
+                if winner == a_side: a["pistol_wins"] += 1
+                if winner == b_side: b["pistol_wins"] += 1
+
+            # First kill / death
+            fk = first_kill_per_round[ri]
+            if fk:
+                killer_team = fk.get("killer_team")
+                victim_team = fk.get("victim_team")
+                if killer_team == a_side:
+                    a["first_kills"] += 1
+                    a[f"first_kills_{a_side}"] += 1
+                    b["first_deaths"] += 1
+                    b[f"first_deaths_{b_side}"] += 1
+                if killer_team == b_side:
+                    b["first_kills"] += 1
+                    b[f"first_kills_{b_side}"] += 1
+                    a["first_deaths"] += 1
+                    a[f"first_deaths_{a_side}"] += 1
+
+            # 5v4 — at any frame, did either side have +1 alive
+            ac = alive_counts[ri] if ri < len(alive_counts) else None
+            if ac:
+                if ac["ct_min_alive"] >= 4 and ac["t_min_alive"] >= 4:
+                    pass
+                # If at any point one side dropped below 5 while the other had >=5,
+                # the team WITH the advantage played a 5v4. Approximation: if a_side
+                # min alive is 5 and b_side min alive < 5, team A had a man advantage.
+                a_min = ac["ct_min_alive"] if a_side == "ct" else ac["t_min_alive"]
+                b_min = ac["ct_min_alive"] if b_side == "ct" else ac["t_min_alive"]
+                if a_min >= 5 and b_min < 5:
+                    a["five_v_four_played"] += 1
+                    a[f"five_v_four_{a_side}_played"] += 1
+                    if winner == a_side:
+                        a["five_v_four_wins"] += 1
+                        a[f"five_v_four_{a_side}_wins"] += 1
+                if b_min >= 5 and a_min < 5:
+                    b["five_v_four_played"] += 1
+                    b[f"five_v_four_{b_side}_played"] += 1
+                    if winner == b_side:
+                        b["five_v_four_wins"] += 1
+                        b[f"five_v_four_{b_side}_wins"] += 1
+
+            # Buy classification — needs equip values per team
+            a_equip = _team_equip_value_at_tick(frames, rnd.get("freeze_end_tick", rnd["start_tick"]), a_side)
+            b_equip = _team_equip_value_at_tick(frames, rnd.get("freeze_end_tick", rnd["start_tick"]), b_side)
+            is_pistol = _is_pistol_round(rounds, ri)
+            a_buy = _classify_buy(a_equip, b_equip, is_pistol)
+            b_buy = _classify_buy(b_equip, a_equip, is_pistol)
+            for team, buy, side in ((a, a_buy, a_side), (b, b_buy, b_side)):
+                if buy == "eco":
+                    team["eco_played"] += 1
+                    if winner == side: team["eco_wins"] += 1
+                elif buy == "force":
+                    team["force_played"] += 1
+                    if winner == side: team["force_wins"] += 1
+                elif buy == "full":
+                    team["full_buy_played"] += 1
+                    if winner == side: team["full_buy_wins"] += 1
+
+        # Bomb plants/defuses
+        for ev in bomb:
+            etype = (ev.get("type") or "").lower()
+            # Plant attributed to whoever's on T side at the tick;
+            # defuse to whoever's on CT.
+            if etype == "plant":
+                planter_team = ev.get("team") or "t"  # planter is always T
+                # Find the planter's *roster* (a or b) by the round side
+                ri = _round_index_for_tick(rounds, int(ev.get("tick", 0)))
+                if ri is not None and 0 <= ri < len(rounds):
+                    a_side_here = rounds[ri].get("team_a_side")
+                    if a_side_here == "t":
+                        a["bomb_plants"] += 1
+                    else:
+                        b["bomb_plants"] += 1
+            elif etype == "defuse":
+                ri = _round_index_for_tick(rounds, int(ev.get("tick", 0)))
+                if ri is not None and 0 <= ri < len(rounds):
+                    a_side_here = rounds[ri].get("team_a_side")
+                    if a_side_here == "ct":
+                        a["bomb_defuses"] += 1
+                    else:
+                        b["bomb_defuses"] += 1
+
+        return [{"team": "a", **a}, {"team": "b", **b}]
+    except Exception as e:
+        import traceback
+        print(f"[stats] compute_team_stats failed: {e}")
+        print(traceback.format_exc())
+        return []

@@ -173,7 +173,7 @@ def test_flash_assist_none_when_killer_flashed_self_assist_target():
     assert _flash_assist_for_kill(kill, flashes, window_ticks=140) is None
 
 
-from demo_parser import parse_demo, compute_player_stats
+from demo_parser import parse_demo, compute_player_stats, compute_team_stats
 
 
 @pytest.mark.skipif(not FIXTURE.exists(), reason="no fixture.dem")
@@ -254,3 +254,31 @@ def test_compute_player_stats_does_not_double_count_killing_blow_damage():
     a_all = next(r for r in rows if r["steam_id"] == "A" and r["side"] == "all")
     # ADR = damage / rounds_played. 1 round, 100 damage. NOT 200.
     assert a_all["adr"] == 100.0, f"expected ADR=100, got {a_all['adr']}"
+
+
+@pytest.mark.skipif(not FIXTURE.exists(), reason="no fixture.dem")
+def test_compute_team_stats_returns_two_rows():
+    parsed = parse_demo(str(FIXTURE))
+    rows = compute_team_stats(parsed)
+    assert len(rows) == 2
+    teams = {r["team"] for r in rows}
+    assert teams == {"a", "b"}
+
+
+@pytest.mark.skipif(not FIXTURE.exists(), reason="no fixture.dem")
+def test_compute_team_stats_round_count_consistency():
+    parsed = parse_demo(str(FIXTURE))
+    rows = compute_team_stats(parsed)
+    n_rounds = len(parsed["rounds"])
+    for r in rows:
+        # CT rounds + T rounds = total rounds (every round has the team on one side)
+        assert r["ct_rounds_played"] + r["t_rounds_played"] == n_rounds
+
+
+@pytest.mark.skipif(not FIXTURE.exists(), reason="no fixture.dem")
+def test_compute_team_stats_pistol_max_two():
+    parsed = parse_demo(str(FIXTURE))
+    rows = compute_team_stats(parsed)
+    for r in rows:
+        assert 0 <= r["pistol_played"] <= 2
+        assert 0 <= r["pistol_wins"] <= r["pistol_played"]
