@@ -750,8 +750,18 @@
             <button class="speed-btn active" data-speed="1">1×</button>
             <button class="speed-btn" data-speed="2">2×</button>
             <button class="speed-btn" data-speed="4">4×</button>
+            <button class="speed-btn sb-toggle-btn" id="sb-toggle-btn" title="Open scoreboard">Stats</button>
           </div>
         </div>
+      </div>
+
+      <!-- Scoreboard overlay — covers canvas area; lazy-mounted on first open -->
+      <div class="sb-overlay" id="sb-overlay" hidden>
+        <div class="sb-overlay-bar">
+          <span class="sb-overlay-title">Scoreboard</span>
+          <button class="sb-overlay-close" id="sb-overlay-close" title="Close (Esc)">×</button>
+        </div>
+        <div class="sb-overlay-body" id="scoreboard-root"></div>
       </div>
 
     </div>

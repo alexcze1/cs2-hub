@@ -7,6 +7,7 @@ import { showAssignTeamsModal } from './assign-teams-modal.js'
 import { mountAntistratDrawer } from './antistrat-drawer.js'
 import { openSavePopoverFor, closeSavePopover, isPopoverOpen } from './save-popover.js'
 import { findRoundMemberships } from './playlists.js'
+import { mountScoreboard }      from './scoreboard.js'
 
 await requireAuth()
 renderSidebar('demos')
@@ -1452,18 +1453,49 @@ document.getElementById('play-btn').addEventListener('click', () => {
   updatePlayBtn()
 })
 
-document.querySelectorAll('.speed-btn').forEach(btn => {
+document.querySelectorAll('.speed-btn[data-speed]').forEach(btn => {
   btn.addEventListener('click', () => {
     state.speed = Number(btn.dataset.speed)
-    document.querySelectorAll('.speed-btn').forEach(b =>
+    document.querySelectorAll('.speed-btn[data-speed]').forEach(b =>
       b.classList.toggle('active', b === btn)
     )
   })
 })
 
+// ── Scoreboard overlay ────────────────────────────────────────
+let scoreboardMounted = false
+const sbOverlay = document.getElementById('sb-overlay')
+const sbToggle  = document.getElementById('sb-toggle-btn')
+const sbClose   = document.getElementById('sb-overlay-close')
+
+function openScoreboard() {
+  if (state.playing) { state.playing = false; updatePlayBtn() }
+  sbOverlay.hidden = false
+  sbToggle.classList.add('active')
+  if (!scoreboardMounted) {
+    mountScoreboard(document.getElementById('scoreboard-root'), demoId)
+    scoreboardMounted = true
+  }
+}
+
+function closeScoreboard() {
+  sbOverlay.hidden = true
+  sbToggle.classList.remove('active')
+}
+
+sbToggle.addEventListener('click', () => {
+  sbOverlay.hidden ? openScoreboard() : closeScoreboard()
+})
+sbClose.addEventListener('click', closeScoreboard)
+
 // ── Keyboard shortcuts ────────────────────────────────────────
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+
+  if (e.code === 'Escape' && !sbOverlay.hidden) {
+    closeScoreboard()
+    return
+  }
 
   if (e.code === 'Space') {
     e.preventDefault()
