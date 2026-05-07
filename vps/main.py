@@ -5,6 +5,7 @@ import os
 import shutil
 import socket
 import sys
+import traceback
 import uuid
 import datetime
 from contextlib import asynccontextmanager, contextmanager
@@ -302,7 +303,6 @@ def write_stats_for_demo(demo_id: str, parsed: dict) -> None:
                     )
             print(f"[stats] wrote {len(tuples)} player rows for demo {demo_id}")
     except Exception as e:
-        import traceback
         print(f"[stats] player stats write failed for {demo_id}: {e}")
         print(traceback.format_exc())
 
@@ -340,7 +340,6 @@ def write_stats_for_demo(demo_id: str, parsed: dict) -> None:
                     )
             print(f"[stats] wrote {len(tuples)} team rows for demo {demo_id}")
     except Exception as e:
-        import traceback
         print(f"[stats] team stats write failed for {demo_id}: {e}")
         print(traceback.format_exc())
 
@@ -388,8 +387,16 @@ async def _process_one(demo: dict):
             raise RuntimeError("postgres write exceeded 240s — connection likely stuck")
 
         # Stats are computed & written in a separate transaction so a stats
-        # failure can't poison the demo's primary write.
-        await loop.run_in_executor(None, write_stats_for_demo, demo_id, match_data)
+        # failure can't poison the demo's primary write. Bounded at 240s
+        # for the same reason as the primary write — keep the poll loop
+        # responsive if a stats connection hangs.
+        try:
+            await asyncio.wait_for(
+                loop.run_in_executor(None, write_stats_for_demo, demo_id, match_data),
+                timeout=240,
+            )
+        except asyncio.TimeoutError:
+            print(f"[stats] write exceeded 240s for {demo_id} — skipping (demo write already committed)")
 
         print(f"Done: {demo_id} — {meta['map']} {ct_score}-{t_score}")
 
