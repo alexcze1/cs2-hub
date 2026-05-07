@@ -4,6 +4,11 @@ import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { showAssignTeamsModal } from './assign-teams-modal.js'
 import { getTeamLogo, teamLogoEl } from './team-autocomplete.js'
+import {
+  loadPlaylists, loadPlaylistRounds, createPlaylist, deletePlaylist, renamePlaylist,
+  removeRoundFromPlaylist, sortByPosition,
+} from './playlists.js'
+import { toast } from './toast.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 function formatDate(d) { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) }
@@ -36,6 +41,14 @@ const fileInput  = document.getElementById('demo-file-input')
 const progressWrap = document.getElementById('upload-progress')
 const progressText = document.getElementById('upload-progress-text')
 const progressBar  = document.getElementById('upload-progress-bar')
+
+const playlistsState = {
+  list:         [],
+  loaded:       false,
+  openId:       null,
+  openRows:     [],
+  roundCounts:  new Map(),
+}
 
 // ── Demo list ─────────────────────────────────────────────────
 async function loadDemos() {
@@ -392,3 +405,104 @@ window.retryDemo = async id => {
 }
 
 loadDemos()
+loadPlaylistsForCurrentTeam()
+
+// ── Playlists ─────────────────────────────────────────────────
+async function loadPlaylistsForCurrentTeam() {
+  const tid = getTeamId()
+  if (!tid) {
+    document.getElementById('dl-playlists').hidden = true
+    return
+  }
+  try {
+    playlistsState.list = await loadPlaylists(tid)
+    const ids = playlistsState.list.map(p => p.id)
+    const m = new Map()
+    if (ids.length) {
+      const { data: counts, error } = await supabase
+        .from('playlist_rounds')
+        .select('playlist_id')
+        .in('playlist_id', ids)
+      if (error) throw error
+      for (const r of counts ?? []) m.set(r.playlist_id, (m.get(r.playlist_id) ?? 0) + 1)
+    }
+    playlistsState.roundCounts = m
+    playlistsState.loaded = true
+    renderPlaylistsSection()
+  } catch (e) {
+    console.error('[demos] load playlists failed:', e)
+    toast('Failed to load playlists', 'error')
+  }
+}
+
+function renderPlaylistsSection() {
+  const host = document.getElementById('dl-playlists')
+  host.hidden = false
+  if (playlistsState.openId) renderPlaylistsDetail(host)
+  else                       renderPlaylistsMaster(host)
+}
+
+function formatRelative(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const days = Math.round((Date.now() - d.getTime()) / 86400000)
+  if (days <= 0) return 'today'
+  if (days === 1) return 'yesterday'
+  if (days < 7)  return `${days}d ago`
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+function renderPlaylistsMaster(host) {
+  const rows = playlistsState.list.map(p => {
+    const count = playlistsState.roundCounts.get(p.id) ?? 0
+    return `
+      <div class="dl-pl-row" data-id="${esc(p.id)}">
+        <div class="dl-pl-name">${esc(p.name)}</div>
+        <div class="dl-pl-count">${count} round${count === 1 ? '' : 's'}</div>
+        <div class="dl-pl-date">${formatRelative(p.updated_at)}</div>
+      </div>
+    `
+  }).join('')
+
+  host.innerHTML = `
+    <div class="dl-pl-header">
+      <span class="dl-pl-title">Playlists</span>
+      <button class="dl-pl-new" id="dl-pl-new">+ New</button>
+    </div>
+    <div class="dl-pl-list">
+      ${playlistsState.list.length ? rows
+        : `<div class="dl-empty">No playlists yet · save a round from the demo viewer to create one.</div>`}
+    </div>
+  `
+
+  host.querySelector('#dl-pl-new').addEventListener('click', onNewPlaylist)
+  for (const row of host.querySelectorAll('.dl-pl-row')) {
+    row.addEventListener('click', () => openPlaylist(row.dataset.id))
+  }
+}
+
+async function onNewPlaylist() {
+  const name = prompt('Playlist name:')
+  if (!name || !name.trim()) return
+  const tid = getTeamId()
+  if (!tid) return
+  try {
+    const userId = (await supabase.auth.getUser()).data.user?.id
+    const created = await createPlaylist(tid, name.trim(), userId)
+    playlistsState.list.unshift(created)
+    playlistsState.roundCounts.set(created.id, 0)
+    toast('Playlist created')
+    renderPlaylistsSection()
+  } catch (e) { console.error(e); toast('Failed to create playlist', 'error') }
+}
+
+async function openPlaylist(id) {
+  playlistsState.openId = id
+  playlistsState.openRows = []
+  renderPlaylistsSection()
+  try {
+    const rows = await loadPlaylistRounds(id)
+    playlistsState.openRows = sortByPosition(rows)
+    renderPlaylistsSection()
+  } catch (e) { console.error(e); toast('Failed to load playlist', 'error') }
+}
