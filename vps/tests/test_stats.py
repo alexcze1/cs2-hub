@@ -282,3 +282,74 @@ def test_compute_team_stats_pistol_max_two():
     for r in rows:
         assert 0 <= r["pistol_played"] <= 2
         assert 0 <= r["pistol_wins"] <= r["pistol_played"]
+
+
+def test_compute_team_stats_attributes_bomb_planted_to_t_side_roster():
+    """Regression: parser emits 'planted'/'defused', not 'plant'/'defuse'."""
+    parsed = {
+        "rounds": [{
+            "start_tick": 100, "end_tick": 1000, "freeze_end_tick": 150,
+            "team_a_side": "t", "winner_side": "t",
+        }],
+        "kills": [],
+        "damage_events": [],
+        "frames": [],
+        "grenades": [],
+        "bomb": [
+            {"tick": 500, "type": "planted", "x": 0, "y": 0},
+            {"tick": 800, "type": "defused", "x": 0, "y": 0},
+        ],
+        "players_meta": {},
+        "meta": {"team_a_first_side": "t"},
+    }
+    rows = compute_team_stats(parsed)
+    a = next(r for r in rows if r["team"] == "a")
+    b = next(r for r in rows if r["team"] == "b")
+    # Round had team_a on T, so A planted; team_b on CT, so B defused.
+    assert a["bomb_plants"] == 1, f"expected A bomb_plants=1, got {a['bomb_plants']}"
+    assert b["bomb_defuses"] == 1, f"expected B bomb_defuses=1, got {b['bomb_defuses']}"
+
+
+def test_compute_team_stats_classifies_full_buy_and_antieco():
+    """Regression: _classify_buy returns 'fullbuy'/'antieco', not 'full'/'force'."""
+    # Per-player equip uses 'weapon' + 'armor' + grenade flags (NOT an 'equip_value' key).
+    # AK-47 (2700) + armor (1000) per player → 3700/player × 5 = 18500 per side, well above
+    # the 5000 eco threshold so _classify_buy returns 'fullbuy' for both sides.
+    # Round 0 is always treated as pistol by _is_pistol_round, so place the
+    # full-buy round at idx 1 (with the same team_a_side as idx 0 → no side flip).
+    parsed = {
+        "rounds": [
+            {"start_tick": 0, "end_tick": 90, "freeze_end_tick": 10,
+             "team_a_side": "ct", "winner_side": "ct"},  # filler pistol round
+            {"start_tick": 100, "end_tick": 1000, "freeze_end_tick": 150,
+             "team_a_side": "ct", "winner_side": "ct"},  # the round under test
+        ],
+        "kills": [],
+        "damage_events": [],
+        "frames": [
+            {"tick": 150, "players": [
+                {"steam_id": "A1", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "A2", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "A3", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "A4", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "A5", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "B1", "team": "t",  "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "B2", "team": "t",  "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "B3", "team": "t",  "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "B4", "team": "t",  "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "B5", "team": "t",  "hp": 100, "weapon": "AK-47", "armor": 100},
+            ]},
+        ],
+        "grenades": [],
+        "bomb": [],
+        "players_meta": {},
+        "meta": {"team_a_first_side": "ct"},
+    }
+    rows = compute_team_stats(parsed)
+    a = next(r for r in rows if r["team"] == "a")
+    b = next(r for r in rows if r["team"] == "b")
+    # Both teams full-buy in round 1 → both get full_buy_played=1; A (CT) wins.
+    assert a["full_buy_played"] == 1
+    assert b["full_buy_played"] == 1
+    assert a["full_buy_wins"] == 1  # A is on CT and CT won
+    assert b["full_buy_wins"] == 0

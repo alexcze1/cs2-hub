@@ -1523,8 +1523,6 @@ def compute_team_stats(parsed: dict) -> list[dict]:
         kills         = parsed.get("kills") or []
         frames        = parsed.get("frames") or []
         bomb          = parsed.get("bomb") or []
-        meta          = parsed.get("meta") or {}
-        team_a_first  = meta.get("team_a_first_side")  # 'ct' | 't' | None
 
         first_kill_per_round = _first_event_per_round(kills, rounds)
         alive_counts         = _alive_counts_per_round(rounds, frames)
@@ -1592,8 +1590,6 @@ def compute_team_stats(parsed: dict) -> list[dict]:
             # 5v4 — at any frame, did either side have +1 alive
             ac = alive_counts[ri] if ri < len(alive_counts) else None
             if ac:
-                if ac["ct_min_alive"] >= 4 and ac["t_min_alive"] >= 4:
-                    pass
                 # If at any point one side dropped below 5 while the other had >=5,
                 # the team WITH the advantage played a 5v4. Approximation: if a_side
                 # min alive is 5 and b_side min alive < 5, team A had a man advantage.
@@ -1622,10 +1618,13 @@ def compute_team_stats(parsed: dict) -> list[dict]:
                 if buy == "eco":
                     team["eco_played"] += 1
                     if winner == side: team["eco_wins"] += 1
-                elif buy == "force":
+                # Ship 1 maps anti-eco buys to the force_* bucket: a true
+                # force-buy classifier isn't available yet, and an anti-eco is
+                # the closest available proxy. The DB columns stay force_*.
+                elif buy == "antieco":
                     team["force_played"] += 1
                     if winner == side: team["force_wins"] += 1
-                elif buy == "full":
+                elif buy == "fullbuy":
                     team["full_buy_played"] += 1
                     if winner == side: team["full_buy_wins"] += 1
 
@@ -1634,8 +1633,7 @@ def compute_team_stats(parsed: dict) -> list[dict]:
             etype = (ev.get("type") or "").lower()
             # Plant attributed to whoever's on T side at the tick;
             # defuse to whoever's on CT.
-            if etype == "plant":
-                planter_team = ev.get("team") or "t"  # planter is always T
+            if etype == "planted":
                 # Find the planter's *roster* (a or b) by the round side
                 ri = _round_index_for_tick(rounds, int(ev.get("tick", 0)))
                 if ri is not None and 0 <= ri < len(rounds):
@@ -1644,7 +1642,7 @@ def compute_team_stats(parsed: dict) -> list[dict]:
                         a["bomb_plants"] += 1
                     else:
                         b["bomb_plants"] += 1
-            elif etype == "defuse":
+            elif etype == "defused":
                 ri = _round_index_for_tick(rounds, int(ev.get("tick", 0)))
                 if ri is not None and 0 <= ri < len(rounds):
                     a_side_here = rounds[ri].get("team_a_side")
