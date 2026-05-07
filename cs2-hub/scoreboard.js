@@ -144,7 +144,8 @@ function renderTeamStats(container, teams) {
       <div class="sb-team-stats-label">Team stats — Your team</div>
       <div class="sb-tiles">
         ${tile('Pistol rounds', `${a.pistol_wins ?? 0} / ${a.pistol_played ?? 0}`,
-          (a.pistol_wins === a.pistol_played && a.pistol_played > 0) ? 'won both'
+          (a.pistol_played == null || a.pistol_played === 0) ? '—'
+            : (a.pistol_wins === a.pistol_played) ? 'won both'
             : (a.pistol_wins === 0) ? 'lost both' : 'split')}
         ${tile('5v4 conversion',
           `${a.five_v_four_wins ?? 0} / ${a.five_v_four_played ?? 0} ${pctText(a.five_v_four_wins, a.five_v_four_played)}`,
