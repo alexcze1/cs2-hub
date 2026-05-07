@@ -216,3 +216,41 @@ def test_compute_player_stats_rating_in_reasonable_range():
     for r in rows:
         if r["side"] == "all" and r["rounds_played"] and r["rounds_played"] > 5:
             assert 0.0 <= r["rating"] <= 2.5, f"unrealistic rating: {r}"
+
+
+def test_compute_player_stats_does_not_double_count_killing_blow_damage():
+    """Regression: ensure killing-blow damage isn't added from both kills and damage_events."""
+    parsed = {
+        "rounds": [{
+            "start_tick": 100,
+            "end_tick": 1000,
+            "freeze_end_tick": 150,
+        }],
+        "kills": [
+            {"tick": 500, "killer_id": "A", "victim_id": "B",
+             "assister_id": "", "killer_team": "ct", "victim_team": "t",
+             "headshot": False, "dmg_health": 100, "dmg_armor": 0, "weapon": "ak47"},
+        ],
+        # The fatal player_hurt event also fires — same tick, same damage
+        "damage_events": [
+            {"tick": 500, "attacker_id": "A", "victim_id": "B",
+             "dmg_health": 100, "dmg_armor": 0, "weapon": "ak47", "hitgroup": ""},
+        ],
+        "frames": [
+            {"tick": 150, "players": [
+                {"steam_id": "A", "team": "ct", "hp": 100},
+                {"steam_id": "B", "team": "t",  "hp": 100},
+            ]},
+            {"tick": 600, "players": [
+                {"steam_id": "A", "team": "ct", "hp": 100},
+                {"steam_id": "B", "team": "t",  "hp": 0},
+            ]},
+        ],
+        "grenades": [],
+        "players_meta": {"A": "alpha", "B": "bravo"},
+        "meta": {"team_a_first_side": "ct"},
+    }
+    rows = compute_player_stats(parsed)
+    a_all = next(r for r in rows if r["steam_id"] == "A" and r["side"] == "all")
+    # ADR = damage / rounds_played. 1 round, 100 damage. NOT 200.
+    assert a_all["adr"] == 100.0, f"expected ADR=100, got {a_all['adr']}"

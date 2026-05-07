@@ -1296,7 +1296,6 @@ def compute_player_stats(parsed: dict) -> list[dict]:
 
         # Pre-compute things shared across players
         first_kill_per_round  = _first_event_per_round(kills, rounds)
-        first_death_per_round = first_kill_per_round  # same event yields the first death
         alive_counts          = _alive_counts_per_round(rounds, frames)
         clutch_per_round      = [_clutch_outcome(r, frames) for r in rounds]
         utility_dmg_by_sid    = _grenade_damage_attribution(damage_events)
@@ -1422,7 +1421,7 @@ def compute_player_stats(parsed: dict) -> list[dict]:
                     for b in (buckets["all"], buckets[side]):
                         b[key] += 1
 
-            # Cross-round totals: kills, deaths, assists, hs, damage
+            # Cross-round totals: kills, deaths, assists, hs
             for k in kills:
                 if k.get("killer_id") == sid:
                     side = (k.get("killer_team") or "ct")
@@ -1430,7 +1429,6 @@ def compute_player_stats(parsed: dict) -> list[dict]:
                         b["kills"] += 1
                         if k.get("headshot"):
                             b["hs_kills"] += 1
-                        b["damage_dealt"] += int(k.get("dmg_health", 0))
                 if k.get("victim_id") == sid:
                     side = (k.get("victim_team") or "ct")
                     for b in (buckets["all"], buckets[side]):
@@ -1441,7 +1439,7 @@ def compute_player_stats(parsed: dict) -> list[dict]:
                     for b in (buckets["all"], buckets[side]):
                         b["assists"] += 1
 
-            # Non-fatal damage
+            # Damage (from player_hurt — includes fatal blows)
             for ev in damage_events:
                 if ev.get("attacker_id") == sid:
                     # Attribute by attacker's side at hit tick — best effort: use kill_team lookup
@@ -1501,7 +1499,9 @@ def compute_player_stats(parsed: dict) -> list[dict]:
                 out.append(row)
         return out
     except Exception as e:
+        import traceback
         print(f"[stats] compute_player_stats failed: {e}")
+        print(traceback.format_exc())
         return []
 
 
