@@ -95,3 +95,39 @@ def test_alive_counts_detects_5v4():
     ]
     result = _alive_counts_per_round(rounds, frames)
     assert result == [{"ct_min_alive": 1, "t_min_alive": 2}]
+
+
+from demo_parser import _clutch_outcome
+
+
+def test_clutch_outcome_winner_when_last_alive_wins_round():
+    rnd = {"start_tick": 100, "end_tick": 500, "winner_side": "ct"}
+    frames = [{"tick": 400, "players": [
+        {"steam_id": "CT_LAST", "team": "ct", "hp": 100},
+        {"steam_id": "T_A",     "team": "t",  "hp": 100},
+        {"steam_id": "T_B",     "team": "t",  "hp": 100},
+    ]}]
+    out = _clutch_outcome(rnd, frames)
+    assert out == {"clutcher_id": "CT_LAST", "won": True}
+
+
+def test_clutch_outcome_loser_when_last_alive_loses_round():
+    rnd = {"start_tick": 100, "end_tick": 500, "winner_side": "t"}
+    frames = [{"tick": 400, "players": [
+        {"steam_id": "CT_LAST", "team": "ct", "hp": 100},
+        {"steam_id": "T_A",     "team": "t",  "hp": 100},
+        {"steam_id": "T_B",     "team": "t",  "hp": 100},
+    ]}]
+    out = _clutch_outcome(rnd, frames)
+    assert out == {"clutcher_id": "CT_LAST", "won": False}
+
+
+def test_clutch_outcome_none_when_no_1vN_situation():
+    rnd = {"start_tick": 100, "end_tick": 500, "winner_side": "ct"}
+    frames = [{"tick": 400, "players": [
+        {"steam_id": "CT_A", "team": "ct", "hp": 100},
+        {"steam_id": "CT_B", "team": "ct", "hp": 100},
+        {"steam_id": "T_A",  "team": "t",  "hp": 100},
+        {"steam_id": "T_B",  "team": "t",  "hp": 100},
+    ]}]
+    assert _clutch_outcome(rnd, frames) is None

@@ -1207,3 +1207,25 @@ def _alive_counts_per_round(rounds: list, frames: list) -> list:
             if t_alive  < t_min:  t_min  = t_alive
         result.append({"ct_min_alive": ct_min, "t_min_alive": t_min})
     return result
+
+
+def _clutch_outcome(rnd: dict, frames: list) -> dict | None:
+    """Detect 1vN scenario in this round and report outcome.
+
+    Returns {clutcher_id, won} if at any frame in the round one team had
+    exactly 1 alive while the opponent had >=2. The clutcher is the
+    last-alive player on that team at the *earliest* such frame. 'won'
+    reflects whether that team's side matched rnd['winner_side'].
+    Returns None if no 1vN scenario occurred.
+    """
+    for f in frames:
+        t = int(f.get("tick", 0))
+        if not (rnd["start_tick"] < t <= rnd["end_tick"]):
+            continue
+        ct_alive = [p for p in f.get("players", []) if p.get("team") == "ct" and int(p.get("hp", 0)) > 0]
+        t_alive  = [p for p in f.get("players", []) if p.get("team") == "t"  and int(p.get("hp", 0)) > 0]
+        if len(ct_alive) == 1 and len(t_alive) >= 2:
+            return {"clutcher_id": ct_alive[0]["steam_id"], "won": rnd.get("winner_side") == "ct"}
+        if len(t_alive) == 1 and len(ct_alive) >= 2:
+            return {"clutcher_id": t_alive[0]["steam_id"], "won": rnd.get("winner_side") == "t"}
+    return None
