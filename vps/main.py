@@ -17,7 +17,7 @@ from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from supabase import create_client, Client
 
-from demo_parser import parse_demo, build_slim_payload
+from demo_parser import parse_demo, build_slim_payload, compute_player_stats, compute_team_stats
 
 socket.setdefaulttimeout(30)
 sys.stdout.reconfigure(line_buffering=True)
@@ -194,7 +194,7 @@ def _db_set_error(demo_id, msg):
             )
 
 
-def _db_write_results(demo_id, meta, ct_score, t_score, match_data, slim_data, player_rows):
+def _db_write_results(demo_id, meta, ct_score, t_score, match_data, slim_data):
     print(f"[db] serializing match_data (frames={len(match_data.get('frames', []))}) ...")
     match_json = json.dumps(match_data)
     slim_json  = json.dumps(slim_data)
@@ -202,14 +202,6 @@ def _db_write_results(demo_id, meta, ct_score, t_score, match_data, slim_data, p
     print(f"[db] match_data_slim JSON size: {len(slim_json) / 1024 / 1024:.2f} MB")
     with get_db() as conn:
         with conn.cursor() as cur:
-            if player_rows:
-                psycopg2.extras.execute_values(
-                    cur,
-                    """INSERT INTO demo_players
-                         (id, demo_id, steam_id, name, side, kills, deaths, assists, adr, rating)
-                       VALUES %s""",
-                    player_rows,
-                )
             print(f"[db] writing to postgres ...")
             cur.execute(
                 """UPDATE demos SET
@@ -244,6 +236,115 @@ def _db_write_results(demo_id, meta, ct_score, t_score, match_data, slim_data, p
             print(f"[db] postgres write done")
 
 
+# Columns for demo_players inserts. Order MUST match the VALUES tuple below.
+_PLAYER_STAT_COLS = (
+    "id", "demo_id", "steam_id", "name", "team", "side",
+    "kills", "deaths", "assists",
+    "adr", "rating", "hs_pct", "kast_pct",
+    "multi_2k", "multi_3k", "multi_4k", "multi_5k",
+    "opening_kills", "opening_deaths",
+    "clutches_won", "clutches_lost",
+    "utility_dmg", "flash_assists", "traded_deaths",
+    "impact_rating", "rounds_played",
+)
+
+# Columns for demo_team_stats. Same ordering rule.
+_TEAM_STAT_COLS = (
+    "id", "demo_id", "team",
+    "pistol_wins", "pistol_played",
+    "five_v_four_wins", "five_v_four_played",
+    "five_v_four_t_wins", "five_v_four_t_played",
+    "five_v_four_ct_wins", "five_v_four_ct_played",
+    "first_kills", "first_deaths",
+    "first_kills_t", "first_kills_ct",
+    "first_deaths_t", "first_deaths_ct",
+    "eco_wins", "eco_played",
+    "force_wins", "force_played",
+    "full_buy_wins", "full_buy_played",
+    "bomb_plants", "bomb_defuses",
+    "ct_round_wins", "ct_rounds_played",
+    "t_round_wins", "t_rounds_played",
+)
+
+
+def write_stats_for_demo(demo_id: str, parsed: dict) -> None:
+    """Compute and replace per-demo stat rows. Soft-failures: log and continue."""
+    # Players
+    try:
+        player_rows = compute_player_stats(parsed)
+        if player_rows:
+            tuples = []
+            for r in player_rows:
+                tuples.append((
+                    str(uuid.uuid4()), demo_id,
+                    r.get("steam_id") or "", r.get("name") or "",
+                    r.get("team"), r.get("side"),
+                    r.get("kills", 0), r.get("deaths", 0), r.get("assists", 0),
+                    r.get("adr", 0.0), r.get("rating", 0.0),
+                    r.get("hs_pct", 0.0), r.get("kast_pct", 0.0),
+                    r.get("multi_2k", 0), r.get("multi_3k", 0),
+                    r.get("multi_4k", 0), r.get("multi_5k", 0),
+                    r.get("opening_kills", 0), r.get("opening_deaths", 0),
+                    r.get("clutches_won", 0), r.get("clutches_lost", 0),
+                    r.get("utility_dmg", 0), r.get("flash_assists", 0),
+                    r.get("traded_deaths", 0),
+                    r.get("impact_rating", 0.0), r.get("rounds_played", 0),
+                ))
+            with get_db() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "DELETE FROM demo_players WHERE demo_id = %s", (demo_id,)
+                    )
+                    psycopg2.extras.execute_values(
+                        cur,
+                        f"INSERT INTO demo_players ({', '.join(_PLAYER_STAT_COLS)}) VALUES %s",
+                        tuples,
+                    )
+            print(f"[stats] wrote {len(tuples)} player rows for demo {demo_id}")
+    except Exception as e:
+        import traceback
+        print(f"[stats] player stats write failed for {demo_id}: {e}")
+        print(traceback.format_exc())
+
+    # Team stats
+    try:
+        team_rows = compute_team_stats(parsed)
+        if team_rows:
+            tuples = []
+            for r in team_rows:
+                tuples.append((
+                    str(uuid.uuid4()), demo_id, r.get("team"),
+                    r.get("pistol_wins", 0), r.get("pistol_played", 0),
+                    r.get("five_v_four_wins", 0), r.get("five_v_four_played", 0),
+                    r.get("five_v_four_t_wins", 0), r.get("five_v_four_t_played", 0),
+                    r.get("five_v_four_ct_wins", 0), r.get("five_v_four_ct_played", 0),
+                    r.get("first_kills", 0), r.get("first_deaths", 0),
+                    r.get("first_kills_t", 0), r.get("first_kills_ct", 0),
+                    r.get("first_deaths_t", 0), r.get("first_deaths_ct", 0),
+                    r.get("eco_wins", 0), r.get("eco_played", 0),
+                    r.get("force_wins", 0), r.get("force_played", 0),
+                    r.get("full_buy_wins", 0), r.get("full_buy_played", 0),
+                    r.get("bomb_plants", 0), r.get("bomb_defuses", 0),
+                    r.get("ct_round_wins", 0), r.get("ct_rounds_played", 0),
+                    r.get("t_round_wins", 0), r.get("t_rounds_played", 0),
+                ))
+            with get_db() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "DELETE FROM demo_team_stats WHERE demo_id = %s", (demo_id,)
+                    )
+                    psycopg2.extras.execute_values(
+                        cur,
+                        f"INSERT INTO demo_team_stats ({', '.join(_TEAM_STAT_COLS)}) VALUES %s",
+                        tuples,
+                    )
+            print(f"[stats] wrote {len(tuples)} team rows for demo {demo_id}")
+    except Exception as e:
+        import traceback
+        print(f"[stats] team stats write failed for {demo_id}: {e}")
+        print(traceback.format_exc())
+
+
 async def _process_one(demo: dict):
     demo_id      = demo["id"]
     storage_path = demo["storage_path"]
@@ -271,28 +372,6 @@ async def _process_one(demo: dict):
         ct_score = meta["ct_score"]
         t_score  = meta["t_score"]
 
-        last_frame    = match_data["frames"][-1] if match_data["frames"] else {"players": []}
-        players_meta  = match_data.get("players_meta", {})
-        kill_counts   = {}
-        death_counts  = {}
-        for k in match_data["kills"]:
-            kill_counts[k["killer_id"]]  = kill_counts.get(k["killer_id"], 0) + 1
-            death_counts[k["victim_id"]] = death_counts.get(k["victim_id"], 0) + 1
-
-        player_rows = []
-        seen = set()
-        for p in last_frame["players"]:
-            sid = p["steam_id"]
-            if sid in seen:
-                continue
-            seen.add(sid)
-            # name lives in players_meta now (dropped from per-frame to shrink JSON)
-            name = players_meta.get(sid, {}).get("name") or p.get("name") or ""
-            player_rows.append((
-                str(uuid.uuid4()), demo_id, sid, name, p["team"],
-                kill_counts.get(sid, 0), death_counts.get(sid, 0), 0, 0.0, 0.0,
-            ))
-
         # Bound the write at 240s so a stuck pooler connection can't lock the
         # poll loop forever — server statement_timeout (180s) should fire first;
         # this is a belt-and-suspenders cap. On timeout the demo is marked error
@@ -301,12 +380,17 @@ async def _process_one(demo: dict):
         try:
             await asyncio.wait_for(
                 loop.run_in_executor(
-                    None, _db_write_results, demo_id, meta, ct_score, t_score, match_data, slim_data, player_rows
+                    None, _db_write_results, demo_id, meta, ct_score, t_score, match_data, slim_data
                 ),
                 timeout=240,
             )
         except asyncio.TimeoutError:
             raise RuntimeError("postgres write exceeded 240s — connection likely stuck")
+
+        # Stats are computed & written in a separate transaction so a stats
+        # failure can't poison the demo's primary write.
+        await loop.run_in_executor(None, write_stats_for_demo, demo_id, match_data)
+
         print(f"Done: {demo_id} — {meta['map']} {ct_score}-{t_score}")
 
     except Exception as e:
