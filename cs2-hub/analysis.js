@@ -6,7 +6,6 @@ import { toast } from './toast.js'
 import { attachTeamAutocomplete } from './team-autocomplete.js'
 import { narrowRoundsForTeam, framesForRound, grenadesForRound } from './analysis-rounds.js'
 import { worldToCanvas } from './demo-map-data.js'
-import * as playlistRail from './playlist-rail.js'
 
 await requireAuth()
 renderSidebar('analysis')
@@ -168,37 +167,6 @@ async function onTeamChanged() {
   if (state.filters.map) loadMapImage(state.filters.map)
   // Round set built once filters apply — Task 9
   await reloadRoundSet()
-
-  // Mount + populate the playlist rail (added by Task 5).
-  const railEl = document.getElementById('playlist-rail')
-  railEl.classList.add('show')
-  if (!railEl.dataset.mounted) {
-    playlistRail.mount(railEl, {
-      getDemoMeta: async (demoId) => {
-        // Try the corpus first (zero round-trips for the common case where
-        // the playlist references a demo for the same team).
-        const fromCorpus = state.corpus.find(d => d.id === demoId)
-        if (fromCorpus) return fromCorpus
-        // Fallback: pull just the metadata columns we need.
-        const { data, error } = await supabase
-          .from('demos')
-          .select('id, map, played_at, ct_team_name, t_team_name, score_ct, score_t, team_a_first_side, team_a_score, team_b_score')
-          .eq('id', demoId).maybeSingle()
-        if (error) { console.warn('[analysis] getDemoMeta failed:', error); return null }
-        return data
-      },
-      onMembershipChanged: (demoId, roundIdx) => {
-        // Recompute ★ state for the currently-displayed round.
-        if (state.viewRoundIdx == null) return
-        const r = state.rounds[state.viewRoundIdx]
-        if (r && r.demoId === demoId && r.roundIdx === roundIdx) refreshStarState()
-      },
-      onLoadRound: loadPlaylistRound,
-      onPlayAll:   playPlaylistAll,
-    })
-    railEl.dataset.mounted = '1'
-  }
-  await playlistRail.setTeam(getTeamId())
 }
 
 function renderFilterRail() {
@@ -549,13 +517,7 @@ function recomputePlaybackBounds() {
 function advancePlaylist() {
   const pl = state.gren.playlist
   if (!pl || !pl.length) return
-  // Stop at end (v1 — no loop).
-  if (state.gren.playlistPos + 1 >= pl.length) {
-    playback.playing = false
-    document.getElementById('play-btn').textContent = '▶'
-    return
-  }
-  state.gren.playlistPos += 1
+  state.gren.playlistPos = (state.gren.playlistPos + 1) % pl.length
   const nextIdx = pl[state.gren.playlistPos]
   state.viewRoundIdx = nextIdx
   playback.relTick = 0
@@ -564,8 +526,6 @@ function advancePlaylist() {
   // / weapons / shots once it arrives.
   fetchFullMatch(state.rounds[nextIdx].demoId)
   refreshSoloRoundNav()
-  const r = state.rounds[nextIdx]
-  if (r) playlistRail.setActiveRoundKey(`${r.demoId}|${r.roundIdx}`)
 }
 
 function loop(ts) {
@@ -837,47 +797,6 @@ async function fetchFullMatch(demoId) {
     state.fullLoading.delete(demoId)
     hideChip('Loading round details…')
   }
-}
-
-async function ensureRoundLoaded(demoId, roundIdx) {
-  // Already in state.rounds? Just find the index.
-  let idx = state.rounds.findIndex(r => r.demoId === demoId && r.roundIdx === roundIdx)
-  if (idx >= 0) {
-    await fetchFullMatch(demoId)
-    return idx
-  }
-
-  // Otherwise: pull the slim payload, build a RenderRound entry, append.
-  await fetchSlimPayloads([demoId])  // populates state.slimCache
-  const slim = state.slimCache.get(demoId)
-  if (!slim) return -1
-
-  // narrowRoundsForTeam handles all the side/winner/bombSite logic. Pass a
-  // single-payload list with side='both' and outcome='all' so we get every
-  // round; then pick the one we want.
-  const corpusRow = await (async () => {
-    const fromCorpus = state.corpus.find(d => d.id === demoId)
-    if (fromCorpus) return fromCorpus
-    const { data } = await supabase.from('demos')
-      .select('id, ct_team_name, t_team_name, team_a_first_side')
-      .eq('id', demoId).maybeSingle()
-    return data
-  })()
-  if (!corpusRow) return -1
-
-  const isRosterA = corpusRow.team_a_first_side
-    ? (corpusRow.team_a_first_side === 'ct' ? corpusRow.ct_team_name === state.team
-                                             : corpusRow.t_team_name  === state.team)
-    : corpusRow.ct_team_name === state.team
-  const bound = Object.assign({ _is_roster_a: isRosterA, _demo_id: demoId }, slim)
-  const all = narrowRoundsForTeam([bound], { side: 'both', outcome: 'all', bombSite: 'all' })
-  const target = all.find(r => r.roundIdx === roundIdx)
-  if (!target) return -1
-
-  state.rounds.push(target)
-  recomputePlaybackBounds()
-  await fetchFullMatch(demoId)
-  return state.rounds.length - 1
 }
 
 // 5 distinct colors for the 5 players on the user's team. Stable per-sid across the session.
@@ -1457,22 +1376,6 @@ function refreshSoloRoundNav() {
     (pl && pl.length)
       ? `Playlist ${state.gren.playlistPos + 1} / ${pl.length} · ${sideLabel}`
       : `Round ${state.viewRoundIdx + 1} / ${state.rounds.length} · ${sideLabel}`
-  refreshStarState()
-}
-
-async function refreshStarState() {
-  const btn = document.getElementById('pp-save-btn')
-  if (!btn || state.viewRoundIdx == null) return
-  const r = state.rounds[state.viewRoundIdx]
-  if (!r) { btn.textContent = '☆'; btn.classList.remove('saved'); return }
-  try {
-    const teamId = getTeamId()
-    if (!teamId) return
-    const { findRoundMemberships } = await import('./playlists.js')
-    const ms = await findRoundMemberships(teamId, r.demoId, r.roundIdx)
-    if (ms.length) { btn.textContent = '★'; btn.classList.add('saved') }
-    else           { btn.textContent = '☆'; btn.classList.remove('saved') }
-  } catch (e) { console.warn('star state failed:', e) }
 }
 
 async function gotoSoloRound(delta) {
@@ -1497,47 +1400,6 @@ async function gotoSoloRound(delta) {
   render()
 }
 
-async function loadPlaylistRound(playlistRow) {
-  const idx = await ensureRoundLoaded(playlistRow.demo_id, playlistRow.round_idx)
-  if (idx < 0) { toast('Could not load this round', 'error'); return }
-  state.viewRoundIdx = idx
-  state.gren.playlist = null  // clicking a row exits play-all mode
-  state.gren.playlistPos = 0
-  playback.relTick = 0
-  recomputePlaybackBounds()
-  updateTimelineUi()
-  refreshSoloRoundNav()
-  render()
-  playlistRail.setActiveRoundKey(`${playlistRow.demo_id}|${playlistRow.round_idx}`)
-}
-
-async function playPlaylistAll(playlistRows) {
-  if (!playlistRows.length) return
-  // Pre-load every round into state.rounds and collect their indices.
-  showChip('Loading playlist…', 'info')
-  const indices = []
-  for (const row of playlistRows) {
-    const idx = await ensureRoundLoaded(row.demo_id, row.round_idx)
-    if (idx >= 0) indices.push(idx)
-  }
-  hideChip('Loading playlist…')
-  if (!indices.length) { toast('No rounds loaded', 'error'); return }
-
-  state.gren.playlist    = indices
-  state.gren.playlistPos = 0
-  state.viewRoundIdx     = indices[0]
-  playback.relTick       = 0
-  recomputePlaybackBounds()
-  // Auto-play — user explicitly asked to walk through rounds.
-  playback.playing = true
-  document.getElementById('play-btn').textContent = '⏸'
-  updateTimelineUi()
-  refreshSoloRoundNav()
-  render()
-  const first = playlistRows[0]
-  playlistRail.setActiveRoundKey(`${first.demo_id}|${first.round_idx}`)
-}
-
 function exitSingleRound() {
   if (state.viewRoundIdx == null) return
   const prev = playback.relTick
@@ -1551,7 +1413,6 @@ function exitSingleRound() {
   playback.relTick = Math.min(prev, playback.maxTick)
   updateTimelineUi()
   refreshSoloRoundNav()
-  playlistRail.setActiveRoundKey(null)
   render()
 }
 
@@ -1563,27 +1424,6 @@ document.getElementById('pp-clear').addEventListener('click', () => {
 
 document.getElementById('pp-round-prev').addEventListener('click', () => gotoSoloRound(-1))
 document.getElementById('pp-round-next').addEventListener('click', () => gotoSoloRound(+1))
-
-document.getElementById('pp-save-btn').addEventListener('click', async (e) => {
-  if (state.viewRoundIdx == null) return
-  const r = state.rounds[state.viewRoundIdx]
-  if (!r) return
-  const rect = e.currentTarget.getBoundingClientRect()
-  await playlistRail.openSavePopoverFor({
-    demoId:    r.demoId,
-    roundIdx:  r.roundIdx,
-    anchorRect: rect,
-  })
-})
-
-// Close popover on outside click.
-document.addEventListener('click', (e) => {
-  if (!playlistRail.isPopoverOpen()) return
-  const pop = document.getElementById('save-popover')
-  if (pop.contains(e.target)) return
-  if (e.target.closest('#pp-save-btn')) return
-  playlistRail.closeSavePopover()
-})
 
 // Click a player icon on the map → enter single-round playback for that round
 // at the current playback time (seamless transition). Click anywhere on the map
@@ -2014,7 +1854,6 @@ mountAntistratDrawer({ teamId: getTeamId() })
 // input. Shortcuts:
 //   Space      — play/pause
 //   ← / →      — prev/next round (or playlist entry, in playlist playback)
-//   B          — open save popover (single-round playback only)
 //   Esc        — exit single-round / clear solo / close popover
 //   ?          — toggle keyboard-help overlay
 window.addEventListener('keydown', (e) => {
@@ -2033,16 +1872,8 @@ window.addEventListener('keydown', (e) => {
       e.preventDefault(); gotoSoloRound(-1); break
     case 'ArrowRight':
       e.preventDefault(); gotoSoloRound(+1); break
-    case 'b':
-    case 'B': {
-      if (state.viewRoundIdx == null) return
-      const btn = document.getElementById('pp-save-btn')
-      if (btn) btn.click()
-      break
-    }
     case 'Escape':
-      if (playlistRail.isPopoverOpen()) playlistRail.closeSavePopover()
-      else if (document.getElementById('kb-help-overlay').hidden === false) toggleKbHelp(false)
+      if (document.getElementById('kb-help-overlay').hidden === false) toggleKbHelp(false)
       else if (state.viewRoundIdx != null) exitSingleRound()
       else if (state.soloSid) { state.soloSid = null; refreshPlayerPanel(); render() }
       break
@@ -2062,8 +1893,7 @@ function toggleKbHelp(force) {
         <table>
           <tr><td><kbd>Space</kbd></td>            <td>Play / pause</td></tr>
           <tr><td><kbd>←</kbd> / <kbd>→</kbd></td> <td>Prev / next round (or playlist entry)</td></tr>
-          <tr><td><kbd>B</kbd></td>                <td>Save round to playlist</td></tr>
-          <tr><td><kbd>Esc</kbd></td>              <td>Exit single round / close popover</td></tr>
+          <tr><td><kbd>Esc</kbd></td>              <td>Exit single round</td></tr>
           <tr><td><kbd>?</kbd></td>                <td>Toggle this help</td></tr>
         </table>
         <p style="margin-top:10px;font-size:11px;color:var(--muted)">Press any key to close.</p>
