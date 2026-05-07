@@ -506,3 +506,129 @@ async function openPlaylist(id) {
     renderPlaylistsSection()
   } catch (e) { console.error(e); toast('Failed to load playlist', 'error') }
 }
+
+const _demoMetaCache = new Map()
+
+function renderPlaylistsDetail(host) {
+  const pl = playlistsState.list.find(p => p.id === playlistsState.openId)
+  const empty = !playlistsState.openRows.length
+    ? `<div class="dl-empty">Empty playlist · save a round from the demo viewer to add one.</div>`
+    : ''
+
+  host.innerHTML = `
+    <div class="dl-pl-detail-header">
+      <button class="dl-pl-back" id="dl-pl-back" title="Back">←</button>
+      <span class="dl-pl-detail-name">${esc(pl?.name ?? '')}</span>
+      <button class="dl-pl-menu" id="dl-pl-menu" title="Rename / Delete">⋯</button>
+    </div>
+    <div class="dl-pl-rounds" id="dl-pl-rounds">${empty}</div>
+  `
+
+  host.querySelector('#dl-pl-back').addEventListener('click', () => {
+    playlistsState.openId = null
+    playlistsState.openRows = []
+    renderPlaylistsSection()
+  })
+  host.querySelector('#dl-pl-menu').addEventListener('click', () => onPlaylistMenu(pl))
+
+  if (playlistsState.openRows.length) hydrateDetailRoundRows()
+}
+
+async function getDemoMetaCached(demoId) {
+  if (!_demoMetaCache.has(demoId)) {
+    const { data, error } = await supabase
+      .from('demos')
+      .select('id, map, score_ct, score_t')
+      .eq('id', demoId).maybeSingle()
+    if (error) { console.warn('[demos] getDemoMeta failed:', error); _demoMetaCache.set(demoId, null) }
+    else _demoMetaCache.set(demoId, data)
+  }
+  return _demoMetaCache.get(demoId)
+}
+
+function describeRound(row, meta) {
+  if (!meta) return { side: 'ct', score: '?–?', mapFile: '' }
+  const half  = Math.floor(row.round_idx / 12)
+  const side  = (half % 2 === 0) ? 'ct' : 't'
+  const score = (meta.score_ct != null && meta.score_t != null)
+    ? `${meta.score_ct}–${meta.score_t}`
+    : '—'
+  const mapFile = (meta.map ?? '').replace(/^de_/, '').toLowerCase() || ''
+  return { side, score, mapFile }
+}
+
+async function hydrateDetailRoundRows() {
+  const listEl = document.getElementById('dl-pl-rounds')
+  if (!listEl) return
+  const metas = await Promise.all(playlistsState.openRows.map(r => getDemoMetaCached(r.demo_id)))
+
+  listEl.innerHTML = playlistsState.openRows.map((r, i) => {
+    const meta = metas[i]
+    const info = describeRound(r, meta)
+    const thumb = info.mapFile ? `images/maps/${info.mapFile}.png` : ''
+    return `
+      <div class="dl-round-row" data-row-id="${esc(r.id)}" data-demo-id="${esc(r.demo_id)}" data-round-idx="${r.round_idx}">
+        <div class="dl-round-thumb" style="background-image:url('${esc(thumb)}')"></div>
+        <div class="dl-round-meta">
+          <div class="dl-round-title">
+            <span class="dl-round-side-dot ${info.side}"></span>R${r.round_idx + 1} · ${esc(info.score)}
+          </div>
+          <div class="dl-round-note" title="${esc(r.note ?? '')}">${esc(r.note ?? '')}</div>
+        </div>
+        <button class="dl-round-x" data-row-id="${esc(r.id)}" title="Remove">✕</button>
+      </div>
+    `
+  }).join('')
+
+  for (const row of listEl.querySelectorAll('.dl-round-row')) {
+    row.addEventListener('click', e => {
+      if (e.target.closest('.dl-round-x')) return
+      const demoId   = row.dataset.demoId
+      const roundIdx = row.dataset.roundIdx
+      location.href = `demo-viewer.html?id=${encodeURIComponent(demoId)}&round=${encodeURIComponent(roundIdx)}`
+    })
+  }
+  for (const x of listEl.querySelectorAll('.dl-round-x')) {
+    x.addEventListener('click', e => {
+      e.stopPropagation()
+      onRemoveRoundFromPlaylist(x.dataset.rowId)
+    })
+  }
+}
+
+async function onRemoveRoundFromPlaylist(rowId) {
+  if (!confirm('Remove round from playlist?')) return
+  try {
+    await removeRoundFromPlaylist(rowId, playlistsState.openId)
+    playlistsState.openRows = playlistsState.openRows.filter(r => r.id !== rowId)
+    const cur = playlistsState.roundCounts.get(playlistsState.openId) ?? 0
+    playlistsState.roundCounts.set(playlistsState.openId, Math.max(0, cur - 1))
+    toast('Removed')
+    renderPlaylistsSection()
+  } catch (e) { console.error(e); toast('Failed to remove', 'error') }
+}
+
+async function onPlaylistMenu(pl) {
+  const action = prompt(`Playlist "${pl.name}"\n\nType:\n  rename\n  delete\n  (anything else cancels)`, '')
+  if (action === 'rename') {
+    const newName = prompt('New name:', pl.name)
+    if (!newName || !newName.trim()) return
+    try {
+      await renamePlaylist(pl.id, newName.trim())
+      pl.name = newName.trim()
+      toast('Renamed')
+      renderPlaylistsSection()
+    } catch (e) { console.error(e); toast('Failed to rename', 'error') }
+  } else if (action === 'delete') {
+    if (!confirm(`Delete playlist "${pl.name}"? This removes all its saved rounds.`)) return
+    try {
+      await deletePlaylist(pl.id)
+      playlistsState.list = playlistsState.list.filter(x => x.id !== pl.id)
+      playlistsState.roundCounts.delete(pl.id)
+      playlistsState.openId = null
+      playlistsState.openRows = []
+      toast('Playlist deleted')
+      renderPlaylistsSection()
+    } catch (e) { console.error(e); toast('Failed to delete', 'error') }
+  }
+}
