@@ -1153,3 +1153,18 @@ def build_slim_payload(parsed: dict) -> dict:
         "frames":   frames_out,
         "grenades": grenades_out,
     }
+
+
+def _first_event_per_round(events: list, rounds: list) -> list:
+    """For each round, return the event with the smallest tick that falls
+    within (start_tick, end_tick]. Returns None for rounds with no events.
+    Events outside all rounds are ignored."""
+    result = [None] * len(rounds)
+    for ev in events:
+        t = int(ev.get("tick", 0))
+        for i, r in enumerate(rounds):
+            if r["start_tick"] < t <= r["end_tick"]:
+                if result[i] is None or t < int(result[i].get("tick", 0)):
+                    result[i] = ev
+                break
+    return result
