@@ -1,5 +1,8 @@
 import pytest
+from pathlib import Path
 from demo_parser import _first_event_per_round
+
+FIXTURE = Path(__file__).parent / "fixture.dem"
 
 
 def test_first_event_per_round_picks_earliest_per_round():
@@ -168,3 +171,48 @@ def test_flash_assist_none_when_killer_flashed_self_assist_target():
     kill = {"tick": 1000, "victim_id": "V", "killer_id": "K"}
     flashes = [{"thrower_id": "K", "victim_id": "V", "tick": 950}]
     assert _flash_assist_for_kill(kill, flashes, window_ticks=140) is None
+
+
+from demo_parser import parse_demo, compute_player_stats
+
+
+@pytest.mark.skipif(not FIXTURE.exists(), reason="no fixture.dem")
+def test_compute_player_stats_returns_three_rows_per_player():
+    parsed = parse_demo(str(FIXTURE))
+    rows = compute_player_stats(parsed)
+    assert rows, "fixture should produce stat rows"
+    # Every (steam_id, side) is unique
+    seen = set()
+    for r in rows:
+        key = (r["steam_id"], r["side"])
+        assert key not in seen, f"duplicate row {key}"
+        seen.add(key)
+        assert r["side"] in ("all", "ct", "t")
+    # Per-player: all, ct, t exist (or only 'all' + the side they played)
+    sids = {r["steam_id"] for r in rows}
+    for sid in sids:
+        sides = {r["side"] for r in rows if r["steam_id"] == sid}
+        assert "all" in sides
+
+
+@pytest.mark.skipif(not FIXTURE.exists(), reason="no fixture.dem")
+def test_compute_player_stats_kill_count_consistency():
+    """all-side kills should equal ct kills + t kills for each player."""
+    parsed = parse_demo(str(FIXTURE))
+    rows = compute_player_stats(parsed)
+    by_sid: dict = {}
+    for r in rows:
+        by_sid.setdefault(r["steam_id"], {})[r["side"]] = r
+    for sid, sides in by_sid.items():
+        if "ct" in sides and "t" in sides and "all" in sides:
+            assert sides["all"]["kills"] == sides["ct"]["kills"] + sides["t"]["kills"]
+            assert sides["all"]["deaths"] == sides["ct"]["deaths"] + sides["t"]["deaths"]
+
+
+@pytest.mark.skipif(not FIXTURE.exists(), reason="no fixture.dem")
+def test_compute_player_stats_rating_in_reasonable_range():
+    parsed = parse_demo(str(FIXTURE))
+    rows = compute_player_stats(parsed)
+    for r in rows:
+        if r["side"] == "all" and r["rounds_played"] and r["rounds_played"] > 5:
+            assert 0.0 <= r["rating"] <= 2.5, f"unrealistic rating: {r}"

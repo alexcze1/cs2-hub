@@ -1266,3 +1266,251 @@ def _flash_assist_for_kill(kill: dict, flashes: list, window_ticks: int = 140) -
         if ft <= kill_tick and (kill_tick - ft) <= window_ticks and ft > best_tick:
             best, best_tick = thrower, ft
     return best
+
+
+def _hltv_rating(kills: int, deaths: int, rounds: int,
+                 multi_1k: int, multi_2k: int, multi_3k: int,
+                 multi_4k: int, multi_5k: int) -> float:
+    """HLTV 1.0 rating formula."""
+    if rounds <= 0:
+        return 0.0
+    kill_rating     = kills / rounds / 0.679
+    survival_rating = max(rounds - deaths, 0) / rounds / 0.317
+    rwm             = (1*multi_1k + 4*multi_2k + 9*multi_3k + 16*multi_4k + 25*multi_5k) / rounds / 1.277
+    return round((kill_rating + 0.7 * survival_rating + rwm) / 2.7, 3)
+
+
+def compute_player_stats(parsed: dict) -> list[dict]:
+    """Returns 3 rows per player ({side: 'all'|'ct'|'t'}).
+
+    Wraps an inner loop in try/except — if anything goes wrong we return [].
+    """
+    try:
+        rounds        = parsed.get("rounds") or []
+        kills         = parsed.get("kills") or []
+        damage_events = parsed.get("damage_events") or []
+        frames        = parsed.get("frames") or []
+        grenades      = parsed.get("grenades") or []
+        players_meta  = parsed.get("players_meta") or {}
+        team_a_first  = (parsed.get("meta") or {}).get("team_a_first_side")
+
+        # Pre-compute things shared across players
+        first_kill_per_round  = _first_event_per_round(kills, rounds)
+        first_death_per_round = first_kill_per_round  # same event yields the first death
+        alive_counts          = _alive_counts_per_round(rounds, frames)
+        clutch_per_round      = [_clutch_outcome(r, frames) for r in rounds]
+        utility_dmg_by_sid    = _grenade_damage_attribution(damage_events)
+
+        # Build a flash list from grenades (parser stores hits)
+        flash_events = []
+        for g in grenades:
+            if (g.get("type") or "").lower() != "flashbang":
+                continue
+            for h in (g.get("hits") or []):
+                flash_events.append({
+                    "thrower_id": str(g.get("steam_id") or ""),
+                    "victim_id":  str(h.get("victim_id") or ""),
+                    "tick":       int(h.get("tick") or g.get("tick") or 0),
+                })
+
+        # Identify which roster (a or b) a player belongs to. team_a_first_side
+        # tells us which side team_a started on. We look at the player's side
+        # at round 1's freeze_end_tick.
+        def player_team_letter(sid: str) -> str | None:
+            if not rounds: return None
+            r1 = rounds[0]
+            target_tick = r1.get("freeze_end_tick") or r1["start_tick"]
+            for f in frames:
+                if int(f.get("tick", 0)) >= target_tick:
+                    for p in f.get("players", []):
+                        if p.get("steam_id") == sid:
+                            side = p.get("team")
+                            if side == team_a_first: return "a"
+                            if side and side != team_a_first: return "b"
+                    return None
+            return None
+
+        # Identify rounds each player was alive at start (rounds_played)
+        def alive_at_round_start(sid: str, rnd: dict) -> bool:
+            target_tick = rnd.get("freeze_end_tick") or rnd["start_tick"]
+            for f in frames:
+                if int(f.get("tick", 0)) >= target_tick:
+                    for p in f.get("players", []):
+                        if p.get("steam_id") == sid:
+                            return int(p.get("hp", 0)) > 0
+                    return False
+            return False
+
+        def round_side_for(sid: str, rnd: dict) -> str | None:
+            """Look up the player's side at round freeze-end. Falls back to None."""
+            target_tick = rnd.get("freeze_end_tick") or rnd["start_tick"]
+            for f in frames:
+                if int(f.get("tick", 0)) >= target_tick:
+                    for p in f.get("players", []):
+                        if p.get("steam_id") == sid:
+                            return p.get("team")
+                    return None
+            return None
+
+        # Collect all sids
+        sids = set(players_meta.keys())
+        for k in kills:
+            if k.get("killer_id"): sids.add(k["killer_id"])
+            if k.get("victim_id"): sids.add(k["victim_id"])
+
+        out: list[dict] = []
+        for sid in sids:
+            if not sid:
+                continue
+            # Aggregator per side bucket
+            buckets = {
+                "all": _empty_player_bucket(),
+                "ct":  _empty_player_bucket(),
+                "t":   _empty_player_bucket(),
+            }
+
+            # Rounds-played + per-round multi-kill counters per side
+            for ri, rnd in enumerate(rounds):
+                if not alive_at_round_start(sid, rnd):
+                    continue
+                side = round_side_for(sid, rnd) or "ct"
+                if side not in ("ct", "t"):
+                    continue
+                for b in (buckets["all"], buckets[side]):
+                    b["rounds_played"] += 1
+
+                # Round-level kills/deaths/assists
+                rkills = [k for k in kills if rnd["start_tick"] < int(k["tick"]) <= rnd["end_tick"]]
+                killed   = sum(1 for k in rkills if k.get("killer_id") == sid)
+                died     = any(k.get("victim_id") == sid for k in rkills)
+                assisted = any(k.get("assister_id") == sid for k in rkills)
+                survived = not died
+
+                # Multi-kill bucket
+                multi_idx = min(killed, 5)
+                if multi_idx > 0:
+                    for b in (buckets["all"], buckets[side]):
+                        b[f"multi_{multi_idx}k"] += 1
+
+                # KAST: did player K, A, S, or get traded death?
+                trade_traded_death = False
+                for ki, k in enumerate(kills):
+                    if k.get("victim_id") == sid and rnd["start_tick"] < int(k["tick"]) <= rnd["end_tick"]:
+                        if _was_traded(kills, ki):
+                            trade_traded_death = True
+                            for b in (buckets["all"], buckets[side]):
+                                b["traded_deaths"] += 1
+                            break
+                if killed > 0 or assisted or survived or trade_traded_death:
+                    for b in (buckets["all"], buckets[side]):
+                        b["kast_rounds"] += 1
+
+                # Opening kill / death
+                fk = first_kill_per_round[ri]
+                if fk:
+                    if fk.get("killer_id") == sid:
+                        for b in (buckets["all"], buckets[side]):
+                            b["opening_kills"] += 1
+                    if fk.get("victim_id") == sid:
+                        for b in (buckets["all"], buckets[side]):
+                            b["opening_deaths"] += 1
+
+                # Clutches
+                clutch = clutch_per_round[ri]
+                if clutch and clutch.get("clutcher_id") == sid:
+                    key = "clutches_won" if clutch["won"] else "clutches_lost"
+                    for b in (buckets["all"], buckets[side]):
+                        b[key] += 1
+
+            # Cross-round totals: kills, deaths, assists, hs, damage
+            for k in kills:
+                if k.get("killer_id") == sid:
+                    side = (k.get("killer_team") or "ct")
+                    for b in (buckets["all"], buckets[side]):
+                        b["kills"] += 1
+                        if k.get("headshot"):
+                            b["hs_kills"] += 1
+                        b["damage_dealt"] += int(k.get("dmg_health", 0))
+                if k.get("victim_id") == sid:
+                    side = (k.get("victim_team") or "ct")
+                    for b in (buckets["all"], buckets[side]):
+                        b["deaths"] += 1
+                if k.get("assister_id") == sid:
+                    # Assister side at kill tick — best effort: same as killer team
+                    side = (k.get("killer_team") or "ct")
+                    for b in (buckets["all"], buckets[side]):
+                        b["assists"] += 1
+
+            # Non-fatal damage
+            for ev in damage_events:
+                if ev.get("attacker_id") == sid:
+                    # Attribute by attacker's side at hit tick — best effort: use kill_team lookup
+                    side = _team_at_tick(frames, sid, int(ev.get("tick", 0))) or "ct"
+                    for b in (buckets["all"], buckets[side]):
+                        b["damage_dealt"] += int(ev.get("dmg_health", 0))
+
+            # Utility damage + flash assists
+            ud = utility_dmg_by_sid.get(sid, 0)
+            for k in kills:
+                if k.get("killer_id") == sid:
+                    continue
+                fa = _flash_assist_for_kill(k, flash_events)
+                if fa == sid:
+                    side = (k.get("killer_team") or "ct")
+                    for b in (buckets["all"], buckets[side]):
+                        b["flash_assists"] += 1
+
+            # Emit rows
+            name = players_meta.get(sid) or ""
+            team_letter = player_team_letter(sid)
+            for side_label, b in buckets.items():
+                if b["rounds_played"] == 0 and side_label != "all":
+                    continue  # skip empty side rows
+                rounds_played = b["rounds_played"] or 1
+                row = {
+                    "steam_id":       sid,
+                    "name":           name,
+                    "team":           team_letter,
+                    "side":           side_label,
+                    "kills":          b["kills"],
+                    "deaths":         b["deaths"],
+                    "assists":        b["assists"],
+                    "hs_pct":         round(b["hs_kills"] / b["kills"], 3) if b["kills"] else 0.0,
+                    "adr":            round(b["damage_dealt"] / rounds_played, 1),
+                    "kast_pct":       round(b["kast_rounds"] / rounds_played, 3),
+                    "multi_2k":       b["multi_2k"],
+                    "multi_3k":       b["multi_3k"],
+                    "multi_4k":       b["multi_4k"],
+                    "multi_5k":       b["multi_5k"],
+                    "opening_kills":  b["opening_kills"],
+                    "opening_deaths": b["opening_deaths"],
+                    "clutches_won":   b["clutches_won"],
+                    "clutches_lost":  b["clutches_lost"],
+                    "utility_dmg":    ud if side_label == "all" else 0,
+                    "flash_assists":  b["flash_assists"],
+                    "traded_deaths":  b["traded_deaths"],
+                    "rounds_played":  b["rounds_played"],
+                    "impact_rating":  round(
+                        (b["opening_kills"] + b["clutches_won"] +
+                         b["multi_3k"] + b["multi_4k"] + b["multi_5k"]) / rounds_played, 3),
+                    "rating":         _hltv_rating(
+                        b["kills"], b["deaths"], rounds_played,
+                        b["multi_1k"], b["multi_2k"], b["multi_3k"], b["multi_4k"], b["multi_5k"],
+                    ),
+                }
+                out.append(row)
+        return out
+    except Exception as e:
+        print(f"[stats] compute_player_stats failed: {e}")
+        return []
+
+
+def _empty_player_bucket() -> dict:
+    return {
+        "kills": 0, "deaths": 0, "assists": 0, "hs_kills": 0,
+        "damage_dealt": 0, "rounds_played": 0, "kast_rounds": 0,
+        "multi_1k": 0, "multi_2k": 0, "multi_3k": 0, "multi_4k": 0, "multi_5k": 0,
+        "opening_kills": 0, "opening_deaths": 0,
+        "clutches_won": 0, "clutches_lost": 0,
+        "flash_assists": 0, "traded_deaths": 0,
+    }
