@@ -44,6 +44,7 @@ alter table demo_players add constraint demo_players_side_check
   check (side in ('all','ct','t'));
 
 -- new columns
+alter table demo_players add column team            text check (team in ('a','b'));  -- which roster
 alter table demo_players add column hs_pct          float;
 alter table demo_players add column kast_pct        float;
 alter table demo_players add column multi_2k        int;
