@@ -14,21 +14,29 @@ export async function mountScoreboard(root, demoId) {
   root.innerHTML = `<div class="sb-loading">Loading stats…</div>`
 
   try {
-    const [{ data: players, error: pe }, { data: teams, error: te }] = await Promise.all([
+    const [
+      { data: players, error: pe },
+      { data: demo,    error: de },
+    ] = await Promise.all([
       supabase.from('demo_players')
         .select('*').eq('demo_id', demoId),
-      supabase.from('demo_team_stats')
-        .select('*').eq('demo_id', demoId),
+      supabase.from('demos')
+        .select('ct_team_name,t_team_name,team_a_first_side')
+        .eq('id', demoId).maybeSingle(),
     ])
     if (pe) throw pe
-    if (te) throw te
+    if (de) throw de
 
     if (!players?.length) {
       root.innerHTML = `<div class="sb-empty">No stats parsed for this demo yet.</div>`
       return
     }
 
-    render(root, { players, teams: teams || [], side, demoId })
+    const aOnCtFirst = (demo?.team_a_first_side ?? 'ct') === 'ct'
+    const teamAName = (aOnCtFirst ? demo?.ct_team_name : demo?.t_team_name) || 'Team A'
+    const teamBName = (aOnCtFirst ? demo?.t_team_name  : demo?.ct_team_name) || 'Team B'
+
+    render(root, { players, side, teamAName, teamBName })
   } catch (e) {
     console.error('[scoreboard]', e)
     root.innerHTML = `<div class="sb-empty">Failed to load stats: ${esc(e.message || String(e))}</div>`
@@ -41,7 +49,7 @@ function esc(s) {
 }
 
 function render(root, state) {
-  const { players, teams, side } = state
+  const { players, side, teamAName, teamBName } = state
   root.innerHTML = `
     <div class="sb-toolbar">
       <span class="sb-label">View</span>
@@ -50,7 +58,6 @@ function render(root, state) {
       <button class="sb-side-btn ${side==='t'?'is-active':''}"   data-side="t">T</button>
     </div>
     <div id="sb-tables"></div>
-    <div id="sb-team-stats"></div>
   `
   for (const btn of root.querySelectorAll('.sb-side-btn')) {
     btn.addEventListener('click', () => {
@@ -59,11 +66,10 @@ function render(root, state) {
       render(root, { ...state, side: newSide })
     })
   }
-  renderPlayerTables(root.querySelector('#sb-tables'), players, side)
-  renderTeamStats(root.querySelector('#sb-team-stats'), teams)
+  renderPlayerTables(root.querySelector('#sb-tables'), players, side, teamAName, teamBName)
 }
 
-function renderPlayerTables(container, players, side) {
+function renderPlayerTables(container, players, side, teamAName, teamBName) {
   const filtered = players.filter(p => p.side === side)
   if (!filtered.length) {
     container.innerHTML = `<div class="sb-empty">No data for this side.</div>`
@@ -75,9 +81,9 @@ function renderPlayerTables(container, players, side) {
   const tail = orphans.length ? orphans.sort((a, b) => (b.rating || 0) - (a.rating || 0)) : []
 
   container.innerHTML = `
-    ${teamTable('Your team', 'sb-team-a', teamA)}
-    ${teamTable('Opponent',  'sb-team-b', teamB)}
-    ${tail.length ? teamTable('Other', 'sb-team-other', tail) : ''}
+    ${teamTable(teamAName, 'sb-team-a', teamA)}
+    ${teamTable(teamBName, 'sb-team-b', teamB)}
+    ${tail.length ? teamTable('Unassigned', 'sb-team-other', tail) : ''}
   `
 }
 
@@ -130,52 +136,3 @@ function pct(v) {
   return `${Math.round(v * 100)}%`
 }
 
-function renderTeamStats(container, teams) {
-  if (!teams.length) {
-    container.innerHTML = `<div class="sb-empty">No team stats.</div>`
-    return
-  }
-  // Find team A (your team) and B
-  const a = teams.find(t => t.team === 'a') || {}
-  const b = teams.find(t => t.team === 'b') || {}
-
-  container.innerHTML = `
-    <div class="sb-team-stats">
-      <div class="sb-team-stats-label">Team stats — Your team</div>
-      <div class="sb-tiles">
-        ${tile('Pistol rounds', `${a.pistol_wins ?? 0} / ${a.pistol_played ?? 0}`,
-          (a.pistol_played == null || a.pistol_played === 0) ? '—'
-            : (a.pistol_wins === a.pistol_played) ? 'won both'
-            : (a.pistol_wins === 0) ? 'lost both' : 'split')}
-        ${tile('5v4 conversion',
-          `${a.five_v_four_wins ?? 0} / ${a.five_v_four_played ?? 0} ${pctText(a.five_v_four_wins, a.five_v_four_played)}`,
-          `CT ${a.five_v_four_ct_wins ?? 0}/${a.five_v_four_ct_played ?? 0} · T ${a.five_v_four_t_wins ?? 0}/${a.five_v_four_t_played ?? 0}`)}
-        ${tile('First kills', a.first_kills ?? 0,
-          `CT ${a.first_kills_ct ?? 0} · T ${a.first_kills_t ?? 0}`)}
-        ${tile('First deaths', a.first_deaths ?? 0,
-          `CT ${a.first_deaths_ct ?? 0} · T ${a.first_deaths_t ?? 0}`)}
-        ${tile('Eco wins', `${a.eco_wins ?? 0} / ${a.eco_played ?? 0}`, pctText(a.eco_wins, a.eco_played))}
-        ${tile('Force wins', `${a.force_wins ?? 0} / ${a.force_played ?? 0}`, pctText(a.force_wins, a.force_played))}
-        ${tile('Full-buy wins', `${a.full_buy_wins ?? 0} / ${a.full_buy_played ?? 0}`, pctText(a.full_buy_wins, a.full_buy_played))}
-        ${tile('Side splits',
-          `CT ${a.ct_round_wins ?? 0}–${(a.ct_rounds_played ?? 0)-(a.ct_round_wins ?? 0)} · T ${a.t_round_wins ?? 0}–${(a.t_rounds_played ?? 0)-(a.t_round_wins ?? 0)}`,
-          'side win rates')}
-      </div>
-    </div>
-  `
-}
-
-function tile(label, big, sub) {
-  return `
-    <div class="sb-tile">
-      <div class="sb-tile-label">${esc(label)}</div>
-      <div class="sb-tile-big">${big}</div>
-      <div class="sb-tile-sub">${esc(sub)}</div>
-    </div>
-  `
-}
-
-function pctText(num, den) {
-  if (!den) return ''
-  return `${Math.round((num / den) * 100)}%`
-}

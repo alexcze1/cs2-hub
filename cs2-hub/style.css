@@ -2508,38 +2508,6 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
 .sb-team-b .sb-team-header { color: #e6534b; }
 .sb-team-other .sb-team-header { color: var(--muted); }
 
-.sb-team-stats {
-  margin-top: 14px;
-  padding: 14px 16px;
-  background: #0a0c0f;
-  border-top: 1px solid #222;
-  border-radius: 6px;
-}
-.sb-team-stats-label {
-  font-size: 11px; color: #666;
-  text-transform: uppercase; letter-spacing: 0.5px;
-  margin-bottom: 10px;
-}
-.sb-tiles {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px 24px;
-}
-.sb-tile-label {
-  font-size: 10px; color: #888;
-  text-transform: uppercase;
-}
-.sb-tile-big {
-  font-size: 18px; font-weight: 600; margin-top: 2px;
-}
-.sb-tile-sub {
-  font-size: 11px; color: #666;
-}
-
-@media (max-width: 900px) {
-  .sb-tiles { grid-template-columns: repeat(2, 1fr); }
-}
-
 /* ── Scoreboard overlay (demo viewer) ─────────────────────────── */
 .sb-toggle-btn.active {
   background: rgba(0,255,156,0.12);
