@@ -145,3 +145,26 @@ def test_grenade_damage_attribution_sums_per_thrower():
     ]
     result = _grenade_damage_attribution(damage_events)
     assert result == {"A": 50, "B": 50}
+
+
+from demo_parser import _flash_assist_for_kill
+
+
+def test_flash_assist_credits_recent_flasher():
+    kill = {"tick": 1000, "victim_id": "V", "killer_id": "K"}
+    flashes = [
+        {"thrower_id": "FLASHER", "victim_id": "V", "tick": 950},
+    ]
+    assert _flash_assist_for_kill(kill, flashes, window_ticks=140) == "FLASHER"
+
+
+def test_flash_assist_none_when_outside_window():
+    kill = {"tick": 1000, "victim_id": "V"}
+    flashes = [{"thrower_id": "F", "victim_id": "V", "tick": 700}]
+    assert _flash_assist_for_kill(kill, flashes, window_ticks=140) is None
+
+
+def test_flash_assist_none_when_killer_flashed_self_assist_target():
+    kill = {"tick": 1000, "victim_id": "V", "killer_id": "K"}
+    flashes = [{"thrower_id": "K", "victim_id": "V", "tick": 950}]
+    assert _flash_assist_for_kill(kill, flashes, window_ticks=140) is None

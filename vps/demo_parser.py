@@ -1245,3 +1245,24 @@ def _grenade_damage_attribution(damage_events: list) -> dict:
             continue
         out[sid] = out.get(sid, 0) + int(ev.get("dmg_health", 0))
     return out
+
+
+def _flash_assist_for_kill(kill: dict, flashes: list, window_ticks: int = 140) -> str | None:
+    """Find a flasher who blinded the victim within window_ticks before the kill.
+    Returns the flasher's steam_id, or None. Killer is not a valid flash-assister.
+    """
+    kill_tick = int(kill.get("tick", 0))
+    victim    = kill.get("victim_id")
+    killer    = kill.get("killer_id")
+    best = None
+    best_tick = -1
+    for fl in flashes:
+        if fl.get("victim_id") != victim:
+            continue
+        thrower = fl.get("thrower_id")
+        if not thrower or thrower == killer:
+            continue
+        ft = int(fl.get("tick", 0))
+        if ft <= kill_tick and (kill_tick - ft) <= window_ticks and ft > best_tick:
+            best, best_tick = thrower, ft
+    return best
