@@ -2421,3 +2421,12 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
   color: var(--muted); font-size: 13px; padding: 0 4px;
 }
 .dl-round-x:hover { color: var(--danger); }
+
+.dv-tabs { display: flex; gap: 4px; }
+.dv-tab {
+  background: transparent; color: var(--muted);
+  border: none; padding: 6px 12px; font-size: 13px;
+  border-radius: 4px; cursor: pointer;
+}
+.dv-tab.is-active { background: #2a3038; color: #fff; }
+.dv-tab-panel[hidden] { display: none; }

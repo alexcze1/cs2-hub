@@ -6,6 +6,7 @@ import { toast } from './toast.js'
 import { attachTeamAutocomplete } from './team-autocomplete.js'
 import { narrowRoundsForTeam, framesForRound, grenadesForRound } from './analysis-rounds.js'
 import { worldToCanvas } from './demo-map-data.js'
+import { mountScoreboard } from './scoreboard.js'
 
 await requireAuth()
 renderSidebar('analysis')
@@ -1909,3 +1910,25 @@ function toggleKbHelp(force) {
   }
 }
 
+// ── Tab switching ────────────────────────────────────────────
+let _scoreboardMounted = false
+document.querySelectorAll('.dv-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.tab
+    document.querySelectorAll('.dv-tab').forEach(b =>
+      b.classList.toggle('is-active', b === btn))
+    document.querySelectorAll('.dv-tab-panel').forEach(p => {
+      const match = p.id === `dv-tab-${target}`
+      p.hidden = !match
+      p.classList.toggle('is-active', match)
+    })
+    // Mode pills are playback-only — hide them on scoreboard.
+    const modePills = document.getElementById('mode-pills')
+    if (modePills) modePills.style.display = (target === 'scoreboard') ? 'none' : ''
+    if (target === 'scoreboard' && !_scoreboardMounted) {
+      const id = new URLSearchParams(location.search).get('id')
+      mountScoreboard(document.getElementById('scoreboard-root'), id)
+      _scoreboardMounted = true
+    }
+  })
+})
