@@ -1229,3 +1229,19 @@ def _clutch_outcome(rnd: dict, frames: list) -> dict | None:
         if len(t_alive) == 1 and len(ct_alive) >= 2:
             return {"clutcher_id": t_alive[0]["steam_id"], "won": rnd.get("winner_side") == "t"}
     return None
+
+
+_GRENADE_WEAPONS = {"hegrenade", "inferno", "molotov", "incendiary", "incgrenade"}
+
+
+def _grenade_damage_attribution(damage_events: list) -> dict:
+    """Sum grenade damage per thrower steam_id."""
+    out: dict = {}
+    for ev in damage_events:
+        if (ev.get("weapon") or "").lower() not in _GRENADE_WEAPONS:
+            continue
+        sid = ev.get("attacker_id")
+        if not sid:
+            continue
+        out[sid] = out.get(sid, 0) + int(ev.get("dmg_health", 0))
+    return out

@@ -131,3 +131,17 @@ def test_clutch_outcome_none_when_no_1vN_situation():
         {"steam_id": "T_B",  "team": "t",  "hp": 100},
     ]}]
     assert _clutch_outcome(rnd, frames) is None
+
+
+from demo_parser import _grenade_damage_attribution
+
+
+def test_grenade_damage_attribution_sums_per_thrower():
+    damage_events = [
+        {"attacker_id": "A", "victim_id": "V1", "dmg_health": 30, "weapon": "hegrenade"},
+        {"attacker_id": "A", "victim_id": "V2", "dmg_health": 20, "weapon": "inferno"},
+        {"attacker_id": "B", "victim_id": "V1", "dmg_health": 50, "weapon": "molotov"},
+        {"attacker_id": "A", "victim_id": "V1", "dmg_health": 30, "weapon": "ak47"},
+    ]
+    result = _grenade_damage_attribution(damage_events)
+    assert result == {"A": 50, "B": 50}
