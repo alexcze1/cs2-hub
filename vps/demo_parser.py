@@ -1186,3 +1186,24 @@ def _was_traded(kills: list, victim_idx: int, window_ticks: int = 320) -> bool:
         if k.get("victim_id") == attacker_id and k.get("killer_team") == victim_team:
             return True
     return False
+
+
+def _alive_counts_per_round(rounds: list, frames: list) -> list:
+    """For each round, return the minimum alive count per side observed
+    across all frames in (start_tick, end_tick].
+
+    Returns: [{ct_min_alive: int, t_min_alive: int}, ...]
+    """
+    result = []
+    for r in rounds:
+        ct_min, t_min = 5, 5
+        for f in frames:
+            t = int(f.get("tick", 0))
+            if not (r["start_tick"] < t <= r["end_tick"]):
+                continue
+            ct_alive = sum(1 for p in f.get("players", []) if p.get("team") == "ct" and int(p.get("hp", 0)) > 0)
+            t_alive  = sum(1 for p in f.get("players", []) if p.get("team") == "t"  and int(p.get("hp", 0)) > 0)
+            if ct_alive < ct_min: ct_min = ct_alive
+            if t_alive  < t_min:  t_min  = t_alive
+        result.append({"ct_min_alive": ct_min, "t_min_alive": t_min})
+    return result

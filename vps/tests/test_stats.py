@@ -50,3 +50,48 @@ def test_was_traded_false_when_killer_dies_to_own_teammate():
         {"tick": 1100, "killer_id": "OTHER_CT", "killer_team": "ct", "victim_id": "A", "victim_team": "ct"},
     ]
     assert _was_traded(kills, 0, window_ticks=320) is False
+
+
+from demo_parser import _alive_counts_per_round
+
+
+def test_alive_counts_per_round_tracks_min_per_side():
+    rounds = [{"start_tick": 100, "end_tick": 300}]
+    frames = [
+        {"tick": 110, "players": [
+            {"steam_id": "1", "team": "ct", "hp": 100},
+            {"steam_id": "2", "team": "ct", "hp": 100},
+            {"steam_id": "3", "team": "t",  "hp": 100},
+            {"steam_id": "4", "team": "t",  "hp": 100},
+            {"steam_id": "5", "team": "t",  "hp": 100},
+        ]},
+        {"tick": 200, "players": [
+            {"steam_id": "1", "team": "ct", "hp": 100},
+            {"steam_id": "2", "team": "ct", "hp": 100},
+            {"steam_id": "3", "team": "t",  "hp": 0},
+            {"steam_id": "4", "team": "t",  "hp": 100},
+            {"steam_id": "5", "team": "t",  "hp": 100},
+        ]},
+    ]
+    result = _alive_counts_per_round(rounds, frames)
+    assert result == [{"ct_min_alive": 2, "t_min_alive": 2}]
+
+
+def test_alive_counts_detects_5v4():
+    rounds = [{"start_tick": 100, "end_tick": 300}]
+    frames = [
+        {"tick": 110, "players": [
+            {"steam_id": "1", "team": "ct", "hp": 100},
+            {"steam_id": "2", "team": "ct", "hp": 100},
+            {"steam_id": "3", "team": "t",  "hp": 100},
+            {"steam_id": "4", "team": "t",  "hp": 100},
+        ]},
+        {"tick": 200, "players": [
+            {"steam_id": "1", "team": "ct", "hp": 100},
+            {"steam_id": "2", "team": "ct", "hp": 0},
+            {"steam_id": "3", "team": "t",  "hp": 100},
+            {"steam_id": "4", "team": "t",  "hp": 100},
+        ]},
+    ]
+    result = _alive_counts_per_round(rounds, frames)
+    assert result == [{"ct_min_alive": 1, "t_min_alive": 2}]
