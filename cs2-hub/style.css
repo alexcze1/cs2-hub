@@ -2367,14 +2367,22 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
   color: var(--text);
   letter-spacing: 0.08em;
 }
-.dl-pl-menu {
-  margin-left: auto;
-  background: transparent; border: none;
+.dl-pl-action {
+  background: transparent;
+  border: 1px solid var(--border-solid);
   color: var(--muted);
-  font-size: 16px; cursor: pointer;
-  padding: 0 6px;
+  font-family: var(--display-font);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 3px 10px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background-color 0.15s;
 }
-.dl-pl-menu:hover { color: var(--accent); }
+.dl-pl-action:first-of-type { margin-left: auto; }
+.dl-pl-action + .dl-pl-action { margin-left: 6px; }
+.dl-pl-action:hover { color: var(--accent); border-color: var(--accent); }
+.dl-pl-action-danger:hover { color: var(--danger); border-color: var(--danger); background: rgba(255,80,80,0.06); }
 .dl-pl-rounds { display: flex; flex-direction: column; gap: 4px; }
 .dl-round-row {
   display: grid;

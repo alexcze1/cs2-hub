@@ -519,7 +519,8 @@ function renderPlaylistsDetail(host) {
     <div class="dl-pl-detail-header">
       <button class="dl-pl-back" id="dl-pl-back" title="Back">←</button>
       <span class="dl-pl-detail-name">${esc(pl?.name ?? '')}</span>
-      <button class="dl-pl-menu" id="dl-pl-menu" title="Rename / Delete">⋯</button>
+      <button class="dl-pl-action" id="dl-pl-rename" title="Rename playlist">Rename</button>
+      <button class="dl-pl-action dl-pl-action-danger" id="dl-pl-delete" title="Delete playlist">Delete</button>
     </div>
     <div class="dl-pl-rounds" id="dl-pl-rounds">${empty}</div>
   `
@@ -529,7 +530,8 @@ function renderPlaylistsDetail(host) {
     playlistsState.openRows = []
     renderPlaylistsSection()
   })
-  host.querySelector('#dl-pl-menu').addEventListener('click', () => onPlaylistMenu(pl))
+  host.querySelector('#dl-pl-rename').addEventListener('click', () => onRenamePlaylist(pl))
+  host.querySelector('#dl-pl-delete').addEventListener('click', () => onDeletePlaylist(pl))
 
   if (playlistsState.openRows.length) hydrateDetailRoundRows()
 }
@@ -608,27 +610,26 @@ async function onRemoveRoundFromPlaylist(rowId) {
   } catch (e) { console.error(e); toast('Failed to remove', 'error') }
 }
 
-async function onPlaylistMenu(pl) {
-  const action = prompt(`Playlist "${pl.name}"\n\nType:\n  rename\n  delete\n  (anything else cancels)`, '')
-  if (action === 'rename') {
-    const newName = prompt('New name:', pl.name)
-    if (!newName || !newName.trim()) return
-    try {
-      await renamePlaylist(pl.id, newName.trim())
-      pl.name = newName.trim()
-      toast('Renamed')
-      renderPlaylistsSection()
-    } catch (e) { console.error(e); toast('Failed to rename', 'error') }
-  } else if (action === 'delete') {
-    if (!confirm(`Delete playlist "${pl.name}"? This removes all its saved rounds.`)) return
-    try {
-      await deletePlaylist(pl.id)
-      playlistsState.list = playlistsState.list.filter(x => x.id !== pl.id)
-      playlistsState.roundCounts.delete(pl.id)
-      playlistsState.openId = null
-      playlistsState.openRows = []
-      toast('Playlist deleted')
-      renderPlaylistsSection()
-    } catch (e) { console.error(e); toast('Failed to delete', 'error') }
-  }
+async function onRenamePlaylist(pl) {
+  const newName = prompt('New name:', pl.name)
+  if (!newName || !newName.trim() || newName.trim() === pl.name) return
+  try {
+    await renamePlaylist(pl.id, newName.trim())
+    pl.name = newName.trim()
+    toast('Renamed')
+    renderPlaylistsSection()
+  } catch (e) { console.error(e); toast('Failed to rename', 'error') }
+}
+
+async function onDeletePlaylist(pl) {
+  if (!confirm(`Delete playlist "${pl.name}"? This removes all its saved rounds.`)) return
+  try {
+    await deletePlaylist(pl.id)
+    playlistsState.list = playlistsState.list.filter(x => x.id !== pl.id)
+    playlistsState.roundCounts.delete(pl.id)
+    playlistsState.openId = null
+    playlistsState.openRows = []
+    toast('Playlist deleted')
+    renderPlaylistsSection()
+  } catch (e) { console.error(e); toast('Failed to delete', 'error') }
 }

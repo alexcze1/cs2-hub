@@ -21,11 +21,21 @@ import {
 let popoverState = null
 let cachedPlaylists = []
 let cachedTeamId = null
+let popClickTrapAttached = false
 
 export async function openSavePopoverFor({ demoId, roundIdx, anchorRect, teamId, onChanged }) {
   if (!teamId) return
   const popEl = document.getElementById('save-popover')
   if (!popEl) { console.warn('[save-popover] no #save-popover element in DOM'); return }
+
+  // Stop clicks inside the popover from reaching the host page's
+  // outside-click closer. Without this, handlers that re-render innerHTML
+  // (e.g. "+ New playlist") detach their click target before the closer
+  // checks popEl.contains(e.target), causing it to close mistakenly.
+  if (!popClickTrapAttached) {
+    popEl.addEventListener('click', e => e.stopPropagation())
+    popClickTrapAttached = true
+  }
 
   popoverState = {
     demoId, roundIdx, teamId, onChanged,
