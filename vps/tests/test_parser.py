@@ -623,3 +623,28 @@ def test_is_knife_round_kills_outside_window_ignored():
         {"tick": 1100, "weapon": "knife"},  # only kill in-round → knife
     ]
     assert _is_knife_round(rnd, kills, tick_rate=64) is True
+
+
+@pytest.mark.skipif(not FIXTURE.exists(), reason="no fixture.dem")
+def test_kill_records_have_assister_and_damage_fields():
+    """Every kill record exposes assister_id, dmg_health, dmg_armor (may be empty/0)."""
+    parsed = parse_demo(str(FIXTURE))
+    assert parsed["kills"], "fixture should have kills"
+    for k in parsed["kills"]:
+        assert "assister_id" in k
+        assert "dmg_health" in k
+        assert "dmg_armor" in k
+        assert isinstance(k["dmg_health"], int)
+        assert isinstance(k["dmg_armor"], int)
+
+
+@pytest.mark.skipif(not FIXTURE.exists(), reason="no fixture.dem")
+def test_parser_returns_damage_events():
+    """parsed['damage_events'] is a list of player_hurt records with attacker, victim, dmg, tick."""
+    parsed = parse_demo(str(FIXTURE))
+    assert "damage_events" in parsed
+    assert isinstance(parsed["damage_events"], list)
+    if parsed["damage_events"]:
+        ev = parsed["damage_events"][0]
+        for k in ("tick", "attacker_id", "victim_id", "dmg_health", "weapon"):
+            assert k in ev

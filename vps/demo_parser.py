@@ -621,6 +621,12 @@ def parse_demo(dem_path: str) -> dict:
     round_end_df   = p.parse_event("round_end")
     round_start_df = p.parse_event("round_start")
 
+    try:
+        hurt_df = p.parse_event("player_hurt")
+    except Exception as e:
+        print(f"[parser] player_hurt parse failed: {e}")
+        hurt_df = None
+
     start_ticks = _col_to_list(round_start_df["tick"])
     end_rows    = _to_records(round_end_df)
 
@@ -838,8 +844,11 @@ def parse_demo(dem_path: str) -> dict:
             "victim_id":   str(r.get("user_steamid") or ""),
             "victim_name": str(r.get("user_name") or ""),
             "victim_team": _team_at(str(r.get("user_steamid") or ""), int(r["tick"])),
+            "assister_id": str(r.get("assister_steamid") or ""),
             "weapon":      str(r.get("weapon") or ""),
             "headshot":    bool(r.get("headshot") or False),
+            "dmg_health":  _safe_int(r.get("dmg_health")),
+            "dmg_armor":   _safe_int(r.get("dmg_armor")),
             "victim_x":    vx,
             "victim_y":    vy,
         })
@@ -901,6 +910,20 @@ def parse_demo(dem_path: str) -> dict:
     bomb     = _parse_bomb(p, by_tick, sampled)
     print(f"[parser] grenades: {len(grenades)}  bomb events: {len(bomb)}")
 
+    damage_events = []
+    if hurt_df is not None:
+        for r in _to_records(hurt_df):
+            damage_events.append({
+                "tick":        int(r.get("tick") or 0),
+                "attacker_id": str(r.get("attacker_steamid") or ""),
+                "victim_id":   str(r.get("user_steamid") or ""),
+                "dmg_health":  _safe_int(r.get("dmg_health")),
+                "dmg_armor":   _safe_int(r.get("dmg_armor")),
+                "weapon":      str(r.get("weapon") or ""),
+                "hitgroup":    str(r.get("hitgroup") or ""),
+            })
+    print(f"[parser] damage events: {len(damage_events)}")
+
     return {
         "meta": {
             "map":               header.get("map_name", ""),
@@ -916,6 +939,7 @@ def parse_demo(dem_path: str) -> dict:
         "rounds":       rounds,
         "frames":       frames,
         "kills":        kills,
+        "damage_events": damage_events,
         "grenades":     grenades,
         "bomb":         bomb,
         "shots":        shots,
