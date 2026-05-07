@@ -131,5 +131,50 @@ function pct(v) {
 }
 
 function renderTeamStats(container, teams) {
-  container.innerHTML = `<div class="sb-empty">Team stats — Task 16</div>`
+  if (!teams.length) {
+    container.innerHTML = `<div class="sb-empty">No team stats.</div>`
+    return
+  }
+  // Find team A (your team) and B
+  const a = teams.find(t => t.team === 'a') || {}
+  const b = teams.find(t => t.team === 'b') || {}
+
+  container.innerHTML = `
+    <div class="sb-team-stats">
+      <div class="sb-team-stats-label">Team stats — Your team</div>
+      <div class="sb-tiles">
+        ${tile('Pistol rounds', `${a.pistol_wins ?? 0} / ${a.pistol_played ?? 0}`,
+          (a.pistol_wins === a.pistol_played && a.pistol_played > 0) ? 'won both'
+            : (a.pistol_wins === 0) ? 'lost both' : 'split')}
+        ${tile('5v4 conversion',
+          `${a.five_v_four_wins ?? 0} / ${a.five_v_four_played ?? 0} ${pctText(a.five_v_four_wins, a.five_v_four_played)}`,
+          `CT ${a.five_v_four_ct_wins ?? 0}/${a.five_v_four_ct_played ?? 0} · T ${a.five_v_four_t_wins ?? 0}/${a.five_v_four_t_played ?? 0}`)}
+        ${tile('First kills', a.first_kills ?? 0,
+          `CT ${a.first_kills_ct ?? 0} · T ${a.first_kills_t ?? 0}`)}
+        ${tile('First deaths', a.first_deaths ?? 0,
+          `CT ${a.first_deaths_ct ?? 0} · T ${a.first_deaths_t ?? 0}`)}
+        ${tile('Eco wins', `${a.eco_wins ?? 0} / ${a.eco_played ?? 0}`, pctText(a.eco_wins, a.eco_played))}
+        ${tile('Force wins', `${a.force_wins ?? 0} / ${a.force_played ?? 0}`, pctText(a.force_wins, a.force_played))}
+        ${tile('Full-buy wins', `${a.full_buy_wins ?? 0} / ${a.full_buy_played ?? 0}`, pctText(a.full_buy_wins, a.full_buy_played))}
+        ${tile('Side splits',
+          `CT ${a.ct_round_wins ?? 0}–${(a.ct_rounds_played ?? 0)-(a.ct_round_wins ?? 0)} · T ${a.t_round_wins ?? 0}–${(a.t_rounds_played ?? 0)-(a.t_round_wins ?? 0)}`,
+          'side win rates')}
+      </div>
+    </div>
+  `
+}
+
+function tile(label, big, sub) {
+  return `
+    <div class="sb-tile">
+      <div class="sb-tile-label">${esc(label)}</div>
+      <div class="sb-tile-big">${big}</div>
+      <div class="sb-tile-sub">${esc(sub)}</div>
+    </div>
+  `
+}
+
+function pctText(num, den) {
+  if (!den) return ''
+  return `${Math.round((num / den) * 100)}%`
 }
