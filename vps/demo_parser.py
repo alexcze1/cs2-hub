@@ -1168,3 +1168,21 @@ def _first_event_per_round(events: list, rounds: list) -> list:
                     result[i] = ev
                 break
     return result
+
+
+def _was_traded(kills: list, victim_idx: int, window_ticks: int = 320) -> bool:
+    """A death is 'traded' if the attacker is killed by a teammate of the victim
+    within window_ticks. Default window: 320 ticks ~ 5 seconds @ 64 tick."""
+    death = kills[victim_idx]
+    attacker_id = death.get("killer_id")
+    victim_team = death.get("victim_team")
+    death_tick  = int(death.get("tick", 0))
+    if not attacker_id:
+        return False
+    for k in kills[victim_idx + 1:]:
+        gap = int(k.get("tick", 0)) - death_tick
+        if gap > window_ticks:
+            break
+        if k.get("victim_id") == attacker_id and k.get("killer_team") == victim_team:
+            return True
+    return False
