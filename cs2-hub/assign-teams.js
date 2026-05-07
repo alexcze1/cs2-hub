@@ -1,6 +1,11 @@
 // Pure detection helpers for demo team assignment.
 // No DOM, no Supabase — safe to import from a test page or Node.
 
+// CS2 coach-slot players have names prefixed "COACH" and sit at spawn dying
+// every round. Defensive filter for demos parsed before backend scrub.
+const isCoach = (name) => /^\s*COACH/i.test(String(name || ''))
+const livePlayers = (players) => (players ?? []).filter(p => !isCoach(p.name))
+
 // Pick the first frame that has at least 5 CT and 5 T players.
 // Falls back to frames[0] if no frame qualifies (so callers that already
 // tolerate a partial first frame keep working). Returns null only when
@@ -9,8 +14,9 @@ export function pickStartFrame(matchData) {
   const frames = matchData?.frames
   if (!frames || frames.length === 0) return null
   for (const fr of frames) {
-    const ct = (fr.players ?? []).filter(p => p.team === 'ct').length
-    const t  = (fr.players ?? []).filter(p => p.team === 't').length
+    const players = livePlayers(fr.players)
+    const ct = players.filter(p => p.team === 'ct').length
+    const t  = players.filter(p => p.team === 't').length
     if (ct >= 5 && t >= 5) return fr
   }
   return frames[0]
@@ -37,8 +43,9 @@ export function detectRosters(demos) {
 
   const meta = m1?.match_data?.players_meta ?? {}
   const nameOf = p => meta[p.steam_id]?.name ?? p.name ?? ''
-  const rosterA = (fr.players ?? []).filter(p => p.team === 'ct').map(p => ({ steam_id: p.steam_id, name: nameOf(p) }))
-  const rosterB = (fr.players ?? []).filter(p => p.team === 't').map(p => ({ steam_id: p.steam_id, name: nameOf(p) }))
+  const players1 = livePlayers(fr.players)
+  const rosterA = players1.filter(p => p.team === 'ct').map(p => ({ steam_id: p.steam_id, name: nameOf(p) }))
+  const rosterB = players1.filter(p => p.team === 't').map(p => ({ steam_id: p.steam_id, name: nameOf(p) }))
   const idsA = new Set(rosterA.map(p => p.steam_id))
   const idsB = new Set(rosterB.map(p => p.steam_id))
   let confident = (rosterA.length === 5 && rosterB.length === 5)
@@ -46,7 +53,7 @@ export function detectRosters(demos) {
   for (const d of sorted.slice(1)) {
     const fr2 = pickStartFrame(d?.match_data)
     if (!fr2) continue
-    const ctIds = (fr2.players ?? []).filter(p => p.team === 'ct').map(p => p.steam_id)
+    const ctIds = livePlayers(fr2.players).filter(p => p.team === 'ct').map(p => p.steam_id)
     if (ctIds.length < 5) continue
     const overlapA = ctIds.filter(id => idsA.has(id)).length
     const overlapB = ctIds.filter(id => idsB.has(id)).length
@@ -72,7 +79,7 @@ export function namesForDemo(demo, rosterA, rosterB, nameA, nameB) {
   const fr = pickStartFrame(demo?.match_data)
   if (!fr) return { ct_team_name: null, t_team_name: null }
   const idsA = new Set(rosterA.map(p => p.steam_id))
-  const ctIds = (fr.players ?? []).filter(p => p.team === 'ct').map(p => p.steam_id)
+  const ctIds = livePlayers(fr.players).filter(p => p.team === 'ct').map(p => p.steam_id)
   const overlapA = ctIds.filter(id => idsA.has(id)).length
   const ctIsA = overlapA > (ctIds.length - overlapA)
   return ctIsA

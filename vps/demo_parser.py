@@ -135,6 +135,56 @@ def _safe_int(val) -> int:
         return 0
 
 
+def _is_coach(name) -> bool:
+    # CS2 coach slot players' names always start with "COACH" (case-insensitive).
+    # They sit at spawn and insta-die every round, so they must be excluded from
+    # all stats and from demo viewer rendering.
+    return bool(name) and str(name).strip().upper().startswith("COACH")
+
+
+def _scrub_coaches(out: dict) -> dict:
+    coach_sids = {
+        sid for sid, meta in (out.get("players_meta") or {}).items()
+        if _is_coach((meta or {}).get("name"))
+    }
+    if not coach_sids:
+        return out
+
+    pm = out.get("players_meta") or {}
+    out["players_meta"] = {sid: m for sid, m in pm.items() if sid not in coach_sids}
+
+    out["frames"] = [
+        {**f, "players": [p for p in (f.get("players") or [])
+                          if str(p.get("steam_id") or "") not in coach_sids]}
+        for f in (out.get("frames") or [])
+    ]
+
+    out["kills"] = [
+        k for k in (out.get("kills") or [])
+        if str(k.get("killer_id") or "") not in coach_sids
+        and str(k.get("victim_id") or "") not in coach_sids
+    ]
+
+    out["damage_events"] = [
+        d for d in (out.get("damage_events") or [])
+        if str(d.get("attacker_id") or "") not in coach_sids
+        and str(d.get("victim_id") or "") not in coach_sids
+    ]
+
+    out["grenades"] = [
+        g for g in (out.get("grenades") or [])
+        if str(g.get("steam_id") or "") not in coach_sids
+    ]
+
+    out["shots"] = [
+        s for s in (out.get("shots") or [])
+        if str(s.get("steam_id") or "") not in coach_sids
+    ]
+
+    print(f"[parser] scrubbed {len(coach_sids)} coach(es): {sorted(coach_sids)}")
+    return out
+
+
 def _event_pos(r) -> tuple:
     """Extract (x, y) from an event row, trying multiple column name variants."""
     def _first(*keys):
@@ -924,7 +974,7 @@ def parse_demo(dem_path: str) -> dict:
             })
     print(f"[parser] damage events: {len(damage_events)}")
 
-    return {
+    return _scrub_coaches({
         "meta": {
             "map":               header.get("map_name", ""),
             "tick_rate":         tick_rate,
@@ -943,7 +993,7 @@ def parse_demo(dem_path: str) -> dict:
         "grenades":     grenades,
         "bomb":         bomb,
         "shots":        shots,
-    }
+    })
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -9,6 +9,10 @@ import { openSavePopoverFor, closeSavePopover, isPopoverOpen } from './save-popo
 import { findRoundMemberships } from './playlists.js'
 import { mountScoreboard }      from './scoreboard.js'
 
+// CS2 coach-slot players have names prefixed "COACH" and sit at spawn dying
+// every round. Defensive filter for demos parsed before backend scrub.
+const isCoach = (name) => /^\s*COACH/i.test(String(name || ''))
+
 await requireAuth()
 renderSidebar('demos')
 
@@ -1195,10 +1199,11 @@ function updatePlayerCards() {
   const sort = arr => arr.slice().sort((a, b) =>
     (b.is_alive - a.is_alive) || (b.hp - a.hp)
   )
+  const live = frame.players.filter(p => !isCoach(p.name))
   document.getElementById('ct-panel').innerHTML =
-    sort(frame.players.filter(p => p.team === 'ct')).map(playerCardHTML).join('')
+    sort(live.filter(p => p.team === 'ct')).map(playerCardHTML).join('')
   document.getElementById('t-panel').innerHTML =
-    sort(frame.players.filter(p => p.team === 't')).map(playerCardHTML).join('')
+    sort(live.filter(p => p.team === 't')).map(playerCardHTML).join('')
 }
 
 function updateKillFeed() {
@@ -1209,6 +1214,7 @@ function updateKillFeed() {
   const round = currentRound()
   const kills = state.match.kills.filter(k =>
     k.tick >= round.start_tick && k.tick <= state.tick
+    && !isCoach(k.killer_name) && !isCoach(k.victim_name)
   )
   const recent = kills.slice(-5).reverse()
 

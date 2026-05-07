@@ -384,3 +384,71 @@ def test_compute_team_stats_classifies_full_buy_and_antieco():
     assert b["full_buy_played"] == 1
     assert a["full_buy_wins"] == 1  # A is on CT and CT won
     assert b["full_buy_wins"] == 0
+
+
+from demo_parser import _is_coach, _scrub_coaches
+
+
+def test_is_coach_detects_prefix_case_insensitively():
+    assert _is_coach("COACH alex")
+    assert _is_coach("coach BOB")
+    assert _is_coach("  COACH spaces ")
+    assert not _is_coach("alex")
+    assert not _is_coach("")
+    assert not _is_coach(None)
+    # Player name that merely contains "coach" mid-string is NOT a coach.
+    assert not _is_coach("notacoach")
+
+
+def test_scrub_coaches_removes_coach_from_all_outputs():
+    parsed = {
+        "players_meta": {
+            "PLAYER1": {"name": "alex"},
+            "COACH1":  {"name": "COACH bob"},
+            "PLAYER2": {"name": "carol"},
+        },
+        "frames": [
+            {"tick": 100, "players": [
+                {"steam_id": "PLAYER1", "team": "ct", "hp": 100},
+                {"steam_id": "COACH1",  "team": "ct", "hp": 100},
+                {"steam_id": "PLAYER2", "team": "t",  "hp": 100},
+            ]},
+        ],
+        "kills": [
+            {"tick": 110, "killer_id": "PLAYER1", "victim_id": "PLAYER2"},
+            {"tick": 120, "killer_id": "PLAYER2", "victim_id": "COACH1"},
+            {"tick": 130, "killer_id": "COACH1",  "victim_id": "PLAYER1"},
+        ],
+        "damage_events": [
+            {"tick": 109, "attacker_id": "PLAYER1", "victim_id": "PLAYER2", "dmg_health": 50},
+            {"tick": 119, "attacker_id": "PLAYER2", "victim_id": "COACH1",  "dmg_health": 100},
+        ],
+        "grenades": [
+            {"tick": 105, "steam_id": "PLAYER1", "type": "smoke"},
+            {"tick": 106, "steam_id": "COACH1",  "type": "flash"},
+        ],
+        "shots": [
+            {"tick": 108, "steam_id": "COACH1"},
+            {"tick": 111, "steam_id": "PLAYER1"},
+        ],
+    }
+    out = _scrub_coaches(parsed)
+    assert set(out["players_meta"].keys()) == {"PLAYER1", "PLAYER2"}
+    assert all(p["steam_id"] != "COACH1" for f in out["frames"] for p in f["players"])
+    # Kills involving the coach (as killer OR victim) are dropped.
+    assert len(out["kills"]) == 1
+    assert out["kills"][0]["killer_id"] == "PLAYER1"
+    assert all("COACH1" not in (d["attacker_id"], d["victim_id"]) for d in out["damage_events"])
+    assert all(g["steam_id"] != "COACH1" for g in out["grenades"])
+    assert all(s["steam_id"] != "COACH1" for s in out["shots"])
+
+
+def test_scrub_coaches_no_op_when_no_coaches():
+    parsed = {
+        "players_meta": {"P1": {"name": "alex"}},
+        "frames": [{"tick": 1, "players": [{"steam_id": "P1", "team": "ct", "hp": 100}]}],
+        "kills": [], "damage_events": [], "grenades": [], "shots": [],
+    }
+    out = _scrub_coaches(parsed)
+    assert out["players_meta"] == {"P1": {"name": "alex"}}
+    assert out["frames"][0]["players"][0]["steam_id"] == "P1"

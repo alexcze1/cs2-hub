@@ -7,6 +7,11 @@ import { supabase } from './supabase.js'
 
 const SIDE_KEY = 'scoreboard:side'
 
+// CS2 coach-slot players have names starting with "COACH" and sit at spawn
+// dying every round. Defensive filter for demos parsed before the backend
+// scrub was added.
+const isCoach = (name) => /^\s*COACH/i.test(String(name || ''))
+
 export async function mountScoreboard(root, demoId) {
   if (!root || !demoId) return
   const side = localStorage.getItem(SIDE_KEY) || 'all'
@@ -27,7 +32,8 @@ export async function mountScoreboard(root, demoId) {
     if (pe) throw pe
     if (de) throw de
 
-    if (!players?.length) {
+    const cleanPlayers = (players || []).filter(p => !isCoach(p.name))
+    if (!cleanPlayers.length) {
       root.innerHTML = `<div class="sb-empty">No stats parsed for this demo yet.</div>`
       return
     }
@@ -36,7 +42,7 @@ export async function mountScoreboard(root, demoId) {
     const teamAName = (aOnCtFirst ? demo?.ct_team_name : demo?.t_team_name) || 'Team A'
     const teamBName = (aOnCtFirst ? demo?.t_team_name  : demo?.ct_team_name) || 'Team B'
 
-    render(root, { players, side, teamAName, teamBName })
+    render(root, { players: cleanPlayers, side, teamAName, teamBName })
   } catch (e) {
     console.error('[scoreboard]', e)
     root.innerHTML = `<div class="sb-empty">Failed to load stats: ${esc(e.message || String(e))}</div>`
