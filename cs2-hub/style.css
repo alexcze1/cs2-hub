@@ -2422,91 +2422,176 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
 }
 .dl-round-x:hover { color: var(--danger); }
 
-.dv-tabs { display: flex; gap: 4px; }
-.dv-tab {
-  background: transparent;
-  color: #888;
-  border: 1px solid #2a3038;
-  padding: 5px 12px;
-  border-radius: 3px;
-  font-size: 12px;
-  cursor: pointer;
+/* === Scoreboard === */
+#scoreboard-root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 6px 4px 32px;
 }
-.dv-tab.is-active { background: #2a3038; color: #fff; }
-.dv-tab-panel[hidden] { display: none; }
-.dv-tab-panel.is-active {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-}
-
-/* === Scoreboard tab === */
-#scoreboard-root { padding: 14px 16px; }
 
 .sb-loading, .sb-empty {
-  padding: 20px; text-align: center; color: var(--muted);
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--muted);
+  font-family: var(--display-font);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
 }
 
 .sb-toolbar {
-  display: flex; gap: 6px; align-items: center;
-  margin-bottom: 14px;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-bottom: 22px;
+  padding: 6px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  width: fit-content;
 }
 .sb-label {
-  font-size: 11px; color: var(--muted);
-  text-transform: uppercase; letter-spacing: 0.5px;
-  margin-right: 6px;
+  font-family: var(--display-font);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 12px 0 8px;
 }
 .sb-side-btn {
-  background: transparent; color: var(--muted);
-  border: 1px solid #2a3038;
-  padding: 5px 12px; border-radius: 3px;
-  font-size: 12px; cursor: pointer;
+  background: transparent;
+  color: var(--text-variant);
+  border: 1px solid transparent;
+  padding: 6px 16px;
+  border-radius: var(--r-sm);
+  font-family: var(--display-font);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+.sb-side-btn:hover {
+  color: var(--text);
+  background: rgba(255,255,255,0.04);
 }
 .sb-side-btn.is-active {
-  background: #2a3038; color: #fff; border-color: #2a3038;
+  background: rgba(0,255,156,0.12);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: inset 0 -2px 0 var(--accent);
 }
 
+.sb-team-block {
+  margin-bottom: 22px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    inset 1px 1px 0 rgba(255,255,255,0.04),
+    0 8px 32px rgba(0,0,0,0.35);
+  overflow: hidden;
+}
+.sb-team-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--glass-border);
+  font-family: var(--display-font);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  position: relative;
+}
+.sb-team-header::before {
+  content: '';
+  width: 3px;
+  height: 16px;
+  border-radius: 2px;
+}
+.sb-team-a .sb-team-header { color: var(--side-ct); }
+.sb-team-a .sb-team-header::before {
+  background: var(--side-ct);
+  box-shadow: 0 0 10px rgba(79,195,247,0.55);
+}
+.sb-team-b .sb-team-header { color: var(--side-t); }
+.sb-team-b .sb-team-header::before {
+  background: var(--side-t);
+  box-shadow: 0 0 10px rgba(255,149,0,0.55);
+}
+.sb-team-other .sb-team-header { color: var(--muted); }
+.sb-team-other .sb-team-header::before { background: var(--muted); }
+
 .sb-table {
-  width: 100%; border-collapse: collapse;
-  font-size: 12px; margin-bottom: 18px;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 .sb-table thead th {
   text-align: center;
   text-transform: uppercase;
-  font-size: 10px;
-  letter-spacing: 0.5px;
-  color: #666;
-  padding: 6px 4px;
-  border-bottom: 1px solid #2a3038;
+  font-family: var(--display-font);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+  padding: 10px 6px;
+  background: rgba(0,0,0,0.22);
+  border-bottom: 1px solid var(--glass-border);
 }
-.sb-table thead th.sb-col-name { text-align: left; }
-.sb-table thead th.sb-col-rating { color: #fff; }
+.sb-table thead th.sb-col-name {
+  text-align: left;
+  padding-left: 18px;
+}
+.sb-table thead th.sb-col-rating {
+  color: var(--accent);
+  padding-right: 18px;
+}
 .sb-table tbody td {
   text-align: center;
-  padding: 7px 4px;
-  border-bottom: 1px solid #1a1d22;
+  padding: 10px 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: var(--text-variant);
 }
+.sb-table tbody tr:last-child td { border-bottom: none; }
+.sb-table tbody tr {
+  transition: background-color 0.12s;
+}
+.sb-table tbody tr:hover { background: rgba(255,255,255,0.03); }
 .sb-table tbody td.sb-col-name {
-  text-align: left; font-weight: 500;
+  text-align: left;
+  padding-left: 18px;
+  font-family: var(--display-font);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .sb-table tbody td.sb-col-rating {
-  font-weight: 600; color: #fff;
+  padding-right: 18px;
+  font-family: var(--display-font);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
 }
-.sb-pos { color: #7ed957; }
-.sb-neg { color: #e6534b; }
+.sb-pos { color: #7ed957; font-weight: 700; }
+.sb-neg { color: var(--danger); font-weight: 700; }
 
-.sb-team-block { margin-bottom: 18px; }
-.sb-team-header {
-  display: flex; justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid #2a3038;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-.sb-team-a .sb-team-header { color: #5fa8ff; }
-.sb-team-b .sb-team-header { color: #e6534b; }
-.sb-team-other .sb-team-header { color: var(--muted); }
+.sb-rating-good { color: var(--accent); }
+.sb-rating-bad  { color: var(--muted); }
 
 /* ── Scoreboard overlay (demo viewer) ─────────────────────────── */
 .sb-toggle-btn.active {

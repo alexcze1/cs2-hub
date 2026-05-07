@@ -116,6 +116,13 @@ function teamTable(label, cls, rows) {
   `
 }
 
+function ratingClass(r) {
+  if (r == null) return ''
+  if (r >= 1.10) return 'sb-rating-good'
+  if (r <  0.90) return 'sb-rating-bad'
+  return ''
+}
+
 function row(p) {
   const plusMinus = (p.kills || 0) - (p.deaths || 0)
   const pmClass = plusMinus > 0 ? 'sb-pos' : plusMinus < 0 ? 'sb-neg' : ''
@@ -132,7 +139,7 @@ function row(p) {
       <td>${p.multi_2k ?? 0}/${p.multi_3k ?? 0}/${p.multi_4k ?? 0}/${p.multi_5k ?? 0}</td>
       <td>${p.opening_kills ?? 0}–${p.opening_deaths ?? 0}</td>
       <td>${p.clutches_won ?? 0}–${p.clutches_lost ?? 0}</td>
-      <td class="sb-col-rating">${(p.rating ?? 0).toFixed(2)}</td>
+      <td class="sb-col-rating ${ratingClass(p.rating)}">${(p.rating ?? 0).toFixed(2)}</td>
     </tr>
   `
 }
