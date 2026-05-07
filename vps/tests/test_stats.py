@@ -256,6 +256,37 @@ def test_compute_player_stats_does_not_double_count_killing_blow_damage():
     assert a_all["adr"] == 100.0, f"expected ADR=100, got {a_all['adr']}"
 
 
+def test_compute_player_stats_extracts_name_string_from_dict_players_meta():
+    """Regression: parser stores players_meta[sid] as {"name": str},
+    not a bare string. compute_player_stats must extract the string,
+    otherwise psycopg2 rejects the dict at INSERT time and the silent
+    try/except swallows it — zeroing out demo_players in production."""
+    parsed = {
+        "rounds": [{
+            "start_tick": 100,
+            "end_tick": 1000,
+            "freeze_end_tick": 150,
+            "team_a_side": "ct",
+            "winner_side": "ct",
+        }],
+        "kills": [],
+        "damage_events": [],
+        "frames": [
+            {"tick": 150, "players": [
+                {"steam_id": "76561198000000001", "team": "ct", "hp": 100},
+            ]},
+        ],
+        "grenades": [],
+        "players_meta": {"76561198000000001": {"name": "alpha"}},
+        "meta": {"team_a_first_side": "ct"},
+    }
+    rows = compute_player_stats(parsed)
+    assert rows, "expected at least one row"
+    for r in rows:
+        assert isinstance(r["name"], str), f"name must be str, got {type(r['name'])}: {r['name']!r}"
+        assert r["name"] == "alpha"
+
+
 @pytest.mark.skipif(not FIXTURE.exists(), reason="no fixture.dem")
 def test_compute_team_stats_returns_two_rows():
     parsed = parse_demo(str(FIXTURE))

@@ -1300,10 +1300,12 @@ def compute_player_stats(parsed: dict) -> list[dict]:
         clutch_per_round      = [_clutch_outcome(r, frames) for r in rounds]
         utility_dmg_by_sid    = _grenade_damage_attribution(damage_events)
 
-        # Build a flash list from grenades (parser stores hits)
+        # Build a flash list from grenades. NOTE: flash_assists requires
+        # player_blind event ingestion (deferred to Ship 2). Until then
+        # `hits` is always empty and flash_assists stays 0.
         flash_events = []
         for g in grenades:
-            if (g.get("type") or "").lower() != "flashbang":
+            if (g.get("type") or "").lower() != "flash":
                 continue
             for h in (g.get("hits") or []):
                 flash_events.append({
@@ -1459,7 +1461,8 @@ def compute_player_stats(parsed: dict) -> list[dict]:
                         b["flash_assists"] += 1
 
             # Emit rows
-            name = players_meta.get(sid) or ""
+            meta = players_meta.get(sid)
+            name = (meta.get("name") if isinstance(meta, dict) else meta) or ""
             team_letter = player_team_letter(sid)
             for side_label, b in buckets.items():
                 if b["rounds_played"] == 0 and side_label != "all":
