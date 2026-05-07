@@ -2424,9 +2424,19 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
 
 .dv-tabs { display: flex; gap: 4px; }
 .dv-tab {
-  background: transparent; color: var(--muted);
-  border: none; padding: 6px 12px; font-size: 13px;
-  border-radius: 4px; cursor: pointer;
+  background: transparent;
+  color: #888;
+  border: 1px solid #2a3038;
+  padding: 5px 12px;
+  border-radius: 3px;
+  font-size: 12px;
+  cursor: pointer;
 }
 .dv-tab.is-active { background: #2a3038; color: #fff; }
 .dv-tab-panel[hidden] { display: none; }
+.dv-tab-panel.is-active {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
