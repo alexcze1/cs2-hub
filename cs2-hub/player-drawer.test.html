@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script type="module">
+import { mountDrawer } from './player-drawer.js'
+
+function assert(cond, msg) {
+  if (!cond) { console.error('FAIL:', msg); return }
+  console.log('PASS:', msg)
+}
+function delay(ms) { return new Promise(r => setTimeout(r, ms)) }
+
+const drawer = mountDrawer()
+
+// Initially closed
+assert(document.querySelector('.player-drawer').getAttribute('aria-hidden') === 'true', 'starts hidden')
+
+// Open with empty-state body
+drawer.open({
+  title: 'fl0m',
+  subtitle: 'IGL · 0 matches · 0 rounds · Last 10',
+  body: `<div class="pd-empty">No data for selected filter.</div>`,
+})
+assert(document.querySelector('.player-drawer').getAttribute('aria-hidden') === 'false', 'open() shows drawer')
+assert(document.querySelector('.player-drawer .pd-title').textContent === 'fl0m', 'title rendered')
+
+// Esc closes
+const ev = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+document.dispatchEvent(ev)
+assert(document.querySelector('.player-drawer').getAttribute('aria-hidden') === 'true', 'Esc closes')
+
+// Backdrop click closes
+drawer.open({ title: 'x', subtitle: 'y', body: '' })
+document.querySelector('.player-drawer-backdrop').click()
+assert(document.querySelector('.player-drawer').getAttribute('aria-hidden') === 'true', 'backdrop click closes')
+
+// Open while already open swaps content (no flicker test — just content swap)
+drawer.open({ title: 'A', subtitle: 's', body: '' })
+drawer.open({ title: 'B', subtitle: 's', body: '' })
+assert(document.querySelector('.player-drawer .pd-title').textContent === 'B', 'second open swaps title')
+
+// Close button
+drawer.open({ title: 'x', subtitle: 'y', body: '' })
+document.querySelector('.player-drawer-close').click()
+assert(document.querySelector('.player-drawer').getAttribute('aria-hidden') === 'true', 'close button works')
+
+// onClose callback
+let closedCount = 0
+drawer.open({ title: 'x', subtitle: 'y', body: '', onClose: () => closedCount++ })
+drawer.close()
+assert(closedCount === 1, 'onClose fires on close')
+</script>
+</body>
+</html>
