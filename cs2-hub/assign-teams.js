@@ -1,9 +1,8 @@
 // Pure detection helpers for demo team assignment.
 // No DOM, no Supabase — safe to import from a test page or Node.
 
-// CS2 coach-slot players have names prefixed "COACH" and sit at spawn dying
-// every round. Defensive filter for demos parsed before backend scrub.
-const isCoach = (name) => /^\s*COACH/i.test(String(name || ''))
+import { isCoach } from './demo-player-filters.js'
+
 const livePlayers = (players) => (players ?? []).filter(p => !isCoach(p.name))
 
 // Pick the first frame that has at least 5 CT and 5 T players.

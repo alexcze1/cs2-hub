@@ -8,10 +8,7 @@ import { mountAntistratDrawer } from './antistrat-drawer.js'
 import { openSavePopoverFor, closeSavePopover, isPopoverOpen } from './save-popover.js'
 import { findRoundMemberships } from './playlists.js'
 import { mountScoreboard }      from './scoreboard.js'
-
-// CS2 coach-slot players have names prefixed "COACH" and sit at spawn dying
-// every round. Defensive filter for demos parsed before backend scrub.
-const isCoach = (name) => /^\s*COACH/i.test(String(name || ''))
+import { isCoach }              from './demo-player-filters.js'
 
 await requireAuth()
 renderSidebar('demos')
