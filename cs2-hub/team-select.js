@@ -81,8 +81,17 @@ document.getElementById('join-btn').addEventListener('click', async () => {
     errEl.textContent = memberErr.message; errEl.style.display = 'block'; return
   }
 
+  const steamId = session.user.user_metadata?.steam_id ?? null
   const { error: rosterErr } = await supabase.from('roster').upsert(
-    { team_id: team.id, user_id: userId, username: displayName, nickname: nickname || null },
+    {
+      team_id: team.id,
+      user_id: userId,
+      username: displayName,
+      nickname: nickname || null,
+      steam_id: steamId,
+      role: 'Unassigned',
+      is_ghost: false,
+    },
     { onConflict: 'team_id,user_id', ignoreDuplicates: false }
   )
   if (rosterErr) { errEl.textContent = `Roster error: ${rosterErr.message}`; errEl.style.display = 'block'; return }
@@ -116,12 +125,20 @@ document.getElementById('create-btn').addEventListener('click', async () => {
     .insert({ team_id: team.id, user_id: userId, role: 'owner' })
   if (memberErr) { errEl.textContent = memberErr.message; errEl.style.display = 'block'; return }
 
-  const { error: rosterErr } = await supabase.from('roster').insert({
-    team_id: team.id,
-    user_id: userId,
-    username: displayName,
-    nickname: nickname || null,
-  })
+  const steamId = session.user.user_metadata?.steam_id ?? null
+  // The trigger likely already created this row. Use upsert so a duplicate is a no-op.
+  const { error: rosterErr } = await supabase.from('roster').upsert(
+    {
+      team_id: team.id,
+      user_id: userId,
+      username: displayName,
+      nickname: nickname || null,
+      steam_id: steamId,
+      role: 'Unassigned',
+      is_ghost: false,
+    },
+    { onConflict: 'team_id,user_id', ignoreDuplicates: false }
+  )
   if (rosterErr) { errEl.textContent = `Roster error: ${rosterErr.message}`; errEl.style.display = 'block'; return }
 
   setTeamId(team.id)
