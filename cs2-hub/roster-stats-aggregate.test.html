@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script type="module">
+import {
+  aggregatePlayer,
+  aggregateByPlayer,
+  aggregateByMap,
+  applyTimeWindow,
+  cutoffDateFor,
+} from './roster-stats-aggregate.js'
+
+function assert(cond, msg) {
+  if (!cond) { console.error('FAIL:', msg); return }
+  console.log('PASS:', msg)
+}
+function approx(a, b, eps = 0.001) { return Math.abs(a - b) < eps }
+
+// ---- aggregatePlayer ----
+{
+  const out = aggregatePlayer([])
+  assert(out.matches === 0 && out.rounds === 0, 'empty rows → matches=0 rounds=0')
+  assert(out.rating == null, 'empty rows → rating=null')
+}
+{
+  // Single demo, single side='all' row
+  const rows = [{
+    rounds_played: 24, kills: 20, deaths: 15, assists: 5,
+    adr: 80, rating: 1.10, hs_pct: 0.50, kast_pct: 0.70,
+    multi_2k: 4, multi_3k: 1, multi_4k: 0, multi_5k: 0,
+    opening_kills: 5, opening_deaths: 3,
+    clutches_won: 1, clutches_lost: 0,
+    utility_dmg: 200, flash_assists: 3, traded_deaths: 4, impact_rating: 1.05,
+  }]
+  const out = aggregatePlayer(rows)
+  assert(out.matches === 1, 'matches=1')
+  assert(out.rounds === 24, 'rounds=24')
+  assert(out.kills === 20 && out.deaths === 15 && out.assists === 5, 'sums match')
+  assert(approx(out.adr, 80), 'adr=80')
+  assert(approx(out.rating, 1.10), 'rating=1.10')
+  assert(approx(out.kd, 20/15), 'kd derived')
+  assert(approx(out.utility_dmg_per_round, 200/24), 'util/round derived')
+}
+{
+  // Two demos with different round counts → weighted average
+  const rows = [
+    { rounds_played: 20, rating: 1.00, adr: 70, hs_pct: 0.50, kast_pct: 0.70,
+      kills: 10, deaths: 10, assists: 0, multi_2k: 0, multi_3k: 0, multi_4k: 0, multi_5k: 0,
+      opening_kills: 0, opening_deaths: 0, clutches_won: 0, clutches_lost: 0,
+      utility_dmg: 0, flash_assists: 0, traded_deaths: 0, impact_rating: 1.00 },
+    { rounds_played: 30, rating: 1.20, adr: 90, hs_pct: 0.60, kast_pct: 0.80,
+      kills: 30, deaths: 20, assists: 0, multi_2k: 0, multi_3k: 0, multi_4k: 0, multi_5k: 0,
+      opening_kills: 0, opening_deaths: 0, clutches_won: 0, clutches_lost: 0,
+      utility_dmg: 0, flash_assists: 0, traded_deaths: 0, impact_rating: 1.10 },
+  ]
+  const out = aggregatePlayer(rows)
+  assert(out.matches === 2, 'two demos → matches=2')
+  assert(out.rounds === 50, 'rounds sum to 50')
+  // weighted: (1.00*20 + 1.20*30)/50 = (20+36)/50 = 1.12
+  assert(approx(out.rating, 1.12), 'rating weighted by rounds')
+  assert(approx(out.adr, (70*20 + 90*30) / 50), 'adr weighted by rounds')
+  assert(approx(out.hs_pct, (0.50*20 + 0.60*30) / 50), 'hs_pct weighted')
+  assert(approx(out.kast_pct, (0.70*20 + 0.80*30) / 50), 'kast_pct weighted')
+  assert(out.kills === 40 && out.deaths === 30, 'kills/deaths summed')
+  assert(approx(out.kd, 40/30), 'kd derived')
+}
+
+// ---- aggregateByPlayer ----
+{
+  const rows = [
+    { steam_id: 'A', rounds_played: 24, rating: 1.10, kills: 20, deaths: 15, assists: 0,
+      adr: 80, hs_pct: 0.5, kast_pct: 0.7, multi_2k: 0, multi_3k: 0, multi_4k: 0, multi_5k: 0,
+      opening_kills: 0, opening_deaths: 0, clutches_won: 0, clutches_lost: 0,
+      utility_dmg: 0, flash_assists: 0, traded_deaths: 0, impact_rating: 1.0 },
+    { steam_id: 'B', rounds_played: 24, rating: 0.90, kills: 10, deaths: 18, assists: 0,
+      adr: 60, hs_pct: 0.5, kast_pct: 0.7, multi_2k: 0, multi_3k: 0, multi_4k: 0, multi_5k: 0,
+      opening_kills: 0, opening_deaths: 0, clutches_won: 0, clutches_lost: 0,
+      utility_dmg: 0, flash_assists: 0, traded_deaths: 0, impact_rating: 1.0 },
+    { steam_id: 'A', rounds_played: 24, rating: 1.30, kills: 25, deaths: 12, assists: 0,
+      adr: 95, hs_pct: 0.5, kast_pct: 0.7, multi_2k: 0, multi_3k: 0, multi_4k: 0, multi_5k: 0,
+      opening_kills: 0, opening_deaths: 0, clutches_won: 0, clutches_lost: 0,
+      utility_dmg: 0, flash_assists: 0, traded_deaths: 0, impact_rating: 1.0 },
+  ]
+  const out = aggregateByPlayer(rows)
+  assert(out.size === 2, 'two distinct players')
+  assert(out.get('A').matches === 2, 'A has 2 matches')
+  assert(approx(out.get('A').rating, 1.20), 'A rating averaged')
+  assert(out.get('B').matches === 1, 'B has 1 match')
+}
+
+// ---- aggregateByMap ----
+{
+  const rows = [
+    { map: 'mirage', rounds_played: 24, rating: 1.10, kills: 20, deaths: 10, assists: 0,
+      adr: 80, hs_pct: 0.5, kast_pct: 0.7, multi_2k: 0, multi_3k: 0, multi_4k: 0, multi_5k: 0,
+      opening_kills: 0, opening_deaths: 0, clutches_won: 0, clutches_lost: 0,
+      utility_dmg: 0, flash_assists: 0, traded_deaths: 0, impact_rating: 1.0 },
+    { map: 'inferno', rounds_played: 24, rating: 0.95, kills: 15, deaths: 15, assists: 0,
+      adr: 70, hs_pct: 0.5, kast_pct: 0.7, multi_2k: 0, multi_3k: 0, multi_4k: 0, multi_5k: 0,
+      opening_kills: 0, opening_deaths: 0, clutches_won: 0, clutches_lost: 0,
+      utility_dmg: 0, flash_assists: 0, traded_deaths: 0, impact_rating: 1.0 },
+    { map: 'mirage', rounds_played: 24, rating: 1.30, kills: 25, deaths: 12, assists: 0,
+      adr: 95, hs_pct: 0.5, kast_pct: 0.7, multi_2k: 0, multi_3k: 0, multi_4k: 0, multi_5k: 0,
+      opening_kills: 0, opening_deaths: 0, clutches_won: 0, clutches_lost: 0,
+      utility_dmg: 0, flash_assists: 0, traded_deaths: 0, impact_rating: 1.0 },
+  ]
+  const out = aggregateByMap(rows)
+  assert(out.length === 2, 'two maps')
+  assert(out[0].map === 'mirage' && approx(out[0].agg.rating, 1.20), 'mirage first (sorted by rating)')
+  assert(out[1].map === 'inferno', 'inferno second')
+}
+
+// ---- cutoffDateFor / applyTimeWindow ----
+{
+  // Use a fixed "now" so the test is deterministic
+  const now = new Date('2026-05-08T12:00:00Z')
+  assert(cutoffDateFor('all', now) === null, 'all → null cutoff')
+  assert(cutoffDateFor('30d', now).toISOString().slice(0,10) === '2026-04-08', '30d cutoff = 30 days ago')
+  assert(cutoffDateFor('90d', now).toISOString().slice(0,10) === '2026-02-07', '90d cutoff = 90 days ago')
+}
+{
+  const vods = [
+    { id: 1, match_date: '2026-05-07' },
+    { id: 2, match_date: '2026-04-01' },
+    { id: 3, match_date: '2026-01-15' },
+    { id: 4, match_date: '2025-11-01' },
+  ]
+  const now = new Date('2026-05-08T00:00:00Z')
+  assert(applyTimeWindow(vods, 'all', now).length === 4, 'all → all rows')
+  assert(applyTimeWindow(vods, '30d', now).length === 2, '30d → 2 rows')
+  assert(applyTimeWindow(vods, '90d', now).length === 3, '90d → 3 rows')
+  // Last 10 — fewer than 10 vods, returns all sorted desc by date
+  const last10 = applyTimeWindow(vods, '10', now)
+  assert(last10.length === 4 && last10[0].id === 1, '10 → all sorted desc by match_date')
+}
+{
+  // Last 10 with more than 10 vods
+  const many = []
+  for (let i = 1; i <= 15; i++) many.push({ id: i, match_date: `2026-04-${String(i).padStart(2,'0')}` })
+  const out = applyTimeWindow(many, '10', new Date('2026-05-08'))
+  assert(out.length === 10, 'last 10 caps at 10')
+  assert(out[0].id === 15, 'last 10 sorted desc — newest first')
+}
+</script>
+</body>
+</html>
