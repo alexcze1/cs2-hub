@@ -40,10 +40,10 @@ begin
   insert into team_members (team_id, user_id, role) values (v_team, v_user_a, 'owner');
   select count(*) into v_count from roster where team_id = v_team and user_id = v_user_a;
   assert v_count = 1, 'Test 2 FAIL: expected still 1 roster row, got ' || v_count;
-  alter table team_members add constraint team_members_team_id_user_id_key unique (team_id, user_id);
-  -- Clean up the duplicate team_members row to keep state consistent.
+  -- Clean up the duplicate team_members row BEFORE restoring the unique constraint.
   delete from team_members where team_id = v_team and user_id = v_user_a
     and ctid not in (select min(ctid) from team_members where team_id = v_team and user_id = v_user_a);
+  alter table team_members add constraint team_members_team_id_user_id_key unique (team_id, user_id);
   raise notice 'Test 2 PASS: duplicate team_members insert did not duplicate roster row';
 
   -- ── Test 3: pre-existing ghost merges on team_members insert ──
