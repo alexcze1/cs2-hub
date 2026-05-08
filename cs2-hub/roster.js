@@ -137,9 +137,6 @@ document.getElementById('delete-player-btn').addEventListener('click', async () 
   closeModal(); toast('Player removed'); loadRoster()
 })
 
-function escapeHtml(s) {
-  const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML
-}
 
 document.getElementById('suggest-steam-btn').addEventListener('click', async () => {
   const nickname = document.getElementById('f-nickname').value.trim()
@@ -161,7 +158,7 @@ document.getElementById('suggest-steam-btn').addEventListener('click', async () 
     .limit(30)
   if (derr) {
     resultsEl.style.display = 'block'
-    resultsEl.innerHTML = `<div style="font-size:12px;color:var(--danger)">Failed to load demos: ${escapeHtml(derr.message)}</div>`
+    resultsEl.innerHTML = `<div style="font-size:12px;color:var(--danger)">Failed to load demos: ${esc(derr.message)}</div>`
     return
   }
   const demoIds = (demos ?? []).map(d => d.id)
@@ -178,7 +175,7 @@ document.getElementById('suggest-steam-btn').addEventListener('click', async () 
     .eq('side', 'all')
   if (perr) {
     resultsEl.style.display = 'block'
-    resultsEl.innerHTML = `<div style="font-size:12px;color:var(--danger)">Failed to load players: ${escapeHtml(perr.message)}</div>`
+    resultsEl.innerHTML = `<div style="font-size:12px;color:var(--danger)">Failed to load players: ${esc(perr.message)}</div>`
     return
   }
 
@@ -198,9 +195,9 @@ document.getElementById('suggest-steam-btn').addEventListener('click', async () 
 
   resultsEl.style.display = 'block'
   resultsEl.innerHTML = candidates.map(c => `
-    <button type="button" class="btn btn-ghost btn-sm" data-pick="${escapeHtml(c.steam_id)}"
+    <button type="button" class="btn btn-ghost btn-sm" data-pick="${esc(c.steam_id)}"
             style="display:flex;justify-content:space-between;width:100%;margin-bottom:4px;text-align:left">
-      <span>${escapeHtml(c.name)} <span style="color:var(--muted)">·</span> <code style="font-family:monospace;font-size:11px">${escapeHtml(c.steam_id)}</code></span>
+      <span>${esc(c.name)} <span style="color:var(--muted)">·</span> <code style="font-family:monospace;font-size:11px">${esc(c.steam_id)}</code></span>
       <span style="color:var(--muted);font-size:11px">${c.count} demo${c.count === 1 ? '' : 's'}</span>
     </button>
   `).join('')
