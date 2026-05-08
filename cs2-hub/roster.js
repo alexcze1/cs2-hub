@@ -1,233 +1,175 @@
-import { requireAuth } from './auth.js'
+import { requireAuth, isTeamOwner } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
-import { attachPlayerAutocomplete, getPlayerImage, playerAvatarEl } from './player-autocomplete.js'
-import { rankCandidates } from './roster-steam-backfill.js'
+import { getPlayerImage, playerAvatarEl } from './player-autocomplete.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
+
+const ROLE_COLORS = {
+  IGL: 'var(--accent)', AWPer: 'var(--special)', Entry: 'var(--danger)',
+  Support: 'var(--success)', Lurker: 'var(--warning)',
+  Coach: 'var(--muted)', Manager: 'var(--muted)',
+  Bench: 'var(--muted)', Unassigned: 'var(--border)',
+}
+const ALL_ROLES = ['IGL','AWPer','Entry','Support','Lurker','Coach','Manager','Bench','Unassigned']
 
 await requireAuth()
 renderSidebar('roster')
 
-const ROLE_COLORS = {
-  IGL: 'var(--accent)', AWPer: 'var(--special)', Entry: 'var(--danger)',
-  Support: 'var(--success)', Lurker: 'var(--warning)', Coach: 'var(--muted)', Manager: 'var(--muted)'
-}
+const teamId = getTeamId()
+const isOwner = await isTeamOwner(teamId)
 
 let allPlayers = []
-let editingId  = null
 
 async function loadRoster() {
   const { data, error } = await supabase
     .from('roster')
     .select('*')
-    .eq('team_id', getTeamId())
+    .eq('team_id', teamId)
     .order('username', { ascending: true })
+
   const el = document.getElementById('roster-grid')
-  if (error) { el.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><h3>Failed to load</h3><p>${esc(error.message)}</p></div>`; return }
-  allPlayers = data ?? []
-  document.getElementById('roster-sub').textContent = `${allPlayers.length} member${allPlayers.length !== 1 ? 's' : ''}`
-  if (!allPlayers.length) {
-    el.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><h3>No players yet</h3><p>Add players with the button above.</p></div>`
+  if (error) {
+    el.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><h3>Failed to load</h3><p>${esc(error.message)}</p></div>`
     return
   }
 
-  // Resolve player photos in parallel
+  allPlayers = data ?? []
+  document.getElementById('roster-sub').textContent =
+    `${allPlayers.length} member${allPlayers.length !== 1 ? 's' : ''}`
+
+  if (!allPlayers.length) {
+    el.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><h3>No players yet</h3><p>Roster is empty. ${isOwner ? 'Use "+ Add ghost player" or invite teammates with the team join code.' : 'The owner will set this up.'}</p></div>`
+    return
+  }
+
   const images = await Promise.all(allPlayers.map(p => getPlayerImage(p.nickname || p.username)))
 
   el.innerHTML = allPlayers.map((p, i) => {
-    const roleColor = ROLE_COLORS[p.role] ?? 'var(--border)'
+    const role = p.role || 'Unassigned'
+    const roleColor = ROLE_COLORS[role] ?? 'var(--border)'
     const avatarHtml = images[i]
       ? `<img src="${images[i]}" alt="${esc(p.nickname || p.username)}" style="width:72px;height:72px;object-fit:cover;border-radius:50%;border:2px solid ${roleColor};margin-bottom:10px">`
       : `<div class="player-avatar" style="background:${roleColor}22;border:2px solid ${roleColor};color:${roleColor}">${esc((p.nickname || p.username || '?').slice(0,2).toUpperCase())}</div>`
+
+    const statusBadge = p.is_ghost
+      ? `<span class="status-badge status-ghost" style="display:inline-block;background:var(--warning);color:#000;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:0.5px;margin-top:6px">PENDING</span>`
+      : `<span class="status-badge status-member" style="display:inline-block;background:var(--surface-low);color:var(--muted);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:0.5px;margin-top:6px">MEMBER</span>`
+
+    const roleControl = isOwner
+      ? `<select class="role-select" data-role-for="${p.id}" style="background:${roleColor};color:#fff;border:none;border-radius:4px;padding:2px 6px;font-size:11px;font-weight:700;cursor:pointer">
+           ${ALL_ROLES.map(r => `<option value="${r}" ${r === role ? 'selected' : ''}>${r}</option>`).join('')}
+         </select>`
+      : `<span class="role-badge" style="background:${roleColor};color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700">${esc(role)}</span>`
+
+    const removeBtn = isOwner
+      ? `<button class="btn btn-ghost btn-sm" data-remove="${p.id}" data-is-ghost="${!!p.is_ghost}" style="position:absolute;top:8px;right:8px;color:var(--danger);font-size:11px;padding:2px 6px">×</button>`
+      : ''
+
     return `
-    <div class="player-card" style="cursor:pointer;border-top:3px solid ${roleColor}" data-edit="${p.id}">
-      ${avatarHtml}
-      <div class="player-ign">${esc(p.nickname || p.username)}</div>
-      ${p.username && p.nickname ? `<div class="player-name">${esc(p.username)}</div>` : ''}
-      <span class="role-badge" style="background:${roleColor};color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700">${esc(p.role ?? 'Player')}</span>
-    </div>
-  `}).join('')
-  document.querySelectorAll('[data-edit]').forEach(el => el.addEventListener('click', () => openModal(el.dataset.edit)))
+      <div class="player-card" style="position:relative;border-top:3px solid ${roleColor}" data-player-id="${p.id}">
+        ${removeBtn}
+        ${avatarHtml}
+        <div class="player-ign">${esc(p.nickname || p.username)}</div>
+        ${p.username && p.nickname ? `<div class="player-name">${esc(p.username)}</div>` : ''}
+        ${roleControl}
+        <div>${statusBadge}</div>
+      </div>
+    `
+  }).join('')
+
+  if (isOwner) {
+    for (const sel of document.querySelectorAll('[data-role-for]')) {
+      sel.addEventListener('change', () => onRoleChange(sel.dataset.roleFor, sel.value))
+    }
+    for (const btn of document.querySelectorAll('[data-remove]')) {
+      btn.addEventListener('click', () => onRemove(btn.dataset.remove, btn.dataset.isGhost === 'true'))
+    }
+  }
 }
 
-function openModal(id = null) {
-  editingId = id
-  const p = id ? allPlayers.find(x => x.id === id) : null
-  document.getElementById('modal-title').textContent = id ? 'Edit Player' : 'Add Player'
-  document.getElementById('f-username').value = p?.username ?? ''
-  document.getElementById('f-nickname').value = p?.nickname ?? ''
-  document.getElementById('f-role').value     = p?.role     ?? ''
-  document.getElementById('f-steam-id').value = p?.steam_id ?? ''
-  document.getElementById('suggest-results').style.display = 'none'
-  document.getElementById('steam-warning').style.display = 'none'
-  document.getElementById('delete-player-btn').style.display = id ? 'block' : 'none'
-  document.getElementById('modal-error').style.display = 'none'
-  // Update avatar preview when editing
-  updateAvatarPreview(p?.nickname || p?.username || '')
-  document.getElementById('modal').style.display = 'flex'
+async function onRoleChange(playerId, newRole) {
+  const { error } = await supabase.from('roster').update({ role: newRole }).eq('id', playerId)
+  if (error) { toast(`Failed: ${error.message}`); return }
+  toast('Role updated')
+  const p = allPlayers.find(x => x.id === playerId)
+  if (p) p.role = newRole
 }
 
-function closeModal() { document.getElementById('modal').style.display = 'none'; editingId = null }
+async function onRemove(playerId, isGhost) {
+  const p = allPlayers.find(x => x.id === playerId)
+  if (!p) return
+  const label = p.nickname || p.username
+  if (!confirm(isGhost
+    ? `Remove ghost row for ${label}?`
+    : `Remove ${label} from the team? This deletes their team membership.`)) return
 
-// Live avatar preview in modal
-async function updateAvatarPreview(ign) {
-  const wrap = document.getElementById('modal-avatar-preview')
-  if (!wrap) return
-  const img = await getPlayerImage(ign)
-  wrap.innerHTML = playerAvatarEl(img, ign, 52)
+  let error
+  if (isGhost) {
+    ;({ error } = await supabase.from('roster').delete().eq('id', playerId))
+  } else {
+    ;({ error } = await supabase
+      .from('team_members')
+      .delete()
+      .eq('team_id', teamId)
+      .eq('user_id', p.user_id))
+  }
+  if (error) { toast(`Failed: ${error.message}`); return }
+  toast(isGhost ? 'Ghost removed' : 'Member removed')
+  loadRoster()
 }
 
-// Attach autocomplete to nickname field
-attachPlayerAutocomplete(document.getElementById('f-nickname'), player => {
-  updateAvatarPreview(player.ign)
+if (isOwner) {
+  document.getElementById('add-ghost-btn').style.display = ''
+}
+
+document.getElementById('add-ghost-btn').addEventListener('click', () => {
+  document.getElementById('ghost-form').style.display = 'block'
+  document.getElementById('add-ghost-btn').style.display = 'none'
+  document.getElementById('g-username').focus()
 })
 
-document.getElementById('f-nickname').addEventListener('input', e => {
-  updateAvatarPreview(e.target.value.trim())
-})
+document.getElementById('ghost-cancel-btn').addEventListener('click', resetGhostForm)
 
-document.getElementById('add-player-btn').addEventListener('click', () => openModal())
-document.getElementById('modal-close').addEventListener('click', closeModal)
-document.getElementById('cancel-btn').addEventListener('click', closeModal)
-document.getElementById('modal').addEventListener('click', e => { if (e.target === document.getElementById('modal')) closeModal() })
+function resetGhostForm() {
+  document.getElementById('ghost-form').style.display = 'none'
+  document.getElementById('add-ghost-btn').style.display = ''
+  document.getElementById('g-username').value = ''
+  document.getElementById('g-steam-id').value = ''
+  document.getElementById('g-role').value = 'Unassigned'
+  document.getElementById('ghost-error').style.display = 'none'
+}
 
-document.getElementById('save-player-btn').addEventListener('click', async () => {
-  const username = document.getElementById('f-username').value.trim()
-  const nickname = document.getElementById('f-nickname').value.trim() || null
-  const role     = document.getElementById('f-role').value || null
-  const steamRaw = document.getElementById('f-steam-id').value.trim()
-  const steam_id = steamRaw === '' ? null : steamRaw
-  const errEl    = document.getElementById('modal-error')
-  if (!username) { errEl.textContent = 'Display name is required.'; errEl.style.display = 'block'; return }
-  if (steam_id && !/^7656119\d{10}$/.test(steam_id)) {
+document.getElementById('ghost-save-btn').addEventListener('click', async () => {
+  const username = document.getElementById('g-username').value.trim()
+  const steamId  = document.getElementById('g-steam-id').value.trim()
+  const role     = document.getElementById('g-role').value
+  const errEl    = document.getElementById('ghost-error')
+
+  if (!username) {
+    errEl.textContent = 'Display name is required.'
+    errEl.style.display = 'block'; return
+  }
+  if (!/^7656119\d{10}$/.test(steamId)) {
     errEl.textContent = 'Steam ID must be a 17-digit Steam64 starting with 7656119.'
     errEl.style.display = 'block'; return
   }
 
-  // Soft warning: same Steam ID assigned to another roster row?
-  const dup = steam_id ? allPlayers.find(p => p.steam_id === steam_id && p.id !== editingId) : null
-  const warnEl = document.getElementById('steam-warning')
-  if (dup && !warnEl.dataset.confirmed) {
-    warnEl.style.display = 'block'
-    warnEl.textContent = `This Steam ID is already assigned to ${dup.username}. Click Save again to confirm.`
-    warnEl.dataset.confirmed = '1'
-    return
-  }
-  warnEl.style.display = 'none'
-  delete warnEl.dataset.confirmed
-
-  const payload = { username, nickname, role, steam_id, team_id: getTeamId() }
-  let error
-  if (editingId) {
-    ;({ error } = await supabase.from('roster').update(payload).eq('id', editingId))
-  } else {
-    ;({ error } = await supabase.from('roster').insert(payload))
-  }
-  if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return }
-  const wasEditing = !!editingId
-  closeModal(); toast(wasEditing ? 'Player updated' : 'Player added'); loadRoster()
-})
-
-document.getElementById('delete-player-btn').addEventListener('click', async () => {
-  if (!confirm('Remove this player from the roster?')) return
-  const { error } = await supabase.from('roster').delete().eq('id', editingId)
-  if (error) { document.getElementById('modal-error').textContent = error.message; document.getElementById('modal-error').style.display = 'block'; return }
-  closeModal(); toast('Player removed'); loadRoster()
-})
-
-
-document.getElementById('suggest-steam-btn').addEventListener('click', async () => {
-  const nickname = document.getElementById('f-nickname').value.trim()
-  const resultsEl = document.getElementById('suggest-results')
-  if (!nickname) {
-    resultsEl.style.display = 'block'
-    resultsEl.innerHTML = `<div style="font-size:12px;color:var(--muted)">Enter a nickname above first.</div>`
-    return
-  }
-
-  // Fetch recent demos for this team and their players
-  const teamId = getTeamId()
-  const { data: demos, error: derr } = await supabase
-    .from('demos')
-    .select('id')
-    .eq('team_id', teamId)
-    .eq('status', 'ready')
-    .order('created_at', { ascending: false })
-    .limit(30)
-  if (derr) {
-    resultsEl.style.display = 'block'
-    resultsEl.innerHTML = `<div style="font-size:12px;color:var(--danger)">Failed to load demos: ${esc(derr.message)}</div>`
-    return
-  }
-  const demoIds = (demos ?? []).map(d => d.id)
-  if (!demoIds.length) {
-    resultsEl.style.display = 'block'
-    resultsEl.innerHTML = `<div style="font-size:12px;color:var(--muted)">No demos uploaded yet.</div>`
-    return
-  }
-
-  const { data: rows, error: perr } = await supabase
-    .from('demo_players')
-    .select('steam_id,name')
-    .in('demo_id', demoIds)
-    .eq('side', 'all')
-  if (perr) {
-    resultsEl.style.display = 'block'
-    resultsEl.innerHTML = `<div style="font-size:12px;color:var(--danger)">Failed to load players: ${esc(perr.message)}</div>`
-    return
-  }
-
-  // Exclude steam_ids already assigned to other roster rows (not this one)
-  const assigned = new Set(
-    allPlayers
-      .filter(p => p.steam_id && p.id !== editingId)
-      .map(p => p.steam_id)
-  )
-  const candidates = rankCandidates(rows ?? [], nickname, assigned).slice(0, 5)
-
-  if (!candidates.length) {
-    resultsEl.style.display = 'block'
-    resultsEl.innerHTML = `<div style="font-size:12px;color:var(--muted)">No matches in last 30 demos.</div>`
-    return
-  }
-
-  resultsEl.style.display = 'block'
-  resultsEl.innerHTML = candidates.map(c => `
-    <button type="button" class="btn btn-ghost btn-sm" data-pick="${esc(c.steam_id)}"
-            style="display:flex;justify-content:space-between;width:100%;margin-bottom:4px;text-align:left">
-      <span>${esc(c.name)} <span style="color:var(--muted)">·</span> <code style="font-family:monospace;font-size:11px">${esc(c.steam_id)}</code></span>
-      <span style="color:var(--muted);font-size:11px">${c.count} demo${c.count === 1 ? '' : 's'}</span>
-    </button>
-  `).join('')
-
-  resultsEl.querySelectorAll('[data-pick]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.getElementById('f-steam-id').value = btn.dataset.pick
-      resultsEl.style.display = 'none'
-    })
+  const { error } = await supabase.from('roster').insert({
+    team_id: teamId,
+    user_id: null,
+    username,
+    nickname: null,
+    steam_id: steamId,
+    role,
+    is_ghost: true,
   })
+
+  if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return }
+  resetGhostForm()
+  toast('Ghost player added')
+  loadRoster()
 })
 
 loadRoster()
-
-// Deep-link support: ?edit=<rosterId> opens the modal directly.
-// Used by the roster band's "Add Steam ID →" disabled card.
-{
-  const params = new URLSearchParams(window.location.search)
-  const editId = params.get('edit')
-  if (editId) {
-    // Wait for loadRoster() to finish populating allPlayers before opening.
-    const wait = setInterval(() => {
-      if (allPlayers.length && allPlayers.find(p => p.id === editId)) {
-        clearInterval(wait)
-        openModal(editId)
-        // Focus the Steam ID field for fast entry.
-        document.getElementById('f-steam-id').focus()
-      }
-    }, 50)
-    // Give up after 5 seconds so the page isn't permanently polling.
-    setTimeout(() => clearInterval(wait), 5000)
-  }
-}
