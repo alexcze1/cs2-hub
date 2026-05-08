@@ -2,172 +2,167 @@ import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { getTeamLogo, teamLogoEl } from './team-autocomplete.js'
+import { mountFilter } from './vods-filter.js'
+import { renderTeamStats } from './vods-team-stats.js'
+import { renderRosterBand } from './roster-stats.js'
+import { mountDrawer } from './player-drawer.js'
+import { buildPlayerDrawerBody, buildSubtitle, windowLabel } from './roster-stats-render.js'
+import { applyTimeWindow } from './roster-stats-aggregate.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
+function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : '' }
+function formatDate(d) { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) }
 
 await requireAuth()
 renderSidebar('vods')
 
-function formatDate(d) {
-  return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+const teamId = getTeamId()
+const drawer = mountDrawer()
+
+// ── Load all data once ──────────────────────────────────────────
+const [vodsRes, rosterRes] = await Promise.all([
+  supabase.from('vods').select('*').eq('team_id', teamId).eq('dismissed', false).order('match_date', { ascending: false }),
+  supabase.from('roster').select('*').eq('team_id', teamId),
+])
+if (vodsRes.error) {
+  document.getElementById('vods-list').innerHTML = `<div class="empty-state"><h3>Failed to load matches</h3><p>${esc(vodsRes.error.message)}</p></div>`
+  throw vodsRes.error
+}
+const allVods   = vodsRes.data ?? []
+const roster    = rosterRes.data ?? []
+const teamSteamIds = new Set(roster.map(p => p.steam_id).filter(Boolean))
+
+if (!allVods.length) {
+  document.getElementById('vods-list').innerHTML = `<div class="empty-state"><h3>No matches yet</h3><p>Add your first result above.</p></div>`
+} else {
+  document.getElementById('stats-section').style.display = 'block'
 }
 
-function pct(n, d) { return d === 0 ? 0 : Math.round((n / d) * 100) }
+// ── Resolve demo set + demo_players for the filtered vod set ────
+async function fetchPlayerRowsForVods(filteredVods) {
+  // Step 1: extract seed demo IDs from vod.demo_link strings.
+  const seedDemoIds = filteredVods
+    .map(v => {
+      const m = /id=([0-9a-fA-F-]{36})/.exec(v.demo_link || '')
+      return m ? m[1] : null
+    })
+    .filter(Boolean)
+  if (!seedDemoIds.length) return { rowsAll: [], rowsCT: [], rowsT: [], demosById: new Map() }
 
-const MAP_IMG = { dust2: 'dust' }
-function mapImgUrl(map) { return `images/maps/${MAP_IMG[map] ?? map}.png` }
+  // Step 2: load seed demo rows (for series_id + map + played_at).
+  const { data: seedDemos, error: e1 } = await supabase
+    .from('demos')
+    .select('id,series_id,map,played_at,opponent_name')
+    .in('id', seedDemoIds)
+  if (e1) throw e1
 
-const el = document.getElementById('vods-list')
-const { data: vods, error } = await supabase.from('vods').select('*').eq('team_id', getTeamId()).eq('dismissed', false).order('match_date', { ascending: false })
-
-if (error) {
-  el.innerHTML = `<div class="empty-state"><h3>Failed to load matches</h3><p>${esc(error.message)}</p></div>`
-} else if (!vods?.length) {
-  el.innerHTML = `<div class="empty-state"><h3>No matches yet</h3><p>Add your first result above.</p></div>`
-} else {
-  // ── Compute stats ────────────────────────────────────────
-  const record = { w: 0, l: 0, d: 0 }
-  let totalRW = 0, totalRL = 0
-  const mapStats = {} // { map: { w, l, rw, rl } }
-
-  for (const v of vods) {
-    const maps = v.maps ?? []
-    let mw = 0, ml = 0
-    for (const m of maps) {
-      const us = m.score_us ?? 0, them = m.score_them ?? 0
-      totalRW += us; totalRL += them
-      if (!mapStats[m.map]) mapStats[m.map] = { w: 0, l: 0, rw: 0, rl: 0 }
-      mapStats[m.map].rw += us
-      mapStats[m.map].rl += them
-      if (us > them) { mw++; mapStats[m.map].w++ }
-      else if (them > us) { ml++; mapStats[m.map].l++ }
-    }
-    if (mw > ml) record.w++
-    else if (ml > mw) record.l++
-    else if (maps.length) record.d++
+  // Step 3: expand series → sibling demos.
+  const seriesIds = [...new Set((seedDemos || []).map(d => d.series_id).filter(Boolean))]
+  let allDemos = seedDemos || []
+  if (seriesIds.length) {
+    const { data: siblings, error: e2 } = await supabase
+      .from('demos')
+      .select('id,series_id,map,played_at,opponent_name')
+      .in('series_id', seriesIds)
+    if (e2) throw e2
+    const known = new Set(allDemos.map(d => d.id))
+    for (const d of siblings || []) if (!known.has(d.id)) allDemos.push(d)
   }
+  const demoIds = allDemos.map(d => d.id)
+  const demosById = new Map(allDemos.map(d => [d.id, d]))
 
-  const totalMatches = record.w + record.l + record.d
-  const roundWinPct  = pct(totalRW, totalRW + totalRL)
+  if (!teamSteamIds.size || !demoIds.length) return { rowsAll: [], rowsCT: [], rowsT: [], demosById }
 
-  // Best map: highest win % with at least 2 games
-  const bestMapEntry = Object.entries(mapStats)
-    .filter(([, s]) => s.w + s.l >= 2)
-    .sort(([, a], [, b]) => pct(b.w, b.w + b.l) - pct(a.w, a.w + a.l))[0]
+  // Step 4: load demo_players for our roster's steam_ids only.
+  const teamSteamIdList = [...teamSteamIds]
+  const { data: rows, error: e3 } = await supabase
+    .from('demo_players')
+    .select('*')
+    .in('demo_id', demoIds)
+    .in('steam_id', teamSteamIdList)
+  if (e3) throw e3
 
-  // Recent form: last 5 matches
-  const recentForm = vods.slice(0, 5).map(v => {
-    const maps = v.maps ?? []
-    let mw = 0, ml = 0
-    for (const m of maps) {
-      if ((m.score_us ?? 0) > (m.score_them ?? 0)) mw++
-      else if ((m.score_them ?? 0) > (m.score_us ?? 0)) ml++
-    }
-    if (mw > ml) return 'W'
-    if (ml > mw) return 'L'
-    return 'D'
-  })
+  // Attach demos.map to each row for per-map aggregation.
+  for (const r of rows || []) {
+    const d = demosById.get(r.demo_id)
+    r.map = d?.map ?? null
+  }
+  const rowsAll = (rows || []).filter(r => r.side === 'all')
+  const rowsCT  = (rows || []).filter(r => r.side === 'ct')
+  const rowsT   = (rows || []).filter(r => r.side === 't')
+  return { rowsAll, rowsCT, rowsT, demosById }
+}
 
-  // ── Render stats bar ─────────────────────────────────────
-  document.getElementById('stats-section').style.display = 'block'
+function filterVods(filter) {
+  let pool = allVods
+  if (filter.tournamentsOnly) pool = pool.filter(v => v.match_type === 'tournament')
+  return applyTimeWindow(pool, filter.window)
+}
 
-  document.getElementById('top-stats').innerHTML = `
-    <div class="stat-card">
-      <div class="stat-label">Match Record</div>
-      <div class="stat-value" style="font-size:20px">${record.w}W — ${record.l}L${record.d ? ' — ' + record.d + 'D' : ''}</div>
-      <div class="stat-sub">${totalMatches} match${totalMatches !== 1 ? 'es' : ''} · ${pct(record.w, totalMatches)}% win rate</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Round Win Rate</div>
-      <div class="stat-value">${roundWinPct}%</div>
-      <div class="stat-sub">${totalRW}W — ${totalRL}L rounds</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Best Map</div>
-      <div class="stat-value" style="font-size:18px">${bestMapEntry ? bestMapEntry[0].charAt(0).toUpperCase() + bestMapEntry[0].slice(1) : '—'}</div>
-      <div class="stat-sub">${bestMapEntry ? pct(bestMapEntry[1].w, bestMapEntry[1].w + bestMapEntry[1].l) + '% win rate' : 'Need 2+ games per map'}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Recent Form</div>
-      <div class="form-dots">${recentForm.map(r => `<span class="form-dot form-dot-${r === 'W' ? 'win' : r === 'L' ? 'loss' : 'draw'}">${r}</span>`).join('')}</div>
-      <div class="stat-sub">Last ${recentForm.length} matches</div>
-    </div>
-  `
+// Map a demo back to its vod by extracting the demo_id from vod.demo_link
+// AND scanning for siblings via series_id. Used to produce W/L for the
+// drawer's recent-matches section.
+function buildDemoToVodMap(filteredVods, demosById) {
+  const seedToVod = new Map() // demo_id → vod
+  for (const v of filteredVods) {
+    const m = /id=([0-9a-fA-F-]{36})/.exec(v.demo_link || '')
+    if (m) seedToVod.set(m[1], v)
+  }
+  const seriesToVod = new Map() // series_id → vod
+  for (const [demoId, v] of seedToVod) {
+    const d = demosById.get(demoId)
+    if (d?.series_id) seriesToVod.set(d.series_id, v)
+  }
+  // Now build demo_id → vod for every demo
+  const demoToVod = new Map()
+  for (const [demoId, d] of demosById) {
+    if (seedToVod.has(demoId)) demoToVod.set(demoId, seedToVod.get(demoId))
+    else if (d.series_id && seriesToVod.has(d.series_id)) demoToVod.set(demoId, seriesToVod.get(d.series_id))
+  }
+  return demoToVod
+}
 
-  // ── Map breakdown ─────────────────────────────────────────
-  const sortedMaps = Object.entries(mapStats).sort(([, a], [, b]) => (b.w + b.l) - (a.w + a.l))
-  document.getElementById('map-breakdown').innerHTML = `
-    <div class="map-breakdown-grid">
-      ${sortedMaps.map(([map, s]) => {
-        const games = s.w + s.l
-        const wp  = pct(s.w, games)
-        const rp  = pct(s.rw, s.rw + s.rl)
-        const img = mapImgUrl(map)
-        const barColor = wp >= 60 ? 'var(--success)' : wp >= 45 ? 'var(--accent)' : 'var(--danger)'
-        const labelColor = wp >= 60 ? 'var(--success)' : wp >= 45 ? 'var(--muted)' : 'var(--danger)'
-        const label = wp >= 60 ? 'STRONG' : wp >= 45 ? 'EVEN' : 'WEAK'
-        return `
-          <div class="map-stat-card">
-            <img src="${img}" class="map-stat-bg" aria-hidden="true">
-            <div class="map-stat-body">
-              <div class="map-stat-top">
-                <span class="map-stat-name">${map.charAt(0).toUpperCase() + map.slice(1)}</span>
-                <span class="map-stat-label" style="color:${labelColor}">${label}</span>
-              </div>
-              <div class="map-stat-record">${s.w}W — ${s.l}L <span style="color:var(--muted);font-weight:400">(${games} game${games !== 1 ? 's' : ''})</span></div>
-              <div class="map-stat-bar-wrap">
-                <div class="map-stat-bar" style="width:${wp}%;background:${barColor}"></div>
-              </div>
-              <div class="map-stat-footer">
-                <span class="map-stat-pct" style="color:${barColor}">${wp}% win rate</span>
-                <span class="map-stat-rounds">${rp}% rounds</span>
-              </div>
-            </div>
-          </div>
-        `
-      }).join('')}
-    </div>
-  `
+// W/L for a single demo: derived from per-map vod.maps[].score_us/score_them
+// matched on map name. Falls back to 'd' (draw/unknown).
+function demoResult(demo, vod) {
+  if (!vod || !demo) return 'd'
+  const slot = (vod.maps || []).find(m => String(m.map).toLowerCase() === String(demo.map).toLowerCase())
+  if (!slot || slot.score_us == null || slot.score_them == null) return 'd'
+  if (slot.score_us > slot.score_them) return 'w'
+  if (slot.score_us < slot.score_them) return 'l'
+  return 'd'
+}
 
-  // ── Match list ────────────────────────────────────────────
+// ── Match history list (existing, unchanged behavior) ─────────
+async function renderMatchList(vods) {
+  const el = document.getElementById('vods-list')
+  if (!vods.length) {
+    el.innerHTML = `<div class="empty-state"><h3>No matches in window</h3><p>Try a wider time window.</p></div>`
+    return
+  }
   const logos = await Promise.all(vods.map(v => getTeamLogo(v.opponent ?? v.title)))
 
   function deriveInsights(maps) {
     if (!maps?.length) return []
     const out = []
     let totalUs = 0, totalThem = 0
-    let bestMap = null, worstMap = null
-    let closest = null
+    let bestMap = null, worstMap = null, closest = null
     for (const m of maps) {
       const us = m.score_us ?? 0, them = m.score_them ?? 0
       totalUs += us; totalThem += them
       const diff = us - them
-      if (!bestMap  || diff > bestMap.diff)         bestMap  = { ...m, diff, us, them }
-      if (!worstMap || diff < worstMap.diff)        worstMap = { ...m, diff, us, them }
+      if (!bestMap  || diff > bestMap.diff)  bestMap  = { ...m, diff, us, them }
+      if (!worstMap || diff < worstMap.diff) worstMap = { ...m, diff, us, them }
       const margin = Math.abs(diff)
       if (us + them > 0 && (!closest || margin < Math.abs(closest.diff))) closest = { ...m, diff, us, them }
     }
     const overallDiff = totalUs - totalThem
-    if (Math.abs(overallDiff) >= 6) {
-      out.push({
-        text: `Round diff ${overallDiff > 0 ? '+' : ''}${overallDiff}`,
-        cls: overallDiff > 0 ? 'positive' : 'negative',
-      })
-    }
-    if (bestMap && bestMap.diff > 4) {
-      out.push({ text: `Strong on ${capitalize(bestMap.map)} ${bestMap.us}–${bestMap.them}`, cls: 'positive' })
-    }
-    if (worstMap && worstMap.diff < -4 && worstMap.map !== bestMap?.map) {
-      out.push({ text: `Lost ${capitalize(worstMap.map)} ${worstMap.us}–${worstMap.them}`, cls: 'negative' })
-    }
-    if (maps.length >= 2 && closest && Math.abs(closest.diff) <= 2 && closest.map !== bestMap?.map && closest.map !== worstMap?.map) {
-      out.push({ text: `Close fight on ${capitalize(closest.map)} ${closest.us}–${closest.them}`, cls: '' })
-    }
+    if (Math.abs(overallDiff) >= 6) out.push({ text: `Round diff ${overallDiff > 0 ? '+' : ''}${overallDiff}`, cls: overallDiff > 0 ? 'positive' : 'negative' })
+    if (bestMap && bestMap.diff > 4) out.push({ text: `Strong on ${capitalize(bestMap.map)} ${bestMap.us}–${bestMap.them}`, cls: 'positive' })
+    if (worstMap && worstMap.diff < -4 && worstMap.map !== bestMap?.map) out.push({ text: `Lost ${capitalize(worstMap.map)} ${worstMap.us}–${worstMap.them}`, cls: 'negative' })
+    if (maps.length >= 2 && closest && Math.abs(closest.diff) <= 2 && closest.map !== bestMap?.map && closest.map !== worstMap?.map) out.push({ text: `Close fight on ${capitalize(closest.map)} ${closest.us}–${closest.them}`, cls: '' })
     return out.slice(0, 3)
   }
-
-  function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : '' }
-
   function aggregateScore(maps) {
     let mw = 0, ml = 0
     for (const m of maps ?? []) {
@@ -213,3 +208,81 @@ if (error) {
     `
   }).join('')
 }
+
+// ── Drawer open: fetch player-specific data + render body ─────
+let lastDataset = null  // { filter, vods, rowsAll, rowsCT, rowsT, demosById, demoToVod }
+
+async function openPlayerDrawer(player) {
+  if (!lastDataset) return
+  const { rowsAll, rowsCT, rowsT, demosById, demoToVod, filter } = lastDataset
+  const sid = player.steam_id
+
+  const myAll = rowsAll.filter(r => r.steam_id === sid)
+  const myCT  = rowsCT.filter(r  => r.steam_id === sid)
+  const myT   = rowsT.filter(r   => r.steam_id === sid)
+
+  const matches = myAll.length
+  const rounds  = myAll.reduce((s, r) => s + (r.rounds_played || 0), 0)
+
+  const recent = myAll
+    .map(r => {
+      const demo = demosById.get(r.demo_id)
+      const vod = demo ? demoToVod.get(r.demo_id) : null
+      return {
+        vod_id: vod?.id,
+        opponent: vod?.opponent ?? demo?.opponent_name ?? '—',
+        map: demo?.map ?? '—',
+        rating: r.rating,
+        result: demoResult(demo, vod),
+        played_at: demo?.played_at ?? null,
+      }
+    })
+    .sort((a, b) => String(b.played_at || '').localeCompare(String(a.played_at || '')))
+    .slice(0, 10)
+
+  drawer.open({
+    title: player.username,
+    subtitle: buildSubtitle(player, filter.window, matches, rounds),
+    body: buildPlayerDrawerBody({ rowsAll: myAll, rowsCT: myCT, rowsT: myT, recent }),
+  })
+
+  // Wire "View all-time" CTA inside empty-state body
+  const cta = document.getElementById('pd-view-alltime')
+  if (cta) {
+    cta.addEventListener('click', () => {
+      const f = JSON.parse(localStorage.getItem('vods:filter:v1') || '{}')
+      f.window = 'all'; f.tournamentsOnly = !!f.tournamentsOnly
+      localStorage.setItem('vods:filter:v1', JSON.stringify(f))
+      window.location.reload()
+    })
+  }
+}
+
+// ── Top-level: rebuild whole view on filter change ────────────
+async function rebuild(filter) {
+  const filteredVods = filterVods(filter)
+
+  await renderMatchList(filteredVods)
+  renderTeamStats(document.getElementById('top-stats'), document.getElementById('map-breakdown'), filteredVods)
+
+  const { rowsAll, rowsCT, rowsT, demosById } = await fetchPlayerRowsForVods(filteredVods)
+  const demoToVod = buildDemoToVodMap(filteredVods, demosById)
+
+  lastDataset = { filter, vods: filteredVods, rowsAll, rowsCT, rowsT, demosById, demoToVod }
+
+  renderRosterBand(document.getElementById('roster-band'), {
+    roster, rows: rowsAll, onPick: openPlayerDrawer,
+  })
+
+  // If the drawer is open, refresh its content with the new dataset
+  if (drawer.isOpen()) {
+    // Find the currently-open player by their displayed name (best effort).
+    const openName = document.querySelector('.player-drawer .pd-title')?.textContent
+    const player = roster.find(p => p.username === openName)
+    if (player && player.steam_id) openPlayerDrawer(player)
+    else drawer.close()
+  }
+}
+
+// Mount filter; mountFilter calls back synchronously on mount + on each change.
+mountFilter(document.getElementById('filter-slot'), (filter) => { rebuild(filter) })
