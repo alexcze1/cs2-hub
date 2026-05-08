@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script type="module">
+import { rankCandidates } from './roster-steam-backfill.js'
+
+function assert(cond, msg) {
+  if (!cond) { console.error('FAIL:', msg); return }
+  console.log('PASS:', msg)
+}
+
+const nickname = 'fl0m'
+const assignedSteamIds = new Set(['76561198000000001', '76561198000000002'])
+
+// Empty input
+assert(rankCandidates([], nickname, assignedSteamIds).length === 0, 'empty demos → []')
+
+// Filter: only rows whose name matches nickname (case-insensitive contains)
+{
+  const rows = [
+    { steam_id: '76561198000000010', name: 'fl0m' },
+    { steam_id: '76561198000000011', name: 'fl0m'  },
+    { steam_id: '76561198000000012', name: 'k0nfig' },
+  ]
+  const out = rankCandidates(rows, nickname, new Set())
+  assert(out.length === 2, 'matches nickname only')
+  assert(out[0].steam_id === '76561198000000010', 'first candidate is most-frequent steam_id')
+  assert(out[0].count === 1, 'count is 1 for unique appearance')
+}
+
+// Frequency ranking
+{
+  const rows = [
+    { steam_id: 'A', name: 'fl0m' },
+    { steam_id: 'A', name: 'fl0m' },
+    { steam_id: 'A', name: 'fl0m' },
+    { steam_id: 'B', name: 'fl0m' },
+  ]
+  const out = rankCandidates(rows, 'fl0m', new Set())
+  assert(out[0].steam_id === 'A' && out[0].count === 3, 'A ranks first with count 3')
+  assert(out[1].steam_id === 'B' && out[1].count === 1, 'B ranks second with count 1')
+}
+
+// Already-assigned steam_ids excluded
+{
+  const rows = [
+    { steam_id: '76561198000000001', name: 'fl0m' },  // assigned
+    { steam_id: '76561198000000099', name: 'fl0m' },
+  ]
+  const out = rankCandidates(rows, 'fl0m', assignedSteamIds)
+  assert(out.length === 1, 'assigned steam_id excluded')
+  assert(out[0].steam_id === '76561198000000099', 'remaining candidate returned')
+}
+
+// Case-insensitive nickname match
+{
+  const rows = [{ steam_id: 'X', name: 'FL0M' }]
+  const out = rankCandidates(rows, 'fl0m', new Set())
+  assert(out.length === 1, 'case-insensitive match')
+}
+
+// Substring match (e.g., "MIDROUND fl0m")
+{
+  const rows = [{ steam_id: 'X', name: 'MIDROUND fl0m' }]
+  const out = rankCandidates(rows, 'fl0m', new Set())
+  assert(out.length === 1, 'substring match works')
+}
+
+// Null/empty name rows are dropped
+{
+  const rows = [
+    { steam_id: 'X', name: null },
+    { steam_id: 'Y', name: '' },
+    { steam_id: 'Z', name: 'fl0m' },
+  ]
+  const out = rankCandidates(rows, 'fl0m', new Set())
+  assert(out.length === 1 && out[0].steam_id === 'Z', 'null/empty names dropped')
+}
+</script>
+</body>
+</html>
