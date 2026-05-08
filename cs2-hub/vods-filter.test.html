@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<body>
+<div id="mount"></div>
+<script type="module">
+import { mountFilter, FILTER_KEY, defaultFilter } from './vods-filter.js'
+
+function assert(cond, msg) {
+  if (!cond) { console.error('FAIL:', msg); return }
+  console.log('PASS:', msg)
+}
+
+// Default state
+{
+  localStorage.removeItem(FILTER_KEY)
+  const f = defaultFilter()
+  assert(f.window === '10', 'default window = 10')
+  assert(f.tournamentsOnly === false, 'default tournamentsOnly = false')
+}
+
+// Mount + click pill → emits new state, persists to localStorage
+{
+  localStorage.removeItem(FILTER_KEY)
+  const root = document.getElementById('mount')
+  root.innerHTML = ''
+  const states = []
+  mountFilter(root, (s) => states.push(s))
+
+  const pill90 = root.querySelector('[data-window="90d"]')
+  pill90.click()
+
+  assert(states.length === 2, 'mount emission + click = two emissions')
+  assert(states[1].window === '90d', 'state has window=90d')
+  const stored = JSON.parse(localStorage.getItem(FILTER_KEY))
+  assert(stored.window === '90d', 'persisted to localStorage')
+}
+
+// Toggle tournamentsOnly
+{
+  localStorage.removeItem(FILTER_KEY)
+  const root = document.getElementById('mount')
+  root.innerHTML = ''
+  const states = []
+  mountFilter(root, (s) => states.push(s))
+
+  const toggle = root.querySelector('#vods-tournaments-toggle')
+  toggle.click()
+
+  assert(states.length === 2, 'mount emission + first toggle = two emissions')
+  assert(states[1].tournamentsOnly === true, 'tournamentsOnly toggled on')
+  toggle.click()
+  assert(states.length === 3, 'mount emission + two toggles = three emissions')
+  assert(states[2].tournamentsOnly === false, 'toggled back off')
+}
+
+// Mount restores from localStorage
+{
+  localStorage.setItem(FILTER_KEY, JSON.stringify({ window: '30d', tournamentsOnly: true }))
+  const root = document.getElementById('mount')
+  root.innerHTML = ''
+  let initial = null
+  mountFilter(root, (s) => { if (initial == null) initial = s })
+
+  // Initial callback should fire on mount with restored state
+  assert(initial?.window === '30d', 'restored window from storage')
+  assert(initial?.tournamentsOnly === true, 'restored tournamentsOnly from storage')
+  assert(root.querySelector('[data-window="30d"]').classList.contains('is-active'), '30d pill is active')
+}
+</script>
+</body>
+</html>
