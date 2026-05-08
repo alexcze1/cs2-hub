@@ -4,13 +4,9 @@
 // Scoreboard tab inside the demo viewer.
 
 import { supabase } from './supabase.js'
+import { isCoach } from './demo-player-filters.js'
 
 const SIDE_KEY = 'scoreboard:side'
-
-// CS2 coach-slot players have names starting with "COACH" and sit at spawn
-// dying every round. Defensive filter for demos parsed before the backend
-// scrub was added.
-const isCoach = (name) => /^\s*COACH/i.test(String(name || ''))
 
 export async function mountScoreboard(root, demoId) {
   if (!root || !demoId) return
