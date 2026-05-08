@@ -6,7 +6,7 @@
 import { aggregateByPlayer } from './roster-stats-aggregate.js'
 
 const ROLE_ORDER = { IGL: 0, Entry: 1, AWPer: 2, Lurker: 3, Support: 4 }
-const STAFF_ROLES = new Set(['Coach', 'Manager'])
+const STAFF_ROLES = new Set(['Coach', 'Manager', 'Bench', 'Unassigned'])
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 function fmtRating(r) { return r == null ? '—' : r.toFixed(2) }
@@ -40,15 +40,6 @@ export function renderRosterBand(root, { roster, rows, onPick }) {
     const agg = hasSteam ? aggMap.get(p.steam_id) : null
     const hasData = !!(agg && agg.matches > 0)
 
-    if (!hasSteam) {
-      return `
-        <button type="button" class="rb-card rb-card-disabled" data-action="add-steam" data-id="${esc(p.id)}">
-          <div class="rb-name">${esc(p.username)}</div>
-          <div class="rb-role">${esc(p.role || 'Player')}</div>
-          <div class="rb-cta">Add Steam ID →</div>
-        </button>`
-    }
-
     return `
       <button type="button" class="rb-card ${hasData ? '' : 'rb-card-empty'}" data-action="open" data-id="${esc(p.id)}">
         <div class="rb-name">${esc(p.username)}</div>
@@ -65,11 +56,6 @@ export function renderRosterBand(root, { roster, rows, onPick }) {
     btn.addEventListener('click', () => {
       const player = sorted.find(p => p.id === btn.dataset.id)
       if (player) onPick(player)
-    })
-  }
-  for (const btn of root.querySelectorAll('[data-action="add-steam"]')) {
-    btn.addEventListener('click', () => {
-      window.location.href = `roster.html?edit=${encodeURIComponent(btn.dataset.id)}`
     })
   }
 }
