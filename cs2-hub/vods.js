@@ -214,6 +214,11 @@ let lastDataset = null  // { filter, vods, rowsAll, rowsCT, rowsT, demosById, de
 
 async function openPlayerDrawer(player) {
   if (!lastDataset) return
+  // Toggle: clicking the currently-open player closes the drawer.
+  if (drawer.isOpen() && document.querySelector('.player-drawer .pd-title')?.textContent === player.username) {
+    drawer.close()
+    return
+  }
   const { rowsAll, rowsCT, rowsT, demosById, demoToVod, filter } = lastDataset
   const sid = player.steam_id
 
