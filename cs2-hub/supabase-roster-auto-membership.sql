@@ -80,6 +80,7 @@ create trigger trg_team_member_roster_cleanup
 
 -- ── 5. Owner-only writes on roster; any member can read ──
 drop policy if exists "team_roster" on roster;
+drop policy if exists "Team members access roster" on roster;
 drop policy if exists "roster_select_member" on roster;
 drop policy if exists "roster_update_owner" on roster;
 drop policy if exists "roster_insert_owner" on roster;
