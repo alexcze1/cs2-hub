@@ -211,3 +211,23 @@ document.getElementById('suggest-steam-btn').addEventListener('click', async () 
 })
 
 loadRoster()
+
+// Deep-link support: ?edit=<rosterId> opens the modal directly.
+// Used by the roster band's "Add Steam ID →" disabled card.
+{
+  const params = new URLSearchParams(window.location.search)
+  const editId = params.get('edit')
+  if (editId) {
+    // Wait for loadRoster() to finish populating allPlayers before opening.
+    const wait = setInterval(() => {
+      if (allPlayers.length && allPlayers.find(p => p.id === editId)) {
+        clearInterval(wait)
+        openModal(editId)
+        // Focus the Steam ID field for fast entry.
+        document.getElementById('f-steam-id').focus()
+      }
+    }, 50)
+    // Give up after 5 seconds so the page isn't permanently polling.
+    setTimeout(() => clearInterval(wait), 5000)
+  }
+}
