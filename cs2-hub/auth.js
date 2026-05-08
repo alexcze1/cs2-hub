@@ -41,3 +41,17 @@ export async function getUser() {
 export function isAdmin(user) {
   return user?.user_metadata?.is_admin === true
 }
+
+export async function isTeamOwner(teamId) {
+  if (!teamId) return false
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return false
+  const { data, error } = await supabase
+    .from('team_members')
+    .select('role')
+    .eq('team_id', teamId)
+    .eq('user_id', session.user.id)
+    .maybeSingle()
+  if (error) return false
+  return data?.role === 'owner'
+}

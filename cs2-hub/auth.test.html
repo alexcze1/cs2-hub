@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>auth.js tests</title></head>
+<body>
+<pre id="out"></pre>
+<script type="module">
+import { isTeamOwner } from './auth.js'
+
+const log = (msg) => { document.getElementById('out').textContent += msg + '\n' }
+
+async function test_signature() {
+  if (typeof isTeamOwner !== 'function') {
+    log('FAIL: isTeamOwner is not a function')
+    return
+  }
+  const result = isTeamOwner('00000000-0000-0000-0000-000000000000')
+  if (!(result instanceof Promise)) {
+    log('FAIL: isTeamOwner did not return a Promise')
+    return
+  }
+  try {
+    const v = await result
+    if (typeof v !== 'boolean') {
+      log('FAIL: isTeamOwner did not resolve to boolean, got ' + typeof v)
+      return
+    }
+    log('PASS: isTeamOwner is async, returns boolean')
+  } catch (e) {
+    log('FAIL: isTeamOwner threw: ' + e.message)
+  }
+}
+
+async function test_returns_false_when_not_owner() {
+  // No active session in test → query returns no rows → false
+  const v = await isTeamOwner('00000000-0000-0000-0000-000000000000')
+  if (v === false) log('PASS: returns false when not owner / no session')
+  else log('FAIL: expected false, got ' + v)
+}
+
+await test_signature()
+await test_returns_false_when_not_owner()
+</script>
+</body>
+</html>
