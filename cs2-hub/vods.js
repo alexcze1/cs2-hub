@@ -6,7 +6,7 @@ import { mountFilter } from './vods-filter.js'
 import { renderTeamStats } from './vods-team-stats.js'
 import { renderRosterBand } from './roster-stats.js'
 import { mountDrawer } from './player-drawer.js'
-import { buildPlayerDrawerBody, buildSubtitle, windowLabel } from './roster-stats-render.js'
+import { buildPlayerDrawerBody, buildSubtitle } from './roster-stats-render.js'
 import { applyTimeWindow } from './roster-stats-aggregate.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
