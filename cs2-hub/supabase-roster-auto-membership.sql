@@ -77,3 +77,33 @@ drop trigger if exists trg_team_member_roster_cleanup on team_members;
 create trigger trg_team_member_roster_cleanup
   after delete on team_members
   for each row execute function fn_team_member_roster_cleanup();
+
+-- ── 5. Owner-only writes on roster; any member can read ──
+drop policy if exists "team_roster" on roster;
+drop policy if exists "roster_select_member" on roster;
+drop policy if exists "roster_update_owner" on roster;
+drop policy if exists "roster_insert_owner" on roster;
+drop policy if exists "roster_delete_owner" on roster;
+
+create policy "roster_select_member" on roster for select to authenticated
+  using (team_id in (
+    select team_id from team_members where user_id = auth.uid()
+  ));
+
+create policy "roster_update_owner" on roster for update to authenticated
+  using (team_id in (
+    select team_id from team_members where user_id = auth.uid() and role = 'owner'
+  ))
+  with check (team_id in (
+    select team_id from team_members where user_id = auth.uid() and role = 'owner'
+  ));
+
+create policy "roster_insert_owner" on roster for insert to authenticated
+  with check (team_id in (
+    select team_id from team_members where user_id = auth.uid() and role = 'owner'
+  ));
+
+create policy "roster_delete_owner" on roster for delete to authenticated
+  using (team_id in (
+    select team_id from team_members where user_id = auth.uid() and role = 'owner'
+  ));
