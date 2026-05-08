@@ -3,6 +3,7 @@ import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
 import { attachPlayerAutocomplete, getPlayerImage, playerAvatarEl } from './player-autocomplete.js'
+import { rankCandidates } from './roster-steam-backfill.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -105,6 +106,18 @@ document.getElementById('save-player-btn').addEventListener('click', async () =>
     errEl.style.display = 'block'; return
   }
 
+  // Soft warning: same Steam ID assigned to another roster row?
+  const dup = steam_id ? allPlayers.find(p => p.steam_id === steam_id && p.id !== editingId) : null
+  const warnEl = document.getElementById('steam-warning')
+  if (dup && !warnEl.dataset.confirmed) {
+    warnEl.style.display = 'block'
+    warnEl.textContent = `This Steam ID is already assigned to ${dup.username}. Click Save again to confirm.`
+    warnEl.dataset.confirmed = '1'
+    return
+  }
+  warnEl.style.display = 'none'
+  delete warnEl.dataset.confirmed
+
   const payload = { username, nickname, role, steam_id, team_id: getTeamId() }
   let error
   if (editingId) {
@@ -122,6 +135,82 @@ document.getElementById('delete-player-btn').addEventListener('click', async () 
   const { error } = await supabase.from('roster').delete().eq('id', editingId)
   if (error) { document.getElementById('modal-error').textContent = error.message; document.getElementById('modal-error').style.display = 'block'; return }
   closeModal(); toast('Player removed'); loadRoster()
+})
+
+function escapeHtml(s) {
+  const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML
+}
+
+document.getElementById('suggest-steam-btn').addEventListener('click', async () => {
+  const nickname = document.getElementById('f-nickname').value.trim()
+  const resultsEl = document.getElementById('suggest-results')
+  if (!nickname) {
+    resultsEl.style.display = 'block'
+    resultsEl.innerHTML = `<div style="font-size:12px;color:var(--muted)">Enter a nickname above first.</div>`
+    return
+  }
+
+  // Fetch recent demos for this team and their players
+  const teamId = getTeamId()
+  const { data: demos, error: derr } = await supabase
+    .from('demos')
+    .select('id')
+    .eq('team_id', teamId)
+    .eq('status', 'ready')
+    .order('created_at', { ascending: false })
+    .limit(30)
+  if (derr) {
+    resultsEl.style.display = 'block'
+    resultsEl.innerHTML = `<div style="font-size:12px;color:var(--danger)">Failed to load demos: ${escapeHtml(derr.message)}</div>`
+    return
+  }
+  const demoIds = (demos ?? []).map(d => d.id)
+  if (!demoIds.length) {
+    resultsEl.style.display = 'block'
+    resultsEl.innerHTML = `<div style="font-size:12px;color:var(--muted)">No demos uploaded yet.</div>`
+    return
+  }
+
+  const { data: rows, error: perr } = await supabase
+    .from('demo_players')
+    .select('steam_id,name')
+    .in('demo_id', demoIds)
+    .eq('side', 'all')
+  if (perr) {
+    resultsEl.style.display = 'block'
+    resultsEl.innerHTML = `<div style="font-size:12px;color:var(--danger)">Failed to load players: ${escapeHtml(perr.message)}</div>`
+    return
+  }
+
+  // Exclude steam_ids already assigned to other roster rows (not this one)
+  const assigned = new Set(
+    allPlayers
+      .filter(p => p.steam_id && p.id !== editingId)
+      .map(p => p.steam_id)
+  )
+  const candidates = rankCandidates(rows ?? [], nickname, assigned).slice(0, 5)
+
+  if (!candidates.length) {
+    resultsEl.style.display = 'block'
+    resultsEl.innerHTML = `<div style="font-size:12px;color:var(--muted)">No matches in last 30 demos.</div>`
+    return
+  }
+
+  resultsEl.style.display = 'block'
+  resultsEl.innerHTML = candidates.map(c => `
+    <button type="button" class="btn btn-ghost btn-sm" data-pick="${escapeHtml(c.steam_id)}"
+            style="display:flex;justify-content:space-between;width:100%;margin-bottom:4px;text-align:left">
+      <span>${escapeHtml(c.name)} <span style="color:var(--muted)">·</span> <code style="font-family:monospace;font-size:11px">${escapeHtml(c.steam_id)}</code></span>
+      <span style="color:var(--muted);font-size:11px">${c.count} demo${c.count === 1 ? '' : 's'}</span>
+    </button>
+  `).join('')
+
+  resultsEl.querySelectorAll('[data-pick]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('f-steam-id').value = btn.dataset.pick
+      resultsEl.style.display = 'none'
+    })
+  })
 })
 
 loadRoster()
