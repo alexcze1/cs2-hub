@@ -58,6 +58,9 @@ function openModal(id = null) {
   document.getElementById('f-username').value = p?.username ?? ''
   document.getElementById('f-nickname').value = p?.nickname ?? ''
   document.getElementById('f-role').value     = p?.role     ?? ''
+  document.getElementById('f-steam-id').value = p?.steam_id ?? ''
+  document.getElementById('suggest-results').style.display = 'none'
+  document.getElementById('steam-warning').style.display = 'none'
   document.getElementById('delete-player-btn').style.display = id ? 'block' : 'none'
   document.getElementById('modal-error').style.display = 'none'
   // Update avatar preview when editing
@@ -93,10 +96,16 @@ document.getElementById('save-player-btn').addEventListener('click', async () =>
   const username = document.getElementById('f-username').value.trim()
   const nickname = document.getElementById('f-nickname').value.trim() || null
   const role     = document.getElementById('f-role').value || null
+  const steamRaw = document.getElementById('f-steam-id').value.trim()
+  const steam_id = steamRaw === '' ? null : steamRaw
   const errEl    = document.getElementById('modal-error')
   if (!username) { errEl.textContent = 'Display name is required.'; errEl.style.display = 'block'; return }
+  if (steam_id && !/^7656119\d{10}$/.test(steam_id)) {
+    errEl.textContent = 'Steam ID must be a 17-digit Steam64 starting with 7656119.'
+    errEl.style.display = 'block'; return
+  }
 
-  const payload = { username, nickname, role, team_id: getTeamId() }
+  const payload = { username, nickname, role, steam_id, team_id: getTeamId() }
   let error
   if (editingId) {
     ;({ error } = await supabase.from('roster').update(payload).eq('id', editingId))
