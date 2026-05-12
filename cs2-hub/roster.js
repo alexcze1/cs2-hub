@@ -67,6 +67,18 @@ async function loadRoster() {
       ? `<button class="btn btn-ghost btn-sm" data-remove="${p.id}" data-is-ghost="${!!p.is_ghost}" style="position:absolute;top:8px;right:8px;color:var(--danger);font-size:11px;padding:2px 6px">×</button>`
       : ''
 
+    const steamIdControl = isOwner
+      ? `<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;align-items:stretch">
+           <label style="font-size:10px;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase">Steam ID</label>
+           <input type="text" inputmode="numeric" maxlength="17" data-steamid-for="${p.id}"
+                  value="${esc(p.steam_id || '')}" placeholder="7656119…"
+                  style="width:100%;background:var(--surface-low);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:11px;font-family:monospace;text-align:center" />
+           <span class="steamid-status" data-steamid-status="${p.id}" style="font-size:10px;color:var(--muted);min-height:12px"></span>
+         </div>`
+      : (p.steam_id
+          ? `<div style="margin-top:6px;font-size:10px;color:var(--muted);font-family:monospace">${esc(p.steam_id)}</div>`
+          : '')
+
     return `
       <div class="player-card" style="position:relative;border-top:3px solid ${roleColor}" data-player-id="${p.id}">
         ${removeBtn}
@@ -75,6 +87,7 @@ async function loadRoster() {
         ${p.username && p.nickname ? `<div class="player-name">${esc(p.username)}</div>` : ''}
         ${roleControl}
         <div>${statusBadge}</div>
+        ${steamIdControl}
       </div>
     `
   }).join('')
@@ -86,6 +99,13 @@ async function loadRoster() {
     for (const btn of document.querySelectorAll('[data-remove]')) {
       btn.addEventListener('click', () => onRemove(btn.dataset.remove, btn.dataset.isGhost === 'true'))
     }
+    for (const inp of document.querySelectorAll('[data-steamid-for]')) {
+      const commit = () => onSteamIdChange(inp.dataset.steamidFor, inp.value, inp)
+      inp.addEventListener('blur', commit)
+      inp.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); inp.blur() }
+      })
+    }
   }
 }
 
@@ -95,6 +115,36 @@ async function onRoleChange(playerId, newRole) {
   toast('Role updated')
   const p = allPlayers.find(x => x.id === playerId)
   if (p) p.role = newRole
+}
+
+async function onSteamIdChange(playerId, rawValue, inputEl) {
+  const p = allPlayers.find(x => x.id === playerId)
+  if (!p) return
+  const trimmed = (rawValue || '').trim()
+  const statusEl = document.querySelector(`[data-steamid-status="${playerId}"]`)
+  const setStatus = (msg, color) => {
+    if (statusEl) { statusEl.textContent = msg; statusEl.style.color = color }
+  }
+
+  if (trimmed === (p.steam_id || '')) { setStatus('', 'var(--muted)'); return }
+
+  const newVal = trimmed === '' ? null : trimmed
+  if (newVal !== null && !/^7656119\d{10}$/.test(newVal)) {
+    setStatus('Must be a 17-digit Steam64 starting with 7656119.', 'var(--danger)')
+    inputEl?.focus()
+    return
+  }
+
+  setStatus('Saving…', 'var(--muted)')
+  const { error } = await supabase.from('roster').update({ steam_id: newVal }).eq('id', playerId)
+  if (error) {
+    setStatus(error.message, 'var(--danger)')
+    toast(`Failed: ${error.message}`)
+    return
+  }
+  p.steam_id = newVal
+  setStatus('Saved', 'var(--success)')
+  toast('Steam ID updated')
 }
 
 async function onRemove(playerId, isGhost) {
