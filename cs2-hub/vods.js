@@ -21,9 +21,10 @@ const teamId = getTeamId()
 const drawer = mountDrawer()
 
 // ── Load all data once ──────────────────────────────────────────
-const [vodsRes, rosterRes] = await Promise.all([
+const [vodsRes, rosterRes, teamRes] = await Promise.all([
   supabase.from('vods').select('*').eq('team_id', teamId).eq('dismissed', false).order('match_date', { ascending: false }),
   supabase.from('roster').select('*').eq('team_id', teamId),
+  supabase.from('teams').select('name').eq('id', teamId).maybeSingle(),
 ])
 if (vodsRes.error) {
   document.getElementById('vods-list').innerHTML = `<div class="empty-state"><h3>Failed to load matches</h3><p>${esc(vodsRes.error.message)}</p></div>`
@@ -31,7 +32,24 @@ if (vodsRes.error) {
 }
 const allVods   = vodsRes.data ?? []
 const roster    = rosterRes.data ?? []
+const ourTeamName = teamRes.data?.name ?? ''
 const teamSteamIds = new Set(roster.map(p => p.steam_id).filter(Boolean))
+
+// Derive opponent name from a demo's ct/t team names. Whichever side isn't
+// our team is the opponent. If neither matches, show both sides so at least
+// some names appear in the UI.
+function demoOpponentName(demo) {
+  const ct = (demo?.ct_team_name || '').trim()
+  const t  = (demo?.t_team_name  || '').trim()
+  const us = (ourTeamName || '').trim().toLowerCase()
+  if (!ct && !t) return null
+  const ctIsUs = !!ct && ct.toLowerCase() === us
+  const tIsUs  = !!t  && t.toLowerCase()  === us
+  if (ctIsUs && !tIsUs) return t || null
+  if (tIsUs  && !ctIsUs) return ct || null
+  if (ct && t) return `${ct} vs ${t}`
+  return ct || t || null
+}
 
 if (!allVods.length) {
   document.getElementById('vods-list').innerHTML = `<div class="empty-state"><h3>No matches yet</h3><p>Add your first result above.</p></div>`
@@ -234,11 +252,11 @@ async function openPlayerDrawer(player) {
       const vod = demo ? demoToVod.get(r.demo_id) : null
       return {
         vod_id: vod?.id,
-        opponent: vod?.opponent ?? demo?.opponent_name ?? '—',
+        opponent: vod?.opponent ?? demoOpponentName(demo) ?? demo?.opponent_name ?? '—',
         map: demo?.map ?? '—',
         rating: r.rating,
         result: demoResult(demo, vod),
-        played_at: demo?.played_at ?? null,
+        played_at: demo?.played_at ?? demo?.created_at ?? null,
       }
     })
     .sort((a, b) => String(b.played_at || '').localeCompare(String(a.played_at || '')))
