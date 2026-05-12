@@ -67,13 +67,15 @@ async function fetchPlayerRowsForVods(filteredVods) {
   const maxDate = widenDate(dates[dates.length - 1], 1)
   console.log('[stats-debug] date window:', minDate, '→', maxDate)
 
+  // Window on created_at: played_at is parser-derived and frequently null
+  // for older / failed-parse demos. created_at is always set on insert.
   const { data: demos, error: e1 } = await supabase
     .from('demos')
     .select('id,series_id,map,played_at,opponent_name,ct_team_name,t_team_name,created_at,status,team_id')
     .eq('team_id', teamId)
     .eq('status', 'ready')
-    .gte('played_at', `${minDate}T00:00:00`)
-    .lte('played_at', `${maxDate}T23:59:59`)
+    .gte('created_at', `${minDate}T00:00:00`)
+    .lte('created_at', `${maxDate}T23:59:59`)
   if (e1) throw e1
 
   const allDemos = demos || []
