@@ -40,9 +40,10 @@ if (!allVods.length) {
 }
 
 // ── Resolve demo set + demo_players for the filtered vod set ────
-// Match demos to vods via opponent + date proximity (same logic the demo→vod
-// auto-fill uses). vod.demo_link is unreliable: never set for series demos and
-// often a YouTube/HLTV URL when set manually.
+// Stats are tied to demos by steam_id, not to vods. We use the filtered vod
+// set only to derive a date window; demos in that window contribute stats
+// regardless of whether they link to a logged vod. The demo→vod map is a
+// best-effort attachment for the drawer's recent-matches W/L tags + links.
 function widenDate(d, delta) {
   const dt = new Date(`${d}T00:00:00`)
   dt.setDate(dt.getDate() + delta)
@@ -67,18 +68,17 @@ async function fetchPlayerRowsForVods(filteredVods) {
     .lte('played_at', `${maxDate}T23:59:59`)
   if (e1) throw e1
 
-  const demoToVod = linkDemosToVods(demos || [], filteredVods)
-  const linkedDemos = (demos || []).filter(d => demoToVod.has(d.id))
-  const demoIds = linkedDemos.map(d => d.id)
-  const demosById = new Map(linkedDemos.map(d => [d.id, d]))
+  const allDemos = demos || []
+  const demosById = new Map(allDemos.map(d => [d.id, d]))
+  const demoToVod = linkDemosToVods(allDemos, filteredVods)
 
-  if (!demoIds.length) return { rowsAll: [], rowsCT: [], rowsT: [], demosById, demoToVod }
+  if (!allDemos.length) return { rowsAll: [], rowsCT: [], rowsT: [], demosById, demoToVod }
 
   const teamSteamIdList = [...teamSteamIds]
   const { data: rows, error: e3 } = await supabase
     .from('demo_players')
     .select('*')
-    .in('demo_id', demoIds)
+    .in('demo_id', allDemos.map(d => d.id))
     .in('steam_id', teamSteamIdList)
   if (e3) throw e3
 
