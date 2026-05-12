@@ -8,6 +8,7 @@ import { renderRosterBand } from './roster-stats.js'
 import { mountDrawer } from './player-drawer.js'
 import { buildPlayerDrawerBody, buildSubtitle } from './roster-stats-render.js'
 import { applyTimeWindow } from './roster-stats-aggregate.js'
+import { linkDemosToVods } from './auto-fill-vod.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : '' }
@@ -39,41 +40,40 @@ if (!allVods.length) {
 }
 
 // ── Resolve demo set + demo_players for the filtered vod set ────
-async function fetchPlayerRowsForVods(filteredVods) {
-  // Step 1: extract seed demo IDs from vod.demo_link strings.
-  const seedDemoIds = filteredVods
-    .map(v => {
-      const m = /id=([0-9a-fA-F-]{36})/.exec(v.demo_link || '')
-      return m ? m[1] : null
-    })
-    .filter(Boolean)
-  if (!seedDemoIds.length) return { rowsAll: [], rowsCT: [], rowsT: [], demosById: new Map() }
+// Match demos to vods via opponent + date proximity (same logic the demo→vod
+// auto-fill uses). vod.demo_link is unreliable: never set for series demos and
+// often a YouTube/HLTV URL when set manually.
+function widenDate(d, delta) {
+  const dt = new Date(`${d}T00:00:00`)
+  dt.setDate(dt.getDate() + delta)
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+}
 
-  // Step 2: load seed demo rows (for series_id + map + played_at).
-  const { data: seedDemos, error: e1 } = await supabase
+async function fetchPlayerRowsForVods(filteredVods) {
+  const empty = { rowsAll: [], rowsCT: [], rowsT: [], demosById: new Map(), demoToVod: new Map() }
+  if (!filteredVods?.length || !teamSteamIds.size) return empty
+
+  const dates = filteredVods.map(v => v.match_date).filter(Boolean).sort()
+  if (!dates.length) return empty
+  const minDate = widenDate(dates[0], -1)
+  const maxDate = widenDate(dates[dates.length - 1], 1)
+
+  const { data: demos, error: e1 } = await supabase
     .from('demos')
-    .select('id,series_id,map,played_at,opponent_name')
-    .in('id', seedDemoIds)
+    .select('id,series_id,map,played_at,opponent_name,ct_team_name,t_team_name,created_at')
+    .eq('team_id', teamId)
+    .eq('status', 'ready')
+    .gte('played_at', `${minDate}T00:00:00`)
+    .lte('played_at', `${maxDate}T23:59:59`)
   if (e1) throw e1
 
-  // Step 3: expand series → sibling demos.
-  const seriesIds = [...new Set((seedDemos || []).map(d => d.series_id).filter(Boolean))]
-  let allDemos = seedDemos || []
-  if (seriesIds.length) {
-    const { data: siblings, error: e2 } = await supabase
-      .from('demos')
-      .select('id,series_id,map,played_at,opponent_name')
-      .in('series_id', seriesIds)
-    if (e2) throw e2
-    const known = new Set(allDemos.map(d => d.id))
-    for (const d of siblings || []) if (!known.has(d.id)) allDemos.push(d)
-  }
-  const demoIds = allDemos.map(d => d.id)
-  const demosById = new Map(allDemos.map(d => [d.id, d]))
+  const demoToVod = linkDemosToVods(demos || [], filteredVods)
+  const linkedDemos = (demos || []).filter(d => demoToVod.has(d.id))
+  const demoIds = linkedDemos.map(d => d.id)
+  const demosById = new Map(linkedDemos.map(d => [d.id, d]))
 
-  if (!teamSteamIds.size || !demoIds.length) return { rowsAll: [], rowsCT: [], rowsT: [], demosById }
+  if (!demoIds.length) return { rowsAll: [], rowsCT: [], rowsT: [], demosById, demoToVod }
 
-  // Step 4: load demo_players for our roster's steam_ids only.
   const teamSteamIdList = [...teamSteamIds]
   const { data: rows, error: e3 } = await supabase
     .from('demo_players')
@@ -82,7 +82,6 @@ async function fetchPlayerRowsForVods(filteredVods) {
     .in('steam_id', teamSteamIdList)
   if (e3) throw e3
 
-  // Attach demos.map to each row for per-map aggregation.
   for (const r of rows || []) {
     const d = demosById.get(r.demo_id)
     r.map = d?.map ?? null
@@ -90,36 +89,13 @@ async function fetchPlayerRowsForVods(filteredVods) {
   const rowsAll = (rows || []).filter(r => r.side === 'all')
   const rowsCT  = (rows || []).filter(r => r.side === 'ct')
   const rowsT   = (rows || []).filter(r => r.side === 't')
-  return { rowsAll, rowsCT, rowsT, demosById }
+  return { rowsAll, rowsCT, rowsT, demosById, demoToVod }
 }
 
 function filterVods(filter) {
   let pool = allVods
   if (filter.tournamentsOnly) pool = pool.filter(v => v.match_type === 'tournament')
   return applyTimeWindow(pool, filter.window)
-}
-
-// Map a demo back to its vod by extracting the demo_id from vod.demo_link
-// AND scanning for siblings via series_id. Used to produce W/L for the
-// drawer's recent-matches section.
-function buildDemoToVodMap(filteredVods, demosById) {
-  const seedToVod = new Map() // demo_id → vod
-  for (const v of filteredVods) {
-    const m = /id=([0-9a-fA-F-]{36})/.exec(v.demo_link || '')
-    if (m) seedToVod.set(m[1], v)
-  }
-  const seriesToVod = new Map() // series_id → vod
-  for (const [demoId, v] of seedToVod) {
-    const d = demosById.get(demoId)
-    if (d?.series_id) seriesToVod.set(d.series_id, v)
-  }
-  // Now build demo_id → vod for every demo
-  const demoToVod = new Map()
-  for (const [demoId, d] of demosById) {
-    if (seedToVod.has(demoId)) demoToVod.set(demoId, seedToVod.get(demoId))
-    else if (d.series_id && seriesToVod.has(d.series_id)) demoToVod.set(demoId, seriesToVod.get(d.series_id))
-  }
-  return demoToVod
 }
 
 // W/L for a single demo: derived from per-map vod.maps[].score_us/score_them
@@ -270,8 +246,7 @@ async function rebuild(filter) {
   await renderMatchList(filteredVods)
   renderTeamStats(document.getElementById('top-stats'), document.getElementById('map-breakdown'), filteredVods)
 
-  const { rowsAll, rowsCT, rowsT, demosById } = await fetchPlayerRowsForVods(filteredVods)
-  const demoToVod = buildDemoToVodMap(filteredVods, demosById)
+  const { rowsAll, rowsCT, rowsT, demosById, demoToVod } = await fetchPlayerRowsForVods(filteredVods)
 
   lastDataset = { filter, vods: filteredVods, rowsAll, rowsCT, rowsT, demosById, demoToVod }
 

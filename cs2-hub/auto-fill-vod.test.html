@@ -10,6 +10,7 @@ import {
   pickBestVod,
   scoresFromDemo,
   computeVodPatch,
+  linkDemosToVods,
 } from './auto-fill-vod.js'
 
 function assert(condition, msg) {
@@ -316,6 +317,46 @@ assert(normMap('') === '', 'normMap: empty → ""')
   }
   const p = computeVodPatch(demo, vod)
   assert(p.maps[0].map === 'nuke', 'empty-named slot stamped with stripped map name')
+}
+
+// ---- linkDemosToVods ----
+{
+  const out = linkDemosToVods([], [])
+  assert(out instanceof Map && out.size === 0, 'linkDemosToVods: empty inputs → empty Map')
+}
+{
+  const demos = [{ id: 'd1', played_at: '2026-05-04T18:00:00', ct_team_name: 'NaVi', t_team_name: 'Astralis' }]
+  const vods  = [{ id: 'v1', opponent: 'Astralis', match_date: '2026-05-04', maps: [] }]
+  const out = linkDemosToVods(demos, vods)
+  assert(out.size === 1 && out.get('d1')?.id === 'v1', 'links one demo to its matching vod')
+}
+{
+  const demos = [{ id: 'd1', played_at: '2026-05-04T18:00:00', ct_team_name: 'NaVi', t_team_name: 'Astralis' }]
+  const vods  = [{ id: 'v1', opponent: 'Vitality', match_date: '2026-05-04', maps: [] }]
+  const out = linkDemosToVods(demos, vods)
+  assert(out.size === 0, 'unmatched demo not in map')
+}
+{
+  // BO3 series: 3 demos same opponent + date all link to the same vod
+  const demos = [
+    { id: 'd1', played_at: '2026-05-04T18:00:00', ct_team_name: 'NaVi', t_team_name: 'Astralis', map: 'mirage' },
+    { id: 'd2', played_at: '2026-05-04T19:00:00', ct_team_name: 'Astralis', t_team_name: 'NaVi', map: 'inferno' },
+    { id: 'd3', played_at: '2026-05-04T20:00:00', ct_team_name: 'NaVi', t_team_name: 'Astralis', map: 'nuke' },
+  ]
+  const vods = [{ id: 'v1', opponent: 'Astralis', match_date: '2026-05-04', maps: [] }]
+  const out = linkDemosToVods(demos, vods)
+  assert(out.size === 3 && out.get('d1')?.id === 'v1' && out.get('d2')?.id === 'v1' && out.get('d3')?.id === 'v1',
+    'BO3 series: all sibling demos link to same vod')
+}
+{
+  // Mixed: one matched, one not
+  const demos = [
+    { id: 'd1', played_at: '2026-05-04T18:00:00', ct_team_name: 'NaVi', t_team_name: 'Astralis' },
+    { id: 'd2', played_at: '2026-05-04T18:00:00', ct_team_name: 'NaVi', t_team_name: 'Vitality' },
+  ]
+  const vods = [{ id: 'v1', opponent: 'Astralis', match_date: '2026-05-04', maps: [] }]
+  const out = linkDemosToVods(demos, vods)
+  assert(out.size === 1 && out.has('d1') && !out.has('d2'), 'only matched demos appear in map')
 }
 
 console.log('Tasks 1-4 tests done')

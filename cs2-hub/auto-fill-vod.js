@@ -105,6 +105,20 @@ export function scoresFromDemo(demo, opponentName) {
   return null
 }
 
+// Build a Map<demo_id, vod> by running each demo through findCandidateVods +
+// pickBestVod. Used by the Results & Review page to attach demo_players rows
+// to vods regardless of whether vod.demo_link was ever set — most series demos
+// never get a demo_link, and free-form URLs (YouTube, HLTV) defeat UUID regex.
+export function linkDemosToVods(demos, vods) {
+  const map = new Map()
+  if (!demos?.length || !vods?.length) return map
+  for (const d of demos) {
+    const chosen = pickBestVod(findCandidateVods(d, vods), d)
+    if (chosen) map.set(d.id, chosen)
+  }
+  return map
+}
+
 // Build a patch for `vod` from one or more demos (a series can apply
 // multiple demos to the same vod). Returns null if no slot would be filled.
 //
