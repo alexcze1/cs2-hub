@@ -52,16 +52,24 @@ function widenDate(d, delta) {
 
 async function fetchPlayerRowsForVods(filteredVods) {
   const empty = { rowsAll: [], rowsCT: [], rowsT: [], demosById: new Map(), demoToVod: new Map() }
-  if (!filteredVods?.length || !teamSteamIds.size) return empty
+  console.log('[stats-debug] roster size:', roster.length, 'teamSteamIds:', [...teamSteamIds])
+  if (!filteredVods?.length || !teamSteamIds.size) {
+    console.log('[stats-debug] early return:', { filteredVodsLen: filteredVods?.length, teamSteamIdsSize: teamSteamIds.size })
+    return empty
+  }
 
   const dates = filteredVods.map(v => v.match_date).filter(Boolean).sort()
-  if (!dates.length) return empty
+  if (!dates.length) {
+    console.log('[stats-debug] no vod match_dates')
+    return empty
+  }
   const minDate = widenDate(dates[0], -1)
   const maxDate = widenDate(dates[dates.length - 1], 1)
+  console.log('[stats-debug] date window:', minDate, '→', maxDate)
 
   const { data: demos, error: e1 } = await supabase
     .from('demos')
-    .select('id,series_id,map,played_at,opponent_name,ct_team_name,t_team_name,created_at')
+    .select('id,series_id,map,played_at,opponent_name,ct_team_name,t_team_name,created_at,status,team_id')
     .eq('team_id', teamId)
     .eq('status', 'ready')
     .gte('played_at', `${minDate}T00:00:00`)
@@ -69,18 +77,30 @@ async function fetchPlayerRowsForVods(filteredVods) {
   if (e1) throw e1
 
   const allDemos = demos || []
+  console.log('[stats-debug] team demos in window:', allDemos.length, allDemos.slice(0, 3))
   const demosById = new Map(allDemos.map(d => [d.id, d]))
   const demoToVod = linkDemosToVods(allDemos, filteredVods)
 
   if (!allDemos.length) return { rowsAll: [], rowsCT: [], rowsT: [], demosById, demoToVod }
 
   const teamSteamIdList = [...teamSteamIds]
+
+  // Diagnostic: how many demo_players rows exist for these demos total (no steam filter)?
+  const { data: anyRows } = await supabase
+    .from('demo_players')
+    .select('demo_id,steam_id,name,side,rating,rounds_played')
+    .in('demo_id', allDemos.map(d => d.id))
+  console.log('[stats-debug] demo_players total rows for demos:', anyRows?.length, 'sample:', (anyRows || []).slice(0, 5))
+  console.log('[stats-debug] sides present:', [...new Set((anyRows || []).map(r => r.side))])
+  console.log('[stats-debug] distinct steam_ids in demos:', [...new Set((anyRows || []).map(r => r.steam_id))])
+
   const { data: rows, error: e3 } = await supabase
     .from('demo_players')
     .select('*')
     .in('demo_id', allDemos.map(d => d.id))
     .in('steam_id', teamSteamIdList)
   if (e3) throw e3
+  console.log('[stats-debug] demo_players rows matching roster steam_ids:', rows?.length)
 
   for (const r of rows || []) {
     const d = demosById.get(r.demo_id)
@@ -89,6 +109,7 @@ async function fetchPlayerRowsForVods(filteredVods) {
   const rowsAll = (rows || []).filter(r => r.side === 'all')
   const rowsCT  = (rows || []).filter(r => r.side === 'ct')
   const rowsT   = (rows || []).filter(r => r.side === 't')
+  console.log('[stats-debug] rowsAll/CT/T:', rowsAll.length, rowsCT.length, rowsT.length)
   return { rowsAll, rowsCT, rowsT, demosById, demoToVod }
 }
 
