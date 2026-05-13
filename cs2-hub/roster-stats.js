@@ -11,7 +11,7 @@ const STAFF_ROLES = new Set(['Coach', 'Manager', 'Bench', 'Unassigned'])
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 function fmtRating(r) { return r == null ? '—' : r.toFixed(2) }
 
-// Sort roster: role priority first, then nickname/username.
+// Sort roster: role priority first, then nickname.
 function sortRoster(roster) {
   return [...roster]
     .filter(p => !STAFF_ROLES.has(p.role))
@@ -19,11 +19,11 @@ function sortRoster(roster) {
       const ra = ROLE_ORDER[a.role] ?? 99
       const rb = ROLE_ORDER[b.role] ?? 99
       if (ra !== rb) return ra - rb
-      return String(a.username || '').localeCompare(String(b.username || ''))
+      return String(a.nickname || '').localeCompare(String(b.nickname || ''))
     })
 }
 
-// roster   : [{ id, username, nickname, role, steam_id }]
+// roster   : [{ id, nickname, role, steam_id }]
 // rows     : array of demo_players rows for the team (already filtered to side='all')
 // onPick   : called with the roster row when its card is clicked
 export function renderRosterBand(root, { roster, rows, onPick }) {
@@ -42,7 +42,7 @@ export function renderRosterBand(root, { roster, rows, onPick }) {
 
     return `
       <button type="button" class="rb-card ${hasData ? '' : 'rb-card-empty'}" data-action="open" data-id="${esc(p.id)}">
-        <div class="rb-name">${esc(p.username)}</div>
+        <div class="rb-name">${esc(p.nickname || '—')}</div>
         <div class="rb-role">${esc(p.role || 'Player')}</div>
         <div class="rb-rating-block">
           <div class="rb-rating-label">Rating</div>

@@ -27,7 +27,7 @@ async function loadRoster() {
     .from('roster')
     .select('*')
     .eq('team_id', teamId)
-    .order('username', { ascending: true })
+    .order('nickname', { ascending: true })
 
   const el = document.getElementById('roster-grid')
   if (error) {
@@ -44,14 +44,14 @@ async function loadRoster() {
     return
   }
 
-  const images = await Promise.all(allPlayers.map(p => getPlayerImage(p.nickname || p.username)))
+  const images = await Promise.all(allPlayers.map(p => getPlayerImage(p.nickname)))
 
   el.innerHTML = allPlayers.map((p, i) => {
     const role = p.role || 'Unassigned'
     const roleColor = ROLE_COLORS[role] ?? 'var(--border)'
     const avatarHtml = images[i]
-      ? `<img src="${images[i]}" alt="${esc(p.nickname || p.username)}" style="width:72px;height:72px;object-fit:cover;border-radius:50%;border:2px solid ${roleColor};margin-bottom:10px">`
-      : `<div class="player-avatar" style="background:${roleColor}22;border:2px solid ${roleColor};color:${roleColor}">${esc((p.nickname || p.username || '?').slice(0,2).toUpperCase())}</div>`
+      ? `<img src="${images[i]}" alt="${esc(p.nickname)}" style="width:72px;height:72px;object-fit:cover;border-radius:50%;border:2px solid ${roleColor};margin-bottom:10px">`
+      : `<div class="player-avatar" style="background:${roleColor}22;border:2px solid ${roleColor};color:${roleColor}">${esc((p.nickname || '?').slice(0,2).toUpperCase())}</div>`
 
     const statusBadge = p.is_ghost
       ? `<span class="status-badge status-ghost" style="display:inline-block;background:var(--warning);color:#000;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:0.5px;margin-top:6px">PENDING</span>`
@@ -83,8 +83,7 @@ async function loadRoster() {
       <div class="player-card" style="position:relative;border-top:3px solid ${roleColor}" data-player-id="${p.id}">
         ${removeBtn}
         ${avatarHtml}
-        <div class="player-ign">${esc(p.nickname || p.username)}</div>
-        ${p.username && p.nickname ? `<div class="player-name">${esc(p.username)}</div>` : ''}
+        <div class="player-ign">${esc(p.nickname || '—')}</div>
         ${roleControl}
         <div>${statusBadge}</div>
         ${steamIdControl}
@@ -150,7 +149,7 @@ async function onSteamIdChange(playerId, rawValue, inputEl) {
 async function onRemove(playerId, isGhost) {
   const p = allPlayers.find(x => x.id === playerId)
   if (!p) return
-  const label = p.nickname || p.username
+  const label = p.nickname || 'this player'
   if (!confirm(isGhost
     ? `Remove ghost row for ${label}?`
     : `Remove ${label} from the team? This deletes their team membership.`)) return
@@ -177,7 +176,7 @@ if (isOwner) {
 document.getElementById('add-ghost-btn').addEventListener('click', () => {
   document.getElementById('ghost-form').style.display = 'block'
   document.getElementById('add-ghost-btn').style.display = 'none'
-  document.getElementById('g-username').focus()
+  document.getElementById('g-nickname').focus()
 })
 
 document.getElementById('ghost-cancel-btn').addEventListener('click', resetGhostForm)
@@ -185,20 +184,20 @@ document.getElementById('ghost-cancel-btn').addEventListener('click', resetGhost
 function resetGhostForm() {
   document.getElementById('ghost-form').style.display = 'none'
   document.getElementById('add-ghost-btn').style.display = ''
-  document.getElementById('g-username').value = ''
+  document.getElementById('g-nickname').value = ''
   document.getElementById('g-steam-id').value = ''
   document.getElementById('g-role').value = 'Unassigned'
   document.getElementById('ghost-error').style.display = 'none'
 }
 
 document.getElementById('ghost-save-btn').addEventListener('click', async () => {
-  const username = document.getElementById('g-username').value.trim()
+  const nickname = document.getElementById('g-nickname').value.trim()
   const steamId  = document.getElementById('g-steam-id').value.trim()
   const role     = document.getElementById('g-role').value
   const errEl    = document.getElementById('ghost-error')
 
-  if (!username) {
-    errEl.textContent = 'Display name is required.'
+  if (!nickname) {
+    errEl.textContent = 'Nickname is required.'
     errEl.style.display = 'block'; return
   }
   if (!/^7656119\d{10}$/.test(steamId)) {
@@ -209,8 +208,7 @@ document.getElementById('ghost-save-btn').addEventListener('click', async () => 
   const { error } = await supabase.from('roster').insert({
     team_id: teamId,
     user_id: null,
-    username,
-    nickname: null,
+    nickname,
     steam_id: steamId,
     role,
     is_ghost: true,

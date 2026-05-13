@@ -14,10 +14,10 @@ const isEdit = !!id
 
 // 5 fixed role slots — label shows assigned player name, falls back to role name
 const ROLE_SLOTS = ['IGL', 'AWPer', 'Entry', 'Support', 'Lurker']
-const { data: rosterData } = await supabase.from('roster').select('username, nickname, role').eq('team_id', getTeamId())
+const { data: rosterData } = await supabase.from('roster').select('nickname, role').eq('team_id', getTeamId())
 const PLAYERS = ROLE_SLOTS.map(slot => {
   const match = rosterData?.find(p => p.role === slot)
-  return { slot, label: match ? (match.nickname || match.username) : slot }
+  return { slot, label: match?.nickname || slot }
 })
 
 document.getElementById('player-roles').innerHTML = PLAYERS.map((p, i) => `

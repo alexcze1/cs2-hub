@@ -272,7 +272,7 @@ document.querySelectorAll('#map-tabs .fs-tab').forEach(t => {
 
 const [{ data }, { data: roster }] = await Promise.all([
   supabase.from('strats').select('*').eq('team_id', getTeamId()).order('side').order('type').order('name'),
-  supabase.from('roster').select('username, nickname, role').eq('team_id', getTeamId()).order('username')
+  supabase.from('roster').select('nickname, role').eq('team_id', getTeamId()).order('nickname')
 ])
 allStrats = data ?? []
 
@@ -280,7 +280,7 @@ allStrats = data ?? []
 const playerSel = document.getElementById('player-filter')
 const rosterNames = new Set()
 ;(roster ?? []).forEach(p => {
-  const name = p.nickname || p.username
+  const name = p.nickname
   rosterNames.add(name)
   const opt = document.createElement('option')
   opt.value = name

@@ -232,7 +232,7 @@ let lastDataset = null  // { filter, vods, rowsAll, rowsCT, rowsT, demosById, de
 async function openPlayerDrawer(player) {
   if (!lastDataset) return
   // Toggle: clicking the currently-open player closes the drawer.
-  if (drawer.isOpen() && document.querySelector('.player-drawer .pd-title')?.textContent === player.username) {
+  if (drawer.isOpen() && document.querySelector('.player-drawer .pd-title')?.textContent === player.nickname) {
     drawer.close()
     return
   }
@@ -263,7 +263,7 @@ async function openPlayerDrawer(player) {
     .slice(0, 10)
 
   drawer.open({
-    title: player.username,
+    title: player.nickname,
     subtitle: buildSubtitle(player, filter.window, matches, rounds),
     body: buildPlayerDrawerBody({ rowsAll: myAll, rowsCT: myCT, rowsT: myT, recent }),
   })
@@ -299,7 +299,7 @@ async function rebuild(filter) {
   if (drawer.isOpen()) {
     // Find the currently-open player by their displayed name (best effort).
     const openName = document.querySelector('.player-drawer .pd-title')?.textContent
-    const player = roster.find(p => p.username === openName)
+    const player = roster.find(p => p.nickname === openName)
     if (player && player.steam_id) openPlayerDrawer(player)
     else drawer.close()
   }

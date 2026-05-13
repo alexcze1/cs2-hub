@@ -56,13 +56,12 @@ async function loadTeams() {
 
 // ── Join with code ─────────────────────────────────────────────
 document.getElementById('join-btn').addEventListener('click', async () => {
-  const code        = document.getElementById('f-join-code').value.trim().toUpperCase()
-  const displayName = document.getElementById('f-join-display').value.trim()
-  const nickname    = document.getElementById('f-join-nickname').value.trim()
-  const errEl       = document.getElementById('join-error')
+  const code     = document.getElementById('f-join-code').value.trim().toUpperCase()
+  const nickname = document.getElementById('f-join-nickname').value.trim()
+  const errEl    = document.getElementById('join-error')
 
-  if (!code)        { errEl.textContent = 'Enter a join code.';        errEl.style.display = 'block'; return }
-  if (!displayName) { errEl.textContent = 'Display name is required.'; errEl.style.display = 'block'; return }
+  if (!code)     { errEl.textContent = 'Enter a join code.';   errEl.style.display = 'block'; return }
+  if (!nickname) { errEl.textContent = 'Nickname is required.'; errEl.style.display = 'block'; return }
   errEl.style.display = 'none'
 
   const { data: team, error: findErr } = await supabase
@@ -82,10 +81,10 @@ document.getElementById('join-btn').addEventListener('click', async () => {
   }
 
   // Trigger fn_team_member_roster_sync already created the roster row
-  // (or merged a ghost). Patch in the names the user typed; steam_id
+  // (or merged a ghost). Patch in the nickname the user typed; steam_id
   // came from auth metadata via the trigger.
   const { error: rosterErr } = await supabase.from('roster')
-    .update({ username: displayName, nickname: nickname || null })
+    .update({ nickname })
     .eq('team_id', team.id)
     .eq('user_id', userId)
   if (rosterErr) { errEl.textContent = `Roster error: ${rosterErr.message}`; errEl.style.display = 'block'; return }
@@ -96,13 +95,12 @@ document.getElementById('join-btn').addEventListener('click', async () => {
 
 // ── Create team ────────────────────────────────────────────────
 document.getElementById('create-btn').addEventListener('click', async () => {
-  const teamName    = document.getElementById('f-team-name').value.trim()
-  const displayName = document.getElementById('f-display-name').value.trim()
-  const nickname    = document.getElementById('f-nickname').value.trim()
-  const errEl       = document.getElementById('create-error')
+  const teamName = document.getElementById('f-team-name').value.trim()
+  const nickname = document.getElementById('f-nickname').value.trim()
+  const errEl    = document.getElementById('create-error')
 
-  if (!teamName)    { errEl.textContent = 'Team name is required.';    errEl.style.display = 'block'; return }
-  if (!displayName) { errEl.textContent = 'Display name is required.'; errEl.style.display = 'block'; return }
+  if (!teamName) { errEl.textContent = 'Team name is required.'; errEl.style.display = 'block'; return }
+  if (!nickname) { errEl.textContent = 'Nickname is required.'; errEl.style.display = 'block'; return }
   errEl.style.display = 'none'
 
   let joinCode = generateCode()
@@ -119,9 +117,9 @@ document.getElementById('create-btn').addEventListener('click', async () => {
     .insert({ team_id: team.id, user_id: userId, role: 'owner' })
   if (memberErr) { errEl.textContent = memberErr.message; errEl.style.display = 'block'; return }
 
-  // Trigger already created the roster row. Patch in the names the user typed.
+  // Trigger already created the roster row. Patch in the nickname the user typed.
   const { error: rosterErr } = await supabase.from('roster')
-    .update({ username: displayName, nickname: nickname || null })
+    .update({ nickname })
     .eq('team_id', team.id)
     .eq('user_id', userId)
   if (rosterErr) { errEl.textContent = `Roster error: ${rosterErr.message}`; errEl.style.display = 'block'; return }
