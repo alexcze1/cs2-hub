@@ -1344,6 +1344,18 @@ def compute_player_stats(parsed: dict) -> list[dict]:
         players_meta  = parsed.get("players_meta") or {}
         team_a_first  = (parsed.get("meta") or {}).get("team_a_first_side")
 
+        # Drop kills and damage that fall outside any live round's tick
+        # window. Warmup deathmatch / between-round damage otherwise inflates
+        # ADR because rounds_played counts live rounds only.
+        round_spans = [(int(r["start_tick"]), int(r["end_tick"])) for r in rounds]
+        def _in_live_round(tick: int) -> bool:
+            for s, e in round_spans:
+                if s < tick <= e:
+                    return True
+            return False
+        kills = [k for k in kills if _in_live_round(int(k.get("tick") or 0))]
+        damage_events = [d for d in damage_events if _in_live_round(int(d.get("tick") or 0))]
+
         # Pre-compute things shared across players
         first_kill_per_round  = _first_event_per_round(kills, rounds)
         alive_counts          = _alive_counts_per_round(rounds, frames)

@@ -256,6 +256,51 @@ def test_compute_player_stats_does_not_double_count_killing_blow_damage():
     assert a_all["adr"] == 100.0, f"expected ADR=100, got {a_all['adr']}"
 
 
+def test_compute_player_stats_ignores_damage_outside_live_rounds():
+    """Regression: damage_events and kills that fall outside the live round
+    windows (warmup deathmatch, between-round periods) must NOT count toward
+    damage_dealt / kills / deaths. Previously this inflated ADR because the
+    damage was summed but rounds_played stayed pinned to live rounds only."""
+    parsed = {
+        "rounds": [{
+            "start_tick": 1000,
+            "end_tick": 2000,
+            "freeze_end_tick": 1100,
+        }],
+        # Kill inside the live round + a stray warmup kill before tick 1000.
+        "kills": [
+            {"tick": 500,  "killer_id": "A", "victim_id": "C",
+             "assister_id": "", "killer_team": "ct", "victim_team": "t",
+             "headshot": False, "dmg_health": 100, "dmg_armor": 0, "weapon": "ak47"},
+            {"tick": 1500, "killer_id": "A", "victim_id": "B",
+             "assister_id": "", "killer_team": "ct", "victim_team": "t",
+             "headshot": False, "dmg_health": 100, "dmg_armor": 0, "weapon": "ak47"},
+        ],
+        # Warmup DM damage (tick 200) + real in-round damage (tick 1500).
+        "damage_events": [
+            {"tick": 200,  "attacker_id": "A", "victim_id": "C",
+             "dmg_health": 500, "dmg_armor": 0, "weapon": "ak47", "hitgroup": ""},
+            {"tick": 1500, "attacker_id": "A", "victim_id": "B",
+             "dmg_health": 100, "dmg_armor": 0, "weapon": "ak47", "hitgroup": ""},
+        ],
+        "frames": [
+            {"tick": 1100, "players": [
+                {"steam_id": "A", "team": "ct", "hp": 100},
+                {"steam_id": "B", "team": "t",  "hp": 100},
+            ]},
+        ],
+        "grenades": [],
+        "players_meta": {"A": "alpha", "B": "bravo", "C": "charlie"},
+        "meta": {"team_a_first_side": "ct"},
+    }
+    rows = compute_player_stats(parsed)
+    a_all = next(r for r in rows if r["steam_id"] == "A" and r["side"] == "all")
+    # 1 round played, 100 damage in-round → ADR = 100. Warmup damage ignored.
+    assert a_all["adr"] == 100.0, f"expected ADR=100, got {a_all['adr']}"
+    # Only the in-round kill counts.
+    assert a_all["kills"] == 1, f"expected kills=1, got {a_all['kills']}"
+
+
 def test_compute_player_stats_extracts_name_string_from_dict_players_meta():
     """Regression: parser stores players_meta[sid] as {"name": str},
     not a bare string. compute_player_stats must extract the string,
