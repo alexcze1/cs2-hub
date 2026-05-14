@@ -33,9 +33,25 @@ function assert(cond, msg) {
   assert(s.totalRW === 66 && s.totalRL === 66, 'rounds sum across all maps')
   assert(s.roundWR === 50, '66/(66+66)=50%')
   assert(s.bestMap?.map === 'mirage', 'best map = mirage (3 plays, 100% WR)')
-  assert(s.worstMap?.map === 'anubis' || s.worstMap?.map === 'nuke', 'worst is anubis or nuke (single-loss maps)')
+  assert(s.worstMap === null, 'worstMap null when only one map has 3+ plays (mirage is best AND only qualifier)')
   assert(s.sparkline.length === 4, 'sparkline = one entry per vod (no padding)')
   assert(s.sparkline[0].pct === Math.round(13/21 * 100), 'sparkline[0] pct from match a')
+}
+
+// ---- computeHeroStats: worstMap with 2+ qualifying maps ----
+{
+  // mirage 3 wins (100% wr) + anubis 3 losses (0% wr) → bestMap=mirage, worstMap=anubis
+  const vods = [
+    { id: 'a', result: 'win',  match_date: '2026-05-10', maps: [{ map: 'mirage', score_us: 13, score_them: 8 }] },
+    { id: 'b', result: 'win',  match_date: '2026-05-09', maps: [{ map: 'mirage', score_us: 13, score_them: 9 }] },
+    { id: 'c', result: 'win',  match_date: '2026-05-08', maps: [{ map: 'mirage', score_us: 13, score_them: 10 }] },
+    { id: 'd', result: 'loss', match_date: '2026-05-07', maps: [{ map: 'anubis', score_us: 7,  score_them: 13 }] },
+    { id: 'e', result: 'loss', match_date: '2026-05-06', maps: [{ map: 'anubis', score_us: 9,  score_them: 13 }] },
+    { id: 'f', result: 'loss', match_date: '2026-05-05', maps: [{ map: 'anubis', score_us: 8,  score_them: 13 }] },
+  ]
+  const s = computeHeroStats(vods)
+  assert(s.bestMap?.map === 'mirage',  'best = mirage (3 plays, 100% wr)')
+  assert(s.worstMap?.map === 'anubis', 'worst = anubis (3 plays, 0% wr)')
 }
 
 // ---- computeHeroStats: best/worst require samples >= 3 ----
