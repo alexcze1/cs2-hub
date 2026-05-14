@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<body>
+<div id="root"></div>
+<script type="module">
+import { renderPlayerImpact, roleColorVar } from './vods-player-impact.js'
+
+function assert(cond, msg) {
+  if (!cond) { console.error('FAIL:', msg); return }
+  console.log('PASS:', msg)
+}
+
+// ---- roleColorVar ----
+{
+  assert(roleColorVar('IGL')     === 'var(--warning)',     'IGL → warning')
+  assert(roleColorVar('Entry')   === 'var(--danger)',      'Entry → danger')
+  assert(roleColorVar('AWPer')   === 'var(--special)',     'AWPer → special')
+  assert(roleColorVar('Support') === 'var(--accent)',      'Support → accent')
+  assert(roleColorVar('Lurker')  === 'var(--role-lurker)', 'Lurker → role-lurker')
+  assert(roleColorVar('Player')  === 'var(--muted)',       'unknown role → muted')
+}
+
+function mkRow(over) {
+  return {
+    rounds_played: 24, kills: 20, deaths: 15, assists: 0,
+    adr: 80, rating: 1.10, hs_pct: 0.5, kast_pct: 0.7,
+    multi_2k: 0, multi_3k: 0, multi_4k: 0, multi_5k: 0,
+    opening_kills: 5, opening_deaths: 3,
+    clutches_won: 1, clutches_lost: 3,
+    utility_dmg: 200, flash_assists: 2, traded_deaths: 4, impact_rating: 1.05,
+    ...over,
+  }
+}
+
+// ---- renderPlayerImpact: full roster + role colors + trend ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  const roster = [
+    { id: '1', nickname: 'PrimeUlt', role: 'IGL',     steam_id: 'A' },
+    { id: '2', nickname: 'Libra',    role: 'Entry',   steam_id: 'B' },
+    { id: '3', nickname: 'jXy',      role: 'AWPer',   steam_id: 'C' },
+    { id: '4', nickname: 'noctis',   role: 'Lurker',  steam_id: 'D' },
+    { id: '5', nickname: 'echo',     role: 'Support', steam_id: 'E' },
+    { id: '6', nickname: 'CoachX',   role: 'Coach',   steam_id: 'X' }, // excluded
+  ]
+  const rowsCurrent = [
+    { steam_id: 'A', ...mkRow({ rating: 1.04, impact_rating: 0.95 }) },
+    { steam_id: 'B', ...mkRow({ rating: 1.18, impact_rating: 1.18 }) },
+    { steam_id: 'C', ...mkRow({ rating: 1.05, impact_rating: 1.00 }) },
+    { steam_id: 'D', ...mkRow({ rating: 1.11, impact_rating: 1.10 }) },
+    { steam_id: 'E', ...mkRow({ rating: 0.94, impact_rating: 0.85 }) },
+  ]
+  const rowsPrior = [
+    { steam_id: 'A', ...mkRow({ rating: 0.99 }) }, // → up (delta +0.05)
+    { steam_id: 'B', ...mkRow({ rating: 1.20 }) }, // → flat (delta -0.02)
+    { steam_id: 'C', ...mkRow({ rating: 1.20 }) }, // → down (delta -0.15)
+    { steam_id: 'D', ...mkRow({ rating: 1.10 }) }, // → flat
+    // E has no prior data → unknown
+  ]
+
+  const picks = []
+  renderPlayerImpact(root, { roster, rowsCurrent, rowsPrior, onPick: (p) => picks.push(p) })
+
+  const cards = root.querySelectorAll('.rr-player-card')
+  assert(cards.length === 5, 'renders one card per non-staff roster member')
+
+  const findCard = (nick) => [...cards].find(c => c.querySelector('.rr-player-name')?.textContent === nick)
+
+  assert(findCard('PrimeUlt')?.dataset.role === 'IGL',  'IGL card has data-role=IGL')
+  assert(findCard('Libra')?.dataset.role === 'Entry',   'Entry card has data-role=Entry')
+  assert(findCard('jXy')?.dataset.role === 'AWPer',     'AWPer card has data-role=AWPer')
+  assert(findCard('noctis')?.dataset.role === 'Lurker', 'Lurker card has data-role=Lurker')
+  assert(findCard('echo')?.dataset.role === 'Support',  'Support card has data-role=Support')
+
+  assert(findCard('PrimeUlt').dataset.trend === 'up',      'PrimeUlt trend=up')
+  assert(findCard('Libra').dataset.trend === 'flat',       'Libra trend=flat')
+  assert(findCard('jXy').dataset.trend === 'down',         'jXy trend=down')
+  assert(findCard('echo').dataset.trend === 'unknown',     'echo no prior → trend=unknown')
+
+  // Impact bar normalization: team min=0.85 (echo), max=1.18 (Libra).
+  // Libra should be at 100%, echo at 0%.
+  const libraBar = findCard('Libra').querySelector('.rr-impact-fill')
+  assert(libraBar && libraBar.style.width === '100%', 'Libra impact bar at 100%')
+  const echoBar = findCard('echo').querySelector('.rr-impact-fill')
+  assert(echoBar && echoBar.style.width === '0%', 'echo impact bar at 0%')
+
+  // Click pipes through onPick
+  findCard('PrimeUlt').click()
+  assert(picks.length === 1 && picks[0].nickname === 'PrimeUlt', 'click → onPick')
+}
+
+// ---- Empty current rows → "no matches in window" markers per card ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  const roster = [
+    { id: '1', nickname: 'PrimeUlt', role: 'IGL', steam_id: 'A' },
+  ]
+  renderPlayerImpact(root, { roster, rowsCurrent: [], rowsPrior: [], onPick: () => {} })
+  const card = root.querySelector('.rr-player-card')
+  assert(card !== null, 'card still renders')
+  assert(card.classList.contains('rr-player-card-empty'), 'card has empty class')
+  assert(card.querySelector('.rr-impact-bar') === null, 'no impact bar when no data')
+}
+
+// ---- Null impact_rating → bar hidden ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  const roster = [{ id: '1', nickname: 'X', role: 'Lurker', steam_id: 'A' }]
+  const rows = [{ steam_id: 'A', ...mkRow({ impact_rating: null }) }]
+  renderPlayerImpact(root, { roster, rowsCurrent: rows, rowsPrior: [], onPick: () => {} })
+  assert(root.querySelector('.rr-impact-bar') === null, 'null impact → no bar')
+}
+
+console.log('all done')
+</script>
+</body>
+</html>
