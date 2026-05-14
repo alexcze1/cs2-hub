@@ -15,10 +15,10 @@ function assert(cond, msg) {
   localStorage.removeItem(FILTER_KEY)
   const f = defaultFilter()
   assert(f.window === '10', 'default window = 10')
-  assert(f.tournamentsOnly === false, 'default tournamentsOnly = false')
+  assert(f.matchType === 'all', 'default matchType = all')
 }
 
-// Mount + click pill → emits new state, persists to localStorage
+// Mount + click window pill → emits new state, persists
 {
   localStorage.removeItem(FILTER_KEY)
   const root = document.getElementById('mount')
@@ -26,16 +26,14 @@ function assert(cond, msg) {
   const states = []
   mountFilter(root, (s) => states.push(s))
 
-  const pill90 = root.querySelector('[data-window="90d"]')
-  pill90.click()
-
+  root.querySelector('[data-window="90d"]').click()
   assert(states.length === 2, 'mount emission + click = two emissions')
   assert(states[1].window === '90d', 'state has window=90d')
   const stored = JSON.parse(localStorage.getItem(FILTER_KEY))
   assert(stored.window === '90d', 'persisted to localStorage')
 }
 
-// Toggle tournamentsOnly
+// Click match-type pill → emits new state
 {
   localStorage.removeItem(FILTER_KEY)
   const root = document.getElementById('mount')
@@ -43,29 +41,45 @@ function assert(cond, msg) {
   const states = []
   mountFilter(root, (s) => states.push(s))
 
-  const toggle = root.querySelector('#vods-tournaments-toggle')
-  toggle.click()
+  root.querySelector('[data-type="tournament"]').click()
+  assert(states.length === 2, 'mount + type-click = two emissions')
+  assert(states[1].matchType === 'tournament', 'matchType = tournament')
 
-  assert(states.length === 2, 'mount emission + first toggle = two emissions')
-  assert(states[1].tournamentsOnly === true, 'tournamentsOnly toggled on')
-  toggle.click()
-  assert(states.length === 3, 'mount emission + two toggles = three emissions')
-  assert(states[2].tournamentsOnly === false, 'toggled back off')
+  root.querySelector('[data-type="pug"]').click()
+  assert(states.length === 3, 'two type-clicks = three emissions total')
+  assert(states[2].matchType === 'pug', 'matchType switched to pug')
+
+  // Clicking the already-active pill does not re-emit
+  root.querySelector('[data-type="pug"]').click()
+  assert(states.length === 3, 'clicking active pill is a no-op')
 }
 
 // Mount restores from localStorage
 {
-  localStorage.setItem(FILTER_KEY, JSON.stringify({ window: '30d', tournamentsOnly: true }))
+  localStorage.setItem(FILTER_KEY, JSON.stringify({ window: '30d', matchType: 'tournament' }))
   const root = document.getElementById('mount')
   root.innerHTML = ''
-  let initial = null
-  mountFilter(root, (s) => { if (initial == null) initial = s })
+  const states = []
+  mountFilter(root, (s) => states.push(s))
 
-  // Initial callback should fire on mount with restored state
-  assert(initial?.window === '30d', 'restored window from storage')
-  assert(initial?.tournamentsOnly === true, 'restored tournamentsOnly from storage')
-  assert(root.querySelector('[data-window="30d"]').classList.contains('is-active'), '30d pill is active')
+  assert(states[0].window === '30d',          'restored window=30d')
+  assert(states[0].matchType === 'tournament', 'restored matchType=tournament')
+  assert(root.querySelector('[data-window="30d"]').classList.contains('is-active'), '30d pill marked active')
+  assert(root.querySelector('[data-type="tournament"]').classList.contains('is-active'), 'tournament pill marked active')
 }
+
+// Junk in localStorage → falls back to defaults
+{
+  localStorage.setItem(FILTER_KEY, '{"window":"bogus","matchType":"nonsense"}')
+  const root = document.getElementById('mount')
+  root.innerHTML = ''
+  const states = []
+  mountFilter(root, (s) => states.push(s))
+  assert(states[0].window === '10', 'bogus window → fallback to 10')
+  assert(states[0].matchType === 'all', 'bogus matchType → fallback to all')
+}
+
+console.log('all done')
 </script>
 </body>
 </html>
