@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script type="module">
+import { computeTrend, splitVodsByWindow } from './vods-trend.js'
+
+function assert(cond, msg) {
+  if (!cond) { console.error('FAIL:', msg); return }
+  console.log('PASS:', msg)
+}
+
+// ---- computeTrend ----
+{
+  assert(computeTrend(1.10, 1.05, 0.03) === 'up',   'curr - prev > threshold → up')
+  assert(computeTrend(1.00, 1.10, 0.03) === 'down', 'curr - prev < -threshold → down')
+  assert(computeTrend(1.05, 1.04, 0.03) === 'flat', 'within threshold → flat')
+  assert(computeTrend(1.05, 1.05, 0.03) === 'flat', 'equal → flat')
+  assert(computeTrend(1.10, null, 0.03) === 'unknown', 'null prior → unknown')
+  assert(computeTrend(null, 1.10, 0.03) === 'unknown', 'null curr → unknown')
+  assert(computeTrend(null, null, 0.03) === 'unknown', 'both null → unknown')
+}
+
+// ---- splitVodsByWindow: 'all' → no prior ----
+{
+  const vods = [
+    { id: 'a', match_date: '2026-05-10' },
+    { id: 'b', match_date: '2026-05-08' },
+  ]
+  const out = splitVodsByWindow(vods, { window: 'all' }, new Date('2026-05-15'))
+  assert(out.current.length === 2, "window=all → all vods in current")
+  assert(out.prior.length === 0,   "window=all → empty prior")
+}
+
+// ---- splitVodsByWindow: 'Last 10' ----
+{
+  const vods = Array.from({length: 25}, (_, i) => ({
+    id: `v${i}`, match_date: `2026-04-${String(25 - i).padStart(2,'0')}`,
+  }))
+  const out = splitVodsByWindow(vods, { window: '10' }, new Date('2026-05-15'))
+  assert(out.current.length === 10, "Last 10 → 10 in current")
+  assert(out.current[0].id === 'v0', "current includes newest")
+  assert(out.prior.length === 10, "Last 10 → 10 in prior (matches 11..20)")
+  assert(out.prior[0].id === 'v10', "prior starts after current")
+}
+
+// ---- splitVodsByWindow: '30d' ----
+{
+  const vods = [
+    { id: 'recent', match_date: '2026-05-10' },        // current (within 30d of 2026-05-15)
+    { id: 'edge',   match_date: '2026-04-16' },        // current (30 days back exactly)
+    { id: 'prior',  match_date: '2026-04-01' },        // prior (in days 30..60 back)
+    { id: 'old',    match_date: '2026-03-01' },        // outside both windows
+  ]
+  const out = splitVodsByWindow(vods, { window: '30d' }, new Date('2026-05-15'))
+  const ids = (arr) => arr.map(v => v.id).sort()
+  assert(ids(out.current).join(',') === 'edge,recent', '30d current = recent + edge')
+  assert(ids(out.prior).join(',')   === 'prior',       '30d prior = prior only')
+}
+
+console.log('all done')
+</script>
+</body>
+</html>
