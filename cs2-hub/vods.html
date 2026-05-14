@@ -12,28 +12,10 @@
 <div class="app-shell">
   <nav class="sidebar" id="sidebar"></nav>
   <main class="main-content">
-    <div class="page-header">
-      <div>
-        <div class="page-title">Results & Review</div>
-        <div class="page-sub">Scores, stats and match notes</div>
-      </div>
-      <a class="btn btn-primary" href="vod-detail.html">+ Add Match</a>
-    </div>
-
-    <div id="filter-slot"></div>
-
-    <div id="stats-section" style="display:none">
-      <div class="stats-grid" style="grid-template-columns:repeat(4,1fr)" id="top-stats"></div>
-
-      <div class="section-label" style="margin-top:24px">Roster · Career Stats</div>
-      <div id="roster-band"></div>
-
-      <div class="section-label" style="margin-top:24px">Map Pool Performance</div>
-      <div id="map-breakdown"></div>
-    </div>
-
-    <div class="section-label" style="margin-top:24px" id="history-label">Match History</div>
-    <div id="vods-list"><div class="loading">Loading…</div></div>
+    <section id="rr-hero" class="rr-hero"><div class="loading">Loading…</div></section>
+    <section id="rr-player-impact" class="rr-section"></section>
+    <section id="rr-map-pool" class="rr-section"></section>
+    <section id="rr-match-reports" class="rr-section"></section>
   </main>
 </div>
 <script type="module" src="vods.js"></script>
