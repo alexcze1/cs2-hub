@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<body>
+<div id="root"></div>
+<script type="module">
+import { computeHeroStats, renderHero } from './vods-hero.js'
+
+function assert(cond, msg) {
+  if (!cond) { console.error('FAIL:', msg); return }
+  console.log('PASS:', msg)
+}
+
+// ---- computeHeroStats: full data ----
+{
+  const vods = [
+    { id: 'a', result: 'win',  match_date: '2026-05-10',
+      maps: [{ map: 'mirage', score_us: 13, score_them: 8 }] },
+    { id: 'b', result: 'loss', match_date: '2026-05-08',
+      maps: [{ map: 'anubis', score_us: 7, score_them: 13 }] },
+    { id: 'c', result: 'win',  match_date: '2026-05-05',
+      maps: [
+        { map: 'mirage', score_us: 13, score_them: 11 },
+        { map: 'nuke',   score_us: 8,  score_them: 13 },
+        { map: 'mirage', score_us: 13, score_them: 9 },
+      ] },
+    { id: 'd', result: 'draw', match_date: '2026-05-01',
+      maps: [{ map: 'inferno', score_us: 12, score_them: 12 }] },
+  ]
+  const s = computeHeroStats(vods)
+  assert(s.record.w === 2 && s.record.l === 1 && s.record.d === 1, 'record counts w/l/d')
+  // totalRW = 13+7+13+8+13+12 = 66
+  // totalRL = 8+13+11+13+9+12 = 66
+  assert(s.totalRW === 66 && s.totalRL === 66, 'rounds sum across all maps')
+  assert(s.roundWR === 50, '66/(66+66)=50%')
+  assert(s.bestMap?.map === 'mirage', 'best map = mirage (3 plays, 100% WR)')
+  assert(s.worstMap?.map === 'anubis' || s.worstMap?.map === 'nuke', 'worst is anubis or nuke (single-loss maps)')
+  assert(s.sparkline.length === 4, 'sparkline = one entry per vod (no padding)')
+  assert(s.sparkline[0].pct === Math.round(13/21 * 100), 'sparkline[0] pct from match a')
+}
+
+// ---- computeHeroStats: best/worst require samples >= 3 ----
+{
+  const vods = [
+    { id: 'a', result: 'win',  match_date: '2026-05-10', maps: [{ map: 'mirage', score_us: 13, score_them: 8 }] },
+    { id: 'b', result: 'win',  match_date: '2026-05-09', maps: [{ map: 'mirage', score_us: 13, score_them: 10 }] },
+  ]
+  const s = computeHeroStats(vods)
+  assert(s.bestMap === null,  'mirage with 2 plays → bestMap null (need 3+)')
+  assert(s.worstMap === null, 'mirage with 2 plays → worstMap null')
+}
+
+// ---- computeHeroStats: empty vods ----
+{
+  const s = computeHeroStats([])
+  assert(s.record.w === 0 && s.record.l === 0 && s.record.d === 0, 'empty → zero record')
+  assert(s.roundWR === null, 'empty → roundWR null')
+  assert(s.bestMap === null && s.worstMap === null, 'empty → no maps')
+  assert(s.sparkline.length === 0, 'empty → empty sparkline')
+}
+
+// ---- renderHero: full data renders numerals ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  const vods = [
+    { id: 'a', result: 'win',  match_date: '2026-05-10', maps: [{ map: 'mirage', score_us: 13, score_them: 8 }] },
+    { id: 'b', result: 'loss', match_date: '2026-05-08', maps: [{ map: 'anubis', score_us: 7,  score_them: 13 }] },
+  ]
+  renderHero(root, { vods, filterSlotId: 'rr-filter-slot' })
+
+  const record = root.querySelector('.rr-hero-record').textContent
+  assert(record.includes('1W'), 'record renders 1W')
+  assert(record.includes('1L'), 'record renders 1L')
+  assert(root.querySelector('#rr-filter-slot') !== null, 'filter slot present')
+  assert(root.querySelector('.rr-add-match'), 'Add Match button rendered')
+}
+
+// ---- renderHero: empty state collapses to CTA only ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  renderHero(root, { vods: [], filterSlotId: 'rr-filter-slot' })
+  assert(root.querySelector('.rr-hero-empty'), 'empty hero has empty marker')
+  assert(root.querySelector('.rr-add-match'), 'Add Match CTA still present in empty state')
+  assert(root.querySelector('.rr-hero-record') === null, 'no record numerals in empty state')
+}
+
+console.log('all done')
+</script>
+</body>
+</html>
