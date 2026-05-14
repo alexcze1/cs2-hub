@@ -75,16 +75,26 @@ export function renderPlayerImpact(root, { roster, rowsCurrent, rowsPrior, onPic
 
   // Per-player aggregates (current window only).
   const aggCurrent = new Map()
+  // Player IDs whose raw rows ALL have impact_rating == null. The shared
+  // aggregator coerces null→0, so we track this here and treat impact as
+  // null for bar-render purposes downstream.
+  const nullImpactIds = new Set()
   for (const p of sorted) {
     if (!p.steam_id) { aggCurrent.set(p.id, null); continue }
     const rows = curBySid.get(p.steam_id) ?? []
     aggCurrent.set(p.id, rows.length ? aggregatePlayer(rows) : null)
+    if (rows.length && rows.every(r => r.impact_rating == null)) {
+      nullImpactIds.add(p.id)
+    }
   }
 
   // Team min/max impact_rating across players with data — used to normalize bars.
+  // Skip players flagged as all-null (their agg.impact_rating is 0 from coercion,
+  // not a real value, and would skew normalization).
   let minImp = +Infinity, maxImp = -Infinity
-  for (const agg of aggCurrent.values()) {
+  for (const [pid, agg] of aggCurrent) {
     if (!agg || agg.impact_rating == null) continue
+    if (nullImpactIds.has(pid)) continue
     if (agg.impact_rating < minImp) minImp = agg.impact_rating
     if (agg.impact_rating > maxImp) maxImp = agg.impact_rating
   }
@@ -108,7 +118,8 @@ export function renderPlayerImpact(root, { roster, rowsCurrent, rowsPrior, onPic
     }
 
     const supports = hasData ? supportingMetrics(p.role, agg) : []
-    const impPct = hasData ? impactPct(agg.impact_rating) : null
+    const effectiveImpact = nullImpactIds.has(p.id) ? null : agg?.impact_rating
+    const impPct = hasData ? impactPct(effectiveImpact) : null
 
     return `
       <button type="button"
