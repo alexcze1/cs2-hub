@@ -65,14 +65,74 @@ function widenDate(d, delta) {
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
 }
 
-async function fetchDemosForVodWindow(vods) {
-  const empty = { demos: [], rowsAll: [], rowsCT: [], rowsT: [], demoToVod: new Map() }
-  if (!vods.length || !teamSteamIds.size) return empty
+function ymdLocal(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
-  const dates = vods.map(v => v.match_date).filter(Boolean).sort()
-  if (!dates.length) return empty
-  const minDate = widenDate(dates[0], -1)
-  const maxDate = widenDate(dates[dates.length - 1], 1)
+// A demo_players row's effective date — used to slice rows by time window.
+// played_at is parser-derived (true game date); falls back to created_at.
+function rowDateStr(r, demosById) {
+  const demo = demosById?.get(r.demo_id)
+  const ts = demo?.played_at || demo?.created_at
+  return ts ? String(ts).slice(0, 10) : null
+}
+
+// Partition demo_players rows into current/prior windows.
+// '30d'/'90d'/'all' use the demo's own date (so demos that didn't auto-link
+// to a vod still contribute — matching the page's prior behaviour).
+// '10' uses the vod link (semantic = "last 10 matches", which only makes
+// sense relative to logged vods).
+function partitionRows({ rows, demosById, demoToVod, currentVodIds, priorVodIds, filter, now = new Date() }) {
+  const current = [], prior = []
+
+  if (filter.window === '10') {
+    for (const r of rows) {
+      const v = demoToVod.get(r.demo_id)
+      if (v && currentVodIds.has(v.id)) current.push(r)
+      else if (v && priorVodIds.has(v.id)) prior.push(r)
+    }
+    return { current, prior }
+  }
+
+  if (filter.window === 'all') {
+    return { current: rows.slice(), prior: [] }
+  }
+
+  const days = filter.window === '30d' ? 30 : filter.window === '90d' ? 90 : null
+  if (days == null) return { current: rows.slice(), prior: [] }
+  const cur = new Date(now); cur.setDate(cur.getDate() - days)
+  const pri = new Date(now); pri.setDate(pri.getDate() - 2 * days)
+  const curCutoff = ymdLocal(cur)
+  const priCutoff = ymdLocal(pri)
+  for (const r of rows) {
+    const d = rowDateStr(r, demosById)
+    if (!d) continue
+    if (d >= curCutoff) current.push(r)
+    else if (d >= priCutoff) prior.push(r)
+  }
+  return { current, prior }
+}
+
+async function fetchDemosForVodWindow(vods, filter) {
+  const empty = { demos: [], rowsAll: [], rowsCT: [], rowsT: [], demoToVod: new Map() }
+  if (!teamSteamIds.size) return empty
+
+  // Calendar bounds for date-based windows so we pick up demos from un-logged
+  // matches (no vod row). Vod-bounded for '10' and 'all'.
+  let minDate, maxDate
+  const now = new Date()
+  if (filter.window === '30d' || filter.window === '90d') {
+    const days = filter.window === '30d' ? 30 : 90
+    const lo = new Date(now); lo.setDate(lo.getDate() - 2 * days - 1)
+    const hi = new Date(now); hi.setDate(hi.getDate() + 1)
+    minDate = ymdLocal(lo); maxDate = ymdLocal(hi)
+  } else {
+    if (!vods.length) return empty
+    const dates = vods.map(v => v.match_date).filter(Boolean).sort()
+    if (!dates.length) return empty
+    minDate = widenDate(dates[0], -1)
+    maxDate = widenDate(dates[dates.length - 1], 1)
+  }
 
   const { data: demos, error: e1 } = await supabase
     .from('demos')
@@ -133,21 +193,16 @@ async function rebuild(filter) {
   // Single fetch covering BOTH windows for demo_players (used by both
   // player-impact's trend computation and match-reports' top performers).
   const union = [...currentFiltered, ...priorFiltered]
-  const data = await fetchDemosForVodWindow(union)
+  const data = await fetchDemosForVodWindow(union, filter)
 
-  // Partition demo_players rows back into current vs prior by their demo's
-  // played_at / created_at falling inside the corresponding vod date window.
-  // For simplicity we partition by checking whether the demo links to a vod
-  // in current vs prior.
   const currentVodIds = new Set(currentFiltered.map(v => v.id))
   const priorVodIds   = new Set(priorFiltered.map(v => v.id))
-  const rowsCurrent = []
-  const rowsPrior   = []
-  for (const r of data.rowsAll) {
-    const linkedVod = data.demoToVod.get(r.demo_id)
-    if (linkedVod && currentVodIds.has(linkedVod.id)) rowsCurrent.push(r)
-    else if (linkedVod && priorVodIds.has(linkedVod.id)) rowsPrior.push(r)
-  }
+  const { current: rowsCurrent, prior: rowsPrior } = partitionRows({
+    rows: data.rowsAll,
+    demosById: data.demosById,
+    demoToVod: data.demoToVod,
+    currentVodIds, priorVodIds, filter,
+  })
 
   state.dataset = {
     filter,
