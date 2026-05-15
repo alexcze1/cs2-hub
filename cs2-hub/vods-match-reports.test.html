@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<body>
+<div id="root"></div>
+<script type="module">
+import { renderMatchReports } from './vods-match-reports.js'
+
+function assert(cond, msg) {
+  if (!cond) { console.error('FAIL:', msg); return }
+  console.log('PASS:', msg)
+}
+
+// ---- BO1: single map, score rendered as score_us — score_them ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  const vods = [{
+    id: 'v1', opponent: 'ROUNDS', result: 'win',
+    match_type: 'scrim', match_date: '2026-05-13',
+    maps: [{ map: 'mirage', score_us: 16, score_them: 8 }],
+  }]
+  renderMatchReports(root, { vods, demoToVod: new Map(), demoPlayersByDemoId: new Map(), mapFilter: null })
+
+  const card = root.querySelector('.rr-match-card')
+  assert(card !== null, 'card rendered')
+  assert(card.dataset.result === 'win', 'data-result=win')
+  assert(card.querySelector('.rr-match-score').textContent.trim().replace(/\s+/g, ' ') === '16 — 8', 'BO1 score')
+  assert(card.querySelector('.rr-match-head').textContent.includes('ROUNDS'), 'opponent in header')
+}
+
+// ---- BO3: stacked per-map scores ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  const vods = [{
+    id: 'v2', opponent: 'SAMURAI', result: 'loss',
+    match_type: 'tournament', match_date: '2026-05-11',
+    maps: [
+      { map: 'mirage', score_us: 16, score_them: 12 },
+      { map: 'anubis', score_us: 9,  score_them: 16 },
+      { map: 'nuke',   score_us: 11, score_them: 16 },
+    ],
+  }]
+  renderMatchReports(root, { vods, demoToVod: new Map(), demoPlayersByDemoId: new Map(), mapFilter: null })
+  const rows = root.querySelectorAll('.rr-match-bo-row')
+  assert(rows.length === 3, 'BO3 → 3 score rows')
+}
+
+// ---- Top 3 performers from linked demo ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  const vods = [{
+    id: 'v3', opponent: 'TEAM', result: 'win',
+    match_type: 'scrim', match_date: '2026-05-10',
+    maps: [{ map: 'mirage', score_us: 16, score_them: 5 }],
+  }]
+  const demo = { id: 'd1', map: 'mirage' }
+  const demoToVod = new Map([['d1', vods[0]]])
+  const demoPlayersByDemoId = new Map([['d1', [
+    { steam_id: 'A', name: 'jXy',    rating: 1.22, rounds_played: 21, side: 'all' },
+    { steam_id: 'B', name: 'Libra',  rating: 1.18, rounds_played: 21, side: 'all' },
+    { steam_id: 'C', name: 'noctis', rating: 1.09, rounds_played: 21, side: 'all' },
+    { steam_id: 'D', name: 'echo',   rating: 0.92, rounds_played: 21, side: 'all' },
+    { steam_id: 'E', name: 'foo',    rating: 1.30, rounds_played: 21, side: 'ct' }, // excluded: side != 'all'
+  ]]])
+  renderMatchReports(root, { vods, demoToVod, demoPlayersByDemoId, mapFilter: null })
+
+  const perf = root.querySelector('.rr-match-performers').textContent
+  assert(perf.includes('jXy'),    'jXy listed')
+  assert(perf.includes('Libra'),  'Libra listed')
+  assert(perf.includes('noctis'), 'noctis listed')
+  assert(!perf.includes('echo'),  'echo (4th) not listed')
+  assert(!perf.includes('foo'),   'foo (side=ct) not listed')
+}
+
+// ---- Missing demo → no performers section ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  const vods = [{
+    id: 'v4', opponent: 'X', result: 'loss',
+    match_type: 'pug', match_date: '2026-05-09',
+    maps: [{ map: 'inferno', score_us: 4, score_them: 13 }],
+  }]
+  renderMatchReports(root, { vods, demoToVod: new Map(), demoPlayersByDemoId: new Map(), mapFilter: null })
+  const card = root.querySelector('.rr-match-card')
+  assert(card !== null, 'card still renders without demo')
+  assert(card.querySelector('.rr-match-performers') === null, 'no performers section')
+}
+
+// ---- mapFilter narrows the list ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  const vods = [
+    { id: 'a', opponent: 'X', result: 'win',  match_type: 'scrim', match_date: '2026-05-10',
+      maps: [{ map: 'mirage', score_us: 16, score_them: 8 }] },
+    { id: 'b', opponent: 'Y', result: 'loss', match_type: 'scrim', match_date: '2026-05-09',
+      maps: [{ map: 'anubis', score_us: 6, score_them: 16 }] },
+    { id: 'c', opponent: 'Z', result: 'win',  match_type: 'scrim', match_date: '2026-05-08',
+      maps: [
+        { map: 'mirage', score_us: 16, score_them: 10 },
+        { map: 'anubis', score_us: 8, score_them: 16 },
+        { map: 'mirage', score_us: 16, score_them: 12 },
+      ] },
+  ]
+  renderMatchReports(root, { vods, demoToVod: new Map(), demoPlayersByDemoId: new Map(), mapFilter: 'mirage' })
+  const cards = root.querySelectorAll('.rr-match-card')
+  assert(cards.length === 2, 'mapFilter=mirage → 2 cards (a, c)')
+}
+
+// ---- PRACC badge ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  const vods = [{
+    id: 'p', opponent: 'X', result: 'win',
+    match_type: 'scrim', match_date: '2026-05-13',
+    external_uid: 'pracc-123',
+    maps: [{ map: 'mirage', score_us: 13, score_them: 8 }],
+  }]
+  renderMatchReports(root, { vods, demoToVod: new Map(), demoPlayersByDemoId: new Map(), mapFilter: null })
+  assert(root.querySelector('.rr-pracc-badge') !== null, 'PRACC badge rendered when external_uid set')
+}
+
+console.log('all done')
+</script>
+</body>
+</html>
