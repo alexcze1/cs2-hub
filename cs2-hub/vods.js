@@ -2,7 +2,7 @@
 //
 // Results & Review orchestrator. Loads data once, re-renders each section
 // on filter change. Sections are pure render modules; this file owns the
-// data layer + the drawer.
+// data layer + the inline player panel.
 
 import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
@@ -13,7 +13,7 @@ import { renderPlayerImpact } from './vods-player-impact.js'
 import { renderMapPool } from './vods-map-pool.js'
 import { renderMatchReports } from './vods-match-reports.js'
 import { splitVodsByWindow } from './vods-trend.js'
-import { mountDrawer } from './player-drawer.js'
+import { mountPlayerPanel } from './vods-player-panel.js'
 import { buildPlayerDrawerBody, buildSubtitle } from './roster-stats-render.js'
 import { linkDemosToVods } from './auto-fill-vod.js'
 
@@ -23,7 +23,19 @@ await requireAuth()
 renderSidebar('vods')
 
 const teamId = getTeamId()
-const drawer = mountDrawer()
+const panel = mountPlayerPanel(document.getElementById('rr-player-panel-slot'))
+
+function clearActivePlayerCard() {
+  for (const el of document.querySelectorAll('.rr-player-card.is-active')) {
+    el.classList.remove('is-active')
+  }
+}
+
+function markActivePlayerCard(playerId) {
+  clearActivePlayerCard()
+  const el = document.querySelector(`.rr-player-card[data-id="${CSS.escape(playerId)}"]`)
+  if (el) el.classList.add('is-active')
+}
 
 // ── Boot: load everything we need once ──────────────────────────
 const [vodsRes, rosterRes, teamRes] = await Promise.all([
@@ -52,7 +64,7 @@ if (allVods.length === 0) {
 }
 
 // ── State ────────────────────────────────────────────────────────
-let state = { filter: null, mapFilter: null, dataset: null }
+let state = { filter: null, mapFilter: null, dataset: null, openPlayerId: null }
 
 function applyMatchTypeFilter(vods, matchType) {
   if (!matchType || matchType === 'all') return vods
@@ -215,7 +227,7 @@ async function rebuild(filter) {
   }
 
   renderPlayerImpact(document.getElementById('rr-player-impact'), {
-    roster, rowsCurrent, rowsPrior, onPick: openPlayerDrawer,
+    roster, rowsCurrent, rowsPrior, onPick: openPlayerPanel,
   })
   renderMapPool(document.getElementById('rr-map-pool'), {
     vodsCurrent: currentFiltered, vodsPrior: priorFiltered, activeMap: state.mapFilter,
@@ -227,12 +239,16 @@ async function rebuild(filter) {
     mapFilter: state.mapFilter,
   })
 
-  // Refresh drawer if open
-  if (drawer.isOpen()) {
-    const openName = document.querySelector('.player-drawer .pd-title')?.textContent
-    const player = roster.find(p => p.nickname === openName)
-    if (player && player.steam_id) renderPlayerDrawer(player)
-    else drawer.close()
+  // Refresh inline panel if open
+  if (panel.isOpen() && state.openPlayerId) {
+    const player = roster.find(p => p.id === state.openPlayerId)
+    if (player && player.steam_id) {
+      renderPlayerPanel(player)
+      markActivePlayerCard(player.id)
+    } else {
+      panel.close()
+      state.openPlayerId = null
+    }
   }
 }
 
@@ -258,7 +274,7 @@ function demoResult(demo, vod) {
   return 'd'
 }
 
-function renderPlayerDrawer(player) {
+function renderPlayerPanel(player) {
   if (!state.dataset) return
   const { rowsAll, rowsCT, rowsT, demosById, demoToVod, filter } = state.dataset
   const sid = player.steam_id
@@ -284,18 +300,29 @@ function renderPlayerDrawer(player) {
     .sort((a, b) => String(b.played_at || '').localeCompare(String(a.played_at || '')))
     .slice(0, 10)
 
-  drawer.open({
+  panel.open({
     title: player.nickname,
     subtitle: buildSubtitle(player, filter.window, matches, rounds),
     body: buildPlayerDrawerBody({ rowsAll: myAll, rowsCT: myCT, rowsT: myT, recent }),
+    onClose: () => {
+      state.openPlayerId = null
+      clearActivePlayerCard()
+    },
   })
 }
 
-function openPlayerDrawer(player) {
-  if (drawer.isOpen() && document.querySelector('.player-drawer .pd-title')?.textContent === player.nickname) {
-    drawer.close(); return
+function openPlayerPanel(player) {
+  if (panel.isOpen() && state.openPlayerId === player.id) {
+    panel.close()
+    state.openPlayerId = null
+    clearActivePlayerCard()
+    return
   }
-  renderPlayerDrawer(player)
+  state.openPlayerId = player.id
+  renderPlayerPanel(player)
+  markActivePlayerCard(player.id)
+  const slot = document.getElementById('rr-player-panel-slot')
+  if (slot) slot.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
 }
 
 // ── Wire map filter event (delegated at document level) ───────────

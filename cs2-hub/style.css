@@ -3212,7 +3212,74 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
   border-radius: var(--r-md);
 }
 
+/* ── Inline player panel (slides down between Player Impact and Map Pool) ── */
+.rr-player-panel {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 280ms ease, opacity 200ms ease, margin 200ms ease;
+  margin-top: 0;
+}
+.rr-player-panel[aria-hidden="false"] {
+  max-height: 1400px;
+  opacity: 1;
+  margin-top: 12px;
+}
+.rr-player-panel-inner {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  padding: 18px 20px 20px;
+}
+.rr-player-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--glass-border);
+}
+.rr-player-panel-title {
+  font-family: var(--display-font);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.rr-player-panel-subtitle {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.rr-player-panel-close {
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.rr-player-panel-close:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.rr-player-panel-body { color: var(--text); }
+
+.rr-player-card.is-active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+
 @media (max-width: 800px) {
   .rr-hero-grid { grid-template-columns: 1fr; }
   .rr-match-card { grid-template-columns: 1fr; }
+  .rr-player-panel[aria-hidden="false"] { max-height: 2400px; }
 }
