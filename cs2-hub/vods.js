@@ -176,7 +176,7 @@ async function rebuild(filter) {
   if (drawer.isOpen()) {
     const openName = document.querySelector('.player-drawer .pd-title')?.textContent
     const player = roster.find(p => p.nickname === openName)
-    if (player && player.steam_id) openPlayerDrawer(player)
+    if (player && player.steam_id) renderPlayerDrawer(player)
     else drawer.close()
   }
 }
@@ -203,11 +203,8 @@ function demoResult(demo, vod) {
   return 'd'
 }
 
-async function openPlayerDrawer(player) {
+function renderPlayerDrawer(player) {
   if (!state.dataset) return
-  if (drawer.isOpen() && document.querySelector('.player-drawer .pd-title')?.textContent === player.nickname) {
-    drawer.close(); return
-  }
   const { rowsAll, rowsCT, rowsT, demosById, demoToVod, filter } = state.dataset
   const sid = player.steam_id
   const myAll = rowsAll.filter(r => r.steam_id === sid)
@@ -237,6 +234,13 @@ async function openPlayerDrawer(player) {
     subtitle: buildSubtitle(player, filter.window, matches, rounds),
     body: buildPlayerDrawerBody({ rowsAll: myAll, rowsCT: myCT, rowsT: myT, recent }),
   })
+}
+
+function openPlayerDrawer(player) {
+  if (drawer.isOpen() && document.querySelector('.player-drawer .pd-title')?.textContent === player.nickname) {
+    drawer.close(); return
+  }
+  renderPlayerDrawer(player)
 }
 
 // ── Wire map filter event (delegated at document level) ───────────
