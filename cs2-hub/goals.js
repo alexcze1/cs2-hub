@@ -9,13 +9,16 @@ await requireAuth()
 renderSidebar('goals')
 
 const HORIZONS = [
-  { key: 'long_term', label: 'LONG TERM' },
-  { key: 'monthly',   label: 'MONTHLY' },
-  { key: 'weekly',    label: 'WEEKLY' },
+  { key: 'long_term', label: 'Long Term' },
+  { key: 'monthly',   label: 'Monthly' },
+  { key: 'weekly',    label: 'Weekly' },
 ]
 
-const STATUS_COLORS = { active: 'var(--accent)', completed: 'var(--success)', dropped: 'var(--muted)' }
-const STATUS_LABELS = { active: 'Active', completed: 'Completed', dropped: 'Dropped' }
+const STATUS_META = {
+  active:    { label: 'Active',    color: 'var(--accent)' },
+  completed: { label: 'Completed', color: 'var(--success)' },
+  dropped:   { label: 'Dropped',   color: 'var(--muted)' },
+}
 
 const CATEGORIES = {
   competition:   { label: 'Competition',   color: '#4ade80' },
@@ -26,104 +29,224 @@ const CATEGORIES = {
   other:         { label: 'Other',         color: '#64748b' },
 }
 
-let allGoals   = []
-let editingId  = null
-
-// ── Stats summary ──────────────────────────────────────────
-function renderStats() {
-  const active    = allGoals.filter(g => g.status === 'active').length
-  const completed = allGoals.filter(g => g.status === 'completed').length
-  const dropped   = allGoals.filter(g => g.status === 'dropped').length
-
-  document.getElementById('goals-sub').textContent = `${allGoals.length} goal${allGoals.length !== 1 ? 's' : ''} · ${active} active`
-
-  document.getElementById('goals-stats').innerHTML = [
-    { label: 'Active',    value: active,    color: 'var(--accent)' },
-    { label: 'Completed', value: completed, color: 'var(--success)' },
-    { label: 'Dropped',   value: dropped,   color: 'var(--muted)' },
-  ].map(s => `
-    <div style="background:var(--surface);border:1px solid var(--border);border-top:3px solid ${s.color};border-radius:8px;padding:14px 20px;min-width:100px">
-      <div style="font-size:22px;font-weight:800;color:${s.color}">${s.value}</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:0.5px">${s.label}</div>
-    </div>
-  `).join('')
+const FILTER_LS_KEY = 'goals:filter:v1'
+const DEFAULT_FILTER = { horizon: 'all', status: 'active', category: 'all', q: '' }
+function loadSavedFilter() {
+  try { return { ...DEFAULT_FILTER, ...JSON.parse(localStorage.getItem(FILTER_LS_KEY) || '{}') } }
+  catch { return { ...DEFAULT_FILTER } }
 }
+function saveFilter(f) { try { localStorage.setItem(FILTER_LS_KEY, JSON.stringify(f)) } catch {} }
 
-// ── Goals ──────────────────────────────────────────────────
+const state = {
+  filter: loadSavedFilter(),
+  goals: [],
+}
+let editingId = null
+
+const heroEl    = document.getElementById('gl-hero')
+const filtersEl = document.getElementById('gl-filters')
+const listEl    = document.getElementById('goals-container')
+
 async function loadGoals() {
-  const { data, error } = await supabase.from('goals').select('*').eq('team_id', getTeamId()).order('created_at', { ascending: false })
-  if (error) { document.getElementById('goals-container').innerHTML = `<div class="empty-state"><h3>Failed to load</h3><p>${esc(error.message)}</p></div>`; return }
-  allGoals = data ?? []
-  renderStats()
-  renderGoals()
+  const { data, error } = await supabase
+    .from('goals').select('*')
+    .eq('team_id', getTeamId())
+    .order('created_at', { ascending: false })
+  if (error) {
+    listEl.innerHTML = `<div class="empty-state"><h3>Failed to load</h3><p>${esc(error.message)}</p></div>`
+    return
+  }
+  state.goals = data ?? []
+  renderAll()
 }
 
-function renderGoals() {
-  const el = document.getElementById('goals-container')
-  const byHorizon = Object.fromEntries(HORIZONS.map(h => [h.key, allGoals.filter(g => g.horizon === h.key)]))
+function getFiltered() {
+  const f = state.filter
+  const q = f.q.toLowerCase().trim()
+  return state.goals.filter(g =>
+    (f.horizon  === 'all' || g.horizon  === f.horizon)  &&
+    (f.status   === 'all' || g.status   === f.status)   &&
+    (f.category === 'all' || g.category === f.category) &&
+    (!q || g.title?.toLowerCase().includes(q) || g.description?.toLowerCase().includes(q))
+  )
+}
 
-  if (!allGoals.length) {
-    el.innerHTML = `<div class="empty-state"><h3>No goals here</h3><p>Add your first team goal above.</p></div>`
+// ── Hero ──────────────────────────────────────────────────────
+function renderHero() {
+  const all = state.goals
+  const active    = all.filter(g => g.status === 'active').length
+  const completed = all.filter(g => g.status === 'completed').length
+  const dropped   = all.filter(g => g.status === 'dropped').length
+
+  const upcoming = all
+    .filter(g => g.status === 'active' && g.due_date)
+    .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))[0]
+  const upcomingLabel = upcoming
+    ? `${upcoming.title} · ${new Date(upcoming.due_date).toLocaleDateString('en-GB', { day:'numeric', month:'short' })}`
+    : '—'
+
+  heroEl.innerHTML = `
+    <div class="dx-hero-grid">
+      <div class="dx-hero-left">
+        <div class="dx-hero-title">TEAM GOALS</div>
+        <div class="dx-hero-count">${active}<span class="dx-hero-count-unit">${active === 1 ? ' active' : ' active'}</span></div>
+        <div class="dx-hero-substats">
+          <div class="dx-kv"><div class="dx-kv-k">Completed</div><div class="dx-kv-v" style="color:var(--success)">${completed}</div></div>
+          <div class="dx-kv"><div class="dx-kv-k">Dropped</div><div class="dx-kv-v">${dropped}</div></div>
+          <div class="dx-kv"><div class="dx-kv-k">Total</div><div class="dx-kv-v">${all.length}</div></div>
+        </div>
+        <div class="dx-hero-actions">
+          <button type="button" class="dx-upload-cta" id="gl-add-btn">+ New Goal</button>
+        </div>
+      </div>
+      <div class="dx-hero-right">
+        <div class="gl-hero-next">
+          <div class="gl-hero-next-label">Next Milestone</div>
+          <div class="gl-hero-next-title">${esc(upcomingLabel)}</div>
+          ${horizonBreakdown(all)}
+        </div>
+      </div>
+    </div>`
+
+  document.getElementById('gl-add-btn').addEventListener('click', () => openModal())
+}
+
+function horizonBreakdown(all) {
+  const rows = HORIZONS.map(h => {
+    const n = all.filter(g => g.horizon === h.key && g.status === 'active').length
+    return `
+      <div class="gl-hbar-row">
+        <div class="gl-hbar-label">${h.label}</div>
+        <div class="gl-hbar-val">${n}</div>
+      </div>`
+  }).join('')
+  return `<div class="gl-hbar">${rows}</div>`
+}
+
+// ── Filters ───────────────────────────────────────────────────
+function renderFilters() {
+  const f = state.filter
+  const pill = (group, val, label, extraCls = '') =>
+    `<button type="button" class="dx-pill ${extraCls} ${f[group] === val ? 'is-active' : ''}" data-group="${group}" data-val="${esc(val)}">${esc(label)}</button>`
+
+  filtersEl.innerHTML = `
+    <div class="dx-filter-row">
+      <div class="dx-filter-group">
+        ${pill('horizon', 'all', 'All Horizons')}
+        ${HORIZONS.map(h => pill('horizon', h.key, h.label)).join('')}
+      </div>
+      <div class="dx-filter-divider"></div>
+      <div class="dx-filter-group">
+        ${pill('status', 'all',       'All')}
+        ${pill('status', 'active',    'Active')}
+        ${pill('status', 'completed', 'Completed')}
+        ${pill('status', 'dropped',   'Dropped')}
+      </div>
+    </div>
+    <div class="dx-filter-row" style="margin-top:8px">
+      <div class="dx-filter-group">
+        ${pill('category', 'all', 'All Categories')}
+        ${Object.entries(CATEGORIES).map(([k, v]) => pill('category', k, v.label)).join('')}
+      </div>
+      <div class="dx-filter-spacer"></div>
+      <input type="search" class="dx-search-input" id="gl-search" placeholder="Search goals…" value="${esc(f.q)}"/>
+    </div>`
+
+  for (const btn of filtersEl.querySelectorAll('.dx-pill')) {
+    btn.addEventListener('click', () => {
+      const g = btn.dataset.group, v = btn.dataset.val
+      if (state.filter[g] === v) return
+      state.filter = { ...state.filter, [g]: v }
+      saveFilter(state.filter)
+      renderFilters()
+      renderList()
+    })
+  }
+  document.getElementById('gl-search').addEventListener('input', e => {
+    state.filter = { ...state.filter, q: e.target.value }
+    saveFilter(state.filter)
+    renderList()
+  })
+}
+
+// ── List ──────────────────────────────────────────────────────
+function renderList() {
+  const filtered = getFiltered()
+  if (state.goals.length === 0) {
+    listEl.innerHTML = `<div class="dx-empty"><h3 style="margin:0 0 6px;font-weight:700">No goals yet</h3>Set your first team objective.</div>`
+    return
+  }
+  if (filtered.length === 0) {
+    listEl.innerHTML = `<div class="dx-empty">No goals match the current filters.</div>`
     return
   }
 
-  el.innerHTML = HORIZONS.map(h => {
-    const goals = byHorizon[h.key]
-    if (!goals.length) return ''
-    return `
-      <div style="margin-bottom:32px">
-        <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--muted);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">${h.label} <span style="font-weight:400;opacity:0.6">${goals.length}</span></div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px">
-          ${goals.map(g => {
-            const statusColor = STATUS_COLORS[g.status] ?? 'var(--accent)'
-            const cat         = CATEGORIES[g.category] ?? CATEGORIES.other
-            const actionLines = (g.action_steps ?? '').split('\n').map(l => l.trim()).filter(Boolean)
-            const isDropped   = g.status === 'dropped'
-            return `
-            <div class="list-row" style="flex-direction:column;align-items:flex-start;gap:12px;border-left:3px solid ${statusColor};opacity:${isDropped ? 0.5 : 1};cursor:pointer;padding:16px 16px 16px 14px" data-edit="${g.id}">
+  // Group by horizon (or flat if a horizon filter is applied)
+  const f = state.filter
+  if (f.horizon === 'all') {
+    listEl.innerHTML = HORIZONS.map(h => {
+      const goals = filtered.filter(g => g.horizon === h.key)
+      if (!goals.length) return ''
+      return `
+        <div class="gl-section">
+          <div class="gl-section-head">
+            <span class="gl-section-title">${h.label}</span>
+            <span class="gl-section-count">${goals.length}</span>
+          </div>
+          <div class="gl-grid">${goals.map(goalCard).join('')}</div>
+        </div>`
+    }).join('')
+  } else {
+    listEl.innerHTML = `<div class="gl-grid">${filtered.map(goalCard).join('')}</div>`
+  }
 
-              <div style="display:flex;justify-content:space-between;align-items:center;width:100%">
-                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-                  <span style="font-size:10px;font-weight:700;letter-spacing:0.5px;color:${cat.color};background:${cat.color}18;padding:2px 8px;border-radius:4px">${cat.label}</span>
-                  <span style="font-size:10px;font-weight:700;letter-spacing:0.5px;color:${statusColor};background:${statusColor}18;padding:2px 8px;border-radius:4px;text-transform:uppercase">${STATUS_LABELS[g.status] ?? g.status}</span>
-                </div>
-                <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;flex-shrink:0" data-edit="${g.id}">Edit</button>
-              </div>
-
-              <div style="font-weight:700;font-size:15px;line-height:1.3;color:var(--text)">${g.status === 'completed' ? '✓ ' : ''}${esc(g.title)}</div>
-
-              ${g.owner || g.due_date ? `
-              <div style="display:flex;gap:12px;align-items:center">
-                ${g.owner    ? `<span style="font-size:12px;color:var(--muted)">· ${esc(g.owner)}</span>` : ''}
-                ${g.due_date ? `<span style="font-size:12px;color:var(--muted)">Due ${new Date(g.due_date).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'})}</span>` : ''}
-              </div>` : ''}
-
-              ${g.description ? `<div style="font-size:13px;color:var(--muted);line-height:1.5;border-top:1px solid var(--border);padding-top:10px;width:100%">${esc(g.description)}</div>` : ''}
-
-              ${actionLines.length ? `
-              <div style="width:100%;border-top:1px solid var(--border);padding-top:10px">
-                <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;color:${cat.color};margin-bottom:8px">ACTION STEPS</div>
-                ${actionLines.map(l => `
-                  <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:5px">
-                    <span style="color:${cat.color};font-size:12px;margin-top:1px;flex-shrink:0">›</span>
-                    <span style="font-size:13px;color:var(--text);line-height:1.4">${esc(l.replace(/^[•·\-›]\s*/, ''))}</span>
-                  </div>`).join('')}
-              </div>` : ''}
-
-            </div>`
-          }).join('')}
-        </div>
-      </div>
-    `
-  }).join('')
-
-  document.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); openModal(e.currentTarget.dataset.edit) }))
+  for (const card of listEl.querySelectorAll('[data-edit]')) {
+    card.addEventListener('click', e => { e.stopPropagation(); openModal(e.currentTarget.dataset.edit) })
+  }
 }
 
-// ── Modal ──────────────────────────────────────────────────
+function goalCard(g) {
+  const status = STATUS_META[g.status] ?? { label: g.status, color: 'var(--muted)' }
+  const cat    = CATEGORIES[g.category] ?? CATEGORIES.other
+  const actionLines = (g.action_steps ?? '').split('\n').map(l => l.trim()).filter(Boolean)
+  const dropped   = g.status === 'dropped'
+  const completed = g.status === 'completed'
+  return `
+    <div class="gl-card${dropped ? ' gl-card-dropped' : ''}${completed ? ' gl-card-completed' : ''}" style="border-left-color:${cat.color}" data-edit="${esc(g.id)}">
+      <div class="gl-card-head">
+        <span class="gl-badge" style="color:${cat.color};background:${cat.color}1f">${esc(cat.label)}</span>
+        <span class="gl-badge" style="color:${status.color};background:${status.color}1f">${esc(status.label)}</span>
+        <span class="gl-edit-hint">Edit ›</span>
+      </div>
+      <div class="gl-card-title">${completed ? '✓ ' : ''}${esc(g.title)}</div>
+      ${g.owner || g.due_date ? `
+        <div class="gl-card-meta">
+          ${g.owner    ? `<span class="gl-card-meta-item">${esc(g.owner)}</span>` : ''}
+          ${g.due_date ? `<span class="gl-card-meta-item">Due ${new Date(g.due_date).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'})}</span>` : ''}
+        </div>` : ''}
+      ${g.description ? `<div class="gl-card-desc">${esc(g.description)}</div>` : ''}
+      ${actionLines.length ? `
+        <div class="gl-card-actions">
+          <div class="gl-card-actions-label" style="color:${cat.color}">Action Steps</div>
+          ${actionLines.map(l => `
+            <div class="gl-card-action">
+              <span class="gl-card-action-arrow" style="color:${cat.color}">›</span>
+              <span>${esc(l.replace(/^[•·\-›]\s*/, ''))}</span>
+            </div>`).join('')}
+        </div>` : ''}
+    </div>`
+}
+
+function renderAll() {
+  renderHero()
+  renderFilters()
+  renderList()
+}
+
+// ── Modal (preserved) ─────────────────────────────────────────
 function openModal(id = null) {
   editingId = id
-  const g = id ? allGoals.find(x => x.id === id) : null
+  const g = id ? state.goals.find(x => x.id === id) : null
   document.getElementById('modal-title').textContent   = id ? 'Edit Goal' : 'Add Goal'
   document.getElementById('f-title').value             = g?.title        ?? ''
   document.getElementById('f-category').value          = g?.category     ?? 'competition'
@@ -140,7 +263,6 @@ function openModal(id = null) {
 
 function closeModal() { document.getElementById('modal').style.display = 'none'; editingId = null }
 
-document.getElementById('add-btn').addEventListener('click', () => openModal())
 document.getElementById('modal-close').addEventListener('click', closeModal)
 document.getElementById('cancel-btn').addEventListener('click', closeModal)
 document.getElementById('modal').addEventListener('click', e => { if (e.target === document.getElementById('modal')) closeModal() })
