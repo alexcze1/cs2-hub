@@ -1,18 +1,23 @@
+// cs2-hub/vods.js
+//
+// Results & Review orchestrator. Loads data once, re-renders each section
+// on filter change. Sections are pure render modules; this file owns the
+// data layer + the drawer.
+
 import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
-import { getTeamLogo, teamLogoEl } from './team-autocomplete.js'
 import { mountFilter } from './vods-filter.js'
-import { renderTeamStats } from './vods-team-stats.js'
-import { renderRosterBand } from './roster-stats.js'
+import { renderHero } from './vods-hero.js'
+import { renderPlayerImpact } from './vods-player-impact.js'
+import { renderMapPool } from './vods-map-pool.js'
+import { renderMatchReports } from './vods-match-reports.js'
+import { splitVodsByWindow } from './vods-trend.js'
 import { mountDrawer } from './player-drawer.js'
 import { buildPlayerDrawerBody, buildSubtitle } from './roster-stats-render.js'
-import { applyTimeWindow } from './roster-stats-aggregate.js'
 import { linkDemosToVods } from './auto-fill-vod.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
-function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : '' }
-function formatDate(d) { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) }
 
 await requireAuth()
 renderSidebar('vods')
@@ -20,24 +25,162 @@ renderSidebar('vods')
 const teamId = getTeamId()
 const drawer = mountDrawer()
 
-// ── Load all data once ──────────────────────────────────────────
+// ── Boot: load everything we need once ──────────────────────────
 const [vodsRes, rosterRes, teamRes] = await Promise.all([
   supabase.from('vods').select('*').eq('team_id', teamId).eq('dismissed', false).order('match_date', { ascending: false }),
   supabase.from('roster').select('*').eq('team_id', teamId),
   supabase.from('teams').select('name').eq('id', teamId).maybeSingle(),
 ])
 if (vodsRes.error) {
-  document.getElementById('vods-list').innerHTML = `<div class="empty-state"><h3>Failed to load matches</h3><p>${esc(vodsRes.error.message)}</p></div>`
+  document.getElementById('rr-hero').innerHTML =
+    `<div class="empty-state"><h3>Failed to load matches</h3><p>${esc(vodsRes.error.message)}</p></div>`
   throw vodsRes.error
 }
-const allVods   = vodsRes.data ?? []
-const roster    = rosterRes.data ?? []
+const allVods = vodsRes.data ?? []
+const roster  = rosterRes.data ?? []
 const ourTeamName = teamRes.data?.name ?? ''
 const teamSteamIds = new Set(roster.map(p => p.steam_id).filter(Boolean))
 
-// Derive opponent name from a demo's ct/t team names. Whichever side isn't
-// our team is the opponent. If neither matches, show both sides so at least
-// some names appear in the UI.
+// Mount the hero shell once so its filter slot exists.
+const HERO_FILTER_SLOT = 'rr-filter-slot'
+renderHero(document.getElementById('rr-hero'), { vods: allVods, filterSlotId: HERO_FILTER_SLOT })
+
+if (allVods.length === 0) {
+  document.getElementById('rr-player-impact').innerHTML = ''
+  document.getElementById('rr-map-pool').innerHTML = ''
+  document.getElementById('rr-match-reports').innerHTML = ''
+}
+
+// ── State ────────────────────────────────────────────────────────
+let state = { filter: null, mapFilter: null, dataset: null }
+
+function applyMatchTypeFilter(vods, matchType) {
+  if (!matchType || matchType === 'all') return vods
+  return vods.filter(v => v.match_type === matchType)
+}
+
+function widenDate(d, delta) {
+  const dt = new Date(`${d}T00:00:00`)
+  dt.setDate(dt.getDate() + delta)
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+}
+
+async function fetchDemosForVodWindow(vods) {
+  const empty = { demos: [], rowsAll: [], rowsCT: [], rowsT: [], demoToVod: new Map() }
+  if (!vods.length || !teamSteamIds.size) return empty
+
+  const dates = vods.map(v => v.match_date).filter(Boolean).sort()
+  if (!dates.length) return empty
+  const minDate = widenDate(dates[0], -1)
+  const maxDate = widenDate(dates[dates.length - 1], 1)
+
+  const { data: demos, error: e1 } = await supabase
+    .from('demos')
+    .select('id,series_id,map,played_at,opponent_name,ct_team_name,t_team_name,created_at,status,team_id')
+    .eq('team_id', teamId)
+    .eq('status', 'ready')
+    .gte('created_at', `${minDate}T00:00:00`)
+    .lte('created_at', `${maxDate}T23:59:59`)
+  if (e1) throw e1
+
+  const demoToVod = linkDemosToVods(demos || [], vods)
+
+  if (!(demos || []).length) return { demos: [], rowsAll: [], rowsCT: [], rowsT: [], demoToVod }
+
+  const { data: rows, error: e3 } = await supabase
+    .from('demo_players')
+    .select('*')
+    .in('demo_id', demos.map(d => d.id))
+    .in('steam_id', [...teamSteamIds])
+  if (e3) throw e3
+
+  const demosById = new Map((demos || []).map(d => [d.id, d]))
+  for (const r of rows || []) {
+    const d = demosById.get(r.demo_id)
+    r.map = d?.map ?? null
+  }
+  const rowsAll = (rows || []).filter(r => r.side === 'all')
+  const rowsCT  = (rows || []).filter(r => r.side === 'ct')
+  const rowsT   = (rows || []).filter(r => r.side === 't')
+  return { demos: demos || [], rowsAll, rowsCT, rowsT, demoToVod, demosById }
+}
+
+function groupByDemoId(rows) {
+  const m = new Map()
+  for (const r of rows || []) {
+    if (!r.demo_id) continue
+    if (!m.has(r.demo_id)) m.set(r.demo_id, [])
+    m.get(r.demo_id).push(r)
+  }
+  return m
+}
+
+async function rebuild(filter) {
+  state.filter = filter
+  const { current, prior } = splitVodsByWindow(allVods, filter)
+  const currentFiltered = applyMatchTypeFilter(current, filter.matchType)
+  const priorFiltered   = applyMatchTypeFilter(prior,   filter.matchType)
+
+  // Re-render hero whenever the filtered current set changes
+  renderHero(document.getElementById('rr-hero'), { vods: currentFiltered, filterSlotId: HERO_FILTER_SLOT })
+  // Re-mount filter into the new slot (renderHero blew it away)
+  mountFilter(document.getElementById(HERO_FILTER_SLOT), (f) => {
+    // Avoid reentry: only rebuild if state actually changed
+    if (JSON.stringify(f) === JSON.stringify(state.filter)) return
+    rebuild(f)
+  })
+
+  // Single fetch covering BOTH windows for demo_players (used by both
+  // player-impact's trend computation and match-reports' top performers).
+  const union = [...currentFiltered, ...priorFiltered]
+  const data = await fetchDemosForVodWindow(union)
+
+  // Partition demo_players rows back into current vs prior by their demo's
+  // played_at / created_at falling inside the corresponding vod date window.
+  // For simplicity we partition by checking whether the demo links to a vod
+  // in current vs prior.
+  const currentVodIds = new Set(currentFiltered.map(v => v.id))
+  const priorVodIds   = new Set(priorFiltered.map(v => v.id))
+  const rowsCurrent = []
+  const rowsPrior   = []
+  for (const r of data.rowsAll) {
+    const linkedVod = data.demoToVod.get(r.demo_id)
+    if (linkedVod && currentVodIds.has(linkedVod.id)) rowsCurrent.push(r)
+    else if (linkedVod && priorVodIds.has(linkedVod.id)) rowsPrior.push(r)
+  }
+
+  state.dataset = {
+    filter,
+    currentVods: currentFiltered,
+    priorVods:   priorFiltered,
+    rowsAll: data.rowsAll, rowsCT: data.rowsCT, rowsT: data.rowsT,
+    demosById: data.demosById,
+    demoToVod: data.demoToVod,
+    rowsCurrent, rowsPrior,
+  }
+
+  renderPlayerImpact(document.getElementById('rr-player-impact'), {
+    roster, rowsCurrent, rowsPrior, onPick: openPlayerDrawer,
+  })
+  renderMapPool(document.getElementById('rr-map-pool'), {
+    vodsCurrent: currentFiltered, vodsPrior: priorFiltered, activeMap: state.mapFilter,
+  })
+  renderMatchReports(document.getElementById('rr-match-reports'), {
+    vods: currentFiltered,
+    demoToVod: data.demoToVod,
+    demoPlayersByDemoId: groupByDemoId(data.rowsAll),
+    mapFilter: state.mapFilter,
+  })
+
+  // Refresh drawer if open
+  if (drawer.isOpen()) {
+    const openName = document.querySelector('.player-drawer .pd-title')?.textContent
+    const player = roster.find(p => p.nickname === openName)
+    if (player && player.steam_id) openPlayerDrawer(player)
+    else drawer.close()
+  }
+}
+
 function demoOpponentName(demo) {
   const ct = (demo?.ct_team_name || '').trim()
   const t  = (demo?.t_team_name  || '').trim()
@@ -51,96 +194,6 @@ function demoOpponentName(demo) {
   return ct || t || null
 }
 
-if (!allVods.length) {
-  document.getElementById('vods-list').innerHTML = `<div class="empty-state"><h3>No matches yet</h3><p>Add your first result above.</p></div>`
-} else {
-  document.getElementById('stats-section').style.display = 'block'
-}
-
-// ── Resolve demo set + demo_players for the filtered vod set ────
-// Stats are tied to demos by steam_id, not to vods. We use the filtered vod
-// set only to derive a date window; demos in that window contribute stats
-// regardless of whether they link to a logged vod. The demo→vod map is a
-// best-effort attachment for the drawer's recent-matches W/L tags + links.
-function widenDate(d, delta) {
-  const dt = new Date(`${d}T00:00:00`)
-  dt.setDate(dt.getDate() + delta)
-  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
-}
-
-async function fetchPlayerRowsForVods(filteredVods) {
-  const empty = { rowsAll: [], rowsCT: [], rowsT: [], demosById: new Map(), demoToVod: new Map() }
-  console.log('[stats-debug] roster size:', roster.length, 'teamSteamIds:', [...teamSteamIds])
-  if (!filteredVods?.length || !teamSteamIds.size) {
-    console.log('[stats-debug] early return:', { filteredVodsLen: filteredVods?.length, teamSteamIdsSize: teamSteamIds.size })
-    return empty
-  }
-
-  const dates = filteredVods.map(v => v.match_date).filter(Boolean).sort()
-  if (!dates.length) {
-    console.log('[stats-debug] no vod match_dates')
-    return empty
-  }
-  const minDate = widenDate(dates[0], -1)
-  const maxDate = widenDate(dates[dates.length - 1], 1)
-  console.log('[stats-debug] date window:', minDate, '→', maxDate)
-
-  // Window on created_at: played_at is parser-derived and frequently null
-  // for older / failed-parse demos. created_at is always set on insert.
-  const { data: demos, error: e1 } = await supabase
-    .from('demos')
-    .select('id,series_id,map,played_at,opponent_name,ct_team_name,t_team_name,created_at,status,team_id')
-    .eq('team_id', teamId)
-    .eq('status', 'ready')
-    .gte('created_at', `${minDate}T00:00:00`)
-    .lte('created_at', `${maxDate}T23:59:59`)
-  if (e1) throw e1
-
-  const allDemos = demos || []
-  console.log('[stats-debug] team demos in window:', allDemos.length, allDemos.slice(0, 3))
-  const demosById = new Map(allDemos.map(d => [d.id, d]))
-  const demoToVod = linkDemosToVods(allDemos, filteredVods)
-
-  if (!allDemos.length) return { rowsAll: [], rowsCT: [], rowsT: [], demosById, demoToVod }
-
-  const teamSteamIdList = [...teamSteamIds]
-
-  // Diagnostic: how many demo_players rows exist for these demos total (no steam filter)?
-  const { data: anyRows } = await supabase
-    .from('demo_players')
-    .select('demo_id,steam_id,name,side,rating,rounds_played')
-    .in('demo_id', allDemos.map(d => d.id))
-  console.log('[stats-debug] demo_players total rows for demos:', anyRows?.length, 'sample:', (anyRows || []).slice(0, 5))
-  console.log('[stats-debug] sides present:', [...new Set((anyRows || []).map(r => r.side))])
-  console.log('[stats-debug] distinct steam_ids in demos:', [...new Set((anyRows || []).map(r => r.steam_id))])
-
-  const { data: rows, error: e3 } = await supabase
-    .from('demo_players')
-    .select('*')
-    .in('demo_id', allDemos.map(d => d.id))
-    .in('steam_id', teamSteamIdList)
-  if (e3) throw e3
-  console.log('[stats-debug] demo_players rows matching roster steam_ids:', rows?.length)
-
-  for (const r of rows || []) {
-    const d = demosById.get(r.demo_id)
-    r.map = d?.map ?? null
-  }
-  const rowsAll = (rows || []).filter(r => r.side === 'all')
-  const rowsCT  = (rows || []).filter(r => r.side === 'ct')
-  const rowsT   = (rows || []).filter(r => r.side === 't')
-  console.log('[stats-debug] rowsAll/CT/T:', rowsAll.length, rowsCT.length, rowsT.length)
-  return { rowsAll, rowsCT, rowsT, demosById, demoToVod }
-}
-
-function filterVods(filter) {
-  let pool = allVods
-  if (filter.tournamentsOnly) pool = pool.filter(v => v.match_type === 'tournament')
-  return applyTimeWindow(pool, filter.window)
-}
-
-// W/L for a single demo: derived from per-map vod.maps[].score_us/score_them
-// matched on map name. Falls back to 'd' (draw/unknown).
 function demoResult(demo, vod) {
   if (!vod || !demo) return 'd'
   const slot = (vod.maps || []).find(m => String(m.map).toLowerCase() === String(demo.map).toLowerCase())
@@ -150,106 +203,23 @@ function demoResult(demo, vod) {
   return 'd'
 }
 
-// ── Match history list (existing, unchanged behavior) ─────────
-async function renderMatchList(vods) {
-  const el = document.getElementById('vods-list')
-  if (!vods.length) {
-    el.innerHTML = `<div class="empty-state"><h3>No matches in window</h3><p>Try a wider time window.</p></div>`
-    return
-  }
-  const logos = await Promise.all(vods.map(v => getTeamLogo(v.opponent ?? v.title)))
-
-  function deriveInsights(maps) {
-    if (!maps?.length) return []
-    const out = []
-    let totalUs = 0, totalThem = 0
-    let bestMap = null, worstMap = null, closest = null
-    for (const m of maps) {
-      const us = m.score_us ?? 0, them = m.score_them ?? 0
-      totalUs += us; totalThem += them
-      const diff = us - them
-      if (!bestMap  || diff > bestMap.diff)  bestMap  = { ...m, diff, us, them }
-      if (!worstMap || diff < worstMap.diff) worstMap = { ...m, diff, us, them }
-      const margin = Math.abs(diff)
-      if (us + them > 0 && (!closest || margin < Math.abs(closest.diff))) closest = { ...m, diff, us, them }
-    }
-    const overallDiff = totalUs - totalThem
-    if (Math.abs(overallDiff) >= 6) out.push({ text: `Round diff ${overallDiff > 0 ? '+' : ''}${overallDiff}`, cls: overallDiff > 0 ? 'positive' : 'negative' })
-    if (bestMap && bestMap.diff > 4) out.push({ text: `Strong on ${capitalize(bestMap.map)} ${bestMap.us}–${bestMap.them}`, cls: 'positive' })
-    if (worstMap && worstMap.diff < -4 && worstMap.map !== bestMap?.map) out.push({ text: `Lost ${capitalize(worstMap.map)} ${worstMap.us}–${worstMap.them}`, cls: 'negative' })
-    if (maps.length >= 2 && closest && Math.abs(closest.diff) <= 2 && closest.map !== bestMap?.map && closest.map !== worstMap?.map) out.push({ text: `Close fight on ${capitalize(closest.map)} ${closest.us}–${closest.them}`, cls: '' })
-    return out.slice(0, 3)
-  }
-  function aggregateScore(maps) {
-    let mw = 0, ml = 0
-    for (const m of maps ?? []) {
-      if ((m.score_us ?? 0) > (m.score_them ?? 0)) mw++
-      else if ((m.score_them ?? 0) > (m.score_us ?? 0)) ml++
-    }
-    return { mw, ml }
-  }
-
-  el.innerHTML = vods.map((v, vi) => {
-    const maps = v.maps ?? []
-    const { mw, ml } = aggregateScore(maps)
-    const result = mw > ml ? 'win' : ml > mw ? 'loss' : maps.length ? 'draw' : 'draw'
-    const oppName = v.opponent ?? v.title
-    const mapsLabel = maps.length === 1
-      ? `${capitalize(maps[0].map)} · ${maps[0].score_us ?? '?'}–${maps[0].score_them ?? '?'}`
-      : maps.length > 1
-        ? `BO${maps.length} · ${maps.map(m => capitalize(m.map)).join(' / ')}`
-        : 'No maps'
-    const insights = deriveInsights(maps)
-    return `
-      <a class="match-card match-card-${result}" href="vod-detail.html?id=${v.id}">
-        <div class="match-result">
-          <span class="match-result-tag match-result-${result}">${result === 'draw' ? 'DRAW' : result.toUpperCase()}</span>
-          <span class="match-result-score match-result-score-${result}">${mw}–${ml}</span>
-        </div>
-        <div class="match-body">
-          <div class="match-opponent">
-            ${teamLogoEl(logos[vi], oppName, 28)}
-            <span>vs ${esc(oppName)}</span>
-            ${v.external_uid ? '<span class="pracc-badge">PRACC</span>' : ''}
-          </div>
-          <div class="match-opponent-meta">${esc(mapsLabel)}</div>
-          ${insights.length ? `<div class="match-bullets">${insights.map(i =>
-            `<span class="match-bullet ${i.cls ? 'match-bullet-' + i.cls : ''}">${esc(i.text)}</span>`
-          ).join('')}</div>` : ''}
-        </div>
-        <div class="match-meta">
-          <div>${esc(v.match_type ?? '')}</div>
-          <div class="match-meta-date">${v.match_date ? formatDate(v.match_date) : '—'}</div>
-        </div>
-      </a>
-    `
-  }).join('')
-}
-
-// ── Drawer open: fetch player-specific data + render body ─────
-let lastDataset = null  // { filter, vods, rowsAll, rowsCT, rowsT, demosById, demoToVod }
-
 async function openPlayerDrawer(player) {
-  if (!lastDataset) return
-  // Toggle: clicking the currently-open player closes the drawer.
+  if (!state.dataset) return
   if (drawer.isOpen() && document.querySelector('.player-drawer .pd-title')?.textContent === player.nickname) {
-    drawer.close()
-    return
+    drawer.close(); return
   }
-  const { rowsAll, rowsCT, rowsT, demosById, demoToVod, filter } = lastDataset
+  const { rowsAll, rowsCT, rowsT, demosById, demoToVod, filter } = state.dataset
   const sid = player.steam_id
-
   const myAll = rowsAll.filter(r => r.steam_id === sid)
   const myCT  = rowsCT.filter(r  => r.steam_id === sid)
   const myT   = rowsT.filter(r   => r.steam_id === sid)
-
   const matches = myAll.length
   const rounds  = myAll.reduce((s, r) => s + (r.rounds_played || 0), 0)
 
   const recent = myAll
     .map(r => {
-      const demo = demosById.get(r.demo_id)
-      const vod = demo ? demoToVod.get(r.demo_id) : null
+      const demo = demosById?.get(r.demo_id)
+      const vod  = demo ? demoToVod.get(r.demo_id) : null
       return {
         vod_id: vod?.id,
         opponent: vod?.opponent ?? demoOpponentName(demo) ?? demo?.opponent_name ?? '—',
@@ -267,43 +237,13 @@ async function openPlayerDrawer(player) {
     subtitle: buildSubtitle(player, filter.window, matches, rounds),
     body: buildPlayerDrawerBody({ rowsAll: myAll, rowsCT: myCT, rowsT: myT, recent }),
   })
-
-  // Wire "View all-time" CTA inside empty-state body
-  const cta = document.getElementById('pd-view-alltime')
-  if (cta) {
-    cta.addEventListener('click', () => {
-      const f = JSON.parse(localStorage.getItem('vods:filter:v1') || '{}')
-      f.window = 'all'; f.tournamentsOnly = !!f.tournamentsOnly
-      localStorage.setItem('vods:filter:v1', JSON.stringify(f))
-      window.location.reload()
-    })
-  }
 }
 
-// ── Top-level: rebuild whole view on filter change ────────────
-async function rebuild(filter) {
-  const filteredVods = filterVods(filter)
+// ── Wire map filter event (delegated at document level) ───────────
+document.addEventListener('rr:filter-map', (e) => {
+  state.mapFilter = e.detail?.map ?? null
+  if (state.filter) rebuild(state.filter)
+})
 
-  await renderMatchList(filteredVods)
-  renderTeamStats(document.getElementById('top-stats'), document.getElementById('map-breakdown'), filteredVods)
-
-  const { rowsAll, rowsCT, rowsT, demosById, demoToVod } = await fetchPlayerRowsForVods(filteredVods)
-
-  lastDataset = { filter, vods: filteredVods, rowsAll, rowsCT, rowsT, demosById, demoToVod }
-
-  renderRosterBand(document.getElementById('roster-band'), {
-    roster, rows: rowsAll, onPick: openPlayerDrawer,
-  })
-
-  // If the drawer is open, refresh its content with the new dataset
-  if (drawer.isOpen()) {
-    // Find the currently-open player by their displayed name (best effort).
-    const openName = document.querySelector('.player-drawer .pd-title')?.textContent
-    const player = roster.find(p => p.nickname === openName)
-    if (player && player.steam_id) openPlayerDrawer(player)
-    else drawer.close()
-  }
-}
-
-// Mount filter; mountFilter calls back synchronously on mount + on each change.
-mountFilter(document.getElementById('filter-slot'), (filter) => { rebuild(filter) })
+// ── Mount filter into the hero's filter slot ──────────────────────
+mountFilter(document.getElementById(HERO_FILTER_SLOT), (f) => { rebuild(f) })
