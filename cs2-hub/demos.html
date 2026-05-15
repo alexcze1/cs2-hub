@@ -12,16 +12,11 @@
   <nav class="sidebar" id="sidebar"></nav>
   <main class="main-content">
 
-    <div class="page-header">
-      <div>
-        <div class="page-title">Demos</div>
-        <div class="page-sub" id="demo-count-sub">Loading…</div>
-      </div>
-      <div style="display:flex;gap:10px;align-items:center">
-        <input type="file" id="demo-file-input" accept=".dem" multiple style="display:none"/>
-        <button class="btn btn-primary" id="upload-btn">+ Upload Demo</button>
-      </div>
-    </div>
+    <section id="demos-hero" class="dx-hero">
+      <div class="dx-hero-loading">Loading…</div>
+    </section>
+
+    <input type="file" id="demo-file-input" accept=".dem" multiple style="display:none"/>
 
     <div id="upload-progress" style="display:none;margin-bottom:16px" class="card">
       <div id="upload-progress-text" style="margin-bottom:8px;font-size:14px;color:var(--text-variant)">Uploading…</div>
@@ -29,6 +24,8 @@
         <div id="upload-progress-bar" style="height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width 0.2s"></div>
       </div>
     </div>
+
+    <section id="demos-filters" class="dx-filters"></section>
 
     <section class="dl-playlists" id="dl-playlists" hidden></section>
     <div id="demos-list"></div>

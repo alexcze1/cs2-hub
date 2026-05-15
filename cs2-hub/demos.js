@@ -28,29 +28,58 @@ function mapImg(map, cls) {
   const fallback = file.slice(0, 3).toUpperCase()
   return `<div class="${cls}"><img src="images/maps/${file}.png" alt="${esc(map)}" onerror="this.parentElement.innerHTML='<span>${fallback}</span>'"/></div>`
 }
+function mapBg(map) {
+  const file = mapFileFor(map)
+  return file ? `images/maps/${file}.png` : ''
+}
+function relativeTime(iso) {
+  if (!iso) return '—'
+  const ms = Date.now() - new Date(iso).getTime()
+  const mins = Math.floor(ms / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  if (days < 30) return `${days}d ago`
+  return formatDate(iso)
+}
 
 await requireAuth()
 renderSidebar('demos')
 
 const VPS_URL = 'https://vps.midround.pro'
 const teamId  = getTeamId()
-const listEl  = document.getElementById('demos-list')
-const countEl = document.getElementById('demo-count-sub')
-const uploadBtn  = document.getElementById('upload-btn')
-const fileInput  = document.getElementById('demo-file-input')
+const heroEl    = document.getElementById('demos-hero')
+const filtersEl = document.getElementById('demos-filters')
+const listEl    = document.getElementById('demos-list')
+const fileInput = document.getElementById('demo-file-input')
 const progressWrap = document.getElementById('upload-progress')
 const progressText = document.getElementById('upload-progress-text')
 const progressBar  = document.getElementById('upload-progress-bar')
 
-const playlistsState = {
-  list:         [],
-  loaded:       false,
-  openId:       null,
-  openRows:     [],
-  roundCounts:  new Map(),
+const FILTER_LS_KEY = 'demos:filter:v1'
+const DEFAULT_FILTER = { window: 'all', map: 'all' }
+function loadSavedFilter() {
+  try {
+    const v = JSON.parse(localStorage.getItem(FILTER_LS_KEY) || '{}')
+    return { ...DEFAULT_FILTER, ...v }
+  } catch { return { ...DEFAULT_FILTER } }
+}
+function saveFilter(f) { try { localStorage.setItem(FILTER_LS_KEY, JSON.stringify(f)) } catch {} }
+
+const state = {
+  filter:   loadSavedFilter(),
+  rawDemos: [],
+  entries:  [],
+  logoMap:  {},
 }
 
-// ── Demo list ─────────────────────────────────────────────────
+const playlistsState = {
+  list: [], loaded: false, openId: null, openRows: [], roundCounts: new Map(),
+}
+
+// ── Data layer ────────────────────────────────────────────────
 async function loadDemos() {
   const { data, error } = await supabase
     .from('demos')
@@ -59,38 +88,16 @@ async function loadDemos() {
     .order('created_at', { ascending: false })
 
   if (error) {
-    listEl.innerHTML = `<div class="empty-state"><h3>Failed to load demos</h3><p>${esc(error.message)}</p></div>`
+    heroEl.innerHTML = `<div class="empty-state"><h3>Failed to load demos</h3><p>${esc(error.message)}</p></div>`
+    listEl.innerHTML = ''
     return
   }
 
-  countEl.textContent = `${data.length} match${data.length === 1 ? '' : 'es'} uploaded`
+  state.rawDemos = data ?? []
 
-  if (!data.length) {
-    listEl.innerHTML = `<div class="empty-state"><h3>No demos yet</h3><p>Upload your first .dem file to get started.</p></div>`
-    return
-  }
-
-  // Resolve "left vs right" team labels and scores using per-roster columns when
-  // available (correct after halftime swap), falling back to per-side columns
-  // for old demos parsed before team_a_score was added.
-  function teamDisplay(d) {
-    const teamsSet = d.ct_team_name && d.t_team_name
-    const haveRoster = d.team_a_score != null && d.team_b_score != null && d.team_a_first_side
-    if (teamsSet && haveRoster) {
-      const nameA = d.team_a_first_side === 'ct' ? d.ct_team_name : d.t_team_name
-      const nameB = d.team_a_first_side === 'ct' ? d.t_team_name  : d.ct_team_name
-      return { left: nameA, right: nameB, leftScore: d.team_a_score, rightScore: d.team_b_score }
-    }
-    if (teamsSet) {
-      return { left: d.ct_team_name, right: d.t_team_name, leftScore: d.score_ct, rightScore: d.score_t }
-    }
-    return { left: null, right: null, leftScore: d.score_ct, rightScore: d.score_t }
-  }
-
-  // Group demos into entries (single or series), then sort by most recent.
-  const seriesMap = new Map()
-  const singles   = []
-  for (const d of data) {
+  // Group into entries (single or series).
+  const seriesMap = new Map(), singles = []
+  for (const d of state.rawDemos) {
     if (d.series_id) {
       if (!seriesMap.has(d.series_id)) seriesMap.set(d.series_id, [])
       seriesMap.get(d.series_id).push(d)
@@ -108,155 +115,316 @@ async function loadDemos() {
     entries.push({ kind: 'single', demos: [d], latestAt: +new Date(d.created_at) })
   }
   entries.sort((a, b) => b.latestAt - a.latestAt)
+  state.entries = entries
 
-  // Pre-resolve HLTV team logos for all visible team names.
+  // Resolve team logos for every team name we'll show.
   const names = new Set()
-  for (const d of data) {
+  for (const d of state.rawDemos) {
     if (d.ct_team_name) names.add(d.ct_team_name)
     if (d.t_team_name)  names.add(d.t_team_name)
     if (d.opponent_name) names.add(d.opponent_name)
   }
-  const logoMap = {}
-  await Promise.all([...names].map(async n => { logoMap[n] = await getTeamLogo(n) }))
+  state.logoMap = {}
+  await Promise.all([...names].map(async n => { state.logoMap[n] = await getTeamLogo(n) }))
 
-  function statusBadge(d) {
-    return {
-      pending:    `<span class="badge badge-warning">Processing</span>`,
-      processing: `<span class="badge badge-warning">Processing</span>`,
-      ready:      ``,
-      error:      `<span class="badge badge-error" title="${esc(d.error_message ?? '')}">Error</span>`,
-    }[d.status] ?? ''
+  renderAll()
+}
+
+// ── Hero ──────────────────────────────────────────────────────
+function computeHeroStats(demos) {
+  const total      = demos.length
+  const pending    = demos.filter(d => d.status === 'pending' || d.status === 'processing').length
+  const errored    = demos.filter(d => d.status === 'error').length
+  const latest     = demos[0] ?? null
+  const mapCounts  = {}
+  for (const d of demos) {
+    if (!d.map) continue
+    mapCounts[d.map] = (mapCounts[d.map] || 0) + 1
   }
-
-  function teamsBtn(d, td) {
-    if (d.status !== 'ready') return ''
-    return `<button class="btn btn-ghost btn-sm" onclick="assignTeams('${d.id}')">${td.left ? '✎ Teams' : '+ Teams'}</button>`
+  let topMap = null, topMapN = 0
+  for (const [m, n] of Object.entries(mapCounts)) {
+    if (n > topMapN) { topMap = m; topMapN = n }
   }
+  return { total, pending, errored, latest, topMap }
+}
 
-  function watchBtn(d) {
-    if (d.status === 'ready')
-      return `<a class="btn btn-primary btn-sm" href="demo-viewer.html?id=${d.id}">▶ Watch</a>`
-    if (d.status === 'error')
-      return `<button class="btn btn-ghost btn-sm" onclick="retryDemo('${d.id}')">Retry</button>`
-    return `<button class="btn btn-ghost btn-sm" disabled>▶ Watch</button>`
-  }
-
-  function deleteBtn(d) {
-    return `<button class="btn btn-ghost btn-sm demo-delete-btn" title="Delete demo" onclick="deleteDemo('${d.id}')">✕</button>`
-  }
-
-  function teamRow(name, score, isWinner, hasResult, logoSize = 26) {
-    const logo = teamLogoEl(logoMap[name] ?? null, name ?? '???', logoSize)
-    const cls = !hasResult ? 'demo-score-none' : isWinner ? 'demo-score-win' : 'demo-score-loss'
-    const displayName = name ?? '—'
-    return `
-      <div class="demo-team-row ${isWinner && hasResult ? 'demo-team-row-winner' : ''}">
-        ${logo}
-        <span class="demo-team-name">${esc(displayName)}</span>
-        <span class="demo-score ${cls}">${score ?? '—'}</span>
-      </div>`
-  }
-
-  function singleCard(d) {
-    const td = teamDisplay(d)
-    const hasResult = td.leftScore != null && td.rightScore != null && d.status === 'ready'
-    const leftWin  = hasResult && td.leftScore  > td.rightScore
-    const rightWin = hasResult && td.rightScore > td.leftScore
-    const dateStr = d.played_at ? formatDate(d.played_at) : formatDate(d.created_at)
-    const leftName  = td.left  ?? d.opponent_name ?? null
-    const rightName = td.right ?? null
-    return `
-      <div class="demo-card" id="demo-row-${d.id}">
-        <div class="demo-card-map">
-          ${mapImg(d.map, 'demo-map-lg')}
-          <div class="demo-card-map-label">${esc(mapDisplay(d.map))}</div>
+function renderHero() {
+  const s = computeHeroStats(state.rawDemos)
+  heroEl.innerHTML = `
+    <div class="dx-hero-grid">
+      <div class="dx-hero-left">
+        <div class="dx-hero-title">DEMOS</div>
+        <div class="dx-hero-count">${s.total}<span class="dx-hero-count-unit">${s.total === 1 ? ' demo' : ' demos'}</span></div>
+        <div class="dx-hero-substats">
+          <div class="dx-kv"><div class="dx-kv-k">Pending</div><div class="dx-kv-v ${s.pending ? 'dx-warn' : ''}">${s.pending}</div></div>
+          <div class="dx-kv"><div class="dx-kv-k">Errors</div><div class="dx-kv-v ${s.errored ? 'dx-bad' : ''}">${s.errored}</div></div>
+          <div class="dx-kv"><div class="dx-kv-k">Top map</div><div class="dx-kv-v">${s.topMap ? esc(mapDisplay(s.topMap)) : '—'}</div></div>
+          <div class="dx-kv"><div class="dx-kv-k">Last upload</div><div class="dx-kv-v">${s.latest ? esc(relativeTime(s.latest.created_at)) : '—'}</div></div>
         </div>
-        <div class="demo-card-body">
-          ${teamRow(leftName,  td.leftScore,  leftWin,  hasResult, 28)}
-          ${teamRow(rightName, td.rightScore, rightWin, hasResult, 28)}
-        </div>
-        <div class="demo-card-side">
-          <div class="demo-card-meta">${dateStr}</div>
-          <div class="demo-card-actions">
-            ${statusBadge(d)}
-            ${teamsBtn(d, td)}
-            ${watchBtn(d)}
-            ${deleteBtn(d)}
-          </div>
-        </div>
-      </div>`
-  }
+        <button type="button" class="dx-upload-cta" id="dx-upload-btn">+ Upload Demo</button>
+      </div>
+      <div class="dx-hero-right">
+        ${s.topMap ? `<div class="dx-hero-mapwash" style="background-image:url('${esc(mapBg(s.topMap))}')"></div>` : ''}
+      </div>
+    </div>
+  `
+  document.getElementById('dx-upload-btn').addEventListener('click', () => fileInput.click())
+}
 
-  function seriesMapRow(d, i) {
-    const td = teamDisplay(d)
-    const hasResult = td.leftScore != null && td.rightScore != null && d.status === 'ready'
-    const leftWin  = hasResult && td.leftScore  > td.rightScore
-    const scoreCls = !hasResult ? 'demo-score-none' : ''
-    const winnerName = !hasResult ? '' : (leftWin ? td.left : td.right) ?? ''
-    return `
-      <div class="demo-series-row" id="demo-row-${d.id}">
-        ${mapImg(d.map, 'demo-map-sm')}
-        <div class="demo-series-row-name">
-          <div class="demo-series-row-map">Map ${i + 1} · ${esc(mapDisplay(d.map))}</div>
-          ${winnerName ? `<div class="demo-series-row-winner">${esc(winnerName)} won</div>` : ''}
-        </div>
-        <div class="demo-series-row-score ${scoreCls}">
-          ${hasResult
-            ? `<span class="${leftWin ? 'demo-score-win' : 'demo-score-loss'}">${td.leftScore}</span>
-               <span class="demo-score-sep">—</span>
-               <span class="${!leftWin ? 'demo-score-win' : 'demo-score-loss'}">${td.rightScore}</span>`
-            : '— —'}
-        </div>
-        <div class="demo-series-row-actions">
-          ${statusBadge(d)}
-          ${teamsBtn(d, td)}
-          ${watchBtn(d)}
-          ${deleteBtn(d)}
-        </div>
-      </div>`
-  }
+// ── Filters ───────────────────────────────────────────────────
+function availableMaps() {
+  const set = new Set()
+  for (const d of state.rawDemos) { if (d.map) set.add(d.map) }
+  return [...set].sort()
+}
 
-  function seriesCard(demos) {
-    const first = demos[0]
-    const named = demos.find(d => d.ct_team_name && d.t_team_name) ?? first
-    const td = teamDisplay(named)
-    let mapsLeftWon = 0, mapsRightWon = 0
-    for (const d of demos) {
-      const t = teamDisplay(d)
-      if (d.status !== 'ready' || t.leftScore == null) continue
-      if (t.leftScore  > t.rightScore) mapsLeftWon++
-      else if (t.rightScore > t.leftScore) mapsRightWon++
+function renderFilters() {
+  const f = state.filter
+  const wins = [
+    ['7d',  'Last 7 days'],
+    ['30d', 'Last 30 days'],
+    ['all', 'All time'],
+  ]
+  const maps = availableMaps()
+  filtersEl.innerHTML = `
+    <div class="dx-filter-row">
+      <div class="dx-filter-group" data-group="window">
+        ${wins.map(([k, label]) => `<button type="button" class="dx-pill ${f.window === k ? 'is-active' : ''}" data-val="${k}">${esc(label)}</button>`).join('')}
+      </div>
+      <div class="dx-filter-divider"></div>
+      <div class="dx-filter-group" data-group="map">
+        <button type="button" class="dx-pill ${f.map === 'all' ? 'is-active' : ''}" data-val="all">All maps</button>
+        ${maps.map(m => `<button type="button" class="dx-pill ${f.map === m ? 'is-active' : ''}" data-val="${esc(m)}">${esc(mapDisplay(m))}</button>`).join('')}
+      </div>
+    </div>
+  `
+  for (const btn of filtersEl.querySelectorAll('.dx-pill')) {
+    btn.addEventListener('click', () => {
+      const group = btn.parentElement.dataset.group
+      const val   = btn.dataset.val
+      if (state.filter[group] === val) return
+      state.filter = { ...state.filter, [group]: val }
+      saveFilter(state.filter)
+      renderFilters()
+      renderList()
+    })
+  }
+}
+
+// ── Filtering ─────────────────────────────────────────────────
+function entryMatchesFilter(entry, filter) {
+  if (filter.window !== 'all') {
+    const days = filter.window === '7d' ? 7 : filter.window === '30d' ? 30 : null
+    if (days != null) {
+      const cutoff = Date.now() - days * 86400000
+      if (entry.latestAt < cutoff) return false
     }
-    const decided = mapsLeftWon !== mapsRightWon
-    const leftWin  = decided && mapsLeftWon  > mapsRightWon
-    const rightWin = decided && mapsRightWon > mapsLeftWon
-    const total = demos.length
-    const boLabel = total <= 1 ? 'BO1' : total <= 3 ? 'BO3' : total <= 5 ? 'BO5' : `BO${total}`
-    const dateStr = formatDate(first.played_at ?? first.created_at)
-    const leftName  = td.left  ?? first.opponent_name ?? null
-    const rightName = td.right ?? null
-    const seriesId = first.series_id
-    return `
-      <div class="demo-series">
-        <div class="demo-series-head">
-          <div class="demo-series-head-tag">${boLabel} SERIES · ${dateStr}</div>
-          <button class="btn btn-ghost btn-sm demo-delete-btn" title="Delete entire series" onclick="deleteSeries('${seriesId}', ${demos.length})">✕ Delete series</button>
-        </div>
-        <div class="demo-series-teams">
-          ${teamRow(leftName,  mapsLeftWon,  leftWin,  decided, 32)}
-          ${teamRow(rightName, mapsRightWon, rightWin, decided, 32)}
-        </div>
-        <div class="demo-series-maps">
-          ${demos.map((d, i) => seriesMapRow(d, i)).join('')}
-        </div>
-      </div>`
   }
+  if (filter.map !== 'all') {
+    if (!entry.demos.some(d => d.map === filter.map)) return false
+  }
+  return true
+}
 
-  listEl.innerHTML = entries.map(e =>
+// ── Demo list ─────────────────────────────────────────────────
+function teamDisplay(d) {
+  const teamsSet  = d.ct_team_name && d.t_team_name
+  const haveRoster = d.team_a_score != null && d.team_b_score != null && d.team_a_first_side
+  if (teamsSet && haveRoster) {
+    const nameA = d.team_a_first_side === 'ct' ? d.ct_team_name : d.t_team_name
+    const nameB = d.team_a_first_side === 'ct' ? d.t_team_name  : d.ct_team_name
+    return { left: nameA, right: nameB, leftScore: d.team_a_score, rightScore: d.team_b_score }
+  }
+  if (teamsSet) {
+    return { left: d.ct_team_name, right: d.t_team_name, leftScore: d.score_ct, rightScore: d.score_t }
+  }
+  return { left: null, right: null, leftScore: d.score_ct, rightScore: d.score_t }
+}
+
+function statusBadge(d) {
+  if (d.status === 'pending' || d.status === 'processing') {
+    return `<span class="dx-status dx-status-pending">● Processing</span>`
+  }
+  if (d.status === 'error') {
+    return `<span class="dx-status dx-status-error" title="${esc(d.error_message ?? '')}">● Error</span>`
+  }
+  return ''
+}
+
+function watchBtn(d) {
+  if (d.status === 'ready')
+    return `<a class="dx-watch" href="demo-viewer.html?id=${d.id}">▶ Watch</a>`
+  if (d.status === 'error')
+    return `<button class="dx-action-ghost" onclick="retryDemo('${d.id}')">Retry</button>`
+  return `<button class="dx-watch is-disabled" disabled>▶ Watch</button>`
+}
+
+function actionMenu(d, td, opts = {}) {
+  const teamsLabel = td.left ? '✎ Teams' : '+ Teams'
+  const items = []
+  if (d.status === 'ready') {
+    items.push(`<button class="dx-action-ghost" onclick="assignTeams('${d.id}')">${teamsLabel}</button>`)
+  }
+  if (opts.deleteSeries) {
+    items.push(`<button class="dx-action-ghost dx-danger" title="Delete series" onclick="deleteSeries('${opts.deleteSeries.id}', ${opts.deleteSeries.count})">✕</button>`)
+  } else {
+    items.push(`<button class="dx-action-ghost dx-danger" title="Delete demo" onclick="deleteDemo('${d.id}')">✕</button>`)
+  }
+  return items.join('')
+}
+
+function teamChip(name, logoSize = 28) {
+  const logo = teamLogoEl(state.logoMap[name] ?? null, name ?? '???', logoSize)
+  return `
+    <div class="dx-team-chip">
+      ${logo}
+      <span class="dx-team-name">${esc(name ?? '—')}</span>
+    </div>`
+}
+
+function scoreStrip(td, hasResult) {
+  const leftWin  = hasResult && td.leftScore  > td.rightScore
+  const rightWin = hasResult && td.rightScore > td.leftScore
+  const leftCls  = !hasResult ? 'dx-score-none' : leftWin  ? 'dx-score-win' : 'dx-score-loss'
+  const rightCls = !hasResult ? 'dx-score-none' : rightWin ? 'dx-score-win' : 'dx-score-loss'
+  return `
+    <div class="dx-score-strip">
+      <span class="dx-score ${leftCls}">${td.leftScore ?? '—'}</span>
+      <span class="dx-score-sep">—</span>
+      <span class="dx-score ${rightCls}">${td.rightScore ?? '—'}</span>
+    </div>`
+}
+
+function singleCard(d) {
+  const td = teamDisplay(d)
+  const hasResult = td.leftScore != null && td.rightScore != null && d.status === 'ready'
+  const dateStr   = d.played_at ? formatDate(d.played_at) : formatDate(d.created_at)
+  const leftName  = td.left  ?? d.opponent_name ?? null
+  const rightName = td.right ?? null
+  const winCls = !hasResult ? 'dx-card-none'
+    : td.leftScore > td.rightScore ? 'dx-card-win'
+    : td.leftScore < td.rightScore ? 'dx-card-loss'
+    : 'dx-card-draw'
+  return `
+    <article class="dx-card ${winCls}" id="demo-row-${d.id}">
+      <div class="dx-card-map" style="${mapBg(d.map) ? `background-image:url('${esc(mapBg(d.map))}')` : ''}">
+        <div class="dx-card-map-overlay"></div>
+        <div class="dx-card-map-label">${esc(mapDisplay(d.map))}</div>
+      </div>
+      <div class="dx-card-main">
+        <div class="dx-card-head">
+          <span class="dx-card-tag dx-card-tag-demo">DEMO</span>
+          <span class="dx-card-date">${esc(dateStr)}</span>
+          ${statusBadge(d)}
+        </div>
+        <div class="dx-card-versus">
+          ${teamChip(leftName)}
+          ${scoreStrip(td, hasResult)}
+          ${teamChip(rightName)}
+        </div>
+      </div>
+      <div class="dx-card-actions">
+        ${watchBtn(d)}
+        <div class="dx-card-actions-row">${actionMenu(d, td)}</div>
+      </div>
+    </article>`
+}
+
+function seriesMapRow(d, i) {
+  const td = teamDisplay(d)
+  const hasResult = td.leftScore != null && td.rightScore != null && d.status === 'ready'
+  const leftWin  = hasResult && td.leftScore  > td.rightScore
+  const rightWin = hasResult && td.rightScore > td.leftScore
+  const winnerName = !hasResult ? '' : (leftWin ? td.left : rightWin ? td.right : '') ?? ''
+  return `
+    <div class="dx-series-row" id="demo-row-${d.id}">
+      ${mapImg(d.map, 'demo-map-sm')}
+      <div class="dx-series-row-meta">
+        <div class="dx-series-row-map">Map ${i + 1} · ${esc(mapDisplay(d.map))}</div>
+        ${winnerName ? `<div class="dx-series-row-winner">${esc(winnerName)} won</div>` : ''}
+      </div>
+      <div class="dx-series-row-score">
+        ${hasResult
+          ? `<span class="${leftWin ? 'dx-score-win' : 'dx-score-loss'}">${td.leftScore}</span>
+             <span class="dx-score-sep">—</span>
+             <span class="${rightWin ? 'dx-score-win' : 'dx-score-loss'}">${td.rightScore}</span>`
+          : '<span class="dx-score-none">— —</span>'}
+      </div>
+      <div class="dx-series-row-actions">
+        ${statusBadge(d)}
+        ${watchBtn(d)}
+        ${actionMenu(d, td)}
+      </div>
+    </div>`
+}
+
+function seriesCard(demos) {
+  const first = demos[0]
+  const named = demos.find(d => d.ct_team_name && d.t_team_name) ?? first
+  const td = teamDisplay(named)
+  let mapsLeftWon = 0, mapsRightWon = 0
+  for (const d of demos) {
+    const t = teamDisplay(d)
+    if (d.status !== 'ready' || t.leftScore == null) continue
+    if (t.leftScore  > t.rightScore) mapsLeftWon++
+    else if (t.rightScore > t.leftScore) mapsRightWon++
+  }
+  const decided = mapsLeftWon !== mapsRightWon
+  const winCls = !decided ? 'dx-card-none'
+    : mapsLeftWon  > mapsRightWon ? 'dx-card-win'
+    : mapsRightWon > mapsLeftWon  ? 'dx-card-loss'
+    : 'dx-card-draw'
+  const total = demos.length
+  const boLabel = total <= 1 ? 'BO1' : total <= 3 ? 'BO3' : total <= 5 ? 'BO5' : `BO${total}`
+  const dateStr = formatDate(first.played_at ?? first.created_at)
+  const leftName  = td.left  ?? first.opponent_name ?? null
+  const rightName = td.right ?? null
+  const seriesId = first.series_id
+
+  return `
+    <article class="dx-series ${winCls}">
+      <header class="dx-series-head">
+        <div class="dx-series-tag">${boLabel} SERIES</div>
+        <div class="dx-series-date">${esc(dateStr)}</div>
+        <button class="dx-action-ghost dx-danger" title="Delete entire series" onclick="deleteSeries('${seriesId}', ${demos.length})">✕ Delete series</button>
+      </header>
+      <div class="dx-series-versus">
+        ${teamChip(leftName, 32)}
+        <div class="dx-score-strip dx-score-strip-lg">
+          <span class="dx-score ${decided && mapsLeftWon > mapsRightWon ? 'dx-score-win' : decided ? 'dx-score-loss' : 'dx-score-none'}">${mapsLeftWon}</span>
+          <span class="dx-score-sep">—</span>
+          <span class="dx-score ${decided && mapsRightWon > mapsLeftWon ? 'dx-score-win' : decided ? 'dx-score-loss' : 'dx-score-none'}">${mapsRightWon}</span>
+        </div>
+        ${teamChip(rightName, 32)}
+      </div>
+      <div class="dx-series-maps">
+        ${demos.map((d, i) => seriesMapRow(d, i)).join('')}
+      </div>
+    </article>`
+}
+
+function renderList() {
+  const filtered = state.entries.filter(e => entryMatchesFilter(e, state.filter))
+  if (state.entries.length === 0) {
+    listEl.innerHTML = `<div class="empty-state"><h3>No demos yet</h3><p>Upload your first .dem file to get started.</p></div>`
+    return
+  }
+  if (filtered.length === 0) {
+    listEl.innerHTML = `<div class="dx-empty">No demos match the current filters.</div>`
+    return
+  }
+  listEl.innerHTML = filtered.map(e =>
     e.kind === 'series' ? seriesCard(e.demos) : singleCard(e.demos[0])
   ).join('')
 }
 
+function renderAll() {
+  renderHero()
+  renderFilters()
+  renderList()
+}
+
+// ── Realtime ──────────────────────────────────────────────────
 supabase.channel('demos-status')
   .on('postgres_changes',
       { event: 'UPDATE', schema: 'public', table: 'demos', filter: `team_id=eq.${teamId}` },
@@ -266,13 +434,11 @@ supabase.channel('demos-status')
       })
   .subscribe()
 
-// Track which series/demos we've already auto-opened a modal for, so we
-// don't pop it twice if the realtime event re-fires.
 const _autoModalShown = new Set()
 
 async function maybeAutoOpenAssignModal(updated) {
   if (!updated || updated.status !== 'ready') return
-  if (updated.ct_team_name && updated.t_team_name) return  // already named
+  if (updated.ct_team_name && updated.t_team_name) return
 
   if (updated.series_id) {
     if (_autoModalShown.has(updated.series_id)) return
@@ -282,7 +448,7 @@ async function maybeAutoOpenAssignModal(updated) {
       .eq('series_id', updated.series_id)
       .order('created_at', { ascending: true })
     if (!sib?.length) return
-    if (sib.some(d => d.status !== 'ready')) return  // wait until all done
+    if (sib.some(d => d.status !== 'ready')) return
     if (sib.some(d => d.ct_team_name && d.t_team_name)) {
       _autoModalShown.add(updated.series_id)
       return
@@ -329,9 +495,12 @@ window.deleteSeries = async (seriesId, count) => {
   if (await purgeDemos(rows)) loadDemos()
 }
 
-// ── Upload ────────────────────────────────────────────────────
-uploadBtn.addEventListener('click', () => fileInput.click())
+window.retryDemo = async id => {
+  await supabase.from('demos').update({ status: 'pending', error_message: null }).eq('id', id)
+  loadDemos()
+}
 
+// ── Upload ────────────────────────────────────────────────────
 fileInput.addEventListener('change', async () => {
   const files = [...fileInput.files]
   fileInput.value = ''
@@ -343,7 +512,6 @@ fileInput.addEventListener('change', async () => {
   }
 
   const seriesId = files.length > 1 ? crypto.randomUUID() : null
-
   const { data: { session } } = await supabase.auth.getSession()
   const token = session?.access_token
 
@@ -398,11 +566,6 @@ fileInput.addEventListener('change', async () => {
   setTimeout(() => { progressWrap.style.display = 'none' }, 3000)
   loadDemos()
 })
-
-window.retryDemo = async id => {
-  await supabase.from('demos').update({ status: 'pending', error_message: null }).eq('id', id)
-  loadDemos()
-}
 
 loadDemos()
 loadPlaylistsForCurrentTeam()
