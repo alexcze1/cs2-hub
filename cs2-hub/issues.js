@@ -4,77 +4,221 @@ import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
+function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : '' }
 
 await requireAuth()
 renderSidebar('issues')
 
-const PRIORITY_COLORS = { high: 'var(--danger)', medium: 'var(--warning)', low: 'var(--muted)' }
-const STATUS_COLORS   = { active: 'var(--danger)', improving: 'var(--warning)', resolved: 'var(--success)' }
-const CAT_COLORS      = { tactical:'var(--accent)', communication:'var(--special)', mental:'var(--warning)', individual:'var(--success)', teamplay:'#06b6d4', other:'var(--muted)' }
+const PRIORITY_META = {
+  high:   { label: 'High',   color: 'var(--danger)' },
+  medium: { label: 'Medium', color: 'var(--warning)' },
+  low:    { label: 'Low',    color: 'var(--muted)' },
+}
+const STATUS_META = {
+  active:    { label: 'Active',    color: 'var(--danger)' },
+  improving: { label: 'Improving', color: 'var(--warning)' },
+  resolved:  { label: 'Resolved',  color: 'var(--success)' },
+}
+const CAT_META = {
+  tactical:      { label: 'Tactical',      color: 'var(--accent)' },
+  communication: { label: 'Communication', color: 'var(--special)' },
+  mental:        { label: 'Mental',        color: 'var(--warning)' },
+  individual:    { label: 'Individual',    color: 'var(--success)' },
+  teamplay:      { label: 'Teamplay',      color: '#06b6d4' },
+  other:         { label: 'Other',         color: 'var(--muted)' },
+}
 
-let allIssues = []
+const FILTER_LS_KEY = 'issues:filter:v1'
+const DEFAULT_FILTER = { status: 'all', priority: 'all', category: 'all', q: '' }
+function loadSavedFilter() {
+  try { return { ...DEFAULT_FILTER, ...JSON.parse(localStorage.getItem(FILTER_LS_KEY) || '{}') } }
+  catch { return { ...DEFAULT_FILTER } }
+}
+function saveFilter(f) { try { localStorage.setItem(FILTER_LS_KEY, JSON.stringify(f)) } catch {} }
+
+const state = {
+  filter: loadSavedFilter(),
+  issues: [],
+}
+
 let editingId = null
-let activeStatus = 'all'
+
+const heroEl    = document.getElementById('iss-hero')
+const filtersEl = document.getElementById('iss-filters')
+const listEl    = document.getElementById('issues-list')
 
 async function loadIssues() {
-  const { data, error } = await supabase.from('issues').select('*').eq('team_id', getTeamId()).order('priority').order('created_at', { ascending: false })
-  const el = document.getElementById('issues-list')
-  if (error) { el.innerHTML = `<div class="empty-state"><h3>Failed to load</h3><p>${esc(error.message)}</p></div>`; return }
-  allIssues = data ?? []
-  document.getElementById('issues-sub').textContent = `${allIssues.filter(i => i.status !== 'resolved').length} open · ${allIssues.filter(i => i.status === 'resolved').length} resolved`
-  renderIssues()
-}
-
-function renderIssues() {
-  const filtered = activeStatus === 'all' ? allIssues : allIssues.filter(i => i.status === activeStatus)
-  const el = document.getElementById('issues-list')
-  if (!filtered.length) {
-    el.innerHTML = `<div class="empty-state"><h3>No issues</h3><p>${activeStatus !== 'all' ? 'No ' + activeStatus + ' issues.' : 'Add your first issue.'}</p></div>`
+  const { data, error } = await supabase
+    .from('issues').select('*')
+    .eq('team_id', getTeamId())
+    .order('priority').order('created_at', { ascending: false })
+  if (error) {
+    listEl.innerHTML = `<div class="empty-state"><h3>Failed to load issues</h3><p>${esc(error.message)}</p></div>`
     return
   }
-
-  el.innerHTML = filtered.map(i => {
-    const prioColor   = PRIORITY_COLORS[i.priority] ?? 'var(--muted)'
-    const statusColor = STATUS_COLORS[i.status]     ?? 'var(--muted)'
-    const catColor    = CAT_COLORS[i.category]      ?? 'var(--muted)'
-    return `
-    <div class="list-row" style="flex-direction:column;align-items:flex-start;gap:10px;border-left:3px solid ${prioColor}">
-      <div style="display:flex;justify-content:space-between;width:100%;align-items:flex-start;gap:12px">
-        <div style="flex:1">
-          <div style="font-weight:700;font-size:14px;margin-bottom:6px">${esc(i.title)}</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-            <span style="font-size:10px;font-weight:700;letter-spacing:0.8px;color:${prioColor};background:${prioColor}18;padding:2px 8px;border-radius:4px;text-transform:uppercase">${i.priority}</span>
-            <span style="font-size:10px;font-weight:700;letter-spacing:0.8px;color:${statusColor};background:${statusColor}18;padding:2px 8px;border-radius:4px;text-transform:uppercase">${i.status}</span>
-            <span style="font-size:10px;font-weight:700;letter-spacing:0.8px;color:${catColor};background:${catColor}18;padding:2px 8px;border-radius:4px;text-transform:uppercase">${esc(i.category)}</span>
-          </div>
-        </div>
-        <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;flex-shrink:0" data-edit="${i.id}">Edit</button>
-      </div>
-      ${i.description ? `<div style="color:var(--muted);font-size:13px">${esc(i.description)}</div>` : ''}
-      ${i.actions ? `
-        <div style="background:var(--bg);border-left:3px solid var(--accent);padding:8px 12px;border-radius:0 4px 4px 0;font-size:12px;width:100%">
-          <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--accent);margin-bottom:3px">CURRENT ACTIONS</div>
-          <div style="color:var(--text)">${esc(i.actions)}</div>
-        </div>
-      ` : ''}
-    </div>
-  `}).join('')
-
-  document.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); openModal(e.target.dataset.edit) }))
+  state.issues = data ?? []
+  renderAll()
 }
 
-document.getElementById('status-filters').addEventListener('click', e => {
-  const tab = e.target.closest('.tab')
-  if (!tab) return
-  document.querySelectorAll('#status-filters .tab').forEach(t => t.classList.remove('active'))
-  tab.classList.add('active')
-  activeStatus = tab.dataset.status
-  renderIssues()
-})
+function getFiltered() {
+  const f = state.filter
+  const q = f.q.toLowerCase().trim()
+  return state.issues.filter(i =>
+    (f.status   === 'all' || i.status   === f.status)   &&
+    (f.priority === 'all' || i.priority === f.priority) &&
+    (f.category === 'all' || i.category === f.category) &&
+    (!q || i.title?.toLowerCase().includes(q) || i.description?.toLowerCase().includes(q))
+  )
+}
 
+// ── Hero ──────────────────────────────────────────────────────
+function renderHero() {
+  const all = state.issues
+  const total     = all.length
+  const high      = all.filter(i => i.priority === 'high' && i.status !== 'resolved').length
+  const medium    = all.filter(i => i.priority === 'medium' && i.status !== 'resolved').length
+  const low       = all.filter(i => i.priority === 'low' && i.status !== 'resolved').length
+  const active    = all.filter(i => i.status === 'active').length
+  const improving = all.filter(i => i.status === 'improving').length
+  const resolved  = all.filter(i => i.status === 'resolved').length
+  const open      = active + improving
+
+  heroEl.innerHTML = `
+    <div class="dx-hero-grid">
+      <div class="dx-hero-left">
+        <div class="dx-hero-title">TEAM ISSUES</div>
+        <div class="dx-hero-count">${open}<span class="dx-hero-count-unit">${open === 1 ? ' open' : ' open'}</span></div>
+        <div class="dx-hero-substats">
+          <div class="dx-kv"><div class="dx-kv-k">High</div><div class="dx-kv-v ${high ? 'dx-bad' : ''}">${high}</div></div>
+          <div class="dx-kv"><div class="dx-kv-k">Medium</div><div class="dx-kv-v ${medium ? 'dx-warn' : ''}">${medium}</div></div>
+          <div class="dx-kv"><div class="dx-kv-k">Low</div><div class="dx-kv-v">${low}</div></div>
+          <div class="dx-kv"><div class="dx-kv-k">Improving</div><div class="dx-kv-v" style="color:var(--warning)">${improving}</div></div>
+          <div class="dx-kv"><div class="dx-kv-k">Resolved</div><div class="dx-kv-v" style="color:var(--success)">${resolved}</div></div>
+        </div>
+        <div class="dx-hero-actions">
+          <button type="button" class="dx-upload-cta" id="iss-add-btn">+ New Issue</button>
+        </div>
+      </div>
+      <div class="dx-hero-right">
+        <div class="iss-hero-severity">
+          ${severityBar('High',   high,   total, 'var(--danger)')}
+          ${severityBar('Medium', medium, total, 'var(--warning)')}
+          ${severityBar('Low',    low,    total, 'var(--muted)')}
+        </div>
+      </div>
+    </div>`
+
+  document.getElementById('iss-add-btn').addEventListener('click', () => openModal())
+}
+
+function severityBar(label, value, total, color) {
+  const pct = total ? Math.round((value / total) * 100) : 0
+  return `
+    <div class="iss-sev-row">
+      <div class="iss-sev-label">${label}</div>
+      <div class="iss-sev-track"><div class="iss-sev-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div class="iss-sev-val">${value}</div>
+    </div>`
+}
+
+// ── Filters ───────────────────────────────────────────────────
+function renderFilters() {
+  const f = state.filter
+  const pill = (group, val, label, extraCls = '') =>
+    `<button type="button" class="dx-pill ${extraCls} ${f[group] === val ? 'is-active' : ''}" data-group="${group}" data-val="${esc(val)}">${esc(label)}</button>`
+
+  filtersEl.innerHTML = `
+    <div class="dx-filter-row">
+      <div class="dx-filter-group">
+        ${pill('status', 'all', 'All')}
+        ${pill('status', 'active',    'Active')}
+        ${pill('status', 'improving', 'Improving')}
+        ${pill('status', 'resolved',  'Resolved')}
+      </div>
+      <div class="dx-filter-divider"></div>
+      <div class="dx-filter-group">
+        ${pill('priority', 'all',    'Any Priority')}
+        ${pill('priority', 'high',   'High')}
+        ${pill('priority', 'medium', 'Medium')}
+        ${pill('priority', 'low',    'Low')}
+      </div>
+    </div>
+    <div class="dx-filter-row" style="margin-top:8px">
+      <div class="dx-filter-group">
+        ${pill('category', 'all', 'All Categories')}
+        ${Object.entries(CAT_META).map(([k, v]) => pill('category', k, v.label)).join('')}
+      </div>
+      <div class="dx-filter-spacer"></div>
+      <input type="search" class="dx-search-input" id="iss-search" placeholder="Search issues…" value="${esc(f.q)}"/>
+    </div>`
+
+  for (const btn of filtersEl.querySelectorAll('.dx-pill')) {
+    btn.addEventListener('click', () => {
+      const g = btn.dataset.group, v = btn.dataset.val
+      if (state.filter[g] === v) return
+      state.filter = { ...state.filter, [g]: v }
+      saveFilter(state.filter)
+      renderFilters()
+      renderList()
+    })
+  }
+  document.getElementById('iss-search').addEventListener('input', e => {
+    state.filter = { ...state.filter, q: e.target.value }
+    saveFilter(state.filter)
+    renderList()
+  })
+}
+
+// ── List ──────────────────────────────────────────────────────
+function renderList() {
+  const filtered = getFiltered()
+  if (state.issues.length === 0) {
+    listEl.innerHTML = `<div class="dx-empty"><h3 style="margin:0 0 6px;font-weight:700">No issues yet</h3>Track what your team needs to fix.</div>`
+    return
+  }
+  if (filtered.length === 0) {
+    listEl.innerHTML = `<div class="dx-empty">No issues match the current filters.</div>`
+    return
+  }
+  listEl.innerHTML = `<div class="iss-grid">${filtered.map(issueCard).join('')}</div>`
+  for (const btn of listEl.querySelectorAll('[data-edit]')) {
+    btn.addEventListener('click', e => { e.stopPropagation(); openModal(e.currentTarget.dataset.edit) })
+  }
+}
+
+function issueCard(i) {
+  const prio   = PRIORITY_META[i.priority] ?? { label: i.priority, color: 'var(--muted)' }
+  const status = STATUS_META[i.status]     ?? { label: i.status,   color: 'var(--muted)' }
+  const cat    = CAT_META[i.category]      ?? { label: i.category, color: 'var(--muted)' }
+  const resolved = i.status === 'resolved'
+  return `
+    <div class="iss-card iss-card-${i.priority}${resolved ? ' iss-card-resolved' : ''}" data-edit="${esc(i.id)}">
+      <div class="iss-card-head">
+        <span class="iss-badge" style="color:${prio.color};background:${prio.color}1f">${esc(prio.label)}</span>
+        <span class="iss-badge" style="color:${status.color};background:${status.color}1f">${esc(status.label)}</span>
+        <span class="iss-badge" style="color:${cat.color};background:${cat.color}1f">${esc(cat.label)}</span>
+        <span class="iss-edit-hint">Edit ›</span>
+      </div>
+      <div class="iss-card-title">${esc(i.title)}</div>
+      ${i.description ? `<div class="iss-card-desc">${esc(i.description)}</div>` : ''}
+      ${i.actions ? `
+        <div class="iss-card-actions">
+          <div class="iss-card-actions-label">Current Actions</div>
+          <div class="iss-card-actions-body">${esc(i.actions)}</div>
+        </div>` : ''}
+    </div>`
+}
+
+function renderAll() {
+  renderHero()
+  renderFilters()
+  renderList()
+}
+
+// ── Modal (preserved) ─────────────────────────────────────────
 function openModal(id = null) {
   editingId = id
-  const i = id ? allIssues.find(x => x.id === id) : null
+  const i = id ? state.issues.find(x => x.id === id) : null
   document.getElementById('modal-title').textContent = id ? 'Edit Issue' : 'Add Issue'
   document.getElementById('f-title').value       = i?.title       ?? ''
   document.getElementById('f-category').value    = i?.category    ?? 'tactical'
@@ -89,7 +233,6 @@ function openModal(id = null) {
 
 function closeModal() { document.getElementById('modal').style.display = 'none'; editingId = null }
 
-document.getElementById('add-btn').addEventListener('click', () => openModal())
 document.getElementById('modal-close').addEventListener('click', closeModal)
 document.getElementById('cancel-btn').addEventListener('click', closeModal)
 document.getElementById('modal').addEventListener('click', e => { if (e.target === document.getElementById('modal')) closeModal() })
