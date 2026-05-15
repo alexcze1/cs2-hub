@@ -61,8 +61,9 @@ export function renderHero(root, { vods, filterSlotId }) {
     root.innerHTML = `
       <div class="rr-hero-empty">
         <div class="rr-hero-title">RESULTS &amp; REVIEW</div>
-        <h2 class="rr-hero-empty-msg">No matches yet</h2>
+        <h2 class="rr-hero-empty-msg">No matches in this window</h2>
         <a class="rr-add-match" href="vod-detail.html">+ Add Match</a>
+        <div id="${esc(filterSlotId)}" class="rr-filter-slot"></div>
       </div>`
     return
   }
