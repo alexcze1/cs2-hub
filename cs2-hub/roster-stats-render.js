@@ -1,7 +1,8 @@
 // cs2-hub/roster-stats-render.js
 //
-// Builds the HTML body for a single player's drawer. Pure functions —
-// caller fetches data and passes pre-filtered rows.
+// Builds the HTML body for a single player's panel. Pure functions —
+// caller fetches data and passes pre-filtered rows. Uses the R&R
+// tactical design language (rr-pd-* classes).
 
 import { aggregatePlayer, aggregateByMap } from './roster-stats-aggregate.js'
 
@@ -27,81 +28,122 @@ export function buildPlayerDrawerBody({ rowsAll, rowsCT, rowsT, recent }) {
   const maps = aggregateByMap(rowsAll)
 
   if (all.matches === 0) {
-    return `<div class="pd-empty">
-      No matches in selected window.
-      <div class="pd-empty-cta"><button type="button" id="pd-view-alltime" class="btn btn-ghost btn-sm">View all-time</button></div>
+    return `<div class="rr-pd-empty">
+      <div class="rr-pd-empty-msg">No matches in selected window.</div>
+      <button type="button" id="pd-view-alltime" class="rr-pd-empty-cta">View all-time</button>
     </div>`
   }
 
-  // Side splits strip
+  // Side splits: CT (blue) / T (orange) / K/D (neutral)
   const splits = `
-    <div class="pd-splits">
-      <div class="pd-split-pill"><span class="pd-split-label">CT Rating</span><span class="pd-split-value">${fmt(ct.rating)}</span></div>
-      <div class="pd-split-pill"><span class="pd-split-label">T Rating</span><span class="pd-split-value">${fmt(t.rating)}</span></div>
-      <div class="pd-split-pill"><span class="pd-split-label">K/D</span><span class="pd-split-value">${fmtKD(all.kd)}</span></div>
+    <div class="rr-pd-splits">
+      <div class="rr-pd-split rr-pd-split-ct">
+        <div class="rr-pd-split-k">CT Rating</div>
+        <div class="rr-pd-split-v">${fmt(ct.rating)}</div>
+      </div>
+      <div class="rr-pd-split rr-pd-split-t">
+        <div class="rr-pd-split-k">T Rating</div>
+        <div class="rr-pd-split-v">${fmt(t.rating)}</div>
+      </div>
+      <div class="rr-pd-split rr-pd-split-kd">
+        <div class="rr-pd-split-k">K/D</div>
+        <div class="rr-pd-split-v">${fmtKD(all.kd)}</div>
+      </div>
     </div>`
 
-  // Headline grid (5)
+  // Headline (5 tiles)
   const headline = `
-    <div class="pd-section-label">Headline</div>
-    <div class="pd-grid pd-grid-5">
-      ${miniCard('Rating', fmt(all.rating))}
-      ${miniCard('ADR', fmt(all.adr, 1))}
-      ${miniCard('KAST', fmtPct(all.kast_pct))}
-      ${miniCard('HS%', fmtPct(all.hs_pct))}
-      ${miniCard('Impact', fmt(all.impact_rating))}
+    <div class="rr-pd-label">Headline</div>
+    <div class="rr-pd-tiles rr-pd-tiles-5">
+      ${tile('Rating',  fmt(all.rating),  { highlight: true })}
+      ${tile('ADR',     fmt(all.adr, 1))}
+      ${tile('KAST',    fmtPct(all.kast_pct))}
+      ${tile('HS%',     fmtPct(all.hs_pct))}
+      ${tile('Impact',  fmt(all.impact_rating))}
     </div>`
 
-  // Opening duels
+  // Opening Duels: bar + raw counts
   const openTotal = (all.opening_kills || 0) + (all.opening_deaths || 0)
-  const openPct = openTotal > 0 ? all.opening_kills / openTotal : null
+  const openPct   = openTotal > 0 ? all.opening_kills / openTotal : null
+  const openBarW  = openPct == null ? 0 : Math.round(openPct * 100)
   const opening = `
-    <div class="pd-section-label">Opening Duels</div>
-    <div class="pd-grid pd-grid-3">
-      ${miniCard('Win %', fmtPct(openPct))}
-      ${miniCard('First Kills', fmtInt(all.opening_kills))}
-      ${miniCard('First Deaths', fmtInt(all.opening_deaths))}
+    <div class="rr-pd-label">Opening Duels</div>
+    <div class="rr-pd-opening">
+      <div class="rr-pd-opening-head">
+        <span class="rr-pd-opening-label">Win rate</span>
+        <span class="rr-pd-opening-pct">${fmtPct(openPct)}</span>
+      </div>
+      <div class="rr-pd-bar"><div class="rr-pd-bar-fill" style="width:${openBarW}%"></div></div>
+      <div class="rr-pd-opening-counts">
+        <span><b>${fmtInt(all.opening_kills)}</b> first kills</span>
+        <span class="rr-pd-muted">·</span>
+        <span><b>${fmtInt(all.opening_deaths)}</b> first deaths</span>
+      </div>
     </div>`
 
-  // Clutches & multi-kills
+  // Clutches & Multi-kills
   const clutches = `
-    <div class="pd-section-label">Clutches &amp; Multi-kills</div>
-    <div class="pd-grid pd-grid-4">
-      ${miniCard('1vX Won', fmtInt(all.clutches_won))}
-      ${miniCard('3K', fmtInt(all.multi_3k))}
-      ${miniCard('4K+', fmtInt((all.multi_4k || 0) + (all.multi_5k || 0)))}
-      ${miniCard('Util/round', fmt(all.utility_dmg_per_round, 1))}
+    <div class="rr-pd-label">Clutches &amp; Multi-kills</div>
+    <div class="rr-pd-tiles rr-pd-tiles-4">
+      ${tile('1vX Won',    fmtInt(all.clutches_won))}
+      ${tile('3K',         fmtInt(all.multi_3k))}
+      ${tile('4K+',        fmtInt((all.multi_4k || 0) + (all.multi_5k || 0)))}
+      ${tile('Util/round', fmt(all.utility_dmg_per_round, 1))}
     </div>`
 
-  // Per-map
-  const mapRows = maps.length === 0
-    ? `<div class="pd-empty-row">No map data.</div>`
-    : maps.map(({ map, agg }) => `
-        <div class="pd-row">
-          <span class="pd-row-left">${esc(capitalize(map))}</span>
-          <span class="pd-row-right">${fmt(agg.rating)} <span class="pd-muted">· ${agg.matches} match${agg.matches === 1 ? '' : 'es'}</span></span>
-        </div>`).join('')
-  const perMap = `
-    <div class="pd-section-label">Per Map</div>
-    <div class="pd-rows">${mapRows}</div>`
+  // Per map — relative rating bars
+  let perMap = ''
+  if (maps.length === 0) {
+    perMap = `
+      <div class="rr-pd-label">Per Map</div>
+      <div class="rr-pd-empty-row">No map data.</div>`
+  } else {
+    const ratings = maps.map(m => m.agg.rating).filter(r => r != null)
+    const minR = Math.min(...ratings, 0.6)
+    const maxR = Math.max(...ratings, 1.4)
+    const span = Math.max(maxR - minR, 0.01)
+    const mapRows = maps.map(({ map, agg }) => {
+      const r = agg.rating ?? 0
+      const w = Math.round(((r - minR) / span) * 100)
+      const tone = r >= 1.1 ? 'good' : r >= 0.95 ? 'mid' : 'bad'
+      return `
+        <div class="rr-pd-map-row">
+          <span class="rr-pd-map-name">${esc(capitalize(map))}</span>
+          <span class="rr-pd-map-bar"><span class="rr-pd-map-bar-fill rr-pd-map-bar-${tone}" style="width:${Math.max(w, 4)}%"></span></span>
+          <span class="rr-pd-map-rating">${fmt(agg.rating)}</span>
+          <span class="rr-pd-map-matches">${agg.matches}m</span>
+        </div>`
+    }).join('')
+    perMap = `
+      <div class="rr-pd-label">Per Map</div>
+      <div class="rr-pd-map-rows">${mapRows}</div>`
+  }
 
-  // Recent matches
-  const recentRows = (recent || []).length === 0
-    ? `<div class="pd-empty-row">No recent matches.</div>`
-    : recent.map(r => `
-        <a class="pd-row pd-row-link" href="vod-detail.html?id=${esc(r.vod_id)}">
-          <span class="pd-row-left">vs ${esc(r.opponent)} <span class="pd-muted">· ${esc(capitalize(r.map))}</span></span>
-          <span class="pd-row-right">${fmt(r.rating)} <span class="pd-result pd-result-${r.result}">${r.result.toUpperCase()}</span></span>
-        </a>`).join('')
-  const recentSection = `
-    <div class="pd-section-label">Recent Matches</div>
-    <div class="pd-rows">${recentRows}</div>`
+  // Recent matches — compact role-coded rows
+  let recentSection = ''
+  if (!recent || recent.length === 0) {
+    recentSection = `
+      <div class="rr-pd-label">Recent Matches</div>
+      <div class="rr-pd-empty-row">No recent matches.</div>`
+  } else {
+    const rows = recent.map(r => `
+      <a class="rr-pd-recent-row rr-pd-recent-${r.result}" href="vod-detail.html?id=${esc(r.vod_id)}">
+        <span class="rr-pd-recent-tag rr-pd-recent-tag-${r.result}">${r.result.toUpperCase()}</span>
+        <span class="rr-pd-recent-opp">vs ${esc(r.opponent)}</span>
+        <span class="rr-pd-recent-map">${esc(capitalize(r.map))}</span>
+        <span class="rr-pd-recent-rating">${fmt(r.rating)}</span>
+      </a>`).join('')
+    recentSection = `
+      <div class="rr-pd-label">Recent Matches</div>
+      <div class="rr-pd-recent-rows">${rows}</div>`
+  }
 
   return splits + headline + opening + clutches + perMap + recentSection
 }
 
-function miniCard(label, value) {
-  return `<div class="pd-card"><div class="pd-card-label">${esc(label)}</div><div class="pd-card-value">${esc(value)}</div></div>`
+function tile(label, value, opts = {}) {
+  const cls = opts.highlight ? 'rr-pd-tile rr-pd-tile-hl' : 'rr-pd-tile'
+  return `<div class="${cls}"><div class="rr-pd-tile-v">${esc(value)}</div><div class="rr-pd-tile-k">${esc(label)}</div></div>`
 }
 
 export function buildSubtitle(player, windowKey, matches, rounds) {
