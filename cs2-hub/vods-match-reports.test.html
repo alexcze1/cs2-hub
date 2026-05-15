@@ -124,6 +124,21 @@ function assert(cond, msg) {
   assert(root.querySelector('.rr-pracc-badge') !== null, 'PRACC badge rendered when external_uid set')
 }
 
+// ---- Empty state with mapFilter renders clear button + emits null on click ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  renderMatchReports(root, { vods: [], demoToVod: new Map(), demoPlayersByDemoId: new Map(), mapFilter: 'mirage' })
+
+  const clearBtn = root.querySelector('.rr-clear-map')
+  assert(clearBtn !== null, 'clear button rendered in empty state when mapFilter active')
+
+  let received = '__not_set__'
+  root.addEventListener('rr:filter-map', (e) => { received = e.detail.map })
+  clearBtn.click()
+  assert(received === null, 'empty-state clear button emits map=null')
+}
+
 console.log('all done')
 </script>
 </body>

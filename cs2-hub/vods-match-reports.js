@@ -47,13 +47,15 @@ export function renderMatchReports(root, { vods, demoToVod, demoPlayersByDemoId,
 
   if (filtered.length === 0) {
     root.innerHTML = `
-      <div class="rr-section-label">MATCH REPORTS${mapFilter ? ` · ${esc(capitalize(mapFilter))}` : ''}</div>
+      <div class="rr-section-label">MATCH REPORTS${mapFilter ? ` · ${esc(capitalize(mapFilter))} <button type="button" class="rr-clear-map">clear</button>` : ''}</div>
       <div class="rr-empty">${mapFilter ? `No matches on ${esc(capitalize(mapFilter))} in window.` : 'No matches in window.'}</div>`
+    wireClearButton(root)
     return
   }
 
   const cards = filtered.map(v => {
     const result = deriveResult(v)
+    const safeResult = ['win', 'loss', 'draw'].includes(result) ? result : 'draw'
     const maps = v.maps ?? []
     const opponent = v.opponent ?? v.title ?? '—'
 
@@ -83,10 +85,10 @@ export function renderMatchReports(root, { vods, demoToVod, demoPlayersByDemoId,
       : ''
 
     return `
-      <a class="rr-match-card rr-match-${result}" data-result="${result}" href="vod-detail.html?id=${esc(v.id)}">
+      <a class="rr-match-card rr-match-${safeResult}" data-result="${safeResult}" href="vod-detail.html?id=${esc(v.id)}">
         <div class="rr-match-left">
           <div class="rr-match-head">
-            <span class="rr-match-tag rr-match-tag-${result}">${result.toUpperCase()}</span>
+            <span class="rr-match-tag rr-match-tag-${safeResult}">${safeResult.toUpperCase()}</span>
             <span class="rr-match-vs">vs ${esc(opponent)}</span>
             ${v.external_uid ? '<span class="rr-pracc-badge">PRACC</span>' : ''}
           </div>
@@ -107,6 +109,10 @@ export function renderMatchReports(root, { vods, demoToVod, demoPlayersByDemoId,
     <div class="rr-section-label">MATCH REPORTS${mapFilter ? ` · ${esc(capitalize(mapFilter))} <button type="button" class="rr-clear-map">clear</button>` : ''}</div>
     <div class="rr-match-list">${cards}</div>`
 
+  wireClearButton(root)
+}
+
+function wireClearButton(root) {
   const clearBtn = root.querySelector('.rr-clear-map')
   if (clearBtn) {
     clearBtn.addEventListener('click', (e) => {
