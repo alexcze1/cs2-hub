@@ -3,22 +3,19 @@ import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
+function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : '' }
 
 const MAP_IMG = { dust2: 'dust' }
+function mapFile(map) { return MAP_IMG[map] ?? map }
 function mapIcon(map) {
-  const file = MAP_IMG[map] ?? map
+  const file = mapFile(map)
   const url = `images/maps/${file}.png`
   return `<div class="map-badge"><img src="${url}" alt="${esc(map)}" onerror="this.parentElement.innerHTML='<span>${map.slice(0,3).toUpperCase()}</span>'"/></div>`
 }
+function mapBg(map) { return map ? `images/maps/${mapFile(map)}.png` : '' }
 
 await requireAuth()
 renderSidebar('stratbook')
-
-let allStrats  = []
-let activeMap  = 'all'
-let activeSide = 'all'
-let activeType = 'all'
-let searchQ    = ''
 
 const TYPE_META = {
   default:  { label: 'Default',  color: '#94a3b8' },
@@ -32,93 +29,191 @@ const TYPE_META = {
   other:    { label: 'Other',    color: '#64748b' },
 }
 
+const MAPS = ['ancient', 'mirage', 'nuke', 'anubis', 'inferno', 'overpass', 'dust2']
+
+const FILTER_LS_KEY = 'stratbook:filter:v1'
+const DEFAULT_FILTER = { map: 'all', side: 'all', type: 'all', q: '' }
+function loadSavedFilter() {
+  try { return { ...DEFAULT_FILTER, ...JSON.parse(localStorage.getItem(FILTER_LS_KEY) || '{}') } }
+  catch { return { ...DEFAULT_FILTER } }
+}
+function saveFilter(f) { try { localStorage.setItem(FILTER_LS_KEY, JSON.stringify(f)) } catch {} }
+
+const state = {
+  filter: loadSavedFilter(),
+  strats: [],
+}
+
+const heroEl    = document.getElementById('sb-hero')
+const filtersEl = document.getElementById('sb-filters')
+const listEl    = document.getElementById('strats-list')
+
 async function loadStrats() {
-  const { data, error } = await supabase.from('strats').select('*').eq('team_id', getTeamId()).order('map').order('side').order('created_at', { ascending: false })
+  const { data, error } = await supabase
+    .from('strats').select('*')
+    .eq('team_id', getTeamId())
+    .order('map').order('side').order('created_at', { ascending: false })
   if (error) {
-    document.getElementById('strats-list').innerHTML = `<div class="empty-state"><h3>Failed to load strats</h3><p>${esc(error.message)}</p></div>`
+    listEl.innerHTML = `<div class="empty-state"><h3>Failed to load strats</h3><p>${esc(error.message)}</p></div>`
     return
   }
-  allStrats = data ?? []
-  renderList()
+  state.strats = data ?? []
+  renderAll()
 }
 
 function getFiltered() {
-  return allStrats.filter(s =>
-    (activeMap  === 'all' || s.map  === activeMap) &&
-    (activeSide === 'all' || s.side === activeSide) &&
-    (activeType === 'all' || s.type === activeType) &&
-    (!searchQ || s.name.toLowerCase().includes(searchQ))
+  const f = state.filter
+  const q = f.q.toLowerCase().trim()
+  return state.strats.filter(s =>
+    (f.map  === 'all' || s.map  === f.map)  &&
+    (f.side === 'all' || s.side === f.side) &&
+    (f.type === 'all' || s.type === f.type) &&
+    (!q || s.name?.toLowerCase().includes(q))
   )
 }
 
-function renderList() {
-  const filtered = getFiltered()
-  const count = filtered.length
-  document.getElementById('strat-count-sub').textContent =
-    `${count} strat${count !== 1 ? 's' : ''}${activeMap !== 'all' ? ` · ${activeMap}` : ''}${activeSide !== 'all' ? ` · ${activeSide === 't' ? 'T-Side' : 'CT-Side'}` : ''}${activeType !== 'all' ? ` · ${activeType}` : ''}`
+// ── Hero ──────────────────────────────────────────────────────
+function renderHero() {
+  const all = state.strats
+  const total = all.length
+  const tCount  = all.filter(s => s.side === 't').length
+  const ctCount = all.filter(s => s.side === 'ct').length
+  const mapCounts = {}
+  for (const s of all) mapCounts[s.map] = (mapCounts[s.map] || 0) + 1
+  let topMap = null, topMapN = 0
+  for (const [m, n] of Object.entries(mapCounts)) if (n > topMapN) { topMap = m; topMapN = n }
+  const openings = all.filter(s => s.type === 'opening').length
 
-  const el = document.getElementById('strats-list')
-  if (!filtered.length) {
-    el.innerHTML = `<div class="empty-state"><h3>No strats match</h3><p>Try adjusting the filters.</p></div>`
-    return
-  }
-
-  el.innerHTML = filtered.map(s => {
-    const roles    = s.player_roles ?? []
-    const hasRoles = roles.some(r => r.role?.trim())
-    const firstNote = s.notes?.split('\n')[0]?.trim() ?? ''
-    const t = TYPE_META[s.type] ?? { label: s.type, color: '#64748b' }
-    const mapLabel = s.map.charAt(0).toUpperCase() + s.map.slice(1)
-
-    return `
-      <a class="strat-card strat-card-${s.side}" href="stratbook-detail.html?id=${esc(s.id)}">
-        <div class="strat-card-header">
-          ${mapIcon(s.map)}
-          <span class="strat-type-badge" style="color:${t.color};background:${t.color}22">${t.label}</span>
-          <div class="strat-name">${esc(s.name)}</div>
-          <span class="strat-map-chip">${esc(mapLabel)}</span>
+  heroEl.innerHTML = `
+    <div class="dx-hero-grid">
+      <div class="dx-hero-left">
+        <div class="dx-hero-title">STRATBOOK</div>
+        <div class="dx-hero-count">${total}<span class="dx-hero-count-unit">${total === 1 ? ' strat' : ' strats'}</span></div>
+        <div class="dx-hero-substats">
+          <div class="dx-kv"><div class="dx-kv-k">T-Side</div><div class="dx-kv-v" style="color:var(--side-t)">${tCount}</div></div>
+          <div class="dx-kv"><div class="dx-kv-k">CT-Side</div><div class="dx-kv-v" style="color:var(--side-ct)">${ctCount}</div></div>
+          <div class="dx-kv"><div class="dx-kv-k">Openings</div><div class="dx-kv-v">${openings}</div></div>
+          <div class="dx-kv"><div class="dx-kv-k">Top map</div><div class="dx-kv-v">${topMap ? esc(capitalize(topMap)) : '—'}</div></div>
         </div>
-
-        ${hasRoles ? `
-        <div class="strat-roles">
-          ${roles.filter(r => r.role?.trim()).map(r => `
-            <div class="strat-role-row">
-              <span class="strat-role-player">${esc(r.player)}</span>
-              <span class="strat-role-name">${esc(r.role)}</span>
-            </div>
-          `).join('')}
-        </div>` : ''}
-
-        ${firstNote ? `<div class="strat-note-preview">${esc(firstNote)}</div>` : ''}
-
-        ${(s.tags ?? []).length ? `
-        <div class="strat-tags">
-          ${s.tags.map(tag => `<span class="tag">${esc(tag)}</span>`).join('')}
-        </div>` : ''}
-      </a>
-    `
-  }).join('')
+        <div class="dx-hero-actions">
+          <a class="dx-upload-cta" href="stratbook-detail.html">+ New Strat</a>
+          <a class="dx-ghost-cta" id="sb-match-view" href="stratbook-fullscreen.html" target="_blank">Match View</a>
+        </div>
+      </div>
+      <div class="dx-hero-right">
+        ${topMap ? `<div class="dx-hero-mapwash" style="background-image:url('${esc(mapBg(topMap))}')"></div>` : ''}
+      </div>
+    </div>`
+  syncMatchViewHref()
 }
 
-// ── Filter bindings ────────────────────────────────────────
-function bindTabs(id, key, setter) {
-  document.getElementById(id).addEventListener('click', e => {
-    const tab = e.target.closest('.tab')
-    if (!tab) return
-    document.querySelectorAll(`#${id} .tab`).forEach(t => t.classList.remove('active'))
-    tab.classList.add('active')
-    setter(tab.dataset[key])
+function syncMatchViewHref() {
+  const btn = document.getElementById('sb-match-view')
+  if (btn) btn.href = `stratbook-fullscreen.html?map=${state.filter.map}`
+}
+
+// ── Filters ───────────────────────────────────────────────────
+function renderFilters() {
+  const f = state.filter
+  const mapPill = (val, label) =>
+    `<button type="button" class="dx-pill ${f.map === val ? 'is-active' : ''}" data-group="map" data-val="${esc(val)}">${esc(label)}</button>`
+  const sidePill = (val, label, extraCls = '') =>
+    `<button type="button" class="dx-pill ${extraCls} ${f.side === val ? 'is-active' : ''}" data-group="side" data-val="${esc(val)}">${esc(label)}</button>`
+  const typePill = (val, label) =>
+    `<button type="button" class="dx-pill ${f.type === val ? 'is-active' : ''}" data-group="type" data-val="${esc(val)}">${esc(label)}</button>`
+
+  filtersEl.innerHTML = `
+    <div class="dx-filter-row">
+      <div class="dx-filter-group">
+        ${mapPill('all', 'All Maps')}
+        ${MAPS.map(m => mapPill(m, capitalize(m))).join('')}
+      </div>
+    </div>
+    <div class="dx-filter-row" style="margin-top:8px">
+      <div class="dx-filter-group">
+        ${sidePill('all', 'Both Sides')}
+        ${sidePill('t',  'T-Side',  'dx-pill-t')}
+        ${sidePill('ct', 'CT-Side', 'dx-pill-ct')}
+      </div>
+      <div class="dx-filter-divider"></div>
+      <div class="dx-filter-group">
+        ${typePill('all', 'All Types')}
+        ${Object.entries(TYPE_META).map(([k, v]) => typePill(k, v.label)).join('')}
+      </div>
+      <div class="dx-filter-spacer"></div>
+      <input type="search" class="dx-search-input" id="sb-search" placeholder="Search strats…" value="${esc(f.q)}"/>
+    </div>`
+
+  for (const btn of filtersEl.querySelectorAll('.dx-pill')) {
+    btn.addEventListener('click', () => {
+      const g = btn.dataset.group, v = btn.dataset.val
+      if (state.filter[g] === v) return
+      state.filter = { ...state.filter, [g]: v }
+      saveFilter(state.filter)
+      renderFilters()
+      renderList()
+      syncMatchViewHref()
+    })
+  }
+  const searchEl = document.getElementById('sb-search')
+  searchEl.addEventListener('input', e => {
+    state.filter = { ...state.filter, q: e.target.value }
+    saveFilter(state.filter)
     renderList()
   })
 }
 
-bindTabs('map-tabs',  'map',  v => { activeMap = v; document.getElementById('match-view-btn').href = `stratbook-fullscreen.html?map=${v}` })
-bindTabs('side-tabs', 'side', v => activeSide = v)
-bindTabs('type-tabs', 'type', v => activeType = v)
+// ── List ──────────────────────────────────────────────────────
+function renderList() {
+  const filtered = getFiltered()
+  if (state.strats.length === 0) {
+    listEl.innerHTML = `<div class="dx-empty"><h3 style="margin:0 0 6px;font-weight:700">No strats yet</h3>Build your playbook by creating your first strat.</div>`
+    return
+  }
+  if (filtered.length === 0) {
+    listEl.innerHTML = `<div class="dx-empty">No strats match the current filters.</div>`
+    return
+  }
 
-document.getElementById('strat-search').addEventListener('input', e => {
-  searchQ = e.target.value.toLowerCase().trim()
+  listEl.innerHTML = `<div class="sb-grid">${filtered.map(stratCard).join('')}</div>`
+}
+
+function stratCard(s) {
+  const roles = (s.player_roles ?? []).filter(r => r.role?.trim())
+  const firstNote = s.notes?.split('\n')[0]?.trim() ?? ''
+  const t = TYPE_META[s.type] ?? { label: s.type, color: '#64748b' }
+  const sideCls = s.side === 't' ? 'sb-card-t' : s.side === 'ct' ? 'sb-card-ct' : ''
+  return `
+    <a class="sb-card ${sideCls}" href="stratbook-detail.html?id=${esc(s.id)}">
+      <div class="sb-card-mapwash" style="${mapBg(s.map) ? `background-image:url('${esc(mapBg(s.map))}')` : ''}"></div>
+      <div class="sb-card-mapwash-overlay"></div>
+      <div class="sb-card-head">
+        <span class="sb-card-type" style="color:${t.color};background:${t.color}22">${esc(t.label)}</span>
+        <span class="sb-card-map">${esc(capitalize(s.map))}</span>
+        <span class="sb-card-side sb-card-side-${s.side}">${s.side === 't' ? 'T' : s.side === 'ct' ? 'CT' : ''}</span>
+      </div>
+      <div class="sb-card-name">${esc(s.name)}</div>
+      ${firstNote ? `<div class="sb-card-note">${esc(firstNote)}</div>` : ''}
+      ${roles.length ? `
+        <div class="sb-card-roles">
+          ${roles.map(r => `
+            <div class="sb-card-role">
+              <span class="sb-card-role-player">${esc(r.player)}</span>
+              <span class="sb-card-role-arrow">›</span>
+              <span class="sb-card-role-name">${esc(r.role)}</span>
+            </div>`).join('')}
+        </div>` : ''}
+      ${(s.tags ?? []).length ? `
+        <div class="sb-card-tags">
+          ${s.tags.map(tag => `<span class="sb-card-tag">#${esc(tag)}</span>`).join('')}
+        </div>` : ''}
+    </a>`
+}
+
+function renderAll() {
+  renderHero()
+  renderFilters()
   renderList()
-})
+}
 
 loadStrats()

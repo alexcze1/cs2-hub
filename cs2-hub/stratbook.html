@@ -13,51 +13,10 @@
   <nav class="sidebar" id="sidebar"></nav>
   <main class="main-content">
 
-    <div class="page-header">
-      <div>
-        <div class="page-title">Stratbook</div>
-        <div class="page-sub" id="strat-count-sub">Loading…</div>
-      </div>
-      <div style="display:flex;gap:10px;align-items:center">
-        <input class="form-input" id="strat-search" placeholder="Search strats…" style="width:200px;height:36px;padding:0 12px"/>
-        <a class="btn btn-ghost" id="match-view-btn" href="stratbook-fullscreen.html" target="_blank">Match View</a>
-        <a class="btn btn-primary" href="stratbook-detail.html">+ New Strat</a>
-      </div>
-    </div>
-
-    <div class="strat-filters">
-      <div class="tabs" id="map-tabs">
-        <button class="tab active" data-map="all">All Maps</button>
-        <button class="tab" data-map="ancient">Ancient</button>
-        <button class="tab" data-map="mirage">Mirage</button>
-        <button class="tab" data-map="nuke">Nuke</button>
-        <button class="tab" data-map="anubis">Anubis</button>
-        <button class="tab" data-map="inferno">Inferno</button>
-        <button class="tab" data-map="overpass">Overpass</button>
-        <button class="tab" data-map="dust2">Dust2</button>
-      </div>
-      <div class="filter-row">
-        <div class="tabs" id="side-tabs">
-          <button class="tab active" data-side="all">Both Sides</button>
-          <button class="tab tab-t" data-side="t">T-Side</button>
-          <button class="tab tab-ct" data-side="ct">CT-Side</button>
-        </div>
-        <div class="tabs" id="type-tabs">
-          <button class="tab active" data-type="all">All Types</button>
-          <button class="tab" data-type="default">Default</button>
-          <button class="tab" data-type="opening">Opening</button>
-          <button class="tab" data-type="script">Script</button>
-          <button class="tab" data-type="ender">Ender</button>
-          <button class="tab" data-type="force">Force</button>
-          <button class="tab" data-type="anti_eco">Anti-Eco</button>
-          <button class="tab" data-type="pistol">Pistol</button>
-          <button class="tab" data-type="setup">Setup</button>
-          <button class="tab" data-type="other">Other</button>
-        </div>
-      </div>
-    </div>
-
+    <section id="sb-hero" class="dx-hero"><div class="dx-hero-loading">Loading…</div></section>
+    <section id="sb-filters" class="dx-filters"></section>
     <div id="strats-list"><div class="loading">Loading…</div></div>
+
   </main>
 </div>
 <script type="module" src="stratbook.js"></script>
