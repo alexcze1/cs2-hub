@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<body>
+<div id="root"></div>
+<script type="module">
+import { renderMapPool, computeMapPool, confidenceLabel } from './vods-map-pool.js'
+
+function assert(cond, msg) {
+  if (!cond) { console.error('FAIL:', msg); return }
+  console.log('PASS:', msg)
+}
+
+// ---- confidenceLabel boundaries ----
+{
+  assert(confidenceLabel(3) === 'LOW',    '3 plays → LOW')
+  assert(confidenceLabel(4) === 'MEDIUM', '4 plays → MEDIUM')
+  assert(confidenceLabel(7) === 'MEDIUM', '7 plays → MEDIUM')
+  assert(confidenceLabel(8) === 'HIGH',   '8 plays → HIGH')
+  assert(confidenceLabel(0) === 'LOW',    '0 plays → LOW')
+}
+
+// ---- computeMapPool ----
+{
+  const vods = [
+    { maps: [{ map: 'mirage', score_us: 13, score_them: 8 }] },
+    { maps: [{ map: 'mirage', score_us: 13, score_them: 11 }] },
+    { maps: [{ map: 'mirage', score_us: 9,  score_them: 13 }] },
+    { maps: [{ map: 'anubis', score_us: 7,  score_them: 13 }] },
+  ]
+  const out = computeMapPool(vods)
+  const mirage = out.find(r => r.map === 'mirage')
+  const anubis = out.find(r => r.map === 'anubis')
+  assert(mirage.plays === 3, 'mirage plays = 3')
+  assert(mirage.w === 2 && mirage.l === 1, 'mirage 2W-1L')
+  assert(mirage.wr === Math.round(2/3*100), 'mirage WR rounded')
+  assert(mirage.confidence === 'LOW', 'mirage 3 plays → LOW confidence')
+  assert(anubis.plays === 1, 'anubis plays = 1')
+}
+
+// ---- renderMapPool wires click → CustomEvent ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  const vods = [
+    { maps: [{ map: 'mirage', score_us: 13, score_them: 8 }] },
+    { maps: [{ map: 'mirage', score_us: 13, score_them: 9 }] },
+    { maps: [{ map: 'inferno', score_us: 13, score_them: 12 }] },
+  ]
+  renderMapPool(root, { vodsCurrent: vods, vodsPrior: [], activeMap: null })
+
+  const rows = root.querySelectorAll('[data-map]')
+  assert(rows.length === 2, 'one row per distinct map')
+
+  let received = null
+  root.addEventListener('rr:filter-map', (e) => { received = e.detail.map })
+  root.querySelector('[data-map="mirage"]').click()
+  assert(received === 'mirage', 'click → CustomEvent with detail.map=mirage')
+}
+
+// ---- Active map toggles off on second click ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  const vods = [{ maps: [{ map: 'mirage', score_us: 13, score_them: 8 }] }]
+  renderMapPool(root, { vodsCurrent: vods, vodsPrior: [], activeMap: 'mirage' })
+
+  const row = root.querySelector('[data-map="mirage"]')
+  assert(row.classList.contains('is-active'), 'active row marked')
+
+  let received = '__not_set__'
+  root.addEventListener('rr:filter-map', (e) => { received = e.detail.map })
+  row.click()
+  assert(received === null, 'click on active row → emits map=null (clear filter)')
+}
+
+// ---- Empty vods → empty marker ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  renderMapPool(root, { vodsCurrent: [], vodsPrior: [], activeMap: null })
+  assert(root.querySelector('.rr-empty'), 'empty state rendered')
+}
+
+// ---- Trend column ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  const cur = [
+    { maps: [{ map: 'mirage', score_us: 13, score_them: 6 }] },
+    { maps: [{ map: 'mirage', score_us: 13, score_them: 7 }] }, // 100% wr
+  ]
+  const prior = [
+    { maps: [{ map: 'mirage', score_us: 8,  score_them: 13 }] }, // 0% wr
+  ]
+  renderMapPool(root, { vodsCurrent: cur, vodsPrior: prior, activeMap: null })
+  const row = root.querySelector('[data-map="mirage"]')
+  assert(row.dataset.trend === 'up', 'mirage went 0% → 100% → trend up')
+}
+
+console.log('all done')
+</script>
+</body>
+</html>
