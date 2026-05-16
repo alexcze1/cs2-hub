@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h1>keywords-filter tests</h1>
+<pre id="out"></pre>
+<script type="module">
+import { filterKeywords } from './keywords.js'
+
+const out = document.getElementById('out')
+let pass = 0, fail = 0
+function assert(cond, msg) {
+  const line = (cond ? '✓ ' : '✗ ') + msg
+  out.textContent += line + '\n'
+  if (cond) pass++; else fail++
+}
+
+const kws = [
+  { id: 1, name: 'Retake B',     category: 'Strat',    description: 'B-site retake after explosion' },
+  { id: 2, name: 'Force Buy',    category: 'Economy',  description: 'Buy on a low round' },
+  { id: 3, name: 'Triple Stack', category: 'Strat',    description: 'Three players one site' },
+  { id: 4, name: 'Eco',          category: null,       description: 'Save round'              },
+]
+
+// All
+let r = filterKeywords(kws, { category: 'all', q: '' })
+assert(r.length === 4, `all + empty q = 4 (got ${r.length})`)
+
+// Category filter
+r = filterKeywords(kws, { category: 'Strat', q: '' })
+assert(r.length === 2, `category=Strat → 2 (got ${r.length})`)
+assert(r.every(k => k.category === 'Strat'), 'category=Strat → all match')
+
+// Search matches name
+r = filterKeywords(kws, { category: 'all', q: 'retake' })
+assert(r.length === 1 && r[0].id === 1, `q=retake matches name (id=${r[0]?.id})`)
+
+// Search matches description
+r = filterKeywords(kws, { category: 'all', q: 'save' })
+assert(r.length === 1 && r[0].id === 4, `q=save matches description (id=${r[0]?.id})`)
+
+// Search matches category
+r = filterKeywords(kws, { category: 'all', q: 'economy' })
+assert(r.length === 1 && r[0].id === 2, `q=economy matches category (id=${r[0]?.id})`)
+
+// Case-insensitive
+r = filterKeywords(kws, { category: 'all', q: 'STACK' })
+assert(r.length === 1 && r[0].id === 3, `q is case-insensitive (id=${r[0]?.id})`)
+
+// Combined
+r = filterKeywords(kws, { category: 'Strat', q: 'retake' })
+assert(r.length === 1 && r[0].id === 1, `combined filter (id=${r[0]?.id})`)
+
+// Null-category keyword excluded from named category filter
+r = filterKeywords(kws, { category: 'Economy', q: '' })
+assert(r.length === 1 && r[0].id === 2, `null-category excluded from named filter`)
+
+out.textContent += `\n${pass} passed, ${fail} failed\n`
+</script>
+</body>
+</html>

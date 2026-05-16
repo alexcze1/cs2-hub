@@ -39,6 +39,19 @@ export function deriveKeywordStats(keywords) {
   }
 }
 
+export function filterKeywords(keywords, filter) {
+  const q = (filter.q ?? '').toLowerCase().trim()
+  return keywords.filter(k => {
+    if (filter.category !== 'all' && (k.category ?? '') !== filter.category) return false
+    if (!q) return true
+    return (
+      (k.name ?? '').toLowerCase().includes(q) ||
+      (k.description ?? '').toLowerCase().includes(q) ||
+      (k.category ?? '').toLowerCase().includes(q)
+    )
+  })
+}
+
 await requireAuth()
 renderSidebar('keywords')
 
