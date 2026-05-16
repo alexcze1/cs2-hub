@@ -12,17 +12,9 @@
 <div class="app-shell">
   <nav class="sidebar" id="sidebar"></nav>
   <main class="main-content">
-    <div class="page-header">
-      <div>
-        <div class="page-title">KEYWORDS</div>
-        <div class="page-subtitle" id="kw-sub">Team terminology and callout definitions</div>
-      </div>
-      <button class="btn btn-primary" id="add-btn">+ Add Keyword</button>
-    </div>
 
-    <div class="form-group" style="max-width:320px;margin-bottom:20px">
-      <input class="form-input" id="kw-search" placeholder="Search keywords…"/>
-    </div>
+    <section id="kw-hero"    class="dx-hero"><div class="dx-hero-loading">Loading…</div></section>
+    <section id="kw-filters" class="dx-filters"></section>
 
     <div class="modal-backdrop" id="modal" style="display:none">
       <div class="modal" style="max-width:440px;width:100%">
@@ -51,7 +43,7 @@
       </div>
     </div>
 
-    <div id="keywords-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px"></div>
+    <div id="keywords-list"></div>
   </main>
 </div>
 <script type="module" src="keywords.js"></script>

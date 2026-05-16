@@ -55,49 +55,136 @@ export function filterKeywords(keywords, filter) {
 await requireAuth()
 renderSidebar('keywords')
 
-let allKeywords = []
+const FILTER_LS_KEY = 'keywords:filter:v1'
+const DEFAULT_FILTER = { category: 'all', q: '' }
+function loadSavedFilter() {
+  try { return { ...DEFAULT_FILTER, ...JSON.parse(localStorage.getItem(FILTER_LS_KEY) || '{}') } }
+  catch { return { ...DEFAULT_FILTER } }
+}
+function saveFilter(f) { try { localStorage.setItem(FILTER_LS_KEY, JSON.stringify(f)) } catch {} }
+
+const state = {
+  filter: loadSavedFilter(),
+  keywords: [],
+}
 let editingId = null
-let searchQ = ''
+
+const heroEl    = document.getElementById('kw-hero')
+const filtersEl = document.getElementById('kw-filters')
+const listEl    = document.getElementById('keywords-list')
 
 async function loadKeywords() {
-  const { data, error } = await supabase.from('keywords').select('*').eq('team_id', getTeamId()).order('name', { ascending: true })
-  const el = document.getElementById('keywords-grid')
-  if (error) { el.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><h3>Failed to load</h3><p>${esc(error.message)}</p></div>`; return }
-  allKeywords = data ?? []
-  document.getElementById('kw-sub').textContent = `${allKeywords.length} term${allKeywords.length !== 1 ? 's' : ''} defined`
-  renderKeywords()
-}
-
-function renderKeywords() {
-  const q = searchQ.toLowerCase()
-  const filtered = allKeywords.filter(k =>
-    !q || k.name.toLowerCase().includes(q) || k.description.toLowerCase().includes(q) || (k.category ?? '').toLowerCase().includes(q)
-  )
-  const el = document.getElementById('keywords-grid')
-  if (!filtered.length) {
-    el.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><h3>No keywords found</h3><p>${searchQ ? 'Try a different search.' : 'Add your first keyword.'}</p></div>`
+  const { data, error } = await supabase
+    .from('keywords').select('*')
+    .eq('team_id', getTeamId())
+    .order('name', { ascending: true })
+  if (error) {
+    listEl.innerHTML = `<div class="dx-empty"><h3 style="margin:0 0 6px;font-weight:700">Failed to load</h3>${esc(error.message)}</div>`
     return
   }
-
-  el.innerHTML = filtered.map(k => `
-    <div class="list-row" style="flex-direction:column;align-items:flex-start;gap:6px">
-      <div style="display:flex;justify-content:space-between;width:100%;align-items:flex-start">
-        <div>
-          <div style="font-weight:700;font-size:14px">${esc(k.name)}</div>
-          ${k.category ? `<span class="tag" style="margin-top:2px">${esc(k.category)}</span>` : ''}
-        </div>
-        <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px" data-edit="${k.id}">Edit</button>
-      </div>
-      <div style="color:var(--muted);font-size:13px;line-height:1.5">${esc(k.description)}</div>
-    </div>
-  `).join('')
-
-  el.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); openModal(e.target.dataset.edit) }))
+  state.keywords = data ?? []
+  renderAll()
 }
 
+// ── Hero ──────────────────────────────────────────────────────
+function renderHero() {
+  const s = deriveKeywordStats(state.keywords)
+  heroEl.innerHTML = `
+    <div class="dx-hero-grid">
+      <div class="dx-hero-left">
+        <div class="dx-hero-title">KEYWORDS</div>
+        <div class="dx-hero-count">${s.total}<span class="dx-hero-count-unit">${s.total === 1 ? ' term' : ' terms'}</span></div>
+        <div class="dx-hero-substats">
+          <div class="dx-kv"><div class="dx-kv-k">Categories</div><div class="dx-kv-v">${s.categoryCount}</div></div>
+          <div class="dx-kv"><div class="dx-kv-k">Uncategorized</div><div class="dx-kv-v">${s.uncategorized}</div></div>
+          <div class="dx-kv"><div class="dx-kv-k">Top category</div><div class="dx-kv-v">${s.topCategory ? esc(s.topCategory) : '—'}</div></div>
+          <div class="dx-kv"><div class="dx-kv-k">Latest</div><div class="dx-kv-v">${s.latest ? esc(s.latest) : '—'}</div></div>
+        </div>
+        <div class="dx-hero-actions">
+          <button type="button" class="dx-upload-cta" id="add-btn">+ Add Keyword</button>
+        </div>
+      </div>
+      <div class="dx-hero-right"></div>
+    </div>`
+  document.getElementById('add-btn').addEventListener('click', () => openModal())
+}
+
+// ── Filters ───────────────────────────────────────────────────
+function distinctCategoriesInOrder(keywords) {
+  const seen = new Set(), out = []
+  for (const k of keywords) {
+    const c = k.category
+    if (c == null || c === '') continue
+    if (!seen.has(c)) { seen.add(c); out.push(c) }
+  }
+  return out
+}
+
+function renderFilters() {
+  const f = state.filter
+  const cats = distinctCategoriesInOrder(state.keywords)
+  const pill = (val, label) =>
+    `<button type="button" class="dx-pill ${f.category === val ? 'is-active' : ''}" data-val="${esc(val)}">${esc(label)}</button>`
+
+  filtersEl.innerHTML = `
+    <div class="dx-filter-row">
+      <div class="dx-filter-group">
+        ${pill('all', 'All Categories')}
+        ${cats.map(c => pill(c, c)).join('')}
+      </div>
+      <div class="dx-filter-spacer"></div>
+      <input type="search" class="dx-search-input" id="kw-search" placeholder="Search keywords…" value="${esc(f.q)}"/>
+    </div>`
+
+  for (const btn of filtersEl.querySelectorAll('.dx-pill')) {
+    btn.addEventListener('click', () => {
+      const v = btn.dataset.val
+      if (state.filter.category === v) return
+      state.filter = { ...state.filter, category: v }
+      saveFilter(state.filter)
+      renderFilters(); renderList()
+    })
+  }
+  document.getElementById('kw-search').addEventListener('input', e => {
+    state.filter = { ...state.filter, q: e.target.value }
+    saveFilter(state.filter)
+    renderList()
+  })
+}
+
+// ── List ──────────────────────────────────────────────────────
+function renderList() {
+  const filtered = filterKeywords(state.keywords, state.filter)
+  if (state.keywords.length === 0) {
+    listEl.innerHTML = `<div class="dx-empty"><h3 style="margin:0 0 6px;font-weight:700">No keywords yet</h3>Define your first term to seed the team glossary.</div>`
+    return
+  }
+  if (filtered.length === 0) {
+    listEl.innerHTML = `<div class="dx-empty">No keywords match the current filters.</div>`
+    return
+  }
+  listEl.innerHTML = `<div class="kw-grid">${filtered.map(keywordCard).join('')}</div>`
+  for (const btn of listEl.querySelectorAll('[data-edit]')) {
+    btn.addEventListener('click', e => { e.stopPropagation(); openModal(btn.dataset.edit) })
+  }
+}
+
+function keywordCard(k) {
+  return `
+    <div class="kw-card">
+      <div class="kw-card-head">
+        <div class="kw-card-name">${esc(k.name)}</div>
+        <button type="button" class="btn btn-ghost btn-sm" data-edit="${esc(k.id)}">Edit</button>
+      </div>
+      ${k.category ? `<div class="kw-card-cat">${esc(k.category)}</div>` : ''}
+      <div class="kw-card-desc">${esc(k.description)}</div>
+    </div>`
+}
+
+// ── Modal ─────────────────────────────────────────────────────
 function openModal(id = null) {
   editingId = id
-  const k = id ? allKeywords.find(x => x.id === id) : null
+  const k = id ? state.keywords.find(x => String(x.id) === String(id)) : null
   document.getElementById('modal-title').textContent = id ? 'Edit Keyword' : 'Add Keyword'
   document.getElementById('f-name').value        = k?.name        ?? ''
   document.getElementById('f-category').value    = k?.category    ?? ''
@@ -106,14 +193,11 @@ function openModal(id = null) {
   document.getElementById('modal-error').style.display = 'none'
   document.getElementById('modal').style.display = 'flex'
 }
-
 function closeModal() { document.getElementById('modal').style.display = 'none'; editingId = null }
 
-document.getElementById('add-btn').addEventListener('click', () => openModal())
 document.getElementById('modal-close').addEventListener('click', closeModal)
 document.getElementById('cancel-btn').addEventListener('click', closeModal)
 document.getElementById('modal').addEventListener('click', e => { if (e.target === document.getElementById('modal')) closeModal() })
-document.getElementById('kw-search').addEventListener('input', e => { searchQ = e.target.value.trim(); renderKeywords() })
 
 document.getElementById('save-btn').addEventListener('click', async () => {
   const name        = document.getElementById('f-name').value.trim()
@@ -122,14 +206,10 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   const errEl       = document.getElementById('modal-error')
   if (!name)        { errEl.textContent = 'Keyword name is required.'; errEl.style.display = 'block'; return }
   if (!description) { errEl.textContent = 'Description is required.';  errEl.style.display = 'block'; return }
-
   const payload = { name, category, description, team_id: getTeamId() }
   let error
-  if (editingId) {
-    ;({ error } = await supabase.from('keywords').update(payload).eq('id', editingId))
-  } else {
-    ;({ error } = await supabase.from('keywords').insert(payload))
-  }
+  if (editingId) ({ error } = await supabase.from('keywords').update(payload).eq('id', editingId))
+  else           ({ error } = await supabase.from('keywords').insert(payload))
   if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return }
   const wasEditing = !!editingId
   closeModal(); toast(wasEditing ? 'Keyword updated' : 'Keyword added'); loadKeywords()
@@ -141,5 +221,7 @@ document.getElementById('delete-btn').addEventListener('click', async () => {
   if (error) { document.getElementById('modal-error').textContent = error.message; document.getElementById('modal-error').style.display = 'block'; return }
   closeModal(); toast('Keyword deleted'); loadKeywords()
 })
+
+function renderAll() { renderHero(); renderFilters(); renderList() }
 
 loadKeywords()
