@@ -5,6 +5,40 @@ import { toast } from './toast.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
+export function deriveKeywordStats(keywords) {
+  const total = keywords.length
+  if (total === 0) {
+    return { total: 0, categoryCount: 0, uncategorized: 0, topCategory: null, latest: null }
+  }
+  const counts = new Map()       // category -> { n, firstIdx }
+  let uncategorized = 0
+  for (let i = 0; i < keywords.length; i++) {
+    const c = keywords[i].category
+    if (c == null || c === '') { uncategorized++; continue }
+    const entry = counts.get(c)
+    if (entry) entry.n++
+    else counts.set(c, { n: 1, firstIdx: i })
+  }
+  let topCategory = null, topN = 0, topIdx = Infinity
+  for (const [cat, { n, firstIdx }] of counts) {
+    if (n > topN || (n === topN && firstIdx < topIdx)) {
+      topCategory = cat; topN = n; topIdx = firstIdx
+    }
+  }
+  // Latest = name of the keyword with greatest created_at
+  let latestRow = keywords[0]
+  for (const k of keywords) {
+    if ((k.created_at ?? '') > (latestRow.created_at ?? '')) latestRow = k
+  }
+  return {
+    total,
+    categoryCount: counts.size,
+    uncategorized,
+    topCategory,
+    latest: latestRow?.name ?? null,
+  }
+}
+
 await requireAuth()
 renderSidebar('keywords')
 

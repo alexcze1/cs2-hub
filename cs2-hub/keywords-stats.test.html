@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h1>keywords-stats tests</h1>
+<pre id="out"></pre>
+<script type="module">
+import { deriveKeywordStats } from './keywords.js'
+
+const out = document.getElementById('out')
+let pass = 0, fail = 0
+function assert(cond, msg) {
+  const line = (cond ? '✓ ' : '✗ ') + msg
+  out.textContent += line + '\n'
+  if (cond) pass++; else fail++
+}
+
+// Empty
+let s = deriveKeywordStats([])
+assert(s.total === 0,           'empty: total = 0')
+assert(s.categoryCount === 0,   'empty: categoryCount = 0')
+assert(s.uncategorized === 0,   'empty: uncategorized = 0')
+assert(s.topCategory === null,  'empty: topCategory = null')
+assert(s.latest === null,       'empty: latest = null')
+
+// Mixed
+const kws = [
+  { name: 'A', category: 'Callout', created_at: '2026-05-10T00:00:00Z' },
+  { name: 'B', category: 'Callout', created_at: '2026-05-12T00:00:00Z' },
+  { name: 'C', category: 'Economy', created_at: '2026-05-11T00:00:00Z' },
+  { name: 'D', category: null,      created_at: '2026-05-13T00:00:00Z' },
+  { name: 'E', category: '',        created_at: '2026-05-09T00:00:00Z' },
+]
+s = deriveKeywordStats(kws)
+assert(s.total === 5,                 'mixed: total = 5')
+assert(s.categoryCount === 2,         'mixed: categoryCount = 2 (Callout, Economy)')
+assert(s.uncategorized === 2,         'mixed: uncategorized = 2 (null + empty string)')
+assert(s.topCategory === 'Callout',   `mixed: topCategory = Callout (got ${s.topCategory})`)
+assert(s.latest === 'D',              `mixed: latest = D (got ${s.latest})`)
+
+// Tie on top category — first-appearance wins
+const tie = [
+  { name: 'A', category: 'X', created_at: '2026-05-01T00:00:00Z' },
+  { name: 'B', category: 'Y', created_at: '2026-05-02T00:00:00Z' },
+  { name: 'C', category: 'Y', created_at: '2026-05-03T00:00:00Z' },
+  { name: 'D', category: 'X', created_at: '2026-05-04T00:00:00Z' },
+]
+s = deriveKeywordStats(tie)
+assert(s.topCategory === 'X',         `tie: first-appearance wins, X (got ${s.topCategory})`)
+
+out.textContent += `\n${pass} passed, ${fail} failed\n`
+</script>
+</body>
+</html>
