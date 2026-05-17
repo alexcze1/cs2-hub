@@ -19,17 +19,19 @@ const opps = [
   { id: 2, name: 'Vitality', favored_maps: ['mirage'] },
   { id: 3, name: 'FaZe',     favored_maps: [] },
   { id: 4, name: 'G2',       favored_maps: ['nuke'] },
+  { id: 5, name: 'Cloud9',   favored_maps: ['ancient'] },
 ]
 const history = {
   navi:     { matches: 4, mw: 1, ml: 3 },  // strong
   vitality: { matches: 3, mw: 3, ml: 0 },  // weak
   faze:     { matches: 1, mw: 1, ml: 0 },  // new
+  cloud9:   { matches: 4, mw: 2, ml: 2 },  // wp=50 → even
   // g2: no history → new
 }
 
 // All
 let r = filterOpponents(opps, { map: 'all', threat: 'all', q: '' }, history)
-assert(r.length === 4, `all → 4 (got ${r.length})`)
+assert(r.length === 5, `all → 5 (got ${r.length})`)
 
 // Map filter
 r = filterOpponents(opps, { map: 'mirage', threat: 'all', q: '' }, history)
@@ -42,6 +44,10 @@ assert(r.length === 1 && r[0].name === 'NAVI', `threat=strong → NAVI`)
 // Threat filter — weak
 r = filterOpponents(opps, { map: 'all', threat: 'weak', q: '' }, history)
 assert(r.length === 1 && r[0].name === 'Vitality', `threat=weak → Vitality`)
+
+// Threat filter — even
+r = filterOpponents(opps, { map: 'all', threat: 'even', q: '' }, history)
+assert(r.length === 1 && r[0].name === 'Cloud9', `threat=even → Cloud9`)
 
 // Threat filter — new (both <2 matches AND no history)
 r = filterOpponents(opps, { map: 'all', threat: 'new', q: '' }, history)
