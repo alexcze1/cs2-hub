@@ -69,3 +69,7 @@ create policy "team stats follow demo"
     select 1 from demos d
     where d.id = demo_id and d.uploaded_by = auth.uid()
   ));
+
+-- 6. Ship 3: anti-eco counters (rounds where opponent was on eco)
+alter table demo_team_stats add column if not exists anti_eco_wins   int;
+alter table demo_team_stats add column if not exists anti_eco_played int;
