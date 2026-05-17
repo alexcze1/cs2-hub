@@ -4400,6 +4400,7 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
   line-height: 1.5;
   margin-bottom: 4px;
 }
+.gl-card-action-arrow { font-weight: 700; flex-shrink: 0; }
 
 /* ── Keywords (tactical) ─────────────────────────────────────── */
 .kw-grid {
@@ -4450,4 +4451,3 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
   font-size: 13px;
   line-height: 1.5;
 }
-.gl-card-action-arrow { font-weight: 700; flex-shrink: 0; }
