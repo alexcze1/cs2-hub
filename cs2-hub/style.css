@@ -4451,3 +4451,10 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
   font-size: 13px;
   line-height: 1.5;
 }
+
+/* ── Map Veto (tactical hero/filters) ────────────────────────── */
+.veto-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
