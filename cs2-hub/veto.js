@@ -155,6 +155,7 @@ async function loadVetos() {
     .eq('team_id', getTeamId())
     .order('created_at', { ascending: false })
   if (error) {
+    heroEl.innerHTML = ''
     listEl.innerHTML = `<div class="dx-empty"><h3 style="margin:0 0 6px;font-weight:700">Failed to load</h3>${esc(error.message)}</div>`
     return
   }
