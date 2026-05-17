@@ -66,8 +66,8 @@ const MAP_IMG = { dust2: 'dust' }
 function mapChip(map) {
   const src = `images/maps/${MAP_IMG[map] ?? map}.png`
   return `<div class="intel-map-chip">
-    <img src="${src}" aria-hidden="true">
-    <span>${map.slice(0,3).toUpperCase()}</span>
+    <img src="${esc(src)}" aria-hidden="true">
+    <span>${esc(map.slice(0,3).toUpperCase())}</span>
   </div>`
 }
 
@@ -133,6 +133,7 @@ async function loadAll() {
     supabase.from('vods').select('opponent, title, maps').eq('team_id', teamId).eq('dismissed', false),
   ])
   if (error) {
+    heroEl.innerHTML = ''
     listEl.innerHTML = `<div class="dx-empty"><h3 style="margin:0 0 6px;font-weight:700">Failed to load opponents</h3>${esc(error.message)}</div>`
     return
   }

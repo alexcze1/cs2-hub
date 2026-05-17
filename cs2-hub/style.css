@@ -4460,7 +4460,6 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
 }
 
 /* ── Anti-Strat (tactical hero/filters) ──────────────────────── */
-.intel-card { position: relative; overflow: hidden; }
 .intel-card-wash {
   position: absolute; inset: 0;
   background-size: cover; background-position: center;
