@@ -12,14 +12,11 @@
 <div class="app-shell">
   <nav class="sidebar" id="sidebar"></nav>
   <main class="main-content">
-    <div class="page-header">
-      <div>
-        <div class="page-title">Anti-Strat</div>
-        <div class="page-sub">Anti-strat research per enemy team</div>
-      </div>
-      <a class="btn btn-primary" href="opponent-detail.html">+ Add Team</a>
-    </div>
-    <div id="opponents-list"><div class="loading">Loading…</div></div>
+
+    <section id="opp-hero"    class="dx-hero"><div class="dx-hero-loading">Loading…</div></section>
+    <section id="opp-filters" class="dx-filters"></section>
+
+    <div id="opponents-list"></div>
   </main>
 </div>
 <script type="module" src="opponents.js"></script>

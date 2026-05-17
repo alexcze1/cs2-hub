@@ -4458,3 +4458,19 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
   grid-template-columns: 1fr;
   gap: 14px;
 }
+
+/* ── Anti-Strat (tactical hero/filters) ──────────────────────── */
+.intel-card { position: relative; overflow: hidden; }
+.intel-card-wash {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center;
+  opacity: 0.08;
+  pointer-events: none;
+}
+.intel-card-has-wash::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(15,25,38,0.30) 0%, rgba(15,25,38,0.92) 100%);
+  pointer-events: none;
+}
+.intel-card > *:not(.intel-card-wash) { position: relative; z-index: 1; }

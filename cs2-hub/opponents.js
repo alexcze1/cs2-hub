@@ -71,16 +71,6 @@ function mapChip(map) {
   </div>`
 }
 
-await requireAuth()
-renderSidebar('opponents')
-
-const el = document.getElementById('opponents-list')
-const teamId = getTeamId()
-const [{ data: opponents, error }, { data: vods }] = await Promise.all([
-  supabase.from('opponents').select('*').eq('team_id', teamId).order('name', { ascending: true }),
-  supabase.from('vods').select('opponent, title, maps').eq('team_id', teamId).eq('dismissed', false)
-])
-
 function buildHistoryIndex(vods) {
   const idx = {}
   for (const v of vods ?? []) {
@@ -108,28 +98,154 @@ function threatTag(history) {
   return                                  { cls: 'even',   label: `Even · ${wp}%` }
 }
 
-if (error) {
-  el.innerHTML = `<div class="empty-state"><h3>Failed to load opponents</h3><p>${esc(error.message)}</p></div>`
-} else if (!opponents?.length) {
-  el.innerHTML = `<div class="empty-state"><h3>No opponents yet</h3><p>Add a team before your next match.</p></div>`
-} else {
-  const history = buildHistoryIndex(vods)
-  const logos = await Promise.all(opponents.map(o => getTeamLogo(o.name)))
-  el.innerHTML = `<div class="intel-grid">${opponents.map((o, i) => {
-    const h = history[(o.name ?? '').trim().toLowerCase()]
-    const tag = threatTag(h)
-    return `
-      <a class="intel-card" href="opponent-detail.html?id=${o.id}">
-        <div class="intel-head">
-          ${teamLogoEl(logos[i], o.name, 36)}
-          <div class="intel-name">${esc(o.name)}</div>
-          <span class="intel-tag intel-tag-${tag.cls}">${tag.label}</span>
-        </div>
-        <div class="intel-section-label">Favored maps</div>
-        ${o.favored_maps?.length
-          ? `<div class="intel-maps">${o.favored_maps.map(mapChip).join('')}</div>`
-          : `<div class="intel-empty">No maps noted</div>`}
-      </a>
-    `
-  }).join('')}</div>`
+const MAPS = ['ancient', 'mirage', 'nuke', 'anubis', 'inferno', 'overpass', 'dust2']
+const MAP_LABELS = { ancient:'Ancient', mirage:'Mirage', nuke:'Nuke', anubis:'Anubis', inferno:'Inferno', overpass:'Overpass', dust2:'Dust2' }
+function mapFile(map) { return MAP_IMG[map] ?? map }
+function mapBg(map)   { return map ? `images/maps/${mapFile(map)}.png` : '' }
+
+await requireAuth()
+renderSidebar('opponents')
+
+const FILTER_LS_KEY = 'opponents:filter:v1'
+const DEFAULT_FILTER = { map: 'all', threat: 'all', q: '' }
+function loadSavedFilter() {
+  try { return { ...DEFAULT_FILTER, ...JSON.parse(localStorage.getItem(FILTER_LS_KEY) || '{}') } }
+  catch { return { ...DEFAULT_FILTER } }
 }
+function saveFilter(f) { try { localStorage.setItem(FILTER_LS_KEY, JSON.stringify(f)) } catch {} }
+
+const state = {
+  filter: loadSavedFilter(),
+  opponents: [],
+  history: {},
+  logos: [],          // index-aligned with opponents
+}
+
+const heroEl    = document.getElementById('opp-hero')
+const filtersEl = document.getElementById('opp-filters')
+const listEl    = document.getElementById('opponents-list')
+
+const teamId = getTeamId()
+
+async function loadAll() {
+  const [{ data: opponents, error }, { data: vods }] = await Promise.all([
+    supabase.from('opponents').select('*').eq('team_id', teamId).order('name', { ascending: true }),
+    supabase.from('vods').select('opponent, title, maps').eq('team_id', teamId).eq('dismissed', false),
+  ])
+  if (error) {
+    listEl.innerHTML = `<div class="dx-empty"><h3 style="margin:0 0 6px;font-weight:700">Failed to load opponents</h3>${esc(error.message)}</div>`
+    return
+  }
+  state.opponents = opponents ?? []
+  state.history   = buildHistoryIndex(vods)
+  state.logos     = await Promise.all(state.opponents.map(o => getTeamLogo(o.name)))
+  renderAll()
+}
+
+// ── Hero ──────────────────────────────────────────────────────
+function renderHero() {
+  const s = deriveOpponentStats(state.opponents, state.history)
+  const wash = s.topMap ? mapBg(s.topMap) : ''
+  heroEl.innerHTML = `
+    <div class="dx-hero-grid">
+      <div class="dx-hero-left">
+        <div class="dx-hero-title">ANTI-STRAT</div>
+        <div class="dx-hero-count">${s.total}<span class="dx-hero-count-unit">${s.total === 1 ? ' team' : ' teams'}</span></div>
+        <div class="dx-hero-substats">
+          <div class="dx-kv"><div class="dx-kv-k">With maps</div><div class="dx-kv-v">${s.withMaps}</div></div>
+          <div class="dx-kv"><div class="dx-kv-k">Threats</div><div class="dx-kv-v" style="color:var(--danger)">${s.threats}</div></div>
+          <div class="dx-kv"><div class="dx-kv-k">Favored</div><div class="dx-kv-v" style="color:var(--success)">${s.favored}</div></div>
+          <div class="dx-kv"><div class="dx-kv-k">Maps covered</div><div class="dx-kv-v">${s.mapsCovered}</div></div>
+        </div>
+        <div class="dx-hero-actions">
+          <a class="dx-upload-cta" href="opponent-detail.html">+ Add Team</a>
+        </div>
+      </div>
+      <div class="dx-hero-right">
+        ${wash ? `<div class="dx-hero-mapwash" style="background-image:url('${esc(wash)}')"></div>` : ''}
+      </div>
+    </div>`
+}
+
+// ── Filters ───────────────────────────────────────────────────
+function renderFilters() {
+  const f = state.filter
+  const mapPill = (val, label) =>
+    `<button type="button" class="dx-pill ${f.map === val ? 'is-active' : ''}" data-group="map" data-val="${esc(val)}">${esc(label)}</button>`
+  const threatPill = (val, label) =>
+    `<button type="button" class="dx-pill ${f.threat === val ? 'is-active' : ''}" data-group="threat" data-val="${esc(val)}">${esc(label)}</button>`
+
+  filtersEl.innerHTML = `
+    <div class="dx-filter-row">
+      <div class="dx-filter-group">
+        ${mapPill('all', 'All Maps')}
+        ${MAPS.map(m => mapPill(m, MAP_LABELS[m])).join('')}
+      </div>
+    </div>
+    <div class="dx-filter-row" style="margin-top:8px">
+      <div class="dx-filter-group">
+        ${threatPill('all',    'All Threats')}
+        ${threatPill('strong', 'Threats')}
+        ${threatPill('even',   'Even')}
+        ${threatPill('weak',   'Favored')}
+        ${threatPill('new',    'No History')}
+      </div>
+      <div class="dx-filter-spacer"></div>
+      <input type="search" class="dx-search-input" id="opp-search" placeholder="Search opponents…" value="${esc(f.q)}"/>
+    </div>`
+
+  for (const btn of filtersEl.querySelectorAll('.dx-pill')) {
+    btn.addEventListener('click', () => {
+      const g = btn.dataset.group, v = btn.dataset.val
+      if (state.filter[g] === v) return
+      state.filter = { ...state.filter, [g]: v }
+      saveFilter(state.filter)
+      renderFilters(); renderList()
+    })
+  }
+  document.getElementById('opp-search').addEventListener('input', e => {
+    state.filter = { ...state.filter, q: e.target.value }
+    saveFilter(state.filter)
+    renderList()
+  })
+}
+
+// ── List ──────────────────────────────────────────────────────
+function renderList() {
+  const filtered = filterOpponents(state.opponents, state.filter, state.history)
+  if (state.opponents.length === 0) {
+    listEl.innerHTML = `<div class="dx-empty"><h3 style="margin:0 0 6px;font-weight:700">No opponents yet</h3>Add a team before your next match.</div>`
+    return
+  }
+  if (filtered.length === 0) {
+    listEl.innerHTML = `<div class="dx-empty">No opponents match the current filters.</div>`
+    return
+  }
+  const oppIndex = new Map(state.opponents.map((o, i) => [o.id, i]))
+  listEl.innerHTML = `<div class="intel-grid">${filtered.map(o => opponentCard(o, state.logos[oppIndex.get(o.id)])).join('')}</div>`
+}
+
+function opponentCard(o, logo) {
+  const h = state.history[(o.name ?? '').trim().toLowerCase()]
+  const tag = threatTag(h)
+  const topMap = (o.favored_maps ?? [])[0]
+  const wash = topMap ? mapBg(topMap) : ''
+  return `
+    <a class="intel-card ${wash ? 'intel-card-has-wash' : ''}" href="opponent-detail.html?id=${esc(o.id)}">
+      ${wash ? `<div class="intel-card-wash" style="background-image:url('${esc(wash)}')"></div>` : ''}
+      <div class="intel-head">
+        ${teamLogoEl(logo, o.name, 36)}
+        <div class="intel-name">${esc(o.name)}</div>
+        <span class="intel-tag intel-tag-${tag.cls}">${tag.label}</span>
+      </div>
+      <div class="intel-section-label">Favored maps</div>
+      ${o.favored_maps?.length
+        ? `<div class="intel-maps">${o.favored_maps.map(mapChip).join('')}</div>`
+        : `<div class="intel-empty">No maps noted</div>`}
+    </a>
+  `
+}
+
+function renderAll() { renderHero(); renderFilters(); renderList() }
+
+loadAll()
