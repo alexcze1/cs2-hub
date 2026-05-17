@@ -10,6 +10,33 @@ function esc(text) {
   return d.innerHTML
 }
 
+export function deriveOpponentStats(opponents, historyIndex) {
+  const total = opponents.length
+  if (total === 0) return { total: 0, withMaps: 0, threats: 0, favored: 0, mapsCovered: 0, topMap: null }
+  let withMaps = 0, threats = 0, favored = 0
+  const mapCounts = new Map()   // map -> { n, firstIdx }
+  for (let i = 0; i < opponents.length; i++) {
+    const o = opponents[i]
+    const maps = o.favored_maps ?? []
+    if (maps.length > 0) withMaps++
+    for (const m of maps) {
+      const e = mapCounts.get(m)
+      if (e) e.n++; else mapCounts.set(m, { n: 1, firstIdx: i })
+    }
+    const h = historyIndex?.[(o.name ?? '').trim().toLowerCase()]
+    if (h && h.matches >= 2) {
+      const wp = (h.mw / h.matches) * 100
+      if (wp <= 33) threats++
+      else if (wp >= 67) favored++
+    }
+  }
+  let topMap = null, top = 0, topIdx = Infinity
+  for (const [k, { n, firstIdx }] of mapCounts) {
+    if (n > top || (n === top && firstIdx < topIdx)) { topMap = k; top = n; topIdx = firstIdx }
+  }
+  return { total, withMaps, threats, favored, mapsCovered: mapCounts.size, topMap }
+}
+
 const MAP_IMG = { dust2: 'dust' }
 function mapChip(map) {
   const src = `images/maps/${MAP_IMG[map] ?? map}.png`

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h1>opponents-stats tests</h1>
+<pre id="out"></pre>
+<script type="module">
+import { deriveOpponentStats } from './opponents.js'
+
+const out = document.getElementById('out')
+let pass = 0, fail = 0
+function assert(cond, msg) {
+  const line = (cond ? '✓ ' : '✗ ') + msg
+  out.textContent += line + '\n'
+  if (cond) pass++; else fail++
+}
+
+// Empty
+let s = deriveOpponentStats([], {})
+assert(s.total === 0,        'empty: total = 0')
+assert(s.withMaps === 0,     'empty: withMaps = 0')
+assert(s.threats === 0,      'empty: threats = 0')
+assert(s.favored === 0,      'empty: favored = 0')
+assert(s.mapsCovered === 0,  'empty: mapsCovered = 0')
+assert(s.topMap === null,    'empty: topMap = null')
+
+// Mixed. threatTagCls inputs:
+//  - strong = wp ≤ 33% with ≥2 matches
+//  - weak   = wp ≥ 67% with ≥2 matches
+//  - new    = matches < 2
+const opps = [
+  { name: 'A',  favored_maps: ['mirage', 'inferno'] },
+  { name: 'B',  favored_maps: ['mirage'] },
+  { name: 'C',  favored_maps: [] },
+  { name: 'D',  favored_maps: ['inferno', 'nuke'] },
+]
+// Simulated history index keyed by lowercased name:
+const history = {
+  a: { matches: 4, mw: 1, ml: 3 },   // wp=25 → strong
+  b: { matches: 3, mw: 3, ml: 0 },   // wp=100 → weak
+  c: { matches: 1, mw: 1, ml: 0 },   // matches<2 → new
+  // d: no history → new
+}
+s = deriveOpponentStats(opps, history)
+assert(s.total === 4,         'mixed: total = 4')
+assert(s.withMaps === 3,      'mixed: withMaps = 3 (A, B, D)')
+assert(s.threats === 1,       'mixed: threats = 1 (A)')
+assert(s.favored === 1,       'mixed: favored = 1 (B)')
+// Distinct maps across all favored_maps: mirage, inferno, nuke = 3
+assert(s.mapsCovered === 3,   `mixed: mapsCovered = 3 (got ${s.mapsCovered})`)
+// mirage appears 2x (A, B), inferno 2x (A, D), nuke 1x (D)
+// Tie between mirage and inferno → first-appearance wins → mirage (from A's first slot)
+assert(s.topMap === 'mirage', `mixed: topMap = mirage (got ${s.topMap})`)
+
+out.textContent += `\n${pass} passed, ${fail} failed\n`
+</script>
+</body>
+</html>
