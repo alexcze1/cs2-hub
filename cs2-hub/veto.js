@@ -56,6 +56,29 @@ export function filterVetos(vetos, filter) {
   })
 }
 
+const MAPS = ['ancient','mirage','nuke','anubis','inferno','overpass','dust2']
+const MAP_LABELS = { ancient:'Ancient', mirage:'Mirage', nuke:'Nuke', anubis:'Anubis', inferno:'Inferno', overpass:'Overpass', dust2:'Dust2' }
+const MAP_IMAGES = { ancient:'images/maps/ancient.png', mirage:'images/maps/mirage.png', nuke:'images/maps/nuke.png', anubis:'images/maps/anubis.png', inferno:'images/maps/inferno.png', overpass:'images/maps/overpass.png', dust2:'images/maps/dust.png' }
+
+const BO1_SEQUENCE = [
+  { type:'ban',     team:'away' },
+  { type:'ban',     team:'home' },
+  { type:'ban',     team:'home' },
+  { type:'ban',     team:'away' },
+  { type:'ban',     team:'away' },
+  { type:'ban',     team:'home' },
+  { type:'decider', team:'left' },
+]
+const BO3_SEQUENCE = [
+  { type:'ban',     team:'away' },
+  { type:'ban',     team:'home' },
+  { type:'pick',    team:'away' },
+  { type:'pick',    team:'home' },
+  { type:'ban',     team:'away' },
+  { type:'ban',     team:'home' },
+  { type:'decider', team:'left' },
+]
+
 const MAP_IMG = { dust2: 'dust' }
 function mapFile(map) { return MAP_IMG[map] ?? map }
 function mapBg(map)   { return map ? `images/maps/${mapFile(map)}.png` : '' }
