@@ -40,6 +40,22 @@ export function deriveVetoStats(vetos) {
   }
 }
 
+export function filterVetos(vetos, filter) {
+  const q = (filter.q ?? '').toLowerCase().trim()
+  return vetos.filter(v => {
+    if (filter.format   !== 'all' && v.format   !== filter.format)   return false
+    if (filter.opponent !== 'all' && (v.opponent ?? '') !== filter.opponent) return false
+    if (!q) return true
+    if ((v.title    ?? '').toLowerCase().includes(q)) return true
+    if ((v.opponent ?? '').toLowerCase().includes(q)) return true
+    if ((v.notes    ?? '').toLowerCase().includes(q)) return true
+    for (const step of v.steps ?? []) {
+      if ((step.map ?? '').toLowerCase().includes(q)) return true
+    }
+    return false
+  })
+}
+
 await requireAuth()
 renderSidebar('veto')
 

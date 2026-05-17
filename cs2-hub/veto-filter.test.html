@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h1>veto-filter tests</h1>
+<pre id="out"></pre>
+<script type="module">
+import { filterVetos } from './veto.js'
+
+const out = document.getElementById('out')
+let pass = 0, fail = 0
+function assert(cond, msg) {
+  const line = (cond ? '✓ ' : '✗ ') + msg
+  out.textContent += line + '\n'
+  if (cond) pass++; else fail++
+}
+
+const vetos = [
+  { id: 'a', title: 'vs NAVI',     opponent: 'NAVI',     format: 'bo1', notes: 'plays default', steps: [{ type: 'ban', map: 'mirage' }] },
+  { id: 'b', title: 'vs NAVI rematch', opponent: 'NAVI', format: 'bo3', notes: '',              steps: [{ type: 'pick', map: 'inferno' }] },
+  { id: 'c', title: 'vs Vitality', opponent: 'Vitality', format: 'bo1', notes: 'aggro CT',      steps: [{ type: 'ban', map: 'nuke' }] },
+  { id: 'd', title: 'scrim',       opponent: null,       format: 'bo3', notes: '',              steps: [] },
+]
+
+let r = filterVetos(vetos, { format: 'all', opponent: 'all', q: '' })
+assert(r.length === 4, `all → 4 (got ${r.length})`)
+
+r = filterVetos(vetos, { format: 'bo1', opponent: 'all', q: '' })
+assert(r.length === 2 && r.every(v => v.format === 'bo1'), `format=bo1 → 2`)
+
+r = filterVetos(vetos, { format: 'all', opponent: 'NAVI', q: '' })
+assert(r.length === 2 && r.every(v => v.opponent === 'NAVI'), `opponent=NAVI → 2`)
+
+r = filterVetos(vetos, { format: 'all', opponent: 'all', q: 'rematch' })
+assert(r.length === 1 && r[0].id === 'b', `q matches title`)
+
+r = filterVetos(vetos, { format: 'all', opponent: 'all', q: 'aggro' })
+assert(r.length === 1 && r[0].id === 'c', `q matches notes`)
+
+r = filterVetos(vetos, { format: 'all', opponent: 'all', q: 'inferno' })
+assert(r.length === 1 && r[0].id === 'b', `q matches step map`)
+
+r = filterVetos(vetos, { format: 'all', opponent: 'all', q: 'NAVI' })
+assert(r.length === 2, `q matches opponent (case-insensitive expected)`)
+
+// Combined
+r = filterVetos(vetos, { format: 'bo3', opponent: 'NAVI', q: '' })
+assert(r.length === 1 && r[0].id === 'b', `combined bo3 + NAVI`)
+
+out.textContent += `\n${pass} passed, ${fail} failed\n`
+</script>
+</body>
+</html>
