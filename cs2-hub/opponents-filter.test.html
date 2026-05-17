@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h1>opponents-filter tests</h1>
+<pre id="out"></pre>
+<script type="module">
+import { filterOpponents } from './opponents.js'
+
+const out = document.getElementById('out')
+let pass = 0, fail = 0
+function assert(cond, msg) {
+  const line = (cond ? '✓ ' : '✗ ') + msg
+  out.textContent += line + '\n'
+  if (cond) pass++; else fail++
+}
+
+const opps = [
+  { id: 1, name: 'NAVI',     favored_maps: ['mirage', 'inferno'] },
+  { id: 2, name: 'Vitality', favored_maps: ['mirage'] },
+  { id: 3, name: 'FaZe',     favored_maps: [] },
+  { id: 4, name: 'G2',       favored_maps: ['nuke'] },
+]
+const history = {
+  navi:     { matches: 4, mw: 1, ml: 3 },  // strong
+  vitality: { matches: 3, mw: 3, ml: 0 },  // weak
+  faze:     { matches: 1, mw: 1, ml: 0 },  // new
+  // g2: no history → new
+}
+
+// All
+let r = filterOpponents(opps, { map: 'all', threat: 'all', q: '' }, history)
+assert(r.length === 4, `all → 4 (got ${r.length})`)
+
+// Map filter
+r = filterOpponents(opps, { map: 'mirage', threat: 'all', q: '' }, history)
+assert(r.length === 2 && r.every(o => o.favored_maps.includes('mirage')), `map=mirage → 2`)
+
+// Threat filter — strong
+r = filterOpponents(opps, { map: 'all', threat: 'strong', q: '' }, history)
+assert(r.length === 1 && r[0].name === 'NAVI', `threat=strong → NAVI`)
+
+// Threat filter — weak
+r = filterOpponents(opps, { map: 'all', threat: 'weak', q: '' }, history)
+assert(r.length === 1 && r[0].name === 'Vitality', `threat=weak → Vitality`)
+
+// Threat filter — new (both <2 matches AND no history)
+r = filterOpponents(opps, { map: 'all', threat: 'new', q: '' }, history)
+assert(r.length === 2 && r.some(o => o.name === 'FaZe') && r.some(o => o.name === 'G2'), `threat=new → FaZe + G2`)
+
+// Search by name (case-insensitive)
+r = filterOpponents(opps, { map: 'all', threat: 'all', q: 'navi' }, history)
+assert(r.length === 1 && r[0].name === 'NAVI', `q=navi → NAVI`)
+
+// Combined: map + threat
+r = filterOpponents(opps, { map: 'mirage', threat: 'strong', q: '' }, history)
+assert(r.length === 1 && r[0].name === 'NAVI', `combined map+threat → NAVI`)
+
+// Opponent with empty favored_maps excluded from any named map filter
+r = filterOpponents(opps, { map: 'mirage', threat: 'all', q: '' }, history)
+assert(!r.some(o => o.name === 'FaZe'), `FaZe excluded from map filter`)
+
+out.textContent += `\n${pass} passed, ${fail} failed\n`
+</script>
+</body>
+</html>

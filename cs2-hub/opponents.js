@@ -37,6 +37,31 @@ export function deriveOpponentStats(opponents, historyIndex) {
   return { total, withMaps, threats, favored, mapsCovered: mapCounts.size, topMap }
 }
 
+// Returns 'strong' | 'even' | 'weak' | 'new' for an opponent given its history row.
+export function opponentThreatClass(history) {
+  if (!history || history.matches === 0) return 'new'
+  if (history.matches < 2) return 'new'
+  const wp = (history.mw / history.matches) * 100
+  if (wp <= 33) return 'strong'
+  if (wp >= 67) return 'weak'
+  return 'even'
+}
+
+export function filterOpponents(opponents, filter, historyIndex) {
+  const q = (filter.q ?? '').toLowerCase().trim()
+  return opponents.filter(o => {
+    if (filter.map !== 'all') {
+      if (!(o.favored_maps ?? []).includes(filter.map)) return false
+    }
+    if (filter.threat !== 'all') {
+      const h = historyIndex?.[(o.name ?? '').trim().toLowerCase()]
+      if (opponentThreatClass(h) !== filter.threat) return false
+    }
+    if (!q) return true
+    return (o.name ?? '').toLowerCase().includes(q)
+  })
+}
+
 const MAP_IMG = { dust2: 'dust' }
 function mapChip(map) {
   const src = `images/maps/${MAP_IMG[map] ?? map}.png`
