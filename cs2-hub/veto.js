@@ -6,6 +6,40 @@ import { attachTeamAutocomplete, getTeamLogo, teamLogoEl } from './team-autocomp
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
+export function deriveVetoStats(vetos) {
+  const total = vetos.length
+  let bo1 = 0, bo3 = 0
+  const oppCounts = new Map()   // opponent -> { n, firstIdx }
+  const banCounts = new Map()   // map -> { n, firstIdx }
+  for (let i = 0; i < vetos.length; i++) {
+    const v = vetos[i]
+    if (v.format === 'bo1') bo1++
+    else if (v.format === 'bo3') bo3++
+    const opp = v.opponent
+    if (opp != null && opp !== '') {
+      const e = oppCounts.get(opp)
+      if (e) e.n++; else oppCounts.set(opp, { n: 1, firstIdx: i })
+    }
+    for (const step of v.steps ?? []) {
+      if (step.type !== 'ban' || !step.map) continue
+      const e = banCounts.get(step.map)
+      if (e) e.n++; else banCounts.set(step.map, { n: 1, firstIdx: i })
+    }
+  }
+  function pickTop(counts) {
+    let key = null, top = 0, topIdx = Infinity
+    for (const [k, { n, firstIdx }] of counts) {
+      if (n > top || (n === top && firstIdx < topIdx)) { key = k; top = n; topIdx = firstIdx }
+    }
+    return key
+  }
+  return {
+    total, bo1, bo3,
+    topOpponent: pickTop(oppCounts),
+    mostBanned:  pickTop(banCounts),
+  }
+}
+
 await requireAuth()
 renderSidebar('veto')
 

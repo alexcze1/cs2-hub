@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h1>veto-stats tests</h1>
+<pre id="out"></pre>
+<script type="module">
+import { deriveVetoStats } from './veto.js'
+
+const out = document.getElementById('out')
+let pass = 0, fail = 0
+function assert(cond, msg) {
+  const line = (cond ? '✓ ' : '✗ ') + msg
+  out.textContent += line + '\n'
+  if (cond) pass++; else fail++
+}
+
+// Empty
+let s = deriveVetoStats([])
+assert(s.total === 0,             'empty: total = 0')
+assert(s.bo1 === 0 && s.bo3 === 0, 'empty: bo1 = bo3 = 0')
+assert(s.topOpponent === null,    'empty: topOpponent = null')
+assert(s.mostBanned === null,     'empty: mostBanned = null')
+
+// Mixed
+const vetos = [
+  { format: 'bo1', opponent: 'NAVI', steps: [
+    { type: 'ban',  team: 'home', map: 'mirage' },
+    { type: 'ban',  team: 'away', map: 'inferno' },
+    { type: 'ban',  team: 'home', map: 'mirage' }, // duplicate map within same veto still counts
+    { type: 'decider', team: 'left', map: 'ancient' },
+  ]},
+  { format: 'bo3', opponent: 'NAVI', steps: [
+    { type: 'ban',  team: 'home', map: 'nuke' },
+    { type: 'pick', team: 'away', map: 'overpass' },
+  ]},
+  { format: 'bo3', opponent: 'Vitality', steps: [
+    { type: 'ban',  team: 'home', map: 'inferno' },
+    { type: 'ban',  team: 'home', map: 'inferno' },
+  ]},
+]
+s = deriveVetoStats(vetos)
+assert(s.total === 3,                'mixed: total = 3')
+assert(s.bo1 === 1,                  'mixed: bo1 = 1')
+assert(s.bo3 === 2,                  'mixed: bo3 = 2')
+assert(s.topOpponent === 'NAVI',     `mixed: topOpponent = NAVI (got ${s.topOpponent})`)
+// inferno appears 3x in bans (1 + 2), mirage 2x, nuke 1x → mostBanned = inferno
+assert(s.mostBanned === 'inferno',   `mixed: mostBanned = inferno (got ${s.mostBanned})`)
+
+// No bans at all → mostBanned = null
+const noBans = [{ format: 'bo1', opponent: 'X', steps: [
+  { type: 'decider', team: 'left', map: 'mirage' }
+]}]
+s = deriveVetoStats(noBans)
+assert(s.mostBanned === null, `no bans: mostBanned = null (got ${s.mostBanned})`)
+
+// Null/empty opponent excluded from topOpponent
+const noOpp = [
+  { format: 'bo1', opponent: null,  steps: [] },
+  { format: 'bo3', opponent: '',    steps: [] },
+  { format: 'bo1', opponent: 'TYL', steps: [] },
+]
+s = deriveVetoStats(noOpp)
+assert(s.topOpponent === 'TYL', `null/empty opponent skipped (got ${s.topOpponent})`)
+
+out.textContent += `\n${pass} passed, ${fail} failed\n`
+</script>
+</body>
+</html>
