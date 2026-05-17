@@ -1604,6 +1604,7 @@ def compute_team_stats(parsed: dict) -> list[dict]:
                 "first_deaths_t": 0, "first_deaths_ct": 0,
                 "eco_wins": 0, "eco_played": 0,
                 "force_wins": 0, "force_played": 0,
+                "anti_eco_wins": 0, "anti_eco_played": 0,
                 "full_buy_wins": 0, "full_buy_played": 0,
                 "bomb_plants": 0, "bomb_defuses": 0,
                 "ct_round_wins": 0, "ct_rounds_played": 0,
@@ -1692,6 +1693,15 @@ def compute_team_stats(parsed: dict) -> list[dict]:
                 elif buy == "fullbuy":
                     team["full_buy_played"] += 1
                     if winner == side: team["full_buy_wins"] += 1
+
+            # Anti-eco counters: rounds where the OPPONENT was on eco.
+            # Independent of what we bought — measures whether we punished an eco.
+            if b_buy == "eco":
+                a["anti_eco_played"] += 1
+                if winner == a_side: a["anti_eco_wins"] += 1
+            if a_buy == "eco":
+                b["anti_eco_played"] += 1
+                if winner == b_side: b["anti_eco_wins"] += 1
 
         # Bomb plants/defuses
         for ev in bomb:

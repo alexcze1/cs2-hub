@@ -497,3 +497,115 @@ def test_scrub_coaches_no_op_when_no_coaches():
     out = _scrub_coaches(parsed)
     assert out["players_meta"] == {"P1": {"name": "alex"}}
     assert out["frames"][0]["players"][0]["steam_id"] == "P1"
+
+
+def test_compute_team_stats_counts_anti_eco_when_opponent_ecos():
+    """If team B is on eco and team A is on full-buy, team A's anti_eco_played +=1,
+    and if A wins, anti_eco_wins +=1. Symmetric for team B."""
+    # Round 0: pistol-shaped filler so _is_pistol_round() treats round 1 as non-pistol.
+    # Round 1: team A on CT with AK-47s + armor (full-buy), team B on T with pistols
+    # only (eco). A wins → a.anti_eco_played=1, a.anti_eco_wins=1.
+    parsed = {
+        "rounds": [
+            {"start_tick": 0, "end_tick": 90, "freeze_end_tick": 10,
+             "team_a_side": "ct", "winner_side": "ct"},
+            {"start_tick": 100, "end_tick": 1000, "freeze_end_tick": 150,
+             "team_a_side": "ct", "winner_side": "ct"},
+        ],
+        "kills": [],
+        "damage_events": [],
+        "frames": [
+            {"tick": 150, "players": [
+                {"steam_id": "A1", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "A2", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "A3", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "A4", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "A5", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "B1", "team": "t",  "hp": 100, "weapon": "Glock-18", "armor": 0},
+                {"steam_id": "B2", "team": "t",  "hp": 100, "weapon": "Glock-18", "armor": 0},
+                {"steam_id": "B3", "team": "t",  "hp": 100, "weapon": "Glock-18", "armor": 0},
+                {"steam_id": "B4", "team": "t",  "hp": 100, "weapon": "Glock-18", "armor": 0},
+                {"steam_id": "B5", "team": "t",  "hp": 100, "weapon": "Glock-18", "armor": 0},
+            ]},
+        ],
+        "grenades": [],
+        "bomb": [],
+        "players_meta": {},
+        "meta": {"team_a_first_side": "ct"},
+    }
+    rows = compute_team_stats(parsed)
+    a = next(r for r in rows if r["team"] == "a")
+    b = next(r for r in rows if r["team"] == "b")
+    # A is on full-buy, B is on eco. A wins.
+    assert a["anti_eco_played"] == 1, f"expected a.anti_eco_played=1, got {a['anti_eco_played']}"
+    assert a["anti_eco_wins"]   == 1, f"expected a.anti_eco_wins=1, got {a['anti_eco_wins']}"
+    # B was the eco-er, not the anti-eco-er → its anti_eco_* stay 0.
+    assert b["anti_eco_played"] == 0
+    assert b["anti_eco_wins"]   == 0
+
+
+def test_compute_team_stats_anti_eco_not_counted_when_opponent_full_buys():
+    """Symmetric full-buys: neither side anti-ecos (regression vs. mis-counting)."""
+    parsed = {
+        "rounds": [
+            {"start_tick": 0, "end_tick": 90, "freeze_end_tick": 10,
+             "team_a_side": "ct", "winner_side": "ct"},
+            {"start_tick": 100, "end_tick": 1000, "freeze_end_tick": 150,
+             "team_a_side": "ct", "winner_side": "ct"},
+        ],
+        "kills": [], "damage_events": [],
+        "frames": [
+            {"tick": 150, "players": [
+                {"steam_id": "A1", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "A2", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "A3", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "A4", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "A5", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "B1", "team": "t",  "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "B2", "team": "t",  "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "B3", "team": "t",  "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "B4", "team": "t",  "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "B5", "team": "t",  "hp": 100, "weapon": "AK-47", "armor": 100},
+            ]},
+        ],
+        "grenades": [], "bomb": [], "players_meta": {},
+        "meta": {"team_a_first_side": "ct"},
+    }
+    rows = compute_team_stats(parsed)
+    a = next(r for r in rows if r["team"] == "a")
+    b = next(r for r in rows if r["team"] == "b")
+    assert a["anti_eco_played"] == 0
+    assert b["anti_eco_played"] == 0
+
+
+def test_compute_team_stats_anti_eco_loss_counts_played_not_wins():
+    """If opponent ecos but we still lose the round, anti_eco_played +=1 but anti_eco_wins stays 0."""
+    parsed = {
+        "rounds": [
+            {"start_tick": 0, "end_tick": 90, "freeze_end_tick": 10,
+             "team_a_side": "ct", "winner_side": "ct"},
+            {"start_tick": 100, "end_tick": 1000, "freeze_end_tick": 150,
+             "team_a_side": "ct", "winner_side": "t"},  # T (=B) wins despite eco
+        ],
+        "kills": [], "damage_events": [],
+        "frames": [
+            {"tick": 150, "players": [
+                {"steam_id": "A1", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "A2", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "A3", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "A4", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "A5", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "B1", "team": "t",  "hp": 100, "weapon": "Glock-18", "armor": 0},
+                {"steam_id": "B2", "team": "t",  "hp": 100, "weapon": "Glock-18", "armor": 0},
+                {"steam_id": "B3", "team": "t",  "hp": 100, "weapon": "Glock-18", "armor": 0},
+                {"steam_id": "B4", "team": "t",  "hp": 100, "weapon": "Glock-18", "armor": 0},
+                {"steam_id": "B5", "team": "t",  "hp": 100, "weapon": "Glock-18", "armor": 0},
+            ]},
+        ],
+        "grenades": [], "bomb": [], "players_meta": {},
+        "meta": {"team_a_first_side": "ct"},
+    }
+    rows = compute_team_stats(parsed)
+    a = next(r for r in rows if r["team"] == "a")
+    assert a["anti_eco_played"] == 1
+    assert a["anti_eco_wins"]   == 0
