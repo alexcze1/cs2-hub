@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<body>
+<div id="root"></div>
+<script type="module">
+import { renderTeamStats } from './scoreboard-team-stats.js'
+
+function assert(cond, msg) {
+  if (!cond) { console.error('FAIL:', msg); return }
+  console.log('PASS:', msg)
+}
+
+const fullA = {
+  team: 'a',
+  pistol_wins: 2, pistol_played: 2,
+  five_v_four_wins: 3, five_v_four_played: 5,
+  first_kills: 24, first_deaths: 18,
+  eco_wins: 1, eco_played: 4, force_wins: 0, force_played: 2,
+  anti_eco_wins: 3, anti_eco_played: 4,
+  full_buy_wins: 12, full_buy_played: 18,
+  ct_round_wins: 8, ct_rounds_played: 12,
+  t_round_wins: 4,  t_rounds_played: 12,
+}
+const fullB = {
+  team: 'b',
+  pistol_wins: 0, pistol_played: 2,
+  five_v_four_wins: 2, five_v_four_played: 5,
+  first_kills: 18, first_deaths: 24,
+  eco_wins: 0, eco_played: 4, force_wins: 1, force_played: 2,
+  anti_eco_wins: 1, anti_eco_played: 4,
+  full_buy_wins: 6, full_buy_played: 18,
+  ct_round_wins: 8,  ct_rounds_played: 12,
+  t_round_wins:  4,  t_rounds_played: 12,
+}
+
+// ---- Happy path ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  renderTeamStats(root, { teamA: fullA, teamB: fullB, teamAName: 'Forma', teamBName: 'NAVI' })
+  const html = root.innerHTML
+  assert(html.includes('Pistols'),         'tile label Pistols')
+  assert(html.includes('Anti-ecos'),       'tile label Anti-ecos')
+  assert(html.includes('Eco wins'),        'tile label Eco wins')
+  assert(html.includes('Force-buy wins'),  'tile label Force-buy wins')
+  assert(html.includes('Full-buy wins'),   'tile label Full-buy wins')
+  assert(html.includes('First kills'),     'tile label First kills')
+  assert(html.includes('First deaths'),    'tile label First deaths')
+  assert(html.includes('Opening duel'),    'tile label Opening duel W%')
+  assert(html.includes('5v4 conversion'),  'tile label 5v4 conversion')
+  assert(html.includes('CT win rate'),     'tile label CT win rate')
+  assert(html.includes('T win rate'),      'tile label T win rate')
+  assert(html.includes('Forma'),           'team A name header')
+  assert(html.includes('NAVI'),            'team B name header')
+  // 2/2 = 100%
+  assert(html.includes('100%'),            'A pistols 2/2 = 100%')
+  // first kills count
+  assert(html.includes('>24<'),            'A first_kills value rendered')
+}
+
+// ---- Divide-by-zero ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  const zero = { ...fullA, pistol_wins: 0, pistol_played: 0 }
+  renderTeamStats(root, { teamA: zero, teamB: fullB, teamAName: 'A', teamBName: 'B' })
+  // pistols column for A should render —, not NaN or 0/0
+  assert(!root.innerHTML.includes('NaN'), 'no NaN')
+  // Verify the dash appears (we render `—` for divide-by-zero)
+  assert(root.innerHTML.includes('—'),    'em-dash for divide-by-zero')
+}
+
+// ---- One team missing ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  renderTeamStats(root, { teamA: fullA, teamB: null, teamAName: 'Forma', teamBName: 'NAVI' })
+  assert(root.innerHTML.includes('Forma'), 'team A still renders')
+  // Team B column should show — placeholders rather than blank
+  assert(root.innerHTML.includes('—'),     'team B column shows — placeholders')
+}
+
+// ---- Both teams missing ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = 'WAS HERE'
+  renderTeamStats(root, { teamA: null, teamB: null, teamAName: 'A', teamBName: 'B' })
+  assert(root.innerHTML === '',  'both missing → empty render (no-op)')
+}
+
+// ---- Name escaping ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  renderTeamStats(root, { teamA: fullA, teamB: fullB, teamAName: '<script>x</script>', teamBName: 'OK' })
+  assert(!root.innerHTML.includes('<script>x</script>'), 'team name HTML-escaped')
+}
+</script>
+</body>
+</html>
