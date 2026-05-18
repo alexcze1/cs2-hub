@@ -1,7 +1,13 @@
 // cs2-hub/vods-match-reports.js
 //
 // Per-vod match cards. Pure render — orchestrator passes in the linked
-// demo map and the demo_players rows. mapFilter narrows the list.
+// demo, the demo_players rows, and the (our-team-filtered) team-stats rows
+// keyed by demo_id. mapFilter narrows the list.
+//
+// Highlights (up to 3): round diff, dominant side, top performer.
+
+const DOMINANT_SIDE_WR = 0.65
+const MIN_SIDE_ROUNDS = 12
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : '' }
@@ -23,23 +29,61 @@ function deriveResult(vod) {
 }
 
 function findDemoForVod(vod, demoToVod) {
-  // demoToVod is Map<demo_id, vod>. Reverse-scan to find the demo linked to this vod.
   for (const [demoId, v] of demoToVod) {
     if (v?.id === vod.id) return demoId
   }
   return null
 }
 
-function topPerformers(demoId, demoPlayersByDemoId) {
-  if (!demoId) return []
+function topPerformer(demoId, demoPlayersByDemoId) {
+  if (!demoId) return null
   const rows = (demoPlayersByDemoId.get(demoId) ?? []).filter(r => r.side === 'all')
   return [...rows]
     .filter(r => r.rating != null)
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, 3)
+    .sort((a, b) => b.rating - a.rating)[0] ?? null
 }
 
-export function renderMatchReports(root, { vods, demoToVod, demoPlayersByDemoId, mapFilter }) {
+function roundDiff(vod) {
+  let us = 0, them = 0
+  for (const m of vod.maps ?? []) {
+    us += m.score_us ?? 0
+    them += m.score_them ?? 0
+  }
+  return us - them
+}
+
+// "Strong CT side" / "Strong T side" / null. Uses our-team-filtered row.
+function dominantSide(teamStatsRow) {
+  if (!teamStatsRow) return null
+  const ct = teamStatsRow.ct_rounds_played > 0
+    ? teamStatsRow.ct_round_wins / teamStatsRow.ct_rounds_played : null
+  const t = teamStatsRow.t_rounds_played > 0
+    ? teamStatsRow.t_round_wins / teamStatsRow.t_rounds_played : null
+  const eligibleCt = teamStatsRow.ct_rounds_played >= MIN_SIDE_ROUNDS && ct != null && ct >= DOMINANT_SIDE_WR
+  const eligibleT  = teamStatsRow.t_rounds_played  >= MIN_SIDE_ROUNDS && t  != null && t  >= DOMINANT_SIDE_WR
+  if (eligibleCt && eligibleT) return ct >= t ? 'Strong CT side' : 'Strong T side'
+  if (eligibleCt) return 'Strong CT side'
+  if (eligibleT)  return 'Strong T side'
+  return null
+}
+
+function highlights(vod, demoId, demoPlayersByDemoId, teamStatsByDemoId) {
+  const out = []
+  const side = dominantSide(teamStatsByDemoId?.get(demoId))
+  if (side) out.push(side)
+
+  const diff = roundDiff(vod)
+  if (Math.abs(diff) >= 4) {
+    out.push(`${diff > 0 ? '+' : ''}${diff} round diff`)
+  }
+
+  const top = topPerformer(demoId, demoPlayersByDemoId || new Map())
+  if (top) out.push(`${top.name} ${top.rating.toFixed(2)} rating`)
+
+  return out.slice(0, 3)
+}
+
+export function renderMatchReports(root, { vods, demoToVod, demoPlayersByDemoId, teamStatsByDemoId, mapFilter }) {
   const filtered = (vods || []).filter(v => {
     if (!mapFilter) return true
     return (v.maps ?? []).some(m => String(m.map).toLowerCase() === String(mapFilter).toLowerCase())
@@ -74,13 +118,13 @@ export function renderMatchReports(root, { vods, demoToVod, demoPlayersByDemoId,
         : `BO${maps.length}`
 
     const demoId = findDemoForVod(v, demoToVod || new Map())
-    const performers = topPerformers(demoId, demoPlayersByDemoId || new Map())
-    const perfHtml = performers.length
-      ? `<div class="rr-match-performers">
-           <div class="rr-match-performers-label">Top performers</div>
-           ${performers.map(p =>
-             `<span class="rr-match-perf"><b>${esc(p.name)}</b> ${p.rating.toFixed(2)}</span>`
-           ).join(' · ')}
+    const hl = highlights(v, demoId, demoPlayersByDemoId, teamStatsByDemoId)
+    const hlHtml = hl.length
+      ? `<div class="rr-match-highlights">
+           <div class="rr-match-highlights-label">Highlights</div>
+           <ul class="rr-match-highlights-list">
+             ${hl.map(t => `<li>${esc(t)}</li>`).join('')}
+           </ul>
          </div>`
       : ''
 
@@ -101,7 +145,7 @@ export function renderMatchReports(root, { vods, demoToVod, demoPlayersByDemoId,
           </div>
         </div>
         <div class="rr-match-mid">${scoreHtml}</div>
-        <div class="rr-match-right">${perfHtml}</div>
+        <div class="rr-match-right">${hlHtml}</div>
       </a>`
   }).join('')
 

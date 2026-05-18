@@ -3062,89 +3062,36 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
 .vods-filter-pill:hover { color: var(--text); }
 .vods-filter-pill.is-active { background: rgba(0,255,156,0.18); color: var(--accent); }
 
-/* Player Impact */
-.rr-section { margin-bottom: 22px; }
-.rr-player-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 10px;
-}
-@media (max-width: 1100px) { .rr-player-grid { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 700px)  { .rr-player-grid { grid-template-columns: repeat(2, 1fr); } }
-
+/* Player Impact — base card styles. Layout (grid, sizing) lives further
+ * down in the "Player Impact: horizontal scroll" block. */
 .rr-player-card {
-  display: block; text-align: left;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-left: 3px solid var(--rr-role-color, var(--muted));
   border-radius: var(--r-md);
-  padding: 12px 14px;
   cursor: pointer;
   transition: transform 220ms ease, box-shadow 220ms ease;
   color: var(--text);
+  text-align: left;
 }
 .rr-player-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 20px rgba(0,255,156,0.14);
+  box-shadow: 0 0 30px rgba(0,255,170,0.10), inset 0 0 0 1px rgba(0,255,156,0.05);
 }
 .rr-player-card-empty { opacity: 0.55; }
-.rr-player-name { font-weight: 700; font-size: 14px; }
 .rr-player-role {
   font-family: var(--display-font);
-  font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase;
-  color: var(--muted); margin: 2px 0 8px;
+  text-transform: uppercase;
+  color: var(--muted);
 }
-.rr-player-rating {
-  font-family: var(--display-font);
-  font-size: 24px; font-weight: 800;
-}
+.rr-player-rating { font-family: var(--display-font); font-weight: 800; }
 .rr-trend { font-size: 14px; margin-left: 4px; }
 .rr-trend-up   { color: var(--accent); }
 .rr-trend-down { color: var(--danger); }
 .rr-trend-flat { color: var(--muted); }
-.rr-player-supports {
-  display: flex; flex-direction: column; gap: 4px;
-  margin-top: 8px;
-  font-size: 11px;
-}
-.rr-support-k { color: var(--muted); }
-.rr-support-v { color: var(--text); font-weight: 600; margin-left: 4px; }
-.rr-impact-bar { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+.rr-impact-bar { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
 .rr-impact-fill { height: 100%; background: var(--accent); }
-.rr-player-empty-msg { font-size: 11px; color: var(--muted); margin-top: 6px; }
-
-/* Map Pool */
-.rr-map-table {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-md);
-  overflow: hidden;
-}
-.rr-map-row {
-  display: grid;
-  grid-template-columns: 1.4fr 0.8fr 0.9fr 0.7fr 0.8fr;
-  gap: 10px;
-  padding: 11px 14px;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-  font-size: 13px;
-  align-items: center;
-  cursor: pointer;
-  transition: background 120ms;
-}
-.rr-map-row:last-child { border-bottom: none; }
-.rr-map-row:hover { background: rgba(255,255,255,0.03); }
-.rr-map-row.is-active { background: rgba(0,255,156,0.08); }
-.rr-map-row-head {
-  cursor: default;
-  font-family: var(--display-font);
-  font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--muted);
-  background: rgba(255,255,255,0.02);
-}
-.rr-map-row-head:hover { background: rgba(255,255,255,0.02); }
-.rr-conf-high { color: var(--accent); font-weight: 700; }
-.rr-conf-med  { color: var(--warning); font-weight: 700; }
-.rr-conf-low  { color: var(--danger); font-weight: 700; }
+.rr-player-empty-msg { font-size: 11px; color: var(--muted); }
 
 /* Match Reports */
 .rr-match-list { display: flex; flex-direction: column; gap: 10px; }
@@ -3183,13 +3130,6 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
 .rr-match-bo-row { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
 .rr-match-bo-map { color: var(--muted); }
 .rr-match-bo-score { font-family: var(--display-font); font-weight: 700; }
-.rr-match-performers { font-size: 11px; color: var(--text-variant); }
-.rr-match-performers-label {
-  font-family: var(--display-font);
-  font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase;
-  color: var(--muted); margin-bottom: 4px;
-}
-.rr-match-perf b { color: var(--text); font-weight: 700; }
 .rr-pracc-badge {
   background: rgba(58,160,255,0.15);
   color: var(--special);
@@ -4534,18 +4474,327 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
   padding-right: 24px;
 }
 
-/* ── Results & Review: team stats section ────────────────── */
-.rr-team-stats { margin-bottom: 32px; }
-.rr-team-stats-grid {
+/* ── Results & Review: Key Tactical Stats (2x3 priority grid) ───── */
+.rr-key-tactical { margin-bottom: 8px; }
+.rr-key-tactical-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 }
-@media (max-width: 900px) {
-  .rr-team-stats-grid { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 900px) { .rr-key-tactical-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .rr-key-tactical-grid { grid-template-columns: 1fr; } }
+
+.rr-kt-tile {
+  position: relative;
+  height: 110px;
+  padding: 14px 16px;
+  background: linear-gradient(180deg, rgba(8,16,30,0.95), rgba(5,10,20,0.95));
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
 }
-@media (max-width: 600px) {
-  .rr-team-stats-grid { grid-template-columns: 1fr; }
+.rr-kt-tile:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0,255,156,0.18);
+  box-shadow: 0 0 30px rgba(0,255,170,0.08);
 }
-.rr-team-stat .stat-label { display: flex; align-items: center; gap: 8px; }
-.rr-team-stat .stat-value { font-variant-numeric: tabular-nums; }
+.rr-kt-label {
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: var(--display-font);
+  font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--muted);
+}
+.rr-kt-trend {
+  font-family: var(--display-font);
+  font-size: 10px; letter-spacing: 0.04em;
+  font-weight: 700;
+  padding: 2px 6px; border-radius: 4px;
+  text-transform: none;
+}
+.rr-kt-trend.rr-trend-up   { background: rgba(0,255,156,0.12); color: var(--accent); }
+.rr-kt-trend.rr-trend-down { background: rgba(255,77,77,0.12); color: var(--danger); }
+.rr-kt-trend.rr-trend-flat { background: rgba(255,255,255,0.06); color: var(--muted); }
+.rr-kt-value {
+  font-family: var(--display-font);
+  font-size: 30px; font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  display: flex; align-items: baseline; gap: 10px;
+}
+.rr-kt-sub {
+  font-family: var(--display-font);
+  font-size: 12px; font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+.rr-kt-bar {
+  height: 4px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.rr-kt-bar span {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, var(--accent-deep), var(--accent));
+  border-radius: 2px;
+  transition: width 240ms ease;
+}
+.rr-kt-bar-muted span { background: rgba(255,255,255,0.10); }
+
+/* ── Advanced Team Analytics (collapsible) ──────────────────── */
+.rr-adv {
+  background: rgba(15,25,38,0.5);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.rr-adv-header {
+  width: 100%;
+  display: flex; align-items: center; gap: 10px;
+  background: transparent; border: none;
+  padding: 14px 18px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+}
+.rr-adv-header:hover { background: rgba(255,255,255,0.02); }
+.rr-adv-chevron {
+  display: inline-block;
+  font-size: 13px;
+  color: var(--muted);
+  transition: transform 200ms ease;
+}
+.rr-adv.is-open .rr-adv-chevron { transform: rotate(180deg); color: var(--accent); }
+.rr-adv-title {
+  font-family: var(--display-font);
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--text);
+  font-weight: 700;
+}
+.rr-adv-body {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 280ms ease, opacity 200ms ease, padding 200ms ease;
+  padding: 0 18px;
+}
+.rr-adv.is-open .rr-adv-body {
+  max-height: 800px;
+  opacity: 1;
+  padding: 4px 18px 20px;
+}
+.rr-adv-tabs {
+  display: flex; gap: 4px;
+  background: rgba(255,255,255,0.03);
+  padding: 4px;
+  border-radius: 7px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.rr-adv-tab {
+  border: none; background: transparent; cursor: pointer;
+  color: var(--muted); padding: 6px 14px; font-size: 12px;
+  font-family: var(--display-font);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border-radius: 5px;
+  transition: background 0.12s, color 0.12s;
+}
+.rr-adv-tab:hover { color: var(--text); }
+.rr-adv-tab.is-active { background: rgba(0,255,156,0.18); color: var(--accent); }
+.rr-adv-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+@media (min-width: 900px) { .rr-adv-grid { grid-template-columns: repeat(4, 1fr); } }
+.rr-adv-tile {
+  background: rgba(8,16,30,0.6);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.rr-adv-tile-label {
+  font-family: var(--display-font);
+  font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--muted);
+}
+.rr-adv-tile-value {
+  font-family: var(--display-font);
+  font-size: 22px; font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-top: 6px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.rr-adv-tile-sub {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Section spacing increase (per spec: 48px between sections) ── */
+.rr-section { margin-bottom: 40px; }
+.rr-section:empty { margin-bottom: 0; }
+
+/* ── Player Impact: horizontal scroll, 320px cards ────────────── */
+.rr-player-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(300px, 1fr));
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scroll-snap-type: x mandatory;
+}
+@media (max-width: 1400px) { .rr-player-grid { grid-template-columns: repeat(5, 300px); } }
+@media (max-width: 700px)  { .rr-player-grid { grid-template-columns: repeat(5, 280px); } }
+.rr-player-grid::-webkit-scrollbar { height: 8px; }
+.rr-player-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+.rr-player-grid::-webkit-scrollbar-track { background: transparent; }
+
+.rr-player-card {
+  scroll-snap-align: start;
+  min-height: 150px;
+  padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.rr-player-card-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px;
+}
+.rr-player-id { display: flex; flex-direction: column; gap: 2px; }
+.rr-player-name { font-weight: 700; font-size: 15px; color: var(--text); }
+.rr-player-role { font-size: 9px; letter-spacing: 0.18em; }
+.rr-player-rating { font-size: 28px; line-height: 1; }
+.rr-player-supports {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: auto;
+}
+.rr-player-supports .rr-support {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 6px 8px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 6px;
+}
+.rr-player-supports .rr-support-k {
+  font-family: var(--display-font);
+  font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--muted);
+  margin: 0;
+}
+.rr-player-supports .rr-support-v {
+  font-family: var(--display-font);
+  font-size: 14px; font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Map Pool: cards (replaces table) ───────────────────────── */
+.rr-map-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+@media (max-width: 1100px) { .rr-map-cards { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px)  { .rr-map-cards { grid-template-columns: 1fr; } }
+
+.rr-map-card {
+  display: flex; flex-direction: column; gap: 8px;
+  background: linear-gradient(180deg, rgba(8,16,30,0.95), rgba(5,10,20,0.95));
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 14px 16px;
+  text-align: left;
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+}
+.rr-map-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0,255,156,0.18);
+  box-shadow: 0 0 30px rgba(0,255,170,0.08);
+}
+.rr-map-card.is-active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent) inset, 0 0 24px rgba(0,255,156,0.18);
+}
+.rr-map-card-head {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.rr-map-card-name {
+  font-family: var(--display-font);
+  font-size: 14px; font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.rr-map-card-trend { font-size: 14px; }
+.rr-map-card-wr {
+  font-family: var(--display-font);
+  font-size: 30px; font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.rr-map-card-meta {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; color: var(--muted);
+}
+.rr-map-dot { opacity: 0.5; }
+.rr-map-card-conf {
+  font-family: var(--display-font);
+  font-size: 10px; letter-spacing: 0.14em;
+  padding: 2px 6px; border-radius: 4px;
+  background: rgba(255,255,255,0.04);
+}
+.rr-map-card-conf.rr-conf-high { color: var(--accent);  background: rgba(0,255,156,0.10); }
+.rr-map-card-conf.rr-conf-med  { color: var(--warning); background: rgba(255,179,71,0.12); }
+.rr-map-card-conf.rr-conf-low  { color: var(--danger);  background: rgba(255,77,77,0.12); }
+.rr-map-card-bar {
+  height: 4px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.rr-map-card-bar span { display: block; height: 100%; border-radius: 2px; }
+.rr-map-bar-good  { background: linear-gradient(90deg, var(--accent-deep), var(--accent)); }
+.rr-map-bar-mid   { background: linear-gradient(90deg, #8a6b1b, var(--warning)); }
+.rr-map-bar-bad   { background: linear-gradient(90deg, #6b1313, var(--danger)); }
+.rr-map-bar-empty { background: rgba(255,255,255,0.06); }
+
+/* ── Match Highlights bullet list ───────────────────────────── */
+.rr-match-highlights { font-size: 12px; color: var(--text-variant); }
+.rr-match-highlights-label {
+  font-family: var(--display-font);
+  font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 6px;
+}
+.rr-match-highlights-list {
+  list-style: none;
+  margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.rr-match-highlights-list li {
+  position: relative;
+  padding-left: 12px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+}
+.rr-match-highlights-list li::before {
+  content: '•';
+  position: absolute; left: 0;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* Match card spacing bump (per spec: 24-32px between cards on roomy lists) */
+.rr-match-list { gap: 14px; }

@@ -10,7 +10,7 @@ function assert(cond, msg) {
   console.log('PASS:', msg)
 }
 
-// ---- BO1: single map, score rendered as score_us — score_them ----
+// ---- BO1: single map ----
 {
   const root = document.getElementById('root')
   root.innerHTML = ''
@@ -19,7 +19,7 @@ function assert(cond, msg) {
     match_type: 'scrim', match_date: '2026-05-13',
     maps: [{ map: 'mirage', score_us: 16, score_them: 8 }],
   }]
-  renderMatchReports(root, { vods, demoToVod: new Map(), demoPlayersByDemoId: new Map(), mapFilter: null })
+  renderMatchReports(root, { vods, demoToVod: new Map(), demoPlayersByDemoId: new Map(), teamStatsByDemoId: new Map(), mapFilter: null })
 
   const card = root.querySelector('.rr-match-card')
   assert(card !== null, 'card rendered')
@@ -41,52 +41,69 @@ function assert(cond, msg) {
       { map: 'nuke',   score_us: 11, score_them: 16 },
     ],
   }]
-  renderMatchReports(root, { vods, demoToVod: new Map(), demoPlayersByDemoId: new Map(), mapFilter: null })
+  renderMatchReports(root, { vods, demoToVod: new Map(), demoPlayersByDemoId: new Map(), teamStatsByDemoId: new Map(), mapFilter: null })
   const rows = root.querySelectorAll('.rr-match-bo-row')
   assert(rows.length === 3, 'BO3 → 3 score rows')
 }
 
-// ---- Top 3 performers from linked demo ----
+// ---- Top performer + round-diff highlights from linked demo ----
 {
   const root = document.getElementById('root')
   root.innerHTML = ''
   const vods = [{
     id: 'v3', opponent: 'TEAM', result: 'win',
     match_type: 'scrim', match_date: '2026-05-10',
-    maps: [{ map: 'mirage', score_us: 16, score_them: 5 }],
+    maps: [{ map: 'mirage', score_us: 16, score_them: 5 }],  // +11 diff
   }]
-  const demo = { id: 'd1', map: 'mirage' }
   const demoToVod = new Map([['d1', vods[0]]])
   const demoPlayersByDemoId = new Map([['d1', [
     { steam_id: 'A', name: 'jXy',    rating: 1.22, rounds_played: 21, side: 'all' },
     { steam_id: 'B', name: 'Libra',  rating: 1.18, rounds_played: 21, side: 'all' },
-    { steam_id: 'C', name: 'noctis', rating: 1.09, rounds_played: 21, side: 'all' },
-    { steam_id: 'D', name: 'echo',   rating: 0.92, rounds_played: 21, side: 'all' },
     { steam_id: 'E', name: 'foo',    rating: 1.30, rounds_played: 21, side: 'ct' }, // excluded: side != 'all'
   ]]])
-  renderMatchReports(root, { vods, demoToVod, demoPlayersByDemoId, mapFilter: null })
+  renderMatchReports(root, { vods, demoToVod, demoPlayersByDemoId, teamStatsByDemoId: new Map(), mapFilter: null })
 
-  const perf = root.querySelector('.rr-match-performers').textContent
-  assert(perf.includes('jXy'),    'jXy listed')
-  assert(perf.includes('Libra'),  'Libra listed')
-  assert(perf.includes('noctis'), 'noctis listed')
-  assert(!perf.includes('echo'),  'echo (4th) not listed')
-  assert(!perf.includes('foo'),   'foo (side=ct) not listed')
+  const hl = root.querySelector('.rr-match-highlights').textContent
+  assert(hl.includes('+11 round diff'), '+11 round diff highlight rendered')
+  assert(hl.includes('jXy'),            'top performer (jXy) listed')
+  assert(hl.includes('1.22'),           'top performer rating shown')
+  assert(!hl.includes('foo'),           'side=ct row excluded from top performer')
 }
 
-// ---- Missing demo → no performers section ----
+// ---- Round-diff threshold (|diff| < 4 → no diff bullet) ----
 {
   const root = document.getElementById('root')
   root.innerHTML = ''
   const vods = [{
-    id: 'v4', opponent: 'X', result: 'loss',
-    match_type: 'pug', match_date: '2026-05-09',
-    maps: [{ map: 'inferno', score_us: 4, score_them: 13 }],
+    id: 'v', opponent: 'T', result: 'win',
+    match_type: 'scrim', match_date: '2026-05-10',
+    maps: [{ map: 'mirage', score_us: 13, score_them: 11 }],  // diff +2 → no bullet
   }]
-  renderMatchReports(root, { vods, demoToVod: new Map(), demoPlayersByDemoId: new Map(), mapFilter: null })
-  const card = root.querySelector('.rr-match-card')
-  assert(card !== null, 'card still renders without demo')
-  assert(card.querySelector('.rr-match-performers') === null, 'no performers section')
+  renderMatchReports(root, { vods, demoToVod: new Map(), demoPlayersByDemoId: new Map(), teamStatsByDemoId: new Map(), mapFilter: null })
+  const hl = root.querySelector('.rr-match-highlights')
+  // No demo means no top-performer; no |diff|>=4 means no diff. Whole highlights block absent.
+  assert(hl === null, 'no highlights block when no eligible bullets')
+}
+
+// ---- Dominant side highlight from team-stats ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  const vods = [{
+    id: 'v', opponent: 'T', result: 'win',
+    match_type: 'scrim', match_date: '2026-05-10',
+    maps: [{ map: 'mirage', score_us: 13, score_them: 5 }],  // +8 diff
+  }]
+  const demoToVod = new Map([['d1', vods[0]]])
+  // CT 10/12 = 83% (>= 65%, played >= 12)  → Strong CT side
+  const teamStatsByDemoId = new Map([['d1', {
+    ct_round_wins: 10, ct_rounds_played: 12,
+    t_round_wins: 3,  t_rounds_played: 6,
+  }]])
+  renderMatchReports(root, { vods, demoToVod, demoPlayersByDemoId: new Map(), teamStatsByDemoId, mapFilter: null })
+  const hl = root.querySelector('.rr-match-highlights').textContent
+  assert(hl.includes('Strong CT side'), 'CT WR 83% with 12 rounds → "Strong CT side"')
+  assert(hl.includes('+8 round diff'),  '+8 round diff still shown')
 }
 
 // ---- mapFilter narrows the list ----
@@ -101,11 +118,10 @@ function assert(cond, msg) {
     { id: 'c', opponent: 'Z', result: 'win',  match_type: 'scrim', match_date: '2026-05-08',
       maps: [
         { map: 'mirage', score_us: 16, score_them: 10 },
-        { map: 'anubis', score_us: 8, score_them: 16 },
-        { map: 'mirage', score_us: 16, score_them: 12 },
+        { map: 'anubis', score_us: 8,  score_them: 16 },
       ] },
   ]
-  renderMatchReports(root, { vods, demoToVod: new Map(), demoPlayersByDemoId: new Map(), mapFilter: 'mirage' })
+  renderMatchReports(root, { vods, demoToVod: new Map(), demoPlayersByDemoId: new Map(), teamStatsByDemoId: new Map(), mapFilter: 'mirage' })
   const cards = root.querySelectorAll('.rr-match-card')
   assert(cards.length === 2, 'mapFilter=mirage → 2 cards (a, c)')
 }
@@ -120,7 +136,7 @@ function assert(cond, msg) {
     external_uid: 'pracc-123',
     maps: [{ map: 'mirage', score_us: 13, score_them: 8 }],
   }]
-  renderMatchReports(root, { vods, demoToVod: new Map(), demoPlayersByDemoId: new Map(), mapFilter: null })
+  renderMatchReports(root, { vods, demoToVod: new Map(), demoPlayersByDemoId: new Map(), teamStatsByDemoId: new Map(), mapFilter: null })
   assert(root.querySelector('.rr-pracc-badge') !== null, 'PRACC badge rendered when external_uid set')
 }
 
@@ -128,7 +144,7 @@ function assert(cond, msg) {
 {
   const root = document.getElementById('root')
   root.innerHTML = ''
-  renderMatchReports(root, { vods: [], demoToVod: new Map(), demoPlayersByDemoId: new Map(), mapFilter: 'mirage' })
+  renderMatchReports(root, { vods: [], demoToVod: new Map(), demoPlayersByDemoId: new Map(), teamStatsByDemoId: new Map(), mapFilter: 'mirage' })
 
   const clearBtn = root.querySelector('.rr-clear-map')
   assert(clearBtn !== null, 'clear button rendered in empty state when mapFilter active')

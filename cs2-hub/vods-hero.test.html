@@ -3,7 +3,7 @@
 <body>
 <div id="root"></div>
 <script type="module">
-import { computeHeroStats, renderHero } from './vods-hero.js'
+import { computeHeroStats, renderHero, pickWeakestArea } from './vods-hero.js'
 
 function assert(cond, msg) {
   if (!cond) { console.error('FAIL:', msg); return }
@@ -99,6 +99,75 @@ function assert(cond, msg) {
   assert(root.querySelector('.rr-hero-empty'), 'empty hero has empty marker')
   assert(root.querySelector('.rr-add-match'), 'Add Match CTA still present in empty state')
   assert(root.querySelector('.rr-hero-record') === null, 'no record numerals in empty state')
+}
+
+// ---- pickWeakestArea: returns lowest WR area meeting sample threshold ----
+{
+  // pistols 4/10 = 40%, ct 50/80 = 62%, t 30/70 = 43%
+  const agg = {
+    pistols:   { wins: 4,  played: 10 },
+    eco:       { wins: 0,  played: 0 },     // skipped: below sample
+    anti_ecos: { wins: 5,  played: 6 },     // 83%
+    full_buy:  { wins: 10, played: 20 },    // 50%
+    ct:        { wins: 50, played: 80 },    // 62%
+    t:         { wins: 30, played: 70 },    // 43%
+  }
+  const w = pickWeakestArea(agg)
+  assert(w && w.label === 'Pistol rounds', 'weakest = Pistol rounds (40%)')
+  assert(w.wr === 40, 'pistols WR = 40%')
+}
+
+// ---- pickWeakestArea: filters out under-sampled areas ----
+{
+  // Pistol with only 4 played → ineligible. T with 24 rounds → eligible.
+  const agg = {
+    pistols:   { wins: 0,  played: 4 },     // skipped
+    eco:       { wins: 0,  played: 0 },
+    anti_ecos: { wins: 0,  played: 0 },
+    full_buy:  { wins: 0,  played: 0 },
+    ct:        { wins: 14, played: 24 },    // 58%
+    t:         { wins: 10, played: 24 },    // 42%
+  }
+  const w = pickWeakestArea(agg)
+  assert(w && w.label === 'T side', 'T side wins (Pistol under-sampled)')
+}
+
+// ---- pickWeakestArea: returns null when nothing eligible ----
+{
+  const agg = {
+    pistols:   { wins: 0, played: 0 },
+    eco:       { wins: 0, played: 0 },
+    anti_ecos: { wins: 0, played: 0 },
+    full_buy:  { wins: 0, played: 0 },
+    ct:        { wins: 0, played: 0 },
+    t:         { wins: 0, played: 0 },
+  }
+  assert(pickWeakestArea(agg) === null, 'no samples → null')
+  assert(pickWeakestArea(null) === null, 'null agg → null')
+}
+
+// ---- renderHero with teamStatsRows shows Weak callout ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  const vods = [
+    { id: 'a', result: 'win', match_date: '2026-05-10', maps: [{ map: 'mirage', score_us: 13, score_them: 8 }] },
+  ]
+  const teamStatsRows = [{
+    pistol_wins: 1, pistol_played: 10,       // 10% pistol → weakest
+    eco_wins: 0, eco_played: 0,
+    anti_eco_wins: 5, anti_eco_played: 6,
+    force_wins: 0, force_played: 0,
+    full_buy_wins: 10, full_buy_played: 20,
+    first_kills: 10, first_deaths: 8,
+    five_v_four_wins: 0, five_v_four_played: 0,
+    ct_round_wins: 50, ct_rounds_played: 80,
+    t_round_wins: 40, t_rounds_played: 70,
+  }]
+  renderHero(root, { vods, filterSlotId: 'rr-filter-slot', teamStatsRows })
+  const subgrid = root.querySelector('.rr-hero-subgrid').textContent
+  assert(subgrid.includes('Pistol rounds'), 'Weak callout names Pistol rounds')
+  assert(subgrid.includes('10%'),           'Weak callout shows 10% WR')
 }
 
 console.log('all done')

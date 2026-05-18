@@ -23,7 +23,7 @@ function rowsForOurTeam({ pistol_wins=0, pistol_played=0, first_kills=0, first_d
     ct_round_wins, ct_rounds_played, t_round_wins, t_rounds_played }
 }
 
-// ---- Happy path: current rows only, no deltas ----
+// ---- 6-tile key tactical grid: only the priority tiles render ----
 {
   const root = document.getElementById('root')
   root.innerHTML = ''
@@ -36,17 +36,27 @@ function rowsForOurTeam({ pistol_wins=0, pistol_played=0, first_kills=0, first_d
   })]
   const ourTeamByDemoId = new Map([['d1', 'a']])
   renderTeamStats(root, { rowsCurrent, rowsPrior: [], ourTeamByDemoId })
+
+  const tiles = root.querySelectorAll('.rr-kt-tile')
+  assert(tiles.length === 6, '6 priority tiles rendered (was 11)')
+
   const html = root.innerHTML
-  assert(html.includes('Pistols'),         'tile Pistols renders')
-  assert(html.includes('Anti-ecos'),       'tile Anti-ecos renders')
-  assert(html.includes('60%'),             'pistols 6/10 → 60%')
-  assert(html.includes('75%'),             'anti-eco 6/8 → 75%')
-  // count tiles
-  assert(html.includes('>50<'),            'first_kills count')
-  assert(html.includes('>40<'),            'first_deaths count')
-  // no delta chips when prior is empty
-  assert(!html.includes('rr-trend-up') && !html.includes('rr-trend-down'),
-    'no delta chips when prior empty')
+  assert(html.includes('Pistol Success'),  'tile Pistol Success')
+  assert(html.includes('Opening Duels'),   'tile Opening Duels')
+  assert(html.includes('5v4 Conversion'),  'tile 5v4 Conversion')
+  assert(html.includes('CT Win Rate'),     'tile CT Win Rate')
+  assert(html.includes('T Win Rate'),      'tile T Win Rate')
+  assert(html.includes('Force-Buy Wins'),  'tile Force-Buy Wins')
+
+  // Secondary stats are NOT in the priority grid (they live in Advanced).
+  assert(!html.includes('Anti-ecos'), 'Anti-ecos NOT in key tactical grid')
+  assert(!html.includes('First kills') && !html.includes('First deaths'),
+    'first kills/deaths NOT in key tactical grid')
+
+  // 6/10 pistols → 60%
+  assert(html.includes('60%'), 'pistols 60% renders')
+  // opening duel 50/(50+40) = 55%
+  assert(html.includes('56%') || html.includes('55%'), 'opening duel rounded ~56%')
 }
 
 // ---- Empty current → renders nothing ----
@@ -63,30 +73,29 @@ function rowsForOurTeam({ pistol_wins=0, pistol_played=0, first_kills=0, first_d
   root.innerHTML = ''
   const rowsCurrent = [rowsForOurTeam({
     pistol_wins: 6, pistol_played: 10, first_kills: 50, first_deaths: 40,
-    five_v_four_wins: 8, five_v_four_played: 10, eco_wins: 2, eco_played: 8,
-    force_wins: 1, force_played: 3, anti_eco_wins: 6, anti_eco_played: 8,
-    full_buy_wins: 30, full_buy_played: 50,
+    five_v_four_wins: 8, five_v_four_played: 10,
+    eco_wins: 2, eco_played: 8, force_wins: 1, force_played: 3,
+    anti_eco_wins: 6, anti_eco_played: 8, full_buy_wins: 30, full_buy_played: 50,
     ct_round_wins: 40, ct_rounds_played: 80, t_round_wins: 35, t_rounds_played: 70,
   })]
   const rowsPrior = [rowsForOurTeam({
     demo_id: 'd2',
     pistol_wins: 5, pistol_played: 10, first_kills: 45, first_deaths: 45,
-    five_v_four_wins: 7, five_v_four_played: 10, eco_wins: 2, eco_played: 8,
-    force_wins: 1, force_played: 3, anti_eco_wins: 5, anti_eco_played: 8,
-    full_buy_wins: 25, full_buy_played: 50,
+    five_v_four_wins: 7, five_v_four_played: 10,
+    eco_wins: 2, eco_played: 8, force_wins: 1, force_played: 3,
+    anti_eco_wins: 5, anti_eco_played: 8, full_buy_wins: 25, full_buy_played: 50,
     ct_round_wins: 36, ct_rounds_played: 80, t_round_wins: 30, t_rounds_played: 70,
   })]
   const ourTeamByDemoId = new Map([['d1', 'a'], ['d2', 'a']])
   renderTeamStats(root, { rowsCurrent, rowsPrior, ourTeamByDemoId })
   const html = root.innerHTML
-  // pistols delta = +10% (0.6 - 0.5)
   assert(html.includes('rr-trend-up'),  'up trend chip rendered when current > prior')
-  // count tiles still have no delta visual
-  // (we can't easily inspect per-tile here, but verify the chip total is ≤ 8 percentage tiles)
-  const upCount = (html.match(/rr-trend-up/g)   || []).length
+  // Force tile has no delta (no pct → no trend chip).
+  // Chip count should be ≤5 (5 pct tiles + 1 wl tile = 5 chips max).
+  const upCount = (html.match(/rr-trend-up/g) || []).length
   const downCount = (html.match(/rr-trend-down/g) || []).length
-  assert(upCount + downCount >= 1 && upCount + downCount <= 8,
-    `delta chip count in [1,8], got ${upCount + downCount}`)
+  assert(upCount + downCount >= 1 && upCount + downCount <= 5,
+    `delta chip count in [1,5], got ${upCount + downCount}`)
 }
 
 // ---- Demo with no ourTeamByDemoId entry is excluded ----
@@ -94,38 +103,54 @@ function rowsForOurTeam({ pistol_wins=0, pistol_played=0, first_kills=0, first_d
   const root = document.getElementById('root')
   root.innerHTML = ''
   const rowsCurrent = [
-    rowsForOurTeam({ demo_id: 'd1', pistol_wins: 2, pistol_played: 2 }),  // ours
+    rowsForOurTeam({ demo_id: 'd1', pistol_wins: 2, pistol_played: 2 }),
     { demo_id: 'd-orphan', team: 'a', pistol_wins: 99, pistol_played: 99,
       first_kills: 0, first_deaths: 0,
       five_v_four_wins: 0, five_v_four_played: 0, eco_wins: 0, eco_played: 0,
       force_wins: 0, force_played: 0, anti_eco_wins: 0, anti_eco_played: 0,
       full_buy_wins: 0, full_buy_played: 0,
-      ct_round_wins: 0, ct_rounds_played: 0, t_round_wins: 0, t_rounds_played: 0 },  // no map entry
+      ct_round_wins: 0, ct_rounds_played: 0, t_round_wins: 0, t_rounds_played: 0 },
   ]
   const ourTeamByDemoId = new Map([['d1', 'a']])
   renderTeamStats(root, { rowsCurrent, rowsPrior: [], ourTeamByDemoId })
-  // Only the d1 row should contribute → 2/2 pistols = 100%, not 101/101.
-  assert(root.innerHTML.includes('100%'),  'orphan demo (no ourTeamByDemoId entry) excluded')
-  assert(!root.innerHTML.includes('101'),  'orphan demo data not summed in')
+  assert(root.innerHTML.includes('100%'), 'orphan demo excluded (only d1 → 2/2 = 100%)')
+  assert(!root.innerHTML.includes('101'), 'orphan demo data not summed in')
 }
 
-// ---- Wrong-team row excluded (their team='a' but we're 'b' for that demo) ----
+// ---- Wrong-team row excluded ----
 {
   const root = document.getElementById('root')
   root.innerHTML = ''
   const rowsCurrent = [
-    rowsForOurTeam({ demo_id: 'd1', pistol_wins: 2, pistol_played: 2 }),       // ours team=a
+    rowsForOurTeam({ demo_id: 'd1', pistol_wins: 2, pistol_played: 2 }),
     { demo_id: 'd2', team: 'a', pistol_wins: 0, pistol_played: 2, first_kills: 0, first_deaths: 0,
       five_v_four_wins: 0, five_v_four_played: 0, eco_wins: 0, eco_played: 0,
       force_wins: 0, force_played: 0, anti_eco_wins: 0, anti_eco_played: 0,
       full_buy_wins: 0, full_buy_played: 0,
-      ct_round_wins: 0, ct_rounds_played: 0, t_round_wins: 0, t_rounds_played: 0 },  // not ours (we're 'b' on d2)
+      ct_round_wins: 0, ct_rounds_played: 0, t_round_wins: 0, t_rounds_played: 0 },
   ]
   const ourTeamByDemoId = new Map([['d1', 'a'], ['d2', 'b']])
   renderTeamStats(root, { rowsCurrent, rowsPrior: [], ourTeamByDemoId })
-  // Only d1's row contributes → 2/2 = 100%
-  assert(root.innerHTML.includes('100%'),  'wrong-side row excluded')
+  assert(root.innerHTML.includes('100%'), 'wrong-side row excluded')
 }
+
+// ---- Force tile renders W–L without a percentage ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  const rowsCurrent = [rowsForOurTeam({
+    pistol_wins: 2, pistol_played: 4,
+    force_wins: 3, force_played: 5,
+    first_kills: 10, first_deaths: 10,
+    five_v_four_wins: 0, five_v_four_played: 0,
+    ct_round_wins: 6, ct_rounds_played: 12, t_round_wins: 5, t_rounds_played: 12,
+  })]
+  renderTeamStats(root, { rowsCurrent, rowsPrior: [], ourTeamByDemoId: new Map([['d1', 'a']]) })
+  const html = root.innerHTML
+  assert(html.includes('3–2'), 'force tile renders 3–2 (wins–losses)')
+}
+
+console.log('all done')
 </script>
 </body>
 </html>

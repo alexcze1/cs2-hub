@@ -37,21 +37,16 @@ function rowsBySteamId(rows) {
   return m
 }
 
-// Two supporting metrics per role.
-function supportingMetrics(role, agg) {
+// Three fixed supporting metrics for every player. Role-specific data still
+// surfaces via the role color accent + the role label.
+function supportingMetrics(agg) {
   const openTotal = (agg.opening_kills || 0) + (agg.opening_deaths || 0)
   const openPct = openTotal > 0 ? agg.opening_kills / openTotal : null
-  const clutchTotal = (agg.clutches_won || 0) + (agg.clutches_lost || 0)
-  const clutchPct = clutchTotal > 0 ? agg.clutches_won / clutchTotal : null
-
-  switch (role) {
-    case 'IGL':     return [['KAST', fmtPct(agg.kast_pct)], ['Util/r', fmt(agg.utility_dmg_per_round, 1)]]
-    case 'Entry':   return [['Open %', fmtPct(openPct)], ['K/D', fmtKD(agg.kd)]]
-    case 'AWPer':   return [['Open %', fmtPct(openPct)], ['KAST', fmtPct(agg.kast_pct)]]
-    case 'Support': return [['Util/r', fmt(agg.utility_dmg_per_round, 1)], ['KAST', fmtPct(agg.kast_pct)]]
-    case 'Lurker':  return [['Clutch %', fmtPct(clutchPct)], ['K/D', fmtKD(agg.kd)]]
-    default:        return [['K/D', fmtKD(agg.kd)], ['KAST', fmtPct(agg.kast_pct)]]
-  }
+  return [
+    ['Open', fmtPct(openPct)],
+    ['KAST', fmtPct(agg.kast_pct)],
+    ['K/D',  fmtKD(agg.kd)],
+  ]
 }
 
 export function renderPlayerImpact(root, { roster, rowsCurrent, rowsPrior, onPick }) {
@@ -117,7 +112,7 @@ export function renderPlayerImpact(root, { roster, rowsCurrent, rowsPrior, onPic
       trend = computeTrend(agg.rating, priorAgg?.rating ?? null, TREND_THRESHOLD)
     }
 
-    const supports = hasData ? supportingMetrics(p.role, agg) : []
+    const supports = hasData ? supportingMetrics(agg) : []
     const effectiveImpact = nullImpactIds.has(p.id) ? null : agg?.impact_rating
     const impPct = hasData ? impactPct(effectiveImpact) : null
 
@@ -128,15 +123,19 @@ export function renderPlayerImpact(root, { roster, rowsCurrent, rowsPrior, onPic
               data-role="${esc(p.role)}"
               data-trend="${trend}"
               style="--rr-role-color:${roleColorVar(p.role)}">
-        <div class="rr-player-name">${esc(p.nickname || '—')}</div>
-        <div class="rr-player-role">${esc(p.role || 'Player')}</div>
-        <div class="rr-player-rating">
-          ${hasData ? fmt(agg.rating) : '—'}
-          ${trend !== 'unknown' && hasData ? `<span class="rr-trend rr-trend-${trend}">${TREND_ARROW[trend]}</span>` : ''}
+        <div class="rr-player-card-head">
+          <div class="rr-player-id">
+            <div class="rr-player-name">${esc(p.nickname || '—')}</div>
+            <div class="rr-player-role">${esc(p.role || 'Player')}</div>
+          </div>
+          <div class="rr-player-rating">
+            ${hasData ? fmt(agg.rating) : '—'}
+            ${trend !== 'unknown' && hasData ? `<span class="rr-trend rr-trend-${trend}">${TREND_ARROW[trend]}</span>` : ''}
+          </div>
         </div>
         ${hasData ? `
           <div class="rr-player-supports">
-            ${supports.map(([k, v]) => `<span class="rr-support"><span class="rr-support-k">${esc(k)}</span> <span class="rr-support-v">${esc(v)}</span></span>`).join('')}
+            ${supports.map(([k, v]) => `<div class="rr-support"><span class="rr-support-k">${esc(k)}</span><span class="rr-support-v">${esc(v)}</span></div>`).join('')}
           </div>
         ` : ''}
         ${hasData && impPct != null ? `

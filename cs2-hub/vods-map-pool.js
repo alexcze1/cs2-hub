@@ -1,8 +1,8 @@
 // cs2-hub/vods-map-pool.js
 //
-// Map Pool Intelligence table. Per-map: WR, sample, trend, confidence.
-// Row click emits CustomEvent('rr:filter-map', { detail: { map: <name|null> }}).
-// Clicking the currently-active row emits null (clear filter).
+// Map Pool Intelligence — per-map cards with WR, sample, trend, confidence.
+// Card click emits CustomEvent('rr:filter-map', { detail: { map: <name|null> }}).
+// Clicking the currently-active card emits null (clear filter).
 
 import { computeTrend } from './vods-trend.js'
 
@@ -50,30 +50,39 @@ export function renderMapPool(root, { vodsCurrent, vodsPrior, activeMap }) {
     return
   }
 
-  const headerHtml = `
-    <div class="rr-map-row rr-map-row-head">
-      <div>Map</div><div>WR</div><div>Sample</div><div>Trend</div><div>Confidence</div>
-    </div>`
-  const bodyHtml = rows.map(r => {
+  const cards = rows.map(r => {
     const trend = computeTrend(r.wr, priorByMap.get(r.map)?.wr ?? null, TREND_THRESHOLD_PCT)
     const isActive = r.map === activeMap
     const confClass = r.confidence === 'HIGH' ? 'rr-conf-high' :
                       r.confidence === 'MEDIUM' ? 'rr-conf-med' : 'rr-conf-low'
+    const wr = r.wr == null ? 0 : r.wr
+    const wrLabel = r.wr == null ? '—' : `${r.wr}%`
+    const barClass = r.wr == null ? 'rr-map-bar-empty'
+                    : r.wr >= 60 ? 'rr-map-bar-good'
+                    : r.wr >= 40 ? 'rr-map-bar-mid'
+                    : 'rr-map-bar-bad'
     return `
-      <div class="rr-map-row ${isActive ? 'is-active' : ''}"
-           data-map="${esc(r.map)}"
-           data-trend="${trend}">
-        <div>${esc(capitalize(r.map))}</div>
-        <div>${r.wr == null ? '—' : r.wr + '%'}</div>
-        <div>${r.plays} map${r.plays === 1 ? '' : 's'}</div>
-        <div class="rr-trend-cell rr-trend-${trend}">${TREND_ARROW[trend] || ''}</div>
-        <div class="rr-conf ${confClass}">${r.confidence}</div>
-      </div>`
+      <button type="button"
+              class="rr-map-card ${isActive ? 'is-active' : ''}"
+              data-map="${esc(r.map)}"
+              data-trend="${trend}">
+        <div class="rr-map-card-head">
+          <span class="rr-map-card-name">${esc(capitalize(r.map))}</span>
+          <span class="rr-map-card-trend rr-trend-${trend}">${TREND_ARROW[trend] || ''}</span>
+        </div>
+        <div class="rr-map-card-wr">${wrLabel}</div>
+        <div class="rr-map-card-meta">
+          <span>${r.plays} match${r.plays === 1 ? '' : 'es'}</span>
+          <span class="rr-map-dot">·</span>
+          <span class="rr-map-card-conf ${confClass}">${r.confidence}</span>
+        </div>
+        <div class="rr-map-card-bar"><span class="${barClass}" style="width:${wr}%"></span></div>
+      </button>`
   }).join('')
 
   root.innerHTML = `
     <div class="rr-section-label">MAP POOL INTELLIGENCE</div>
-    <div class="rr-map-table">${headerHtml}${bodyHtml}</div>`
+    <div class="rr-map-cards">${cards}</div>`
 
   for (const el of root.querySelectorAll('[data-map]')) {
     el.addEventListener('click', () => {

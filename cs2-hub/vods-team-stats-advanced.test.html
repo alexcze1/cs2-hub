@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<body>
+<div id="root"></div>
+<script type="module">
+import { renderAdvancedTeamStats } from './vods-team-stats-advanced.js'
+
+function assert(cond, msg) {
+  if (!cond) { console.error('FAIL:', msg); return }
+  console.log('PASS:', msg)
+}
+
+// Wipe local storage so tests are deterministic.
+localStorage.removeItem('rr:advanced:v1')
+
+function tsRow(over) {
+  return { demo_id: 'd1', team: 'a',
+    pistol_wins: 0, pistol_played: 0,
+    eco_wins: 0, eco_played: 0,
+    force_wins: 0, force_played: 0,
+    anti_eco_wins: 0, anti_eco_played: 0,
+    full_buy_wins: 0, full_buy_played: 0,
+    five_v_four_wins: 0, five_v_four_played: 0,
+    first_kills: 0, first_deaths: 0,
+    first_kills_t: 0, first_deaths_t: 0,
+    first_kills_ct: 0, first_deaths_ct: 0,
+    ct_round_wins: 0, ct_rounds_played: 0,
+    t_round_wins: 0, t_rounds_played: 0,
+    ...over }
+}
+function pRow(over) {
+  return { side: 'all', steam_id: 'X', rounds_played: 24, kills: 18, deaths: 14,
+    traded_deaths: 4, clutches_won: 1, clutches_lost: 3,
+    utility_dmg: 200, flash_assists: 4,
+    ...over }
+}
+
+// ---- Header click toggles open/closed ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  localStorage.removeItem('rr:advanced:v1')
+  renderAdvancedTeamStats(root, {
+    teamStatsRows: [tsRow({ pistol_wins: 2, pistol_played: 4 })],
+    playerRowsAll: [pRow()],
+    ourTeamByDemoId: new Map([['d1', 'a']]),
+  })
+  const adv = root.querySelector('.rr-adv')
+  assert(adv !== null, 'advanced section rendered')
+  assert(!adv.classList.contains('is-open'), 'closed by default')
+  root.querySelector('.rr-adv-header').click()
+  assert(root.querySelector('.rr-adv').classList.contains('is-open'), 'header click opens')
+  root.querySelector('.rr-adv-header').click()
+  assert(!root.querySelector('.rr-adv').classList.contains('is-open'), 'second click closes')
+}
+
+// ---- Default tab is Economy ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  localStorage.removeItem('rr:advanced:v1')
+  renderAdvancedTeamStats(root, {
+    teamStatsRows: [tsRow({ eco_wins: 1, eco_played: 4, anti_eco_wins: 3, anti_eco_played: 4 })],
+    playerRowsAll: [pRow()],
+    ourTeamByDemoId: new Map([['d1', 'a']]),
+  })
+  const active = root.querySelector('.rr-adv-tab.is-active')
+  assert(active && active.dataset.tab === 'economy', 'Economy tab active by default')
+  const html = root.innerHTML
+  assert(html.includes('Eco wins'),  'Economy renders Eco wins tile')
+  assert(html.includes('Anti-eco'),  'Economy renders Anti-eco tile')
+  assert(html.includes('25%'),       'eco 1/4 → 25%')
+  assert(html.includes('75%'),       'anti-eco 3/4 → 75%')
+}
+
+// ---- Switching to Entry tab renders entry tiles + trade % from player rows ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  localStorage.removeItem('rr:advanced:v1')
+  renderAdvancedTeamStats(root, {
+    teamStatsRows: [tsRow({ first_kills: 24, first_deaths: 16 })],
+    playerRowsAll: [
+      pRow({ steam_id: 'A', deaths: 10, traded_deaths: 4 }),
+      pRow({ steam_id: 'B', deaths: 10, traded_deaths: 2 }),
+    ],
+    ourTeamByDemoId: new Map([['d1', 'a']]),
+  })
+  // Click Entry tab
+  root.querySelector('[data-tab="entry"]').click()
+  const html = root.innerHTML
+  assert(html.includes('First kills'),  'Entry → First kills tile')
+  assert(html.includes('First deaths'), 'Entry → First deaths tile')
+  assert(html.includes('Trade %'),      'Entry → Trade % tile')
+  assert(html.includes('>24<'),         'first kills = 24')
+  assert(html.includes('>16<'),         'first deaths = 16')
+  // Trade = 6/20 = 30%
+  assert(html.includes('30%'),          'trade % = 30% (6 trades / 20 deaths)')
+}
+
+// ---- Sides tab: per-side opening duel % ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  localStorage.removeItem('rr:advanced:v1')
+  renderAdvancedTeamStats(root, {
+    teamStatsRows: [tsRow({
+      ct_round_wins: 8, ct_rounds_played: 12,
+      t_round_wins:  5, t_rounds_played: 12,
+      first_kills_t: 7, first_deaths_t: 3,    // 70% T-opening
+      first_kills_ct: 4, first_deaths_ct: 8,  // 33% CT-opening
+    })],
+    playerRowsAll: [pRow()],
+    ourTeamByDemoId: new Map([['d1', 'a']]),
+  })
+  root.querySelector('[data-tab="sides"]').click()
+  const html = root.innerHTML
+  assert(html.includes('CT win rate'),     'Sides → CT win rate')
+  assert(html.includes('T win rate'),      'Sides → T win rate')
+  assert(html.includes('CT opening duel'), 'Sides → CT opening duel')
+  assert(html.includes('T opening duel'),  'Sides → T opening duel')
+  assert(html.includes('67%'),             'CT 8/12 = 67%')
+  assert(html.includes('70%'),             'T opening 7/10 = 70%')
+}
+
+// ---- Clutch tab: aggregate from player rows ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  localStorage.removeItem('rr:advanced:v1')
+  renderAdvancedTeamStats(root, {
+    teamStatsRows: [tsRow()],
+    playerRowsAll: [
+      pRow({ steam_id: 'A', clutches_won: 3, clutches_lost: 4 }),
+      pRow({ steam_id: 'B', clutches_won: 1, clutches_lost: 2 }),
+    ],
+    ourTeamByDemoId: new Map([['d1', 'a']]),
+  })
+  root.querySelector('[data-tab="clutch"]').click()
+  const html = root.innerHTML
+  // 4 won, 6 lost → 40%
+  assert(html.includes('40%'),    'clutch % = 4/10 = 40%')
+  assert(html.includes('>4<'),    'clutches won = 4')
+  assert(html.includes('>6<'),    'clutches lost = 6')
+}
+
+// ---- Utility tab: per-round averages ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  localStorage.removeItem('rr:advanced:v1')
+  renderAdvancedTeamStats(root, {
+    teamStatsRows: [tsRow()],
+    playerRowsAll: [
+      pRow({ steam_id: 'A', rounds_played: 20, utility_dmg: 200, flash_assists: 10 }),
+      pRow({ steam_id: 'B', rounds_played: 20, utility_dmg: 100, flash_assists: 5  }),
+    ],
+    ourTeamByDemoId: new Map([['d1', 'a']]),
+  })
+  root.querySelector('[data-tab="utility"]').click()
+  const html = root.innerHTML
+  // util dmg/r = 300/40 = 7.5
+  assert(html.includes('7.5'), 'util dmg per round = 7.5')
+  // flashes/r = 15/40 = 0.38
+  assert(html.includes('0.38'), 'flash assists per round = 0.38')
+}
+
+// ---- Open state + active tab persist in localStorage ----
+{
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  localStorage.removeItem('rr:advanced:v1')
+  renderAdvancedTeamStats(root, {
+    teamStatsRows: [tsRow({ ct_round_wins: 6, ct_rounds_played: 12 })],
+    playerRowsAll: [pRow()],
+    ourTeamByDemoId: new Map([['d1', 'a']]),
+  })
+  root.querySelector('.rr-adv-header').click()
+  root.querySelector('[data-tab="sides"]').click()
+  const raw = JSON.parse(localStorage.getItem('rr:advanced:v1'))
+  assert(raw.open === true && raw.tab === 'sides', 'state saved (open=true, tab=sides)')
+
+  // Re-render — should restore open + sides.
+  const root2 = document.createElement('div')
+  document.body.appendChild(root2)
+  renderAdvancedTeamStats(root2, {
+    teamStatsRows: [tsRow({ ct_round_wins: 6, ct_rounds_played: 12 })],
+    playerRowsAll: [pRow()],
+    ourTeamByDemoId: new Map([['d1', 'a']]),
+  })
+  assert(root2.querySelector('.rr-adv').classList.contains('is-open'), 're-render restored open=true')
+  assert(root2.querySelector('.rr-adv-tab.is-active').dataset.tab === 'sides', 're-render restored tab=sides')
+  root2.remove()
+}
+
+console.log('all done')
+</script>
+</body>
+</html>

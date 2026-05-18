@@ -12,6 +12,7 @@ import { renderHero } from './vods-hero.js'
 import { renderPlayerImpact } from './vods-player-impact.js'
 import { renderMapPool } from './vods-map-pool.js'
 import { renderTeamStats } from './vods-team-stats.js'
+import { renderAdvancedTeamStats } from './vods-team-stats-advanced.js'
 import { renderMatchReports } from './vods-match-reports.js'
 import { splitVodsByWindow } from './vods-trend.js'
 import { mountPlayerPanel } from './vods-player-panel.js'
@@ -223,7 +224,7 @@ async function rebuild(filter) {
   const currentFiltered = applyMatchTypeFilter(current, filter.matchType)
   const priorFiltered   = applyMatchTypeFilter(prior,   filter.matchType)
 
-  // Re-render hero whenever the filtered current set changes
+  // First render of hero (before team-stats fetch) so the filter slot exists.
   renderHero(document.getElementById('rr-hero'), { vods: currentFiltered, filterSlotId: HERO_FILTER_SLOT })
   // Re-mount filter into the new slot (renderHero blew it away)
   mountFilter(document.getElementById(HERO_FILTER_SLOT), (f) => {
@@ -252,6 +253,21 @@ async function rebuild(filter) {
     currentVodIds, priorVodIds, filter,
   })
 
+  // Re-render hero now that team-stats data is available (adds weakness callout).
+  const teamStatsForHero = teamStatsCurrent.filter(r => {
+    const ours = data.ourTeamByDemoId?.get(r.demo_id)
+    return ours && ours === r.team
+  })
+  renderHero(document.getElementById('rr-hero'), {
+    vods: currentFiltered,
+    filterSlotId: HERO_FILTER_SLOT,
+    teamStatsRows: teamStatsForHero,
+  })
+  mountFilter(document.getElementById(HERO_FILTER_SLOT), (f) => {
+    if (JSON.stringify(f) === JSON.stringify(state.filter)) return
+    rebuild(f)
+  })
+
   state.dataset = {
     filter,
     currentVods: currentFiltered,
@@ -273,10 +289,22 @@ async function rebuild(filter) {
   renderMapPool(document.getElementById('rr-map-pool'), {
     vodsCurrent: currentFiltered, vodsPrior: priorFiltered, activeMap: state.mapFilter,
   })
+  renderAdvancedTeamStats(document.getElementById('rr-team-stats-advanced'), {
+    teamStatsRows: teamStatsCurrent,
+    playerRowsAll: rowsCurrent,
+    ourTeamByDemoId: data.ourTeamByDemoId,
+  })
+  // our-team-filtered team_stats keyed by demo_id (for "dominant side" highlight)
+  const teamStatsByDemoId = new Map()
+  for (const r of teamStatsCurrent) {
+    const ours = data.ourTeamByDemoId?.get(r.demo_id)
+    if (ours && ours === r.team) teamStatsByDemoId.set(r.demo_id, r)
+  }
   renderMatchReports(document.getElementById('rr-match-reports'), {
     vods: currentFiltered,
     demoToVod: data.demoToVod,
     demoPlayersByDemoId: groupByDemoId(data.rowsAll),
+    teamStatsByDemoId,
     mapFilter: state.mapFilter,
   })
 
