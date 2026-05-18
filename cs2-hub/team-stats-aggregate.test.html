@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script type="module">
+import { aggregateTeamStats, computeDeltas } from './team-stats-aggregate.js'
+
+function assert(cond, msg) {
+  if (!cond) { console.error('FAIL:', msg); return }
+  console.log('PASS:', msg)
+}
+function approx(a, b, eps = 0.0005) { return Math.abs(a - b) < eps }
+
+// ---- aggregateTeamStats ----
+{
+  const out = aggregateTeamStats([])
+  assert(out.pistols.played === 0,    'empty rows → pistols.played=0')
+  assert(out.pistols.pct === null,    'empty rows → pistols.pct=null')
+  assert(out.first_kills === 0,       'empty rows → first_kills=0')
+  assert(out.opening_duel.pct === null, 'empty rows → opening_duel.pct=null')
+}
+{
+  // Single demo, our team's row only
+  const rows = [{
+    pistol_wins: 2, pistol_played: 2,
+    five_v_four_wins: 4, five_v_four_played: 5,
+    first_kills: 24, first_deaths: 18,
+    eco_wins: 1, eco_played: 5,
+    force_wins: 2, force_played: 3,
+    anti_eco_wins: 4, anti_eco_played: 5,
+    full_buy_wins: 12, full_buy_played: 18,
+    ct_round_wins: 8, ct_rounds_played: 12,
+    t_round_wins:  6, t_rounds_played: 12,
+  }]
+  const out = aggregateTeamStats(rows)
+  assert(out.pistols.wins === 2 && out.pistols.played === 2, 'pistols sum')
+  assert(approx(out.pistols.pct, 1.0),                       'pistols.pct=1.0')
+  assert(out.five_v_four.wins === 4 && out.five_v_four.played === 5, '5v4 sum')
+  assert(approx(out.five_v_four.pct, 0.8),                   '5v4 pct=0.8')
+  assert(out.first_kills === 24 && out.first_deaths === 18,  'fk/fd raw counts')
+  assert(approx(out.opening_duel.pct, 24/(24+18)),           'opening duel pct')
+  assert(out.eco.wins === 1 && out.eco.played === 5,         'eco sum')
+  assert(out.force.wins === 2 && out.force.played === 3,     'force sum')
+  assert(out.anti_ecos.wins === 4 && out.anti_ecos.played === 5, 'anti-eco sum')
+  assert(approx(out.anti_ecos.pct, 0.8),                     'anti-eco pct=0.8')
+  assert(out.full_buy.wins === 12 && out.full_buy.played === 18, 'full-buy sum')
+  assert(approx(out.ct.pct, 8/12),                           'CT pct')
+  assert(approx(out.t.pct, 6/12),                            'T pct')
+}
+{
+  // Two demos sum across rows
+  const rows = [
+    { pistol_wins: 1, pistol_played: 2, first_kills: 10, first_deaths: 8,
+      anti_eco_wins: 2, anti_eco_played: 3, eco_wins: 0, eco_played: 2,
+      force_wins: 0, force_played: 0, full_buy_wins: 8, full_buy_played: 14,
+      five_v_four_wins: 2, five_v_four_played: 3,
+      ct_round_wins: 6, ct_rounds_played: 12, t_round_wins: 5, t_rounds_played: 12 },
+    { pistol_wins: 2, pistol_played: 2, first_kills: 12, first_deaths: 6,
+      anti_eco_wins: 1, anti_eco_played: 1, eco_wins: 1, eco_played: 4,
+      force_wins: 1, force_played: 2, full_buy_wins: 7, full_buy_played: 12,
+      five_v_four_wins: 1, five_v_four_played: 2,
+      ct_round_wins: 7, ct_rounds_played: 12, t_round_wins: 4, t_rounds_played: 12 },
+  ]
+  const out = aggregateTeamStats(rows)
+  assert(out.pistols.wins === 3 && out.pistols.played === 4, 'pistols sum across demos')
+  assert(approx(out.pistols.pct, 0.75),                      'pistols 3/4=0.75')
+  assert(out.first_kills === 22 && out.first_deaths === 14,  'fk/fd sum across demos')
+  assert(approx(out.opening_duel.pct, 22/(22+14)),           'opening duel pct combined')
+  assert(out.anti_ecos.wins === 3 && out.anti_ecos.played === 4, 'anti-eco sum across demos')
+}
+{
+  // Divide-by-zero guards
+  const rows = [{
+    pistol_wins: 0, pistol_played: 0,
+    five_v_four_wins: 0, five_v_four_played: 0,
+    first_kills: 0, first_deaths: 0,
+    eco_wins: 0, eco_played: 0, force_wins: 0, force_played: 0,
+    anti_eco_wins: 0, anti_eco_played: 0,
+    full_buy_wins: 0, full_buy_played: 0,
+    ct_round_wins: 0, ct_rounds_played: 0,
+    t_round_wins: 0, t_rounds_played: 0,
+  }]
+  const out = aggregateTeamStats(rows)
+  assert(out.pistols.pct === null,       'pistols.pct=null when played=0')
+  assert(out.five_v_four.pct === null,   '5v4.pct=null when played=0')
+  assert(out.opening_duel.pct === null,  'opening duel.pct=null when fk+fd=0')
+  assert(out.anti_ecos.pct === null,     'anti-eco.pct=null when played=0')
+  assert(out.ct.pct === null,            'CT.pct=null when ct_rounds_played=0')
+}
+{
+  // Null-valued columns (e.g. pre-anti-eco-backfill rows) treated as 0
+  const rows = [{
+    pistol_wins: 2, pistol_played: 2,
+    five_v_four_wins: 1, five_v_four_played: 2,
+    first_kills: 10, first_deaths: 8,
+    eco_wins: 0, eco_played: 2, force_wins: 0, force_played: 0,
+    anti_eco_wins: null, anti_eco_played: null,   // pre-backfill
+    full_buy_wins: 5, full_buy_played: 10,
+    ct_round_wins: 6, ct_rounds_played: 12, t_round_wins: 5, t_rounds_played: 12,
+  }]
+  const out = aggregateTeamStats(rows)
+  assert(out.anti_ecos.wins === 0 && out.anti_ecos.played === 0, 'null treated as 0')
+  assert(out.anti_ecos.pct === null,                              'anti-eco.pct=null when null cols')
+  assert(out.pistols.wins === 2,                                  'unaffected by null in other cols')
+}
+
+// ---- computeDeltas ----
+{
+  const current = aggregateTeamStats([{
+    pistol_wins: 6, pistol_played: 10, first_kills: 50, first_deaths: 40,
+    five_v_four_wins: 8, five_v_four_played: 10, eco_wins: 2, eco_played: 8,
+    force_wins: 1, force_played: 3, anti_eco_wins: 6, anti_eco_played: 8,
+    full_buy_wins: 30, full_buy_played: 50,
+    ct_round_wins: 40, ct_rounds_played: 80, t_round_wins: 35, t_rounds_played: 70,
+  }])
+  const prior = aggregateTeamStats([{
+    pistol_wins: 5, pistol_played: 10, first_kills: 45, first_deaths: 45,
+    five_v_four_wins: 7, five_v_four_played: 10, eco_wins: 2, eco_played: 8,
+    force_wins: 1, force_played: 3, anti_eco_wins: 5, anti_eco_played: 8,
+    full_buy_wins: 25, full_buy_played: 50,
+    ct_round_wins: 36, ct_rounds_played: 80, t_round_wins: 30, t_rounds_played: 70,
+  }])
+  const view = computeDeltas(current, prior)
+  // pistols: 0.6 - 0.5 = 0.1
+  assert(approx(view.pistols.delta, 0.1),  'pistols delta=+0.1')
+  assert(view.pistols.value === current.pistols, 'pistols.value passes through')
+  // opening_duel: 50/(50+40) - 45/(45+45) = 0.5555 - 0.5 = 0.0555
+  assert(approx(view.opening_duel.delta, 50/90 - 0.5), 'opening duel delta computed')
+  // count tiles: no delta
+  assert(!('delta' in view.first_kills),  'first_kills has no delta')
+  assert(!('delta' in view.first_deaths), 'first_deaths has no delta')
+  // force tile: no delta (we deliberately skip it — small sample, no pct)
+  assert(!('delta' in view.force),        'force has no delta')
+}
+{
+  // Prior window with < minPlayed rounds → delta=null
+  const current = aggregateTeamStats([{
+    pistol_wins: 6, pistol_played: 10, first_kills: 50, first_deaths: 40,
+    five_v_four_wins: 8, five_v_four_played: 10, eco_wins: 2, eco_played: 8,
+    force_wins: 1, force_played: 3, anti_eco_wins: 6, anti_eco_played: 8,
+    full_buy_wins: 30, full_buy_played: 50,
+    ct_round_wins: 40, ct_rounds_played: 80, t_round_wins: 35, t_rounds_played: 70,
+  }])
+  const prior = aggregateTeamStats([{
+    pistol_wins: 1, pistol_played: 2, first_kills: 5, first_deaths: 4,
+    five_v_four_wins: 1, five_v_four_played: 2, eco_wins: 0, eco_played: 1,
+    force_wins: 0, force_played: 0, anti_eco_wins: 1, anti_eco_played: 1,
+    full_buy_wins: 3, full_buy_played: 5,
+    ct_round_wins: 4, ct_rounds_played: 8, t_round_wins: 3, t_rounds_played: 8,
+  }])
+  const view = computeDeltas(current, prior, { minPlayed: 10 })
+  assert(view.pistols.delta === null,    'pistols.delta=null when prior.played<minPlayed')
+  assert(view.five_v_four.delta === null,'5v4.delta=null when prior.played<minPlayed')
+}
+{
+  // Empty prior → all deltas null
+  const current = aggregateTeamStats([{
+    pistol_wins: 2, pistol_played: 2, first_kills: 10, first_deaths: 8,
+    five_v_four_wins: 1, five_v_four_played: 2, eco_wins: 0, eco_played: 2,
+    force_wins: 0, force_played: 0, anti_eco_wins: 1, anti_eco_played: 1,
+    full_buy_wins: 5, full_buy_played: 10,
+    ct_round_wins: 6, ct_rounds_played: 12, t_round_wins: 5, t_rounds_played: 12,
+  }])
+  const prior = aggregateTeamStats([])
+  const view = computeDeltas(current, prior)
+  assert(view.pistols.delta === null, 'pistols.delta=null when prior is empty')
+  assert(view.anti_ecos.delta === null, 'anti-eco.delta=null when prior is empty')
+}
+</script>
+</body>
+</html>
