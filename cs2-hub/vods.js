@@ -11,6 +11,7 @@ import { mountFilter } from './vods-filter.js'
 import { renderHero } from './vods-hero.js'
 import { renderPlayerImpact } from './vods-player-impact.js'
 import { renderMapPool } from './vods-map-pool.js'
+import { renderTeamStats } from './vods-team-stats.js'
 import { renderMatchReports } from './vods-match-reports.js'
 import { splitVodsByWindow } from './vods-trend.js'
 import { mountPlayerPanel } from './vods-player-panel.js'
@@ -126,7 +127,11 @@ function partitionRows({ rows, demosById, demoToVod, currentVodIds, priorVodIds,
 }
 
 async function fetchDemosForVodWindow(vods, filter) {
-  const empty = { demos: [], rowsAll: [], rowsCT: [], rowsT: [], demoToVod: new Map() }
+  const empty = {
+    demos: [], rowsAll: [], rowsCT: [], rowsT: [],
+    demoToVod: new Map(), demosById: new Map(),
+    teamStatsRows: [], ourTeamByDemoId: new Map(),
+  }
   if (!teamSteamIds.size) return empty
 
   // Calendar bounds for date-based windows so we pick up demos from un-logged
@@ -157,14 +162,24 @@ async function fetchDemosForVodWindow(vods, filter) {
 
   const demoToVod = linkDemosToVods(demos || [], vods)
 
-  if (!(demos || []).length) return { demos: [], rowsAll: [], rowsCT: [], rowsT: [], demoToVod }
+  if (!(demos || []).length) return {
+    demos: [], rowsAll: [], rowsCT: [], rowsT: [],
+    demoToVod, demosById: new Map(),
+    teamStatsRows: [], ourTeamByDemoId: new Map(),
+  }
 
-  const { data: rows, error: e3 } = await supabase
-    .from('demo_players')
-    .select('*')
-    .in('demo_id', demos.map(d => d.id))
-    .in('steam_id', [...teamSteamIds])
+  const demoIds = demos.map(d => d.id)
+  const [{ data: rows, error: e3 }, { data: teamStatsRows, error: e4 }] = await Promise.all([
+    supabase.from('demo_players')
+      .select('*')
+      .in('demo_id', demoIds)
+      .in('steam_id', [...teamSteamIds]),
+    supabase.from('demo_team_stats')
+      .select('*')
+      .in('demo_id', demoIds),
+  ])
   if (e3) throw e3
+  if (e4) throw e4
 
   const demosById = new Map((demos || []).map(d => [d.id, d]))
   for (const r of rows || []) {
@@ -174,7 +189,22 @@ async function fetchDemosForVodWindow(vods, filter) {
   const rowsAll = (rows || []).filter(r => r.side === 'all')
   const rowsCT  = (rows || []).filter(r => r.side === 'ct')
   const rowsT   = (rows || []).filter(r => r.side === 't')
-  return { demos: demos || [], rowsAll, rowsCT, rowsT, demoToVod, demosById }
+
+  // Build ourTeamByDemoId: any of our roster's demo_players rows tells us
+  // which team ('a' or 'b') we are for that demo. side='all' is enough.
+  const ourTeamByDemoId = new Map()
+  for (const r of rowsAll) {
+    if (!ourTeamByDemoId.has(r.demo_id) && (r.team === 'a' || r.team === 'b')) {
+      ourTeamByDemoId.set(r.demo_id, r.team)
+    }
+  }
+
+  return {
+    demos: demos || [], rowsAll, rowsCT, rowsT,
+    demoToVod, demosById,
+    teamStatsRows: teamStatsRows || [],
+    ourTeamByDemoId,
+  }
 }
 
 function groupByDemoId(rows) {
@@ -215,6 +245,12 @@ async function rebuild(filter) {
     demoToVod: data.demoToVod,
     currentVodIds, priorVodIds, filter,
   })
+  const { current: teamStatsCurrent, prior: teamStatsPrior } = partitionRows({
+    rows: data.teamStatsRows,
+    demosById: data.demosById,
+    demoToVod: data.demoToVod,
+    currentVodIds, priorVodIds, filter,
+  })
 
   state.dataset = {
     filter,
@@ -226,6 +262,11 @@ async function rebuild(filter) {
     rowsCurrent, rowsPrior,
   }
 
+  renderTeamStats(document.getElementById('rr-team-stats'), {
+    rowsCurrent: teamStatsCurrent,
+    rowsPrior:   teamStatsPrior,
+    ourTeamByDemoId: data.ourTeamByDemoId,
+  })
   renderPlayerImpact(document.getElementById('rr-player-impact'), {
     roster, rowsCurrent, rowsPrior, onPick: openPlayerPanel,
   })
