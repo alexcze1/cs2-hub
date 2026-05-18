@@ -5,6 +5,7 @@
 
 import { supabase } from './supabase.js'
 import { isCoach } from './demo-player-filters.js'
+import { renderTeamStats } from './scoreboard-team-stats.js'
 
 const SIDE_KEY = 'scoreboard:side'
 
@@ -16,17 +17,21 @@ export async function mountScoreboard(root, demoId) {
 
   try {
     const [
-      { data: players, error: pe },
-      { data: demo,    error: de },
+      { data: players,   error: pe },
+      { data: demo,      error: de },
+      { data: teamStats, error: te },
     ] = await Promise.all([
       supabase.from('demo_players')
         .select('*').eq('demo_id', demoId),
       supabase.from('demos')
         .select('ct_team_name,t_team_name,team_a_first_side')
         .eq('id', demoId).maybeSingle(),
+      supabase.from('demo_team_stats')
+        .select('*').eq('demo_id', demoId),
     ])
     if (pe) throw pe
     if (de) throw de
+    if (te) throw te
 
     const cleanPlayers = (players || []).filter(p => !isCoach(p.name))
     if (!cleanPlayers.length) {
@@ -38,7 +43,10 @@ export async function mountScoreboard(root, demoId) {
     const teamAName = (aOnCtFirst ? demo?.ct_team_name : demo?.t_team_name) || 'Team A'
     const teamBName = (aOnCtFirst ? demo?.t_team_name  : demo?.ct_team_name) || 'Team B'
 
-    render(root, { players: cleanPlayers, side, teamAName, teamBName })
+    const teamA = (teamStats || []).find(r => r.team === 'a') || null
+    const teamB = (teamStats || []).find(r => r.team === 'b') || null
+
+    render(root, { players: cleanPlayers, side, teamAName, teamBName, teamA, teamB })
   } catch (e) {
     console.error('[scoreboard]', e)
     root.innerHTML = `<div class="sb-empty">Failed to load stats: ${esc(e.message || String(e))}</div>`
@@ -51,7 +59,7 @@ function esc(s) {
 }
 
 function render(root, state) {
-  const { players, side, teamAName, teamBName } = state
+  const { players, side, teamAName, teamBName, teamA, teamB } = state
   root.innerHTML = `
     <div class="sb-toolbar">
       <span class="sb-label">View</span>
@@ -60,6 +68,7 @@ function render(root, state) {
       <button class="sb-side-btn ${side==='t'?'is-active':''}"   data-side="t">T</button>
     </div>
     <div id="sb-tables"></div>
+    <div id="sb-team-stats"></div>
   `
   for (const btn of root.querySelectorAll('.sb-side-btn')) {
     btn.addEventListener('click', () => {
@@ -69,6 +78,7 @@ function render(root, state) {
     })
   }
   renderPlayerTables(root.querySelector('#sb-tables'), players, side, teamAName, teamBName)
+  renderTeamStats(root.querySelector('#sb-team-stats'), { teamA, teamB, teamAName, teamBName })
 }
 
 function renderPlayerTables(container, players, side, teamAName, teamBName) {
