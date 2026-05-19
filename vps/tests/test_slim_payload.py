@@ -142,21 +142,28 @@ def test_classify_buy_pistol_overrides_values():
 
 
 def test_classify_buy_eco_when_own_below_threshold():
-    # Own team is under $5000 → eco, regardless of opponent
+    # Own team is under the eco threshold ($10k) → eco, regardless of opponent
     assert _classify_buy(1000, 25000, is_pistol=False) == "eco"
-    assert _classify_buy(4999, 0, is_pistol=False) == "eco"
+    assert _classify_buy(9999, 0, is_pistol=False) == "eco"
 
 
-def test_classify_buy_antieco_when_opponent_on_eco():
-    # Own team is bought, opponent is on eco → antieco
-    assert _classify_buy(20000, 1000, is_pistol=False) == "antieco"
-    assert _classify_buy(5000, 4999, is_pistol=False) == "antieco"
+def test_classify_buy_force_when_mid_value():
+    # Between eco and fullbuy (>=$10k, <$18k) → force-buy
+    assert _classify_buy(12000, 25000, is_pistol=False) == "force"
+    assert _classify_buy(17999, 20000, is_pistol=False) == "force"
+
+
+def test_classify_buy_antieco_when_opponent_under_fullbuy():
+    # We are on a fullbuy, opponent is not (eco OR force) → antieco
+    assert _classify_buy(20000, 1000,  is_pistol=False) == "antieco"
+    assert _classify_buy(20000, 15000, is_pistol=False) == "antieco"
+    assert _classify_buy(18000, 17999, is_pistol=False) == "antieco"
 
 
 def test_classify_buy_fullbuy_when_both_geared():
-    # Both teams above threshold → normal gun round
+    # Both teams above the fullbuy threshold → normal gun round
     assert _classify_buy(20000, 20000, is_pistol=False) == "fullbuy"
-    assert _classify_buy(5000, 5000, is_pistol=False) == "fullbuy"
+    assert _classify_buy(18000, 18000, is_pistol=False) == "fullbuy"
 
 
 def test_frames_assigned_to_round_and_filtered():

@@ -609,3 +609,224 @@ def test_compute_team_stats_anti_eco_loss_counts_played_not_wins():
     a = next(r for r in rows if r["team"] == "a")
     assert a["anti_eco_played"] == 1
     assert a["anti_eco_wins"]   == 0
+
+
+from demo_parser import _classify_buy, _man_advantage_per_round
+
+
+def test_classify_buy_eco_below_threshold():
+    # 5x Glock ($200) = $1000, well under $10k → eco
+    assert _classify_buy(own_value=1000, opp_value=18500, is_pistol=False) == "eco"
+
+
+def test_classify_buy_force_between_eco_and_fullbuy():
+    # 5x (Galil $1800 + armor $1000 + 1 nade $300) = $15500 → force
+    assert _classify_buy(own_value=15500, opp_value=18500, is_pistol=False) == "force"
+
+
+def test_classify_buy_antieco_when_opp_is_force_or_eco():
+    # We are fullbuy ($20k), opp is forcing ($14k) → antieco for us
+    assert _classify_buy(own_value=20000, opp_value=14000, is_pistol=False) == "antieco"
+    # Opp ecoing also counts as antieco for us
+    assert _classify_buy(own_value=20000, opp_value=2000,  is_pistol=False) == "antieco"
+
+
+def test_classify_buy_fullbuy_when_both_geared():
+    assert _classify_buy(own_value=20000, opp_value=19000, is_pistol=False) == "fullbuy"
+
+
+def test_classify_buy_pistol_short_circuits():
+    # Even if values look like a fullbuy, pistol round wins.
+    assert _classify_buy(own_value=20000, opp_value=20000, is_pistol=True) == "pistol"
+
+
+def test_compute_team_stats_counts_force_buy():
+    """Force-buy: team has SMGs/Galils + armor but not full rifles. Goes into force_*."""
+    # Pistol filler round 0, then force round 1.
+    # 5x (Galil $1800 + armor $1000 + smoke $300) = $15500/side = force.
+    parsed = {
+        "rounds": [
+            {"start_tick": 0, "end_tick": 90, "freeze_end_tick": 10,
+             "team_a_side": "ct", "winner_side": "ct"},
+            {"start_tick": 100, "end_tick": 1000, "freeze_end_tick": 150,
+             "team_a_side": "ct", "winner_side": "ct"},
+        ],
+        "kills": [], "damage_events": [],
+        "frames": [
+            {"tick": 150, "players": [
+                {"steam_id": "A1", "team": "ct", "hp": 100, "weapon": "Galil AR", "armor": 100, "has_smoke": True},
+                {"steam_id": "A2", "team": "ct", "hp": 100, "weapon": "Galil AR", "armor": 100, "has_smoke": True},
+                {"steam_id": "A3", "team": "ct", "hp": 100, "weapon": "Galil AR", "armor": 100, "has_smoke": True},
+                {"steam_id": "A4", "team": "ct", "hp": 100, "weapon": "Galil AR", "armor": 100, "has_smoke": True},
+                {"steam_id": "A5", "team": "ct", "hp": 100, "weapon": "Galil AR", "armor": 100, "has_smoke": True},
+                {"steam_id": "B1", "team": "t",  "hp": 100, "weapon": "Galil AR", "armor": 100, "has_smoke": True},
+                {"steam_id": "B2", "team": "t",  "hp": 100, "weapon": "Galil AR", "armor": 100, "has_smoke": True},
+                {"steam_id": "B3", "team": "t",  "hp": 100, "weapon": "Galil AR", "armor": 100, "has_smoke": True},
+                {"steam_id": "B4", "team": "t",  "hp": 100, "weapon": "Galil AR", "armor": 100, "has_smoke": True},
+                {"steam_id": "B5", "team": "t",  "hp": 100, "weapon": "Galil AR", "armor": 100, "has_smoke": True},
+            ]},
+        ],
+        "grenades": [], "bomb": [], "players_meta": {},
+        "meta": {"team_a_first_side": "ct"},
+    }
+    rows = compute_team_stats(parsed)
+    a = next(r for r in rows if r["team"] == "a")
+    b = next(r for r in rows if r["team"] == "b")
+    assert a["force_played"] == 1, f"expected a.force_played=1, got {a['force_played']}"
+    assert b["force_played"] == 1
+    assert a["force_wins"]   == 1, f"A on CT won → expected a.force_wins=1, got {a['force_wins']}"
+    assert b["force_wins"]   == 0
+    # Neither side is on a fullbuy → no antieco
+    assert a["anti_eco_played"] == 0
+    assert b["anti_eco_played"] == 0
+
+
+def test_man_advantage_detects_strict_5v4():
+    rounds = [{"start_tick": 100, "end_tick": 500}]
+    frames = [
+        # All 10 alive
+        {"tick": 110, "players": [
+            {"steam_id": f"CT{i}", "team": "ct", "hp": 100} for i in range(5)
+        ] + [
+            {"steam_id": f"T{i}", "team": "t", "hp": 100} for i in range(5)
+        ]},
+        # One T dies → CT is 5v4
+        {"tick": 200, "players": [
+            {"steam_id": f"CT{i}", "team": "ct", "hp": 100} for i in range(5)
+        ] + [
+            {"steam_id": "T0", "team": "t", "hp": 0},
+        ] + [
+            {"steam_id": f"T{i}", "team": "t", "hp": 100} for i in range(1, 5)
+        ]},
+    ]
+    out = _man_advantage_per_round(rounds, frames)
+    assert out == [{"ct": True, "t": False}]
+
+
+def test_man_advantage_does_not_count_5v3():
+    """If T goes from 5 → 3 without ever sitting at 4 at a sampled frame, the
+    5v4 strict check passes only if some frame catches a 5-vs-4 state."""
+    rounds = [{"start_tick": 100, "end_tick": 500}]
+    frames = [
+        # 5v3 — never sampled at 5v4
+        {"tick": 200, "players": [
+            {"steam_id": f"CT{i}", "team": "ct", "hp": 100} for i in range(5)
+        ] + [
+            {"steam_id": "T0", "team": "t", "hp": 0},
+            {"steam_id": "T1", "team": "t", "hp": 0},
+        ] + [
+            {"steam_id": f"T{i}", "team": "t", "hp": 100} for i in range(2, 5)
+        ]},
+    ]
+    out = _man_advantage_per_round(rounds, frames)
+    assert out == [{"ct": False, "t": False}]
+
+
+def test_man_advantage_none_when_full_teams():
+    rounds = [{"start_tick": 100, "end_tick": 500}]
+    frames = [
+        {"tick": 200, "players": [
+            {"steam_id": f"CT{i}", "team": "ct", "hp": 100} for i in range(5)
+        ] + [
+            {"steam_id": f"T{i}", "team": "t", "hp": 100} for i in range(5)
+        ]},
+    ]
+    out = _man_advantage_per_round(rounds, frames)
+    assert out == [{"ct": False, "t": False}]
+
+
+def test_compute_team_stats_5v4_uses_strict_per_frame():
+    """Regression: previously a round where the advantaged team later took
+    casualties (so min-alive < 5) was wrongly excluded from 5v4_played."""
+    # Round 1: at tick 200 CT is 5v4 (T0 dead). At tick 300 CT also loses one,
+    # so per-round min(ct_alive)=4 — old logic would skip this. New logic counts it.
+    parsed = {
+        "rounds": [
+            {"start_tick": 0, "end_tick": 90, "freeze_end_tick": 10,
+             "team_a_side": "ct", "winner_side": "ct"},
+            {"start_tick": 100, "end_tick": 500, "freeze_end_tick": 150,
+             "team_a_side": "ct", "winner_side": "ct"},
+        ],
+        "kills": [], "damage_events": [],
+        "frames": [
+            # Freeze-end frame for round 1 (used by buy classifier)
+            {"tick": 150, "players": [
+                {"steam_id": f"CT{i}", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100} for i in range(5)
+            ] + [
+                {"steam_id": f"T{i}", "team": "t", "hp": 100, "weapon": "AK-47", "armor": 100} for i in range(5)
+            ]},
+            # Mid-round: CT 5 alive, T 4 alive  → strict 5v4 for CT
+            {"tick": 200, "players": [
+                {"steam_id": f"CT{i}", "team": "ct", "hp": 100} for i in range(5)
+            ] + [
+                {"steam_id": "T0", "team": "t", "hp": 0},
+                {"steam_id": "T1", "team": "t", "hp": 100},
+                {"steam_id": "T2", "team": "t", "hp": 100},
+                {"steam_id": "T3", "team": "t", "hp": 100},
+                {"steam_id": "T4", "team": "t", "hp": 100},
+            ]},
+            # Later: CT loses one (min ct_alive=4) — old logic would discard
+            {"tick": 300, "players": [
+                {"steam_id": "CT0", "team": "ct", "hp": 0},
+                {"steam_id": "CT1", "team": "ct", "hp": 100},
+                {"steam_id": "CT2", "team": "ct", "hp": 100},
+                {"steam_id": "CT3", "team": "ct", "hp": 100},
+                {"steam_id": "CT4", "team": "ct", "hp": 100},
+                {"steam_id": "T0", "team": "t", "hp": 0},
+                {"steam_id": "T1", "team": "t", "hp": 0},
+                {"steam_id": "T2", "team": "t", "hp": 100},
+                {"steam_id": "T3", "team": "t", "hp": 100},
+                {"steam_id": "T4", "team": "t", "hp": 100},
+            ]},
+        ],
+        "grenades": [], "bomb": [], "players_meta": {},
+        "meta": {"team_a_first_side": "ct"},
+    }
+    rows = compute_team_stats(parsed)
+    a = next(r for r in rows if r["team"] == "a")
+    b = next(r for r in rows if r["team"] == "b")
+    assert a["five_v_four_played"] == 1, f"expected a.five_v_four_played=1, got {a['five_v_four_played']}"
+    assert a["five_v_four_wins"]   == 1, f"A (CT) wins → expected wins=1, got {a['five_v_four_wins']}"
+    assert a["five_v_four_ct_played"] == 1
+    assert a["five_v_four_ct_wins"]   == 1
+    assert b["five_v_four_played"] == 0
+
+
+def test_compute_team_stats_anti_eco_when_opponent_forces():
+    """User's definition: antieco fires when we are on fullbuy AND opponent is
+    eco OR force. Previous behavior only counted when opponent ecoed.
+    """
+    # A on fullbuy ($18.5k), B on force ($15.5k = 5x Galil+armor+smoke).
+    parsed = {
+        "rounds": [
+            {"start_tick": 0, "end_tick": 90, "freeze_end_tick": 10,
+             "team_a_side": "ct", "winner_side": "ct"},
+            {"start_tick": 100, "end_tick": 1000, "freeze_end_tick": 150,
+             "team_a_side": "ct", "winner_side": "ct"},
+        ],
+        "kills": [], "damage_events": [],
+        "frames": [
+            {"tick": 150, "players": [
+                {"steam_id": "A1", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "A2", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "A3", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "A4", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "A5", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100},
+                {"steam_id": "B1", "team": "t",  "hp": 100, "weapon": "Galil AR", "armor": 100, "has_smoke": True},
+                {"steam_id": "B2", "team": "t",  "hp": 100, "weapon": "Galil AR", "armor": 100, "has_smoke": True},
+                {"steam_id": "B3", "team": "t",  "hp": 100, "weapon": "Galil AR", "armor": 100, "has_smoke": True},
+                {"steam_id": "B4", "team": "t",  "hp": 100, "weapon": "Galil AR", "armor": 100, "has_smoke": True},
+                {"steam_id": "B5", "team": "t",  "hp": 100, "weapon": "Galil AR", "armor": 100, "has_smoke": True},
+            ]},
+        ],
+        "grenades": [], "bomb": [], "players_meta": {},
+        "meta": {"team_a_first_side": "ct"},
+    }
+    rows = compute_team_stats(parsed)
+    a = next(r for r in rows if r["team"] == "a")
+    b = next(r for r in rows if r["team"] == "b")
+    assert a["anti_eco_played"] == 1, f"expected a.anti_eco_played=1 (we fullbuy vs their force), got {a['anti_eco_played']}"
+    assert a["anti_eco_wins"]   == 1  # A on CT wins
+    assert a["full_buy_played"] == 0, "anti-eco and fullbuy are mutually exclusive"
+    assert b["force_played"] == 1
+    assert b["anti_eco_played"] == 0  # B isn't on a fullbuy

@@ -1090,20 +1090,27 @@ def _is_pistol_round(rounds_in, idx) -> bool:
     return prev_side is not None and this_side is not None and prev_side != this_side
 
 
-_ECO_THRESHOLD = 5000
+# Buy classification thresholds (team-total equip value, not per-player).
+# Eco:     5 saved pistols + maybe a nade per player → well under $5k.
+# Force:   pistols/SMGs/Galils + armor + utility but no full AKs → up to ~$15-17k.
+# Fullbuy: 5 rifles + armor + utility → $18k+ (5xAK+armor alone is $18.5k).
+_ECO_MAX  = 10000
+_FULL_MIN = 18000
 
 
 def _classify_buy(own_value: int, opp_value: int, is_pistol: bool) -> str:
-    """Classify a team's buy into pistol/eco/antieco/fullbuy.
+    """Classify a team's buy into pistol/eco/force/antieco/fullbuy.
 
     - pistol:   round 1 of a half
-    - eco:      this team is below the eco threshold (saving)
-    - antieco:  this team is bought, but the opponent is on eco
-    - fullbuy:  normal gun round (both sides geared)
+    - eco:      this team invested almost nothing (saving)
+    - force:    this team spent money but doesn't have full rifles/util
+    - antieco:  this team is on a full-buy AND the opponent is not (eco or force)
+    - fullbuy:  both sides are fully geared
     """
-    if is_pistol:                  return "pistol"
-    if own_value < _ECO_THRESHOLD: return "eco"
-    if opp_value < _ECO_THRESHOLD: return "antieco"
+    if is_pistol:                return "pistol"
+    if own_value < _ECO_MAX:     return "eco"
+    if own_value < _FULL_MIN:    return "force"
+    if opp_value < _FULL_MIN:    return "antieco"
     return "fullbuy"
 
 
@@ -1259,6 +1266,32 @@ def _alive_counts_per_round(rounds: list, frames: list) -> list:
     return result
 
 
+def _man_advantage_per_round(rounds: list, frames: list) -> list:
+    """For each round, return {'ct': bool, 't': bool} indicating whether each
+    side ever held a strict 5-vs-4 man advantage at some frame in the round.
+
+    Strict 5v4 (not 5v3 / 5v2 / etc.) — that's the "5v4 conversion" stat the
+    UI labels. We loop frames in tick order; the earliest 5-vs-<5 transition
+    is necessarily a 5v4 by definition, so checking `opp_alive == 4` is
+    equivalent to "had a man advantage at full strength".
+    """
+    result = []
+    for r in rounds:
+        ct_adv = t_adv = False
+        for f in frames:
+            t = int(f.get("tick", 0))
+            if not (r["start_tick"] < t <= r["end_tick"]):
+                continue
+            ct_alive = sum(1 for p in f.get("players", []) if p.get("team") == "ct" and int(p.get("hp", 0)) > 0)
+            t_alive  = sum(1 for p in f.get("players", []) if p.get("team") == "t"  and int(p.get("hp", 0)) > 0)
+            if ct_alive == 5 and t_alive == 4: ct_adv = True
+            if t_alive  == 5 and ct_alive == 4: t_adv  = True
+            if ct_adv and t_adv:
+                break
+        result.append({"ct": ct_adv, "t": t_adv})
+    return result
+
+
 def _clutch_outcome(rnd: dict, frames: list) -> dict | None:
     """Detect 1vN scenario in this round and report outcome.
 
@@ -1358,7 +1391,6 @@ def compute_player_stats(parsed: dict) -> list[dict]:
 
         # Pre-compute things shared across players
         first_kill_per_round  = _first_event_per_round(kills, rounds)
-        alive_counts          = _alive_counts_per_round(rounds, frames)
         clutch_per_round      = [_clutch_outcome(r, frames) for r in rounds]
         utility_dmg_by_sid    = _grenade_damage_attribution(damage_events)
 
@@ -1590,7 +1622,7 @@ def compute_team_stats(parsed: dict) -> list[dict]:
         bomb          = parsed.get("bomb") or []
 
         first_kill_per_round = _first_event_per_round(kills, rounds)
-        alive_counts         = _alive_counts_per_round(rounds, frames)
+        man_advantage        = _man_advantage_per_round(rounds, frames)
 
         # Initialize stats for both teams
         def empty():
@@ -1653,21 +1685,19 @@ def compute_team_stats(parsed: dict) -> list[dict]:
                     a["first_deaths"] += 1
                     a[f"first_deaths_{a_side}"] += 1
 
-            # 5v4 — at any frame, did either side have +1 alive
-            ac = alive_counts[ri] if ri < len(alive_counts) else None
-            if ac:
-                # If at any point one side dropped below 5 while the other had >=5,
-                # the team WITH the advantage played a 5v4. Approximation: if a_side
-                # min alive is 5 and b_side min alive < 5, team A had a man advantage.
-                a_min = ac["ct_min_alive"] if a_side == "ct" else ac["t_min_alive"]
-                b_min = ac["ct_min_alive"] if b_side == "ct" else ac["t_min_alive"]
-                if a_min >= 5 and b_min < 5:
+            # 5v4 — strict per-frame check: did either side ever sit at exactly
+            # 5 alive while the opponent sat at exactly 4 alive?
+            ma = man_advantage[ri] if ri < len(man_advantage) else None
+            if ma:
+                a_had_adv = ma["ct"] if a_side == "ct" else ma["t"]
+                b_had_adv = ma["ct"] if b_side == "ct" else ma["t"]
+                if a_had_adv:
                     a["five_v_four_played"] += 1
                     a[f"five_v_four_{a_side}_played"] += 1
                     if winner == a_side:
                         a["five_v_four_wins"] += 1
                         a[f"five_v_four_{a_side}_wins"] += 1
-                if b_min >= 5 and a_min < 5:
+                if b_had_adv:
                     b["five_v_four_played"] += 1
                     b[f"five_v_four_{b_side}_played"] += 1
                     if winner == b_side:
@@ -1684,24 +1714,15 @@ def compute_team_stats(parsed: dict) -> list[dict]:
                 if buy == "eco":
                     team["eco_played"] += 1
                     if winner == side: team["eco_wins"] += 1
-                # Ship 1 maps anti-eco buys to the force_* bucket: a true
-                # force-buy classifier isn't available yet, and an anti-eco is
-                # the closest available proxy. The DB columns stay force_*.
-                elif buy == "antieco":
+                elif buy == "force":
                     team["force_played"] += 1
                     if winner == side: team["force_wins"] += 1
+                elif buy == "antieco":
+                    team["anti_eco_played"] += 1
+                    if winner == side: team["anti_eco_wins"] += 1
                 elif buy == "fullbuy":
                     team["full_buy_played"] += 1
                     if winner == side: team["full_buy_wins"] += 1
-
-            # Anti-eco counters: rounds where the OPPONENT was on eco.
-            # Independent of what we bought — measures whether we punished an eco.
-            if b_buy == "eco":
-                a["anti_eco_played"] += 1
-                if winner == a_side: a["anti_eco_wins"] += 1
-            if a_buy == "eco":
-                b["anti_eco_played"] += 1
-                if winner == b_side: b["anti_eco_wins"] += 1
 
         # Bomb plants/defuses
         for ev in bomb:
