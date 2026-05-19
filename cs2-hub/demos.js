@@ -45,6 +45,14 @@ function relativeTime(iso) {
   return formatDate(iso)
 }
 
+// ── scope router ──────────────────────────────────────────────
+// /demos.html supports two scopes: "team" (signed-in user's uploaded demos) and
+// "public" (HLTV-ingested pro demos, readable by anon visitors). The bulk of
+// this file is the team flow, wrapped in runTeamScope() so it doesn't fire for
+// anon visitors. The public flow lives at the bottom of the file.
+
+async function runTeamScope() {
+
 await requireAuth()
 renderSidebar('demos')
 
@@ -795,4 +803,213 @@ async function onDeletePlaylist(pl) {
     toast('Playlist deleted')
     renderPlaylistsSection()
   } catch (e) { console.error(e); toast('Failed to delete', 'error') }
+}
+
+}  // end runTeamScope
+
+
+// ── public scope (HLTV pro demos) ─────────────────────────────
+
+async function determineScope() {
+  const hash = new URLSearchParams(location.hash.slice(1))
+  const fromHash = hash.get('scope')
+  if (fromHash === 'public' || fromHash === 'team') return fromHash
+  const { data: { session } } = await supabase.auth.getSession()
+  return session ? 'team' : 'public'
+}
+
+function renderTabs(activeScope) {
+  const el = document.getElementById('demos-tabs')
+  if (!el) return
+  el.innerHTML = `
+    <button type="button" class="dx-tab ${activeScope === 'team'   ? 'is-active' : ''}" data-scope="team">Team</button>
+    <button type="button" class="dx-tab ${activeScope === 'public' ? 'is-active' : ''}" data-scope="public">Pro</button>
+  `
+  for (const btn of el.querySelectorAll('.dx-tab')) {
+    btn.addEventListener('click', () => {
+      const next = btn.dataset.scope
+      if (next === activeScope) return
+      location.hash = `scope=${next}`
+      location.reload()
+    })
+  }
+}
+
+// Shared helpers (esc, formatDate, mapImg, mapBg, mapDisplay) live at module top
+// alongside the team flow helpers — both scopes use them.
+
+function pubScoreFor(d) {
+  if (d.team_a_score != null && d.team_b_score != null) return [d.team_a_score, d.team_b_score]
+  return [d.score_ct, d.score_t]
+}
+
+function renderPublicSeriesCard(demos) {
+  const first   = demos[0]
+  const teamA   = first.team_a_name ?? first.ct_team_name ?? 'Team A'
+  const teamB   = first.team_b_name ?? first.t_team_name  ?? 'Team B'
+  const dateStr = first.played_at ? formatDate(first.played_at) : formatDate(first.created_at)
+  const eventTag = first.event_name
+    ? `<span class="dx-card-tag dx-card-tag-event">${esc(first.event_name)}</span>` : ''
+
+  let mapsAWon = 0, mapsBWon = 0
+  for (const d of demos) {
+    if (d.status !== 'ready') continue
+    const [a, b] = pubScoreFor(d)
+    if (a == null || b == null) continue
+    if (a > b) mapsAWon++
+    else if (b > a) mapsBWon++
+  }
+  const boLabel = demos.length <= 3 ? 'BO3' : demos.length <= 5 ? 'BO5' : `BO${demos.length}`
+
+  const mapsHtml = demos.map((d, i) => {
+    const [a, b] = pubScoreFor(d)
+    const hasResult = a != null && b != null && d.status === 'ready'
+    const aWin = hasResult && a > b
+    const bWin = hasResult && b > a
+    return `
+      <div class="dx-series-row" id="demo-row-${d.id}">
+        ${mapImg(d.map, 'demo-map-sm')}
+        <div class="dx-series-row-meta">
+          <div class="dx-series-row-map">Map ${i + 1} · ${esc(mapDisplay(d.map))}</div>
+        </div>
+        <div class="dx-series-row-score">
+          ${hasResult
+            ? `<span class="${aWin ? 'dx-score-win' : 'dx-score-loss'}">${a}</span><span class="dx-score-sep">—</span><span class="${bWin ? 'dx-score-win' : 'dx-score-loss'}">${b}</span>`
+            : '<span class="dx-score-none">— —</span>'}
+        </div>
+        <div class="dx-series-row-actions">
+          ${d.status === 'ready'
+            ? `<a class="dx-watch" href="demo-viewer.html?id=${d.id}">▶ Watch</a>`
+            : `<span class="dx-status dx-status-pending">● Processing</span>`}
+        </div>
+      </div>`
+  }).join('')
+
+  return `
+    <article class="dx-series dx-card-none">
+      <header class="dx-series-head">
+        <div class="dx-series-tag">${boLabel} · PRO</div>
+        ${eventTag}
+        <div class="dx-series-date">${esc(dateStr)}</div>
+        ${first.source_url ? `<a class="dx-action-ghost" href="${esc(first.source_url)}" target="_blank" rel="noopener">↗ HLTV</a>` : ''}
+      </header>
+      <div class="dx-series-versus">
+        <div class="dx-team-chip"><span class="dx-team-name">${esc(teamA)}</span></div>
+        <div class="dx-score-strip dx-score-strip-lg">
+          <span class="dx-score">${mapsAWon}</span>
+          <span class="dx-score-sep">—</span>
+          <span class="dx-score">${mapsBWon}</span>
+        </div>
+        <div class="dx-team-chip"><span class="dx-team-name">${esc(teamB)}</span></div>
+      </div>
+      <div class="dx-series-maps">${mapsHtml}</div>
+    </article>`
+}
+
+function renderPublicSingleCard(d) {
+  const teamA = d.team_a_name ?? d.ct_team_name ?? 'Team A'
+  const teamB = d.team_b_name ?? d.t_team_name  ?? 'Team B'
+  const dateStr = d.played_at ? formatDate(d.played_at) : formatDate(d.created_at)
+  const [a, b] = pubScoreFor(d)
+  const hasResult = a != null && b != null && d.status === 'ready'
+  const eventTag = d.event_name
+    ? `<span class="dx-card-tag dx-card-tag-event">${esc(d.event_name)}</span>` : ''
+  return `
+    <article class="dx-card dx-card-none" id="demo-row-${d.id}">
+      <div class="dx-card-map" style="${mapBg(d.map) ? `background-image:url('${esc(mapBg(d.map))}')` : ''}">
+        <div class="dx-card-map-overlay"></div>
+        <div class="dx-card-map-label">${esc(mapDisplay(d.map))}</div>
+      </div>
+      <div class="dx-card-main">
+        <div class="dx-card-head">
+          <span class="dx-card-tag dx-card-tag-demo">PRO</span>
+          ${eventTag}
+          <span class="dx-card-date">${esc(dateStr)}</span>
+        </div>
+        <div class="dx-card-versus">
+          <div class="dx-team-chip"><span class="dx-team-name">${esc(teamA)}</span></div>
+          <div class="dx-score-strip">
+            <span class="dx-score ${hasResult ? '' : 'dx-score-none'}">${a ?? '—'}</span>
+            <span class="dx-score-sep">—</span>
+            <span class="dx-score ${hasResult ? '' : 'dx-score-none'}">${b ?? '—'}</span>
+          </div>
+          <div class="dx-team-chip"><span class="dx-team-name">${esc(teamB)}</span></div>
+        </div>
+      </div>
+      <div class="dx-card-actions">
+        ${d.status === 'ready'
+          ? `<a class="dx-watch" href="demo-viewer.html?id=${d.id}">▶ Watch</a>`
+          : `<button class="dx-watch is-disabled" disabled>▶ Processing</button>`}
+        ${d.source_url ? `<a class="dx-action-ghost" href="${esc(d.source_url)}" target="_blank" rel="noopener">↗ HLTV</a>` : ''}
+      </div>
+    </article>`
+}
+
+async function runPublicScope() {
+  renderSidebar('demos')
+
+  // Hide team-only chrome.
+  const upload    = document.getElementById('demo-file-input')
+  const progress  = document.getElementById('upload-progress')
+  const playlists = document.getElementById('dl-playlists')
+  if (upload)    upload.style.display = 'none'
+  if (progress)  progress.style.display = 'none'
+  if (playlists) { playlists.hidden = true; playlists.style.display = 'none' }
+
+  const heroEl    = document.getElementById('demos-hero')
+  const filtersEl = document.getElementById('demos-filters')
+  const listEl    = document.getElementById('demos-list')
+
+  heroEl.innerHTML = `
+    <div class="dx-hero-grid">
+      <div class="dx-hero-left">
+        <div class="dx-hero-title">PRO DEMOS</div>
+        <div class="dx-hero-substats">
+          <div class="dx-kv"><div class="dx-kv-k">Source</div><div class="dx-kv-v">HLTV (last 90 days)</div></div>
+        </div>
+      </div>
+    </div>`
+  filtersEl.innerHTML = ''
+
+  const { data, error } = await supabase
+    .from('demos')
+    .select('id, map, played_at, score_ct, score_t, team_a_score, team_b_score, team_a_first_side, team_a_name, team_b_name, ct_team_name, t_team_name, event_name, source_url, source_match_id, source_map_index, status, created_at')
+    .eq('is_public', true)
+    .order('played_at', { ascending: false, nullsFirst: false })
+    .limit(100)
+
+  if (error) {
+    listEl.innerHTML = `<div class="empty-state"><h3>Failed to load pro demos</h3><p>${esc(error.message)}</p></div>`
+    return
+  }
+  const rows = data ?? []
+  if (!rows.length) {
+    listEl.innerHTML = `<div class="empty-state"><h3>No pro demos yet</h3><p>The HLTV ingest worker hasn't picked up any matches yet — check back soon.</p></div>`
+    return
+  }
+
+  // Group by source_match_id so BO3s render as one card.
+  const groups = new Map()
+  for (const d of rows) {
+    const key = d.source_match_id ?? `single:${d.id}`
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key).push(d)
+  }
+  const cards = []
+  for (const demos of groups.values()) {
+    demos.sort((a, b) => (a.source_map_index ?? 0) - (b.source_map_index ?? 0))
+    cards.push(demos.length > 1 ? renderPublicSeriesCard(demos) : renderPublicSingleCard(demos[0]))
+  }
+  listEl.innerHTML = cards.join('')
+}
+
+
+// ── kickoff ───────────────────────────────────────────────────
+
+const scope = await determineScope()
+renderTabs(scope)
+if (scope === 'public') {
+  await runPublicScope()
+} else {
+  await runTeamScope()
 }

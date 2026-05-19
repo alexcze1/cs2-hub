@@ -10,8 +10,9 @@ import { findRoundMemberships } from './playlists.js'
 import { mountScoreboard }      from './scoreboard.js'
 import { isCoach }              from './demo-player-filters.js'
 
-await requireAuth()
-renderSidebar('demos')
+// Note: requireAuth() runs AFTER we fetch the demo. Public (HLTV-ingested)
+// demos are readable by anon visitors via RLS — we only enforce auth for
+// team-scoped demos.
 
 const params = new URLSearchParams(location.search)
 const demoId = params.get('id')
@@ -48,9 +49,17 @@ const loadingEl = document.getElementById('viewer-loading')
 
 const { data: demo, error } = await supabase
   .from('demos')
-  .select('match_data,map,status,ct_team_name,t_team_name,team_a_first_side,team_a_score,team_b_score,series_id')
+  .select('is_public,match_data,map,status,ct_team_name,t_team_name,team_a_first_side,team_a_score,team_b_score,series_id')
   .eq('id', demoId)
   .single()
+
+// Auth gate: team demos require sign-in + team selection; public demos do not.
+// A team demo fetched by an anon user returns null here (RLS) and we fall into
+// the not-found branch below, same as a genuinely missing id.
+if (demo && !demo.is_public) {
+  await requireAuth()
+}
+renderSidebar('demos')
 
 if (error || !demo || demo.status !== 'ready') {
   loadingEl.textContent =
@@ -62,7 +71,9 @@ if (error || !demo || demo.status !== 'ready') {
 
 // Block the viewer until team names exist. For a series, load all maps
 // so saving names them all in one shot. Cancel returns to the list.
-if (!demo.ct_team_name || !demo.t_team_name) {
+// Public demos skip this flow — names come from the parser; an unauth'd
+// visitor can't see (or interact with) the assign-teams modal anyway.
+if (!demo.is_public && (!demo.ct_team_name || !demo.t_team_name)) {
   let target = demoId
   if (demo.series_id) {
     const { data: sib } = await supabase
@@ -1624,19 +1635,25 @@ refreshSaveBtnState()
 updateTimelineKills()
 requestAnimationFrame(ts => { state.lastTs = ts; loop(ts) })
 
-// Antistrat drawer (no-op on narrow viewports).
-mountAntistratDrawer({ teamId: getTeamId() })
+// Antistrat drawer + save-to-playlist popover are team-only features.
+// Public demos hide them rather than letting an anon click hit RLS errors.
+if (!demo.is_public) {
+  mountAntistratDrawer({ teamId: getTeamId() })
 
-document.getElementById('vh-save-btn').addEventListener('click', async (e) => {
-  const rect = e.currentTarget.getBoundingClientRect()
-  await openSavePopoverFor({
-    demoId,
-    roundIdx:   state.roundIdx,
-    anchorRect: rect,
-    teamId:     getTeamId(),
-    onChanged:  () => refreshSaveBtnState(),
+  document.getElementById('vh-save-btn').addEventListener('click', async (e) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    await openSavePopoverFor({
+      demoId,
+      roundIdx:   state.roundIdx,
+      anchorRect: rect,
+      teamId:     getTeamId(),
+      onChanged:  () => refreshSaveBtnState(),
+    })
   })
-})
+} else {
+  const saveBtn = document.getElementById('vh-save-btn')
+  if (saveBtn) saveBtn.style.display = 'none'
+}
 
 document.addEventListener('click', (e) => {
   if (!isPopoverOpen()) return

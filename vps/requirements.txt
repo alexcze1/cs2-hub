@@ -6,4 +6,7 @@ python-dotenv==1.0.1
 python-multipart==0.0.20
 polars==0.20.31
 psycopg2-binary==2.9.9
+cloudscraper==1.2.71
+beautifulsoup4==4.12.3
+patool==2.4.0
 

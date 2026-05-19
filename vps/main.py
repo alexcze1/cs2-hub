@@ -8,7 +8,7 @@ import sys
 import traceback
 import uuid
 import datetime
-from contextlib import asynccontextmanager, contextmanager
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import psycopg2
@@ -18,6 +18,7 @@ from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from supabase import create_client, Client
 
+from db import get_db
 from demo_parser import parse_demo, build_slim_payload, compute_player_stats, compute_team_stats
 
 socket.setdefaulttimeout(30)
@@ -38,40 +39,23 @@ POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", "10"))
 STUCK_MINUTES = 2
 DEMOS_DIR     = Path("/opt/midround/demos")
 
+# HLTV ingest loop: how often to scan + how far back to scan each cycle.
+# 24h interval with a 2-day window gives 1-day overlap to catch matches posted
+# late after the previous cycle.
+HLTV_INGEST_INTERVAL = int(os.getenv("HLTV_INGEST_INTERVAL", str(24 * 3600)))
+HLTV_INGEST_DAYS     = int(os.getenv("HLTV_INGEST_DAYS", "2"))
+
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-
-@contextmanager
-def get_db():
-    # keepalives: detect dead pooler connections in ~25s instead of hanging indefinitely.
-    # statement_timeout: server kills any single statement > 180s (large match_data writes
-    # have measured at ~45s, so 180s is generous headroom while still bounding hangs).
-    conn = psycopg2.connect(
-        DATABASE_URL,
-        connect_timeout=10,
-        keepalives=1,
-        keepalives_idle=10,
-        keepalives_interval=5,
-        keepalives_count=3,
-    )
-    try:
-        with conn.cursor() as cur:
-            cur.execute("SET statement_timeout = '180s'")
-        yield conn
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        conn.close()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     DEMOS_DIR.mkdir(parents=True, exist_ok=True)
-    task = asyncio.create_task(_poll_loop())
+    poll_task   = asyncio.create_task(_poll_loop())
+    ingest_task = asyncio.create_task(_hltv_ingest_loop())
     yield
-    task.cancel()
+    poll_task.cancel()
+    ingest_task.cancel()
 
 app = FastAPI(lifespan=lifespan)
 
@@ -149,6 +133,45 @@ async def _poll_loop():
         await asyncio.sleep(POLL_INTERVAL)
 
 
+async def _hltv_ingest_loop():
+    print(f"HLTV ingest loop started (interval={HLTV_INGEST_INTERVAL}s, days={HLTV_INGEST_DAYS})")
+    while True:
+        try:
+            await asyncio.get_event_loop().run_in_executor(None, _hltv_ingest_once)
+        except asyncio.CancelledError:
+            print("HLTV ingest loop cancelled — shutting down")
+            raise
+        except BaseException as e:
+            print(f"HLTV ingest error ({type(e).__name__}): {e}")
+        await asyncio.sleep(HLTV_INGEST_INTERVAL)
+
+
+def _hltv_ingest_once():
+    # Imported lazily so a missing cloudscraper dep (e.g. dev box) doesn't break
+    # the rest of main.py at import time.
+    from hltv_scraper import list_recent_matches, HLTVBlockedError, DiskCapExceeded
+    from hltv_ingest import ingest_match
+
+    matches = list_recent_matches(days=HLTV_INGEST_DAYS)
+    print(f"[hltv] discovered {len(matches)} matches in last {HLTV_INGEST_DAYS}d")
+    for m in matches:
+        try:
+            n = ingest_match(m, DEMOS_DIR)
+            if n:
+                print(f"[hltv] ingested {n} demos for {m.team_a} vs {m.team_b} ({m.hltv_id})")
+        except DiskCapExceeded as e:
+            # Hit the soft cap mid-cycle — stop fetching; the parser will drain
+            # pending rows and next cycle will resume from where we stopped.
+            print(f"[hltv] disk cap reached, stopping cycle: {e}")
+            return
+        except HLTVBlockedError as e:
+            # Cloudflare is angry; bail out of this cycle and try again next interval.
+            print(f"[hltv] Cloudflare block, stopping cycle: {e}")
+            return
+        except Exception as e:
+            print(f"[hltv] skip {m.hltv_id} ({type(e).__name__}): {e}")
+
+
 def _reset_stuck_sync(cutoff):
     with get_db() as conn:
         with conn.cursor() as cur:
@@ -166,7 +189,10 @@ async def _reset_stuck():
 def _fetch_pending():
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute("SELECT id, storage_path, team_id FROM demos WHERE status = 'pending' LIMIT 5")
+            cur.execute(
+                "SELECT id, storage_path, team_id, is_public FROM demos "
+                "WHERE status = 'pending' LIMIT 5"
+            )
             return cur.fetchall()
 
 
@@ -350,6 +376,7 @@ async def _process_one(demo: dict):
     demo_id      = demo["id"]
     storage_path = demo["storage_path"]
     is_local     = storage_path.startswith("local:")
+    is_public    = bool(demo.get("is_public"))
     loop         = asyncio.get_event_loop()
 
     await loop.run_in_executor(None, _db_set_processing, demo_id)
@@ -401,6 +428,14 @@ async def _process_one(demo: dict):
             print(f"[stats] write exceeded 240s for {demo_id} — skipping (demo write already committed)")
 
         print(f"Done: {demo_id} — {meta['map']} {ct_score}-{t_score}")
+
+        # Public demos (HLTV-ingested) discard the local .dem after a successful
+        # parse — match_data + slim + stat rows are the only artefacts we keep.
+        # Errors skip this branch on purpose so a stuck demo can be re-parsed
+        # without re-downloading from HLTV.
+        if is_local and is_public:
+            Path(tmp_path).unlink(missing_ok=True)
+            print(f"[cleanup] deleted local .dem for public demo {demo_id}")
 
     except Exception as e:
         print(f"Failed {demo_id} ({type(e).__name__}): {e}")
