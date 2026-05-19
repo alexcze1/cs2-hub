@@ -1266,32 +1266,6 @@ def _alive_counts_per_round(rounds: list, frames: list) -> list:
     return result
 
 
-def _man_advantage_per_round(rounds: list, frames: list) -> list:
-    """For each round, return {'ct': bool, 't': bool} indicating whether each
-    side ever held a strict 5-vs-4 man advantage at some frame in the round.
-
-    Strict 5v4 (not 5v3 / 5v2 / etc.) — that's the "5v4 conversion" stat the
-    UI labels. We loop frames in tick order; the earliest 5-vs-<5 transition
-    is necessarily a 5v4 by definition, so checking `opp_alive == 4` is
-    equivalent to "had a man advantage at full strength".
-    """
-    result = []
-    for r in rounds:
-        ct_adv = t_adv = False
-        for f in frames:
-            t = int(f.get("tick", 0))
-            if not (r["start_tick"] < t <= r["end_tick"]):
-                continue
-            ct_alive = sum(1 for p in f.get("players", []) if p.get("team") == "ct" and int(p.get("hp", 0)) > 0)
-            t_alive  = sum(1 for p in f.get("players", []) if p.get("team") == "t"  and int(p.get("hp", 0)) > 0)
-            if ct_alive == 5 and t_alive == 4: ct_adv = True
-            if t_alive  == 5 and ct_alive == 4: t_adv  = True
-            if ct_adv and t_adv:
-                break
-        result.append({"ct": ct_adv, "t": t_adv})
-    return result
-
-
 def _clutch_outcome(rnd: dict, frames: list) -> dict | None:
     """Detect 1vN scenario in this round and report outcome.
 
@@ -1723,7 +1697,6 @@ def compute_team_stats(parsed: dict) -> list[dict]:
         bomb          = parsed.get("bomb") or []
 
         first_kill_per_round = _first_event_per_round(kills, rounds)
-        man_advantage        = _man_advantage_per_round(rounds, frames)
 
         # Initialize stats for both teams
         def empty():
@@ -1770,40 +1743,33 @@ def compute_team_stats(parsed: dict) -> list[dict]:
                 if winner == a_side: a["pistol_wins"] += 1
                 if winner == b_side: b["pistol_wins"] += 1
 
-            # First kill / death
+            # First kill / death + 5v4 conversion.
+            # "5v4 conversion" = win % after winning the opening duel of the round.
+            # The team that got the opening kill gets five_v_four_played += 1; if
+            # they also won the round, five_v_four_wins += 1.
             fk = first_kill_per_round[ri]
             if fk:
                 killer_team = fk.get("killer_team")
-                victim_team = fk.get("victim_team")
                 if killer_team == a_side:
-                    a["first_kills"] += 1
-                    a[f"first_kills_{a_side}"] += 1
-                    b["first_deaths"] += 1
-                    b[f"first_deaths_{b_side}"] += 1
-                if killer_team == b_side:
-                    b["first_kills"] += 1
-                    b[f"first_kills_{b_side}"] += 1
-                    a["first_deaths"] += 1
-                    a[f"first_deaths_{a_side}"] += 1
-
-            # 5v4 — strict per-frame check: did either side ever sit at exactly
-            # 5 alive while the opponent sat at exactly 4 alive?
-            ma = man_advantage[ri] if ri < len(man_advantage) else None
-            if ma:
-                a_had_adv = ma["ct"] if a_side == "ct" else ma["t"]
-                b_had_adv = ma["ct"] if b_side == "ct" else ma["t"]
-                if a_had_adv:
-                    a["five_v_four_played"] += 1
+                    a["first_kills"]                 += 1
+                    a[f"first_kills_{a_side}"]       += 1
+                    b["first_deaths"]                += 1
+                    b[f"first_deaths_{b_side}"]      += 1
+                    a["five_v_four_played"]          += 1
                     a[f"five_v_four_{a_side}_played"] += 1
                     if winner == a_side:
-                        a["five_v_four_wins"] += 1
-                        a[f"five_v_four_{a_side}_wins"] += 1
-                if b_had_adv:
-                    b["five_v_four_played"] += 1
+                        a["five_v_four_wins"]             += 1
+                        a[f"five_v_four_{a_side}_wins"]   += 1
+                if killer_team == b_side:
+                    b["first_kills"]                 += 1
+                    b[f"first_kills_{b_side}"]       += 1
+                    a["first_deaths"]                += 1
+                    a[f"first_deaths_{a_side}"]      += 1
+                    b["five_v_four_played"]          += 1
                     b[f"five_v_four_{b_side}_played"] += 1
                     if winner == b_side:
-                        b["five_v_four_wins"] += 1
-                        b[f"five_v_four_{b_side}_wins"] += 1
+                        b["five_v_four_wins"]             += 1
+                        b[f"five_v_four_{b_side}_wins"]   += 1
 
             # Buy classification — needs equip values per team
             a_equip = _team_equip_value_at_tick(frames, rnd.get("freeze_end_tick", rnd["start_tick"]), a_side)

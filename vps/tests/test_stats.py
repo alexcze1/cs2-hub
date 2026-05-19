@@ -611,7 +611,7 @@ def test_compute_team_stats_anti_eco_loss_counts_played_not_wins():
     assert a["anti_eco_wins"]   == 0
 
 
-from demo_parser import _classify_buy, _man_advantage_per_round
+from demo_parser import _classify_buy
 
 
 def test_classify_buy_eco_below_threshold():
@@ -681,114 +681,67 @@ def test_compute_team_stats_counts_force_buy():
     assert b["anti_eco_played"] == 0
 
 
-def test_man_advantage_detects_strict_5v4():
-    rounds = [{"start_tick": 100, "end_tick": 500}]
-    frames = [
-        # All 10 alive
-        {"tick": 110, "players": [
-            {"steam_id": f"CT{i}", "team": "ct", "hp": 100} for i in range(5)
-        ] + [
-            {"steam_id": f"T{i}", "team": "t", "hp": 100} for i in range(5)
-        ]},
-        # One T dies → CT is 5v4
-        {"tick": 200, "players": [
-            {"steam_id": f"CT{i}", "team": "ct", "hp": 100} for i in range(5)
-        ] + [
-            {"steam_id": "T0", "team": "t", "hp": 0},
-        ] + [
-            {"steam_id": f"T{i}", "team": "t", "hp": 100} for i in range(1, 5)
-        ]},
-    ]
-    out = _man_advantage_per_round(rounds, frames)
-    assert out == [{"ct": True, "t": False}]
-
-
-def test_man_advantage_does_not_count_5v3():
-    """If T goes from 5 → 3 without ever sitting at 4 at a sampled frame, the
-    5v4 strict check passes only if some frame catches a 5-vs-4 state."""
-    rounds = [{"start_tick": 100, "end_tick": 500}]
-    frames = [
-        # 5v3 — never sampled at 5v4
-        {"tick": 200, "players": [
-            {"steam_id": f"CT{i}", "team": "ct", "hp": 100} for i in range(5)
-        ] + [
-            {"steam_id": "T0", "team": "t", "hp": 0},
-            {"steam_id": "T1", "team": "t", "hp": 0},
-        ] + [
-            {"steam_id": f"T{i}", "team": "t", "hp": 100} for i in range(2, 5)
-        ]},
-    ]
-    out = _man_advantage_per_round(rounds, frames)
-    assert out == [{"ct": False, "t": False}]
-
-
-def test_man_advantage_none_when_full_teams():
-    rounds = [{"start_tick": 100, "end_tick": 500}]
-    frames = [
-        {"tick": 200, "players": [
-            {"steam_id": f"CT{i}", "team": "ct", "hp": 100} for i in range(5)
-        ] + [
-            {"steam_id": f"T{i}", "team": "t", "hp": 100} for i in range(5)
-        ]},
-    ]
-    out = _man_advantage_per_round(rounds, frames)
-    assert out == [{"ct": False, "t": False}]
-
-
-def test_compute_team_stats_5v4_uses_strict_per_frame():
-    """Regression: previously a round where the advantaged team later took
-    casualties (so min-alive < 5) was wrongly excluded from 5v4_played."""
-    # Round 1: at tick 200 CT is 5v4 (T0 dead). At tick 300 CT also loses one,
-    # so per-round min(ct_alive)=4 — old logic would skip this. New logic counts it.
+def test_5v4_played_when_team_takes_opening_kill():
+    """5v4 conversion is now defined as 'won the round after winning the
+    opening duel'. Played counts whenever you got the opening kill."""
     parsed = {
-        "rounds": [
-            {"start_tick": 0, "end_tick": 90, "freeze_end_tick": 10,
-             "team_a_side": "ct", "winner_side": "ct"},
-            {"start_tick": 100, "end_tick": 500, "freeze_end_tick": 150,
-             "team_a_side": "ct", "winner_side": "ct"},
+        "rounds": [{
+            "start_tick": 100, "end_tick": 1000, "freeze_end_tick": 150,
+            "team_a_side": "ct", "winner_side": "ct",
+        }],
+        "kills": [
+            {"tick": 500, "killer_id": "A1", "victim_id": "B1",
+             "killer_team": "ct", "victim_team": "t"},
         ],
-        "kills": [], "damage_events": [],
-        "frames": [
-            # Freeze-end frame for round 1 (used by buy classifier)
-            {"tick": 150, "players": [
-                {"steam_id": f"CT{i}", "team": "ct", "hp": 100, "weapon": "AK-47", "armor": 100} for i in range(5)
-            ] + [
-                {"steam_id": f"T{i}", "team": "t", "hp": 100, "weapon": "AK-47", "armor": 100} for i in range(5)
-            ]},
-            # Mid-round: CT 5 alive, T 4 alive  → strict 5v4 for CT
-            {"tick": 200, "players": [
-                {"steam_id": f"CT{i}", "team": "ct", "hp": 100} for i in range(5)
-            ] + [
-                {"steam_id": "T0", "team": "t", "hp": 0},
-                {"steam_id": "T1", "team": "t", "hp": 100},
-                {"steam_id": "T2", "team": "t", "hp": 100},
-                {"steam_id": "T3", "team": "t", "hp": 100},
-                {"steam_id": "T4", "team": "t", "hp": 100},
-            ]},
-            # Later: CT loses one (min ct_alive=4) — old logic would discard
-            {"tick": 300, "players": [
-                {"steam_id": "CT0", "team": "ct", "hp": 0},
-                {"steam_id": "CT1", "team": "ct", "hp": 100},
-                {"steam_id": "CT2", "team": "ct", "hp": 100},
-                {"steam_id": "CT3", "team": "ct", "hp": 100},
-                {"steam_id": "CT4", "team": "ct", "hp": 100},
-                {"steam_id": "T0", "team": "t", "hp": 0},
-                {"steam_id": "T1", "team": "t", "hp": 0},
-                {"steam_id": "T2", "team": "t", "hp": 100},
-                {"steam_id": "T3", "team": "t", "hp": 100},
-                {"steam_id": "T4", "team": "t", "hp": 100},
-            ]},
-        ],
-        "grenades": [], "bomb": [], "players_meta": {},
-        "meta": {"team_a_first_side": "ct"},
+        "damage_events": [], "frames": [], "grenades": [], "bomb": [],
+        "players_meta": {}, "meta": {"team_a_first_side": "ct"},
     }
     rows = compute_team_stats(parsed)
     a = next(r for r in rows if r["team"] == "a")
     b = next(r for r in rows if r["team"] == "b")
-    assert a["five_v_four_played"] == 1, f"expected a.five_v_four_played=1, got {a['five_v_four_played']}"
-    assert a["five_v_four_wins"]   == 1, f"A (CT) wins → expected wins=1, got {a['five_v_four_wins']}"
+    assert a["five_v_four_played"] == 1
     assert a["five_v_four_ct_played"] == 1
-    assert a["five_v_four_ct_wins"]   == 1
+    assert a["five_v_four_wins"] == 1   # A on CT won
+    assert a["five_v_four_ct_wins"] == 1
+    assert b["five_v_four_played"] == 0
+
+
+def test_5v4_wins_not_counted_when_opening_kill_team_loses_round():
+    """Opening kill is on A but T (=B) wins the round → A.played=1, A.wins=0."""
+    parsed = {
+        "rounds": [{
+            "start_tick": 100, "end_tick": 1000, "freeze_end_tick": 150,
+            "team_a_side": "ct", "winner_side": "t",
+        }],
+        "kills": [
+            {"tick": 500, "killer_id": "A1", "victim_id": "B1",
+             "killer_team": "ct", "victim_team": "t"},
+        ],
+        "damage_events": [], "frames": [], "grenades": [], "bomb": [],
+        "players_meta": {}, "meta": {"team_a_first_side": "ct"},
+    }
+    rows = compute_team_stats(parsed)
+    a = next(r for r in rows if r["team"] == "a")
+    b = next(r for r in rows if r["team"] == "b")
+    assert a["five_v_four_played"] == 1
+    assert a["five_v_four_wins"]   == 0
+    assert b["five_v_four_played"] == 0
+
+
+def test_5v4_not_counted_when_no_kills_in_round():
+    """Defuse / time-out round with no kills → neither team gets 5v4_played."""
+    parsed = {
+        "rounds": [{
+            "start_tick": 100, "end_tick": 1000, "freeze_end_tick": 150,
+            "team_a_side": "ct", "winner_side": "ct",
+        }],
+        "kills": [], "damage_events": [], "frames": [], "grenades": [], "bomb": [],
+        "players_meta": {}, "meta": {"team_a_first_side": "ct"},
+    }
+    rows = compute_team_stats(parsed)
+    a = next(r for r in rows if r["team"] == "a")
+    b = next(r for r in rows if r["team"] == "b")
+    assert a["five_v_four_played"] == 0
     assert b["five_v_four_played"] == 0
 
 
