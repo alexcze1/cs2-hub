@@ -830,3 +830,143 @@ def test_compute_team_stats_anti_eco_when_opponent_forces():
     assert a["full_buy_played"] == 0, "anti-eco and fullbuy are mutually exclusive"
     assert b["force_played"] == 1
     assert b["anti_eco_played"] == 0  # B isn't on a fullbuy
+
+
+# --- ADR overkill cap + self/team damage filter ---
+
+def _adr_test_parsed(damage_events, frames=None):
+    """Minimal parsed dict: 1 live round, players A (CT) and B (T), pre-built frames."""
+    default_frames = [{"tick": 150, "players": [
+        {"steam_id": "A", "team": "ct", "hp": 100},
+        {"steam_id": "B", "team": "t",  "hp": 100},
+        {"steam_id": "C", "team": "ct", "hp": 100},  # A's teammate
+    ]}]
+    return {
+        "rounds": [{
+            "start_tick": 100, "end_tick": 2000, "freeze_end_tick": 150,
+            "team_a_side": "ct", "winner_side": "ct",
+        }],
+        "kills": [],
+        "damage_events": damage_events,
+        "frames": frames if frames is not None else default_frames,
+        "grenades": [],
+        "players_meta": {"A": {"name": "alpha"}, "B": {"name": "bravo"}, "C": {"name": "charlie"}},
+        "meta": {"team_a_first_side": "ct"},
+    }
+
+
+def test_adr_caps_overkill_on_full_hp_victim():
+    """AWP body shot logs as dmg_health=115 but only 100 was applied. ADR=100."""
+    parsed = _adr_test_parsed([
+        {"tick": 500, "attacker_id": "A", "victim_id": "B", "dmg_health": 115, "weapon": "awp"},
+    ])
+    rows = compute_player_stats(parsed)
+    a_all = next(r for r in rows if r["steam_id"] == "A" and r["side"] == "all")
+    assert a_all["adr"] == 100.0, f"expected ADR=100 (capped from 115), got {a_all['adr']}"
+
+
+def test_adr_caps_overkill_on_weakened_victim():
+    """B takes 50 dmg, then a 75-dmg shot. Only 50 of the second shot applies."""
+    parsed = _adr_test_parsed([
+        {"tick": 500, "attacker_id": "A", "victim_id": "B", "dmg_health": 50, "weapon": "ak47"},
+        {"tick": 600, "attacker_id": "A", "victim_id": "B", "dmg_health": 75, "weapon": "ak47"},
+    ])
+    rows = compute_player_stats(parsed)
+    a_all = next(r for r in rows if r["steam_id"] == "A" and r["side"] == "all")
+    assert a_all["adr"] == 100.0, f"expected ADR=100 (50 + 50-capped), got {a_all['adr']}"
+
+
+def test_adr_drops_self_damage():
+    """A throws own HE and catches self. Self-damage doesn't count as ADR."""
+    parsed = _adr_test_parsed([
+        {"tick": 500, "attacker_id": "A", "victim_id": "A", "dmg_health": 40, "weapon": "hegrenade"},
+        {"tick": 600, "attacker_id": "A", "victim_id": "B", "dmg_health": 30, "weapon": "ak47"},
+    ])
+    rows = compute_player_stats(parsed)
+    a_all = next(r for r in rows if r["steam_id"] == "A" and r["side"] == "all")
+    assert a_all["adr"] == 30.0, f"expected ADR=30 (self-damage skipped), got {a_all['adr']}"
+
+
+def test_adr_drops_team_damage():
+    """A's molly damages teammate C — team damage doesn't count as ADR."""
+    parsed = _adr_test_parsed([
+        {"tick": 500, "attacker_id": "A", "victim_id": "C", "dmg_health": 60, "weapon": "inferno"},
+        {"tick": 600, "attacker_id": "A", "victim_id": "B", "dmg_health": 40, "weapon": "ak47"},
+    ])
+    rows = compute_player_stats(parsed)
+    a_all = next(r for r in rows if r["steam_id"] == "A" and r["side"] == "all")
+    assert a_all["adr"] == 40.0, f"expected ADR=40 (team-damage skipped), got {a_all['adr']}"
+
+
+def test_adr_drops_world_damage():
+    """Damage with no attacker (fall damage) doesn't credit anyone."""
+    parsed = _adr_test_parsed([
+        {"tick": 500, "attacker_id": "", "victim_id": "B", "dmg_health": 30, "weapon": ""},
+        {"tick": 600, "attacker_id": "A", "victim_id": "B", "dmg_health": 50, "weapon": "ak47"},
+    ])
+    rows = compute_player_stats(parsed)
+    a_all = next(r for r in rows if r["steam_id"] == "A" and r["side"] == "all")
+    assert a_all["adr"] == 50.0
+
+
+def test_adr_resets_hp_each_round():
+    """Same victim can take a full 100 dmg in round 1 AND round 2 — no carryover."""
+    parsed = {
+        "rounds": [
+            {"start_tick": 100, "end_tick": 1000, "freeze_end_tick": 150,
+             "team_a_side": "ct", "winner_side": "ct"},
+            {"start_tick": 2000, "end_tick": 3000, "freeze_end_tick": 2050,
+             "team_a_side": "ct", "winner_side": "ct"},
+        ],
+        "kills": [],
+        "damage_events": [
+            {"tick": 500,  "attacker_id": "A", "victim_id": "B", "dmg_health": 100, "weapon": "ak47"},
+            {"tick": 2500, "attacker_id": "A", "victim_id": "B", "dmg_health": 100, "weapon": "ak47"},
+        ],
+        "frames": [
+            {"tick": 150,  "players": [{"steam_id": "A", "team": "ct", "hp": 100},
+                                       {"steam_id": "B", "team": "t",  "hp": 100}]},
+            {"tick": 2050, "players": [{"steam_id": "A", "team": "ct", "hp": 100},
+                                       {"steam_id": "B", "team": "t",  "hp": 100}]},
+        ],
+        "grenades": [],
+        "players_meta": {"A": {"name": "alpha"}, "B": {"name": "bravo"}},
+        "meta": {"team_a_first_side": "ct"},
+    }
+    rows = compute_player_stats(parsed)
+    a_all = next(r for r in rows if r["steam_id"] == "A" and r["side"] == "all")
+    # 200 dmg over 2 rounds → ADR=100
+    assert a_all["adr"] == 100.0, f"expected ADR=100, got {a_all['adr']}"
+
+
+def test_adr_drops_post_death_damage():
+    """B dies on first shot (100 dmg). A late post-mortem pellet shouldn't count."""
+    parsed = _adr_test_parsed([
+        {"tick": 500, "attacker_id": "A", "victim_id": "B", "dmg_health": 100, "weapon": "ak47"},
+        {"tick": 501, "attacker_id": "A", "victim_id": "B", "dmg_health": 20,  "weapon": "ak47"},
+    ])
+    rows = compute_player_stats(parsed)
+    a_all = next(r for r in rows if r["steam_id"] == "A" and r["side"] == "all")
+    assert a_all["adr"] == 100.0
+
+
+from demo_parser import _clean_damage_events, _player_sides_per_round
+
+
+def test_clean_damage_events_returns_corrected_dmg_health():
+    """Helper should emit events with adjusted dmg_health, not mutate input."""
+    rounds = [{"start_tick": 100, "end_tick": 1000, "freeze_end_tick": 150}]
+    frames = [{"tick": 150, "players": [
+        {"steam_id": "A", "team": "ct", "hp": 100},
+        {"steam_id": "B", "team": "t",  "hp": 100},
+    ]}]
+    sides = _player_sides_per_round({"A", "B"}, rounds, frames)
+    raw = [
+        {"tick": 500, "attacker_id": "A", "victim_id": "B", "dmg_health": 60},
+        {"tick": 600, "attacker_id": "A", "victim_id": "B", "dmg_health": 80},  # caps to 40
+    ]
+    cleaned = _clean_damage_events(raw, rounds, sides)
+    assert len(cleaned) == 2
+    assert [e["dmg_health"] for e in cleaned] == [60, 40]
+    # Input not mutated
+    assert raw[1]["dmg_health"] == 80

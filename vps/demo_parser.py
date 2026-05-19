@@ -1314,6 +1314,84 @@ def _clutch_outcome(rnd: dict, frames: list) -> dict | None:
     return None
 
 
+def _player_sides_per_round(sids: set, rounds: list, frames: list) -> dict:
+    """For each (sid, round_idx), the player's side at freeze-end. Used to
+    skip team-damage in ADR. Returns {sid: [side|None per round]}.
+
+    Looks through frames at-or-after freeze_end_tick until it finds one that
+    contains the player — handles the case where the first sampled frame after
+    freeze-end happens to omit a not-yet-spawned player.
+    """
+    out = {sid: [None] * len(rounds) for sid in sids}
+    for ri, rnd in enumerate(rounds):
+        target = int(rnd.get("freeze_end_tick") or rnd.get("start_tick") or 0)
+        found = set()
+        for f in frames:
+            if int(f.get("tick", 0)) < target:
+                continue
+            for p in f.get("players", []):
+                sid = p.get("steam_id")
+                if sid in out and sid not in found:
+                    out[sid][ri] = p.get("team")
+                    found.add(sid)
+            if len(found) == len(out):
+                break
+    return out
+
+
+def _clean_damage_events(damage_events: list, rounds: list, sides_per_round: dict) -> list:
+    """Sanitize damage events for stat computation.
+
+    Removes/adjusts events that would otherwise inflate ADR:
+      - drops events with no attacker (world/falling damage),
+      - drops self-damage (attacker == victim — own HE/molotov caught self),
+      - drops team-damage (attacker and victim on same side at that round),
+      - caps `dmg_health` at the victim's remaining HP for the round so a
+        single overkill shot (AWP body shot, AK headshot on a weakened player)
+        doesn't add more than the player actually had to lose.
+
+    Assumes 100 HP at round start (no healing / respawn in competitive CS).
+    Processes events in tick order to make the HP cap meaningful.
+    """
+    events_sorted = sorted(damage_events, key=lambda e: int(e.get("tick") or 0))
+
+    # HP tracker: reset per round. Keyed by sid; default to 100 on first damage.
+    hp_by_round_victim: dict = {}  # (round_idx, sid) -> remaining hp
+    out: list = []
+
+    for ev in events_sorted:
+        attacker = ev.get("attacker_id")
+        victim   = ev.get("victim_id")
+        if not attacker or not victim or attacker == victim:
+            continue
+        tick = int(ev.get("tick") or 0)
+        ri = _round_index_for_tick(rounds, tick)
+        if ri is None:
+            continue
+
+        a_side = (sides_per_round.get(attacker) or [None] * len(rounds))[ri]
+        v_side = (sides_per_round.get(victim)   or [None] * len(rounds))[ri]
+        if a_side and v_side and a_side == v_side:
+            continue
+
+        key = (ri, victim)
+        remaining = hp_by_round_victim.get(key, 100)
+        if remaining <= 0:
+            # Damage after death is noise (post-mortem shotgun pellets etc.) —
+            # the player had nothing left to lose.
+            continue
+        raw = int(ev.get("dmg_health") or 0)
+        actual = raw if raw < remaining else remaining
+        hp_by_round_victim[key] = remaining - actual
+
+        if actual <= 0:
+            continue
+        # Emit a corrected copy (don't mutate caller's events).
+        out.append({**ev, "dmg_health": actual})
+
+    return out
+
+
 _GRENADE_WEAPONS = {"hegrenade", "inferno", "molotov", "incendiary", "incgrenade"}
 
 
@@ -1388,6 +1466,25 @@ def compute_player_stats(parsed: dict) -> list[dict]:
             return False
         kills = [k for k in kills if _in_live_round(int(k.get("tick") or 0))]
         damage_events = [d for d in damage_events if _in_live_round(int(d.get("tick") or 0))]
+
+        # Collect every sid we might need to attribute damage for — players_meta
+        # is authoritative, but also catch anyone who only shows up in kills.
+        all_sids: set = set(players_meta.keys())
+        for k in kills:
+            if k.get("killer_id"): all_sids.add(k["killer_id"])
+            if k.get("victim_id"): all_sids.add(k["victim_id"])
+        for ev in damage_events:
+            if ev.get("attacker_id"): all_sids.add(ev["attacker_id"])
+            if ev.get("victim_id"):   all_sids.add(ev["victim_id"])
+
+        # Sides per (sid, round) — used to filter team damage and (later) to
+        # attribute damage to the right side bucket without rescanning frames.
+        sides_per_round = _player_sides_per_round(all_sids, rounds, frames)
+
+        # Cap overkill, drop self/team damage. Without this ADR roughly doubles
+        # because dmg_health from player_hurt is the raw weapon damage, not the
+        # capped-at-remaining-HP figure.
+        damage_events = _clean_damage_events(damage_events, rounds, sides_per_round)
 
         # Pre-compute things shared across players
         first_kill_per_round  = _first_event_per_round(kills, rounds)
@@ -1535,13 +1632,17 @@ def compute_player_stats(parsed: dict) -> list[dict]:
                     for b in (buckets["all"], buckets[side]):
                         b["assists"] += 1
 
-            # Damage (from player_hurt — includes fatal blows)
+            # Damage (from player_hurt — already overkill-capped and self/team filtered).
+            sid_sides = sides_per_round.get(sid) or []
             for ev in damage_events:
-                if ev.get("attacker_id") == sid:
-                    # Attribute by attacker's side at hit tick — best effort: use kill_team lookup
-                    side = _team_at_tick(frames, sid, int(ev.get("tick", 0))) or "ct"
-                    for b in (buckets["all"], buckets[side]):
-                        b["damage_dealt"] += int(ev.get("dmg_health", 0))
+                if ev.get("attacker_id") != sid:
+                    continue
+                ri = _round_index_for_tick(rounds, int(ev.get("tick", 0)))
+                side = (sid_sides[ri] if (ri is not None and ri < len(sid_sides)) else None) or "ct"
+                if side not in ("ct", "t"):
+                    side = "ct"
+                for b in (buckets["all"], buckets[side]):
+                    b["damage_dealt"] += int(ev.get("dmg_health", 0))
 
             # Utility damage + flash assists
             ud = utility_dmg_by_sid.get(sid, 0)
