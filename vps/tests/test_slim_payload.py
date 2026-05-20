@@ -1,6 +1,8 @@
 import pytest
 
-from demo_parser import build_slim_payload, _classify_buy
+from demo_parser import (
+    build_slim_payload, _classify_team_buy, _classify_contextual, _team_buy_metrics,
+)
 
 
 def _sample_parsed():
@@ -107,7 +109,7 @@ def test_rounds_keep_only_required_fields():
     assert set(r0.keys()) == {
         "idx", "side_team_a", "freeze_end_tick", "end_tick",
         "winner", "won_by", "bomb_planted_site",
-        "buy_type_a", "buy_type_b",
+        "buy_type_a", "buy_type_b", "context_a", "context_b",
     }
     assert r0["idx"] == 0
     assert r0["side_team_a"] == "ct"
@@ -127,43 +129,56 @@ def test_round_zero_classified_as_pistol():
     assert slim["rounds"][0]["buy_type_b"] == "pistol"
 
 
-def test_non_pistol_round_classified_by_equipment_value():
+def test_non_pistol_round_classified_by_equipment():
     slim = build_slim_payload(_sample_parsed())
     # Round 2 is not a pistol round (no side flip). The lone T player has
-    # AK ($2700) + molotov ($400) + armor ($1000) = $4100 → eco threshold (<$5000).
-    assert slim["rounds"][1]["buy_type_b"] == "eco"
-    # CT side has no players in round 2 frames → 0 → eco
-    assert slim["rounds"][1]["buy_type_a"] == "eco"
+    # AK ($2700) + molotov ($400) + armor ($1000) = $4100 → hard_eco
+    # (low equip, no util counted, low score).
+    assert slim["rounds"][1]["buy_type_b"] in ("hard_eco", "eco")
+    # CT side has no players in round 2 frames → empty metrics → hard_eco
+    assert slim["rounds"][1]["buy_type_a"] == "hard_eco"
 
 
-def test_classify_buy_pistol_overrides_values():
-    assert _classify_buy(0, 0, is_pistol=True) == "pistol"
-    assert _classify_buy(25000, 25000, is_pistol=True) == "pistol"
+def _five_players(weapon, *, armor=100, helmet=True, money=0, inv=None, defuser=False):
+    inv = inv if inv is not None else [weapon]
+    return [{
+        "team": "ct", "weapon": weapon, "armor": armor, "money": money,
+        "is_alive": True, "inventory": inv,
+        "has_helmet": helmet, "has_defuser": defuser,
+    } for _ in range(5)]
 
 
-def test_classify_buy_eco_when_own_below_threshold():
-    # Own team is under the eco threshold ($10k) → eco, regardless of opponent
-    assert _classify_buy(1000, 25000, is_pistol=False) == "eco"
-    assert _classify_buy(9999, 0, is_pistol=False) == "eco"
+def test_classify_team_buy_pistol_overrides_metrics():
+    """First round of a half is pistol regardless of metrics."""
+    geared = _team_buy_metrics(_five_players("AK-47", inv=["AK-47", "Smoke Grenade", "Flashbang"]))
+    assert _classify_team_buy(geared, is_pistol=True) == "pistol"
 
 
-def test_classify_buy_force_when_mid_value():
-    # Between eco and fullbuy (>=$10k, <$18k) → force-buy
-    assert _classify_buy(12000, 25000, is_pistol=False) == "force"
-    assert _classify_buy(17999, 20000, is_pistol=False) == "force"
+def test_classify_team_buy_eco_when_only_pistols():
+    starter = _team_buy_metrics(_five_players("Glock-18", armor=0, helmet=False, inv=["Glock-18"], money=400))
+    # Either eco or hard_eco is acceptable for an all-pistol no-armor team.
+    assert _classify_team_buy(starter, is_pistol=False) in ("eco", "hard_eco")
 
 
-def test_classify_buy_antieco_when_opponent_under_fullbuy():
-    # We are on a fullbuy, opponent is not (eco OR force) → antieco
-    assert _classify_buy(20000, 1000,  is_pistol=False) == "antieco"
-    assert _classify_buy(20000, 15000, is_pistol=False) == "antieco"
-    assert _classify_buy(18000, 17999, is_pistol=False) == "antieco"
+def test_classify_team_buy_force_when_smgs_with_armor_and_no_cash():
+    forced = _team_buy_metrics(_five_players("MP9", inv=["MP9", "Flashbang"], money=300))
+    assert _classify_team_buy(forced, is_pistol=False) == "force_buy"
 
 
-def test_classify_buy_fullbuy_when_both_geared():
-    # Both teams above the fullbuy threshold → normal gun round
-    assert _classify_buy(20000, 20000, is_pistol=False) == "fullbuy"
-    assert _classify_buy(18000, 18000, is_pistol=False) == "fullbuy"
+def test_classify_team_buy_full_when_rifles_and_full_util():
+    full = _team_buy_metrics(_five_players(
+        "AK-47", inv=["AK-47", "Smoke Grenade", "Flashbang", "High Explosive Grenade", "Molotov"],
+    ))
+    assert _classify_team_buy(full, is_pistol=False) == "full_buy"
+
+
+def test_classify_contextual_anti_eco_label():
+    assert _classify_contextual("full_buy", "eco") == "anti_eco"
+    assert _classify_contextual("half_buy", "hard_eco") == "anti_eco"
+
+
+def test_classify_contextual_anti_force_label():
+    assert _classify_contextual("full_buy", "force_buy") == "anti_force"
 
 
 def test_frames_assigned_to_round_and_filtered():

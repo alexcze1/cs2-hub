@@ -611,33 +611,98 @@ def test_compute_team_stats_anti_eco_loss_counts_played_not_wins():
     assert a["anti_eco_wins"]   == 0
 
 
-from demo_parser import _classify_buy
+from demo_parser import _classify_team_buy, _classify_contextual, _team_buy_metrics
 
 
-def test_classify_buy_eco_below_threshold():
-    # 5x Glock ($200) = $1000, well under $10k → eco
-    assert _classify_buy(own_value=1000, opp_value=18500, is_pistol=False) == "eco"
+def _player(weapon="", armor=0, money=0, inv=None, helmet=False, defuser=False, alive=True):
+    """Build a player frame entry for buy-classifier tests."""
+    p = {"weapon": weapon, "armor": armor, "money": money, "is_alive": alive,
+         "has_helmet": helmet, "has_defuser": defuser}
+    if inv is not None:
+        p["inventory"] = inv
+    return p
 
 
-def test_classify_buy_force_between_eco_and_fullbuy():
-    # 5x (Galil $1800 + armor $1000 + 1 nade $300) = $15500 → force
-    assert _classify_buy(own_value=15500, opp_value=18500, is_pistol=False) == "force"
+def _metrics(players):
+    return _team_buy_metrics(players)
 
 
-def test_classify_buy_antieco_when_opp_is_force_or_eco():
-    # We are fullbuy ($20k), opp is forcing ($14k) → antieco for us
-    assert _classify_buy(own_value=20000, opp_value=14000, is_pistol=False) == "antieco"
-    # Opp ecoing also counts as antieco for us
-    assert _classify_buy(own_value=20000, opp_value=2000,  is_pistol=False) == "antieco"
+def test_classify_team_buy_hard_eco_pistols_only():
+    # 5 starter pistols, no armor, no util, broke → hard_eco
+    players = [_player(weapon="Glock-18", money=200, inv=["Glock-18"]) for _ in range(5)]
+    assert _classify_team_buy(_metrics(players), is_pistol=False) == "hard_eco"
 
 
-def test_classify_buy_fullbuy_when_both_geared():
-    assert _classify_buy(own_value=20000, opp_value=19000, is_pistol=False) == "fullbuy"
+def test_classify_team_buy_eco_upgraded_pistols():
+    # 5 P250s + light armor — light spend but mostly pistols → eco
+    players = [_player(weapon="P250", armor=100, money=800, inv=["P250"]) for _ in range(5)]
+    assert _classify_team_buy(_metrics(players), is_pistol=False) == "eco"
 
 
-def test_classify_buy_pistol_short_circuits():
-    # Even if values look like a fullbuy, pistol round wins.
-    assert _classify_buy(own_value=20000, opp_value=20000, is_pistol=True) == "pistol"
+def test_classify_team_buy_force_buy_smgs_and_armor():
+    # 5x MP9 ($1250) + armor ($1000) + flash ($200) ≈ $12250, low remaining cash → force_buy
+    players = [_player(weapon="MP9", armor=100, money=500,
+                       inv=["MP9", "Flashbang"]) for _ in range(5)]
+    assert _classify_team_buy(_metrics(players), is_pistol=False) == "force_buy"
+
+
+def test_classify_team_buy_half_buy_preserved_economy():
+    # 3 rifles + 2 saving players, plenty of cash kept → half_buy
+    players = [
+        _player(weapon="AK-47", armor=100, money=2000, helmet=True,
+                inv=["AK-47", "Smoke Grenade", "Flashbang"]),
+        _player(weapon="AK-47", armor=100, money=2000, helmet=True,
+                inv=["AK-47", "Smoke Grenade", "Flashbang"]),
+        _player(weapon="AK-47", armor=100, money=1500, helmet=True,
+                inv=["AK-47", "Flashbang"]),
+        _player(weapon="Glock-18", armor=0, money=4500, inv=["Glock-18"]),
+        _player(weapon="Glock-18", armor=0, money=4500, inv=["Glock-18"]),
+    ]
+    assert _classify_team_buy(_metrics(players), is_pistol=False) == "half_buy"
+
+
+def test_classify_team_buy_full_buy_strict_rule():
+    # 5 rifles + helmets + full util + plenty of cash spent → full_buy
+    players = [_player(weapon="AK-47", armor=100, money=0, helmet=True,
+                       inv=["AK-47", "Smoke Grenade", "Flashbang", "Flashbang",
+                            "High Explosive Grenade", "Molotov"]) for _ in range(5)]
+    assert _classify_team_buy(_metrics(players), is_pistol=False) == "full_buy"
+
+
+def test_classify_team_buy_pistol_short_circuits():
+    players = [_player(weapon="AK-47", armor=100, helmet=True,
+                       inv=["AK-47"]) for _ in range(5)]
+    assert _classify_team_buy(_metrics(players), is_pistol=True) == "pistol"
+
+
+def test_classify_contextual_anti_eco():
+    assert _classify_contextual("full_buy", "eco") == "anti_eco"
+    assert _classify_contextual("full_buy", "hard_eco") == "anti_eco"
+    assert _classify_contextual("half_buy", "eco") == "anti_eco"
+
+
+def test_classify_contextual_anti_force():
+    assert _classify_contextual("full_buy", "force_buy") == "anti_force"
+    # Half-buy vs force is NOT anti_force per spec
+    assert _classify_contextual("half_buy", "force_buy") is None
+
+
+def test_classify_contextual_mirrored_and_force_vs_force():
+    assert _classify_contextual("full_buy", "full_buy") == "mirrored_full_buy"
+    assert _classify_contextual("force_buy", "force_buy") == "force_vs_force"
+
+
+def test_classify_contextual_none_for_mismatch():
+    assert _classify_contextual("eco", "full_buy") is None
+    assert _classify_contextual("pistol", "pistol") is None
+
+
+def test_player_primary_falls_back_to_active_weapon_when_no_inventory():
+    """Legacy test fixtures don't supply `inventory` — classifier must still see the AK."""
+    from demo_parser import _player_primary
+    assert _player_primary([], active_weapon="AK-47") == "AK-47"
+    assert _player_primary(None, active_weapon="MP9") == "MP9"
+    assert _player_primary([], active_weapon="") == ""
 
 
 def test_compute_team_stats_counts_force_buy():
@@ -745,11 +810,11 @@ def test_5v4_not_counted_when_no_kills_in_round():
     assert b["five_v_four_played"] == 0
 
 
-def test_compute_team_stats_anti_eco_when_opponent_forces():
-    """User's definition: antieco fires when we are on fullbuy AND opponent is
-    eco OR force. Previous behavior only counted when opponent ecoed.
+def test_compute_team_stats_anti_force_when_opponent_forces():
+    """Per spec §9: full_buy vs force_buy = anti_force (separate from anti_eco).
+    The base buy bucket (full_buy) is still counted alongside the contextual label.
     """
-    # A on fullbuy ($18.5k), B on force ($15.5k = 5x Galil+armor+smoke).
+    # A on full-buy (5x AK + armor), B on force-buy (5x Galil + armor + smoke).
     parsed = {
         "rounds": [
             {"start_tick": 0, "end_tick": 90, "freeze_end_tick": 10,
@@ -778,11 +843,17 @@ def test_compute_team_stats_anti_eco_when_opponent_forces():
     rows = compute_team_stats(parsed)
     a = next(r for r in rows if r["team"] == "a")
     b = next(r for r in rows if r["team"] == "b")
-    assert a["anti_eco_played"] == 1, f"expected a.anti_eco_played=1 (we fullbuy vs their force), got {a['anti_eco_played']}"
-    assert a["anti_eco_wins"]   == 1  # A on CT wins
-    assert a["full_buy_played"] == 0, "anti-eco and fullbuy are mutually exclusive"
-    assert b["force_played"] == 1
-    assert b["anti_eco_played"] == 0  # B isn't on a fullbuy
+    # A is on full-buy AND gets the anti_force contextual label
+    assert a["full_buy_played"]   == 1
+    assert a["full_buy_wins"]     == 1
+    assert a["anti_force_played"] == 1
+    assert a["anti_force_wins"]   == 1
+    # A is NOT anti-eco (B forced, not ecoed)
+    assert a["anti_eco_played"]   == 0
+    # B is on force-buy with no contextual label
+    assert b["force_played"]      == 1
+    assert b["anti_eco_played"]   == 0
+    assert b["anti_force_played"] == 0
 
 
 # --- ADR overkill cap + self/team damage filter ---

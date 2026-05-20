@@ -768,10 +768,23 @@ def parse_demo(dem_path: str) -> dict:
         "none":      [],
     }[_UTIL_MODE]
 
+    # Probe buy-classifier columns (helmet, defuser, Valve's equip value). All three
+    # are standard player props but missing from very old demos — probe so old demos
+    # still parse with the legacy classifier path.
+    _buy_cols_available = False
+    if sampled:
+        try:
+            p.parse_ticks(["has_helmet", "has_defuser", "current_equip_value"], ticks=sampled[:1])
+            _buy_cols_available = True
+            print(f"[parser] buy classifier columns available")
+        except Exception as e:
+            print(f"[parser] buy classifier columns unavailable: {e}")
+    _buy_cols = ["has_helmet", "has_defuser", "current_equip_value"] if _buy_cols_available else []
+
     # Request only the sampled ticks from the parser — never loads the full DataFrame
     tick_df = p.parse_ticks(
         ["X", "Y", "Z", "health", "is_alive", "team_num", "active_weapon_name",
-         "balance", "armor_value", "yaw", "pitch", "flash_duration"] + _util_cols,
+         "balance", "armor_value", "yaw", "pitch", "flash_duration"] + _util_cols + _buy_cols,
         ticks=sampled,
     )
 
@@ -813,21 +826,26 @@ def parse_demo(dem_path: str) -> dict:
         for r in by_tick.get(tick, []):
             team_num = _safe_int(r.get("team_num")) or 2
 
+            # Parse inventory once when available — feeds both grenade flags and the buy classifier.
+            inv_list = None
+            if _UTIL_MODE == "inventory":
+                inv_raw = r.get("inventory") or []
+                if isinstance(inv_raw, str):
+                    try:
+                        import json as _json2; inv_raw = _json2.loads(inv_raw)
+                    except Exception: inv_raw = []
+                inv_list = list(inv_raw)
+
             if _UTIL_MODE == "counts":
                 has_smoke   = _safe_int(r.get("smoke_grenade_count") or 0) > 0
                 has_flash   = _safe_int(r.get("flash_grenade_count") or 0) > 0
                 has_molotov = _safe_int(r.get("molotov_count") or 0) > 0
                 has_he      = _safe_int(r.get("he_grenade_count") or 0) > 0
             elif _UTIL_MODE == "inventory":
-                inv_raw = r.get("inventory") or []
-                if isinstance(inv_raw, str):
-                    try:
-                        import json as _json2; inv_raw = _json2.loads(inv_raw)
-                    except Exception: inv_raw = []
-                has_smoke   = "Smoke Grenade"  in inv_raw
-                has_flash   = "Flashbang"       in inv_raw
-                has_molotov = any(w in inv_raw for w in ("Molotov", "Incendiary Grenade"))
-                has_he      = "High Explosive Grenade" in inv_raw
+                has_smoke   = "Smoke Grenade"  in inv_list
+                has_flash   = "Flashbang"       in inv_list
+                has_molotov = any(w in inv_list for w in ("Molotov", "Incendiary Grenade"))
+                has_he      = "High Explosive Grenade" in inv_list
             else:
                 has_smoke = has_flash = has_molotov = has_he = False
 
@@ -854,6 +872,12 @@ def parse_demo(dem_path: str) -> dict:
                 "has_molotov":    has_molotov,
                 "has_he":         has_he,
             }
+            if _buy_cols_available:
+                entry["has_helmet"]  = bool(r.get("has_helmet") or False)
+                entry["has_defuser"] = bool(r.get("has_defuser") or False)
+                entry["equip_value"] = _safe_int(r.get("current_equip_value"))
+            if inv_list is not None:
+                entry["inventory"] = inv_list
             # flash_duration is 0 for the vast majority of ticks; omit when 0
             # (saves ~7 MB on a 30-min match). Viewer treats absent as 0.
             if fd > 0:
@@ -1051,11 +1075,38 @@ _WEAPON_COSTS = {
     "Knife": 0, "Zeus x27": 200, "Taser": 200, "C4 Explosive": 0, "C4": 0,
 }
 
+# Per-spec weapon-tier sets used by the buy classifier (sections 3 & 4).
+_TOP_TIER_RIFLES = {"AK-47", "M4A4", "M4A1-S", "AUG", "SG 553", "AWP"}
+_MID_TIER_WEAPONS = {
+    # SMGs
+    "MP9", "MAC-10", "UMP-45", "MP7", "P90", "MP5-SD", "PP-Bizon",
+    # Heavy (shotguns / LMGs)
+    "Nova", "XM1014", "MAG-7", "Sawed-Off", "M249", "Negev",
+    # Pistol upgrades the spec lumps in as mid-tier force weapons
+    "Desert Eagle", "Tec-9", "Five-SeveN", "CZ75-Auto", "R8 Revolver", "Dual Berettas",
+    # Light rifles & scout
+    "SSG 08", "FAMAS", "Galil AR",
+}
+_PISTOL_UPGRADES = {"P250", "Tec-9", "Five-SeveN", "CZ75-Auto", "Desert Eagle", "Dual Berettas", "R8 Revolver"}
+_STARTER_PISTOLS = {"Glock-18", "USP-S", "P2000"}
+_RIFLES = {"AK-47", "M4A4", "M4A1-S", "AUG", "SG 553", "FAMAS", "Galil AR", "AWP", "SSG 08", "G3SG1", "SCAR-20"}
+_SMGS = {"MP9", "MAC-10", "UMP-45", "MP7", "P90", "MP5-SD", "PP-Bizon"}
+_UTILITY_COSTS = {
+    "Smoke Grenade": 300, "Flashbang": 200,
+    "Molotov": 400, "Incendiary Grenade": 600,
+    "High Explosive Grenade": 300, "Decoy Grenade": 50,
+}
+
 
 def _player_equip_value(p: dict) -> int:
-    """Approximate per-player equipment value at the sampled tick.
-    Sums active weapon, grenades, and armor (assumes helmet+kevlar when armor>0).
+    """Per-player equipment value at the sampled tick.
+
+    Prefers Valve's authoritative `current_equip_value` (recorded in the demo at every
+    tick) when present. Falls back to summing active weapon + grenade flags + armor
+    for legacy frames missing the new column.
     """
+    if "equip_value" in p:
+        return int(p.get("equip_value") or 0)
     w = (p.get("weapon") or "").strip()
     val = _WEAPON_COSTS.get(w, 0)
     if p.get("has_smoke"):    val += 300
@@ -1090,28 +1141,172 @@ def _is_pistol_round(rounds_in, idx) -> bool:
     return prev_side is not None and this_side is not None and prev_side != this_side
 
 
-# Buy classification thresholds (team-total equip value, not per-player).
-# Eco:     5 saved pistols + maybe a nade per player → well under $5k.
-# Force:   pistols/SMGs/Galils + armor + utility but no full AKs → up to ~$15-17k.
-# Fullbuy: 5 rifles + armor + utility → $18k+ (5xAK+armor alone is $18.5k).
-_ECO_MAX  = 10000
-_FULL_MIN = 18000
+def _player_primary(inv, active_weapon: str = "") -> str:
+    """Pick the highest-tier weapon in the inventory list as the player's primary.
 
-
-def _classify_buy(own_value: int, opp_value: int, is_pistol: bool) -> str:
-    """Classify a team's buy into pistol/eco/force/antieco/fullbuy.
-
-    - pistol:   round 1 of a half
-    - eco:      this team invested almost nothing (saving)
-    - force:    this team spent money but doesn't have full rifles/util
-    - antieco:  this team is on a full-buy AND the opponent is not (eco or force)
-    - fullbuy:  both sides are fully geared
+    Falls back to the player's active weapon when the inventory list isn't
+    available (legacy demos / older test fixtures). Returns "" if no qualifying
+    weapon is found.
     """
-    if is_pistol:                return "pistol"
-    if own_value < _ECO_MAX:     return "eco"
-    if own_value < _FULL_MIN:    return "force"
-    if opp_value < _FULL_MIN:    return "antieco"
-    return "fullbuy"
+    for w in (inv or []):
+        if w in _TOP_TIER_RIFLES: return w
+    for w in (inv or []):
+        if w in _MID_TIER_WEAPONS: return w
+    for w in (inv or []):
+        if w in _PISTOL_UPGRADES: return w
+    for w in (inv or []):
+        if w in _STARTER_PISTOLS: return w
+    if active_weapon:
+        aw = active_weapon.strip()
+        if aw in _TOP_TIER_RIFLES or aw in _MID_TIER_WEAPONS \
+                or aw in _PISTOL_UPGRADES or aw in _STARTER_PISTOLS:
+            return aw
+    return ""
+
+
+def _player_utility_count(inv) -> int:
+    return sum(1 for w in (inv or []) if w in _UTILITY_COSTS)
+
+
+def _player_utility_value(inv) -> int:
+    return sum(_UTILITY_COSTS.get(w, 0) for w in (inv or []))
+
+
+def _player_buy_score(p: dict) -> int:
+    """Per the spec (section 4) — weighted score for a single player at freeze-end.
+
+    Heavier weight on the primary weapon than equipment value alone: a hero AWP
+    on a saving team should not register as a full buy.
+    """
+    inv = p.get("inventory") or []
+    score = 0
+    primary = _player_primary(inv, p.get("weapon", ""))
+    if primary in _TOP_TIER_RIFLES:    score += 55
+    elif primary in _MID_TIER_WEAPONS: score += 35
+    elif primary in _PISTOL_UPGRADES:  score += 15
+    if (p.get("armor") or 0) > 0:      score += 15
+    if p.get("has_helmet"):            score += 5
+    score += min(_player_utility_count(inv) * 4, 16)
+    if p.get("has_defuser"):           score += 5
+    if primary == "AWP":               score += 10
+    return score
+
+
+def _team_buy_metrics(players) -> dict:
+    """Aggregate per-player → team metrics needed for buy classification (spec §11)."""
+    m = {
+        "equip_value":     0,
+        "utility_value":   0,
+        "rifle_count":     0,
+        "smg_count":       0,
+        "armor_players":   0,
+        "remaining_money": 0,
+        "team_buy_score":  0,
+        "alive":           0,
+    }
+    for p in (players or []):
+        inv = p.get("inventory") or []
+        m["equip_value"]     += _player_equip_value(p)
+        m["utility_value"]   += _player_utility_value(inv)
+        primary = _player_primary(inv, p.get("weapon", ""))
+        if primary in _RIFLES or primary == "AWP":
+            m["rifle_count"] += 1
+        elif primary in _SMGS:
+            m["smg_count"]   += 1
+        if (p.get("armor") or 0) > 0:
+            m["armor_players"] += 1
+        m["remaining_money"] += int(p.get("money") or 0)
+        m["team_buy_score"]  += _player_buy_score(p)
+        if p.get("is_alive"):
+            m["alive"] += 1
+    return m
+
+
+def _team_buy_metrics_at_tick(frames, tick, team) -> dict:
+    """Compute team buy metrics from the sampled frame at-or-before `tick`.
+    Filters players to `team` ('ct' or 't'). Returns empty metrics if no frame."""
+    target = None
+    for f in frames or []:
+        if f.get("tick", 0) > tick:
+            break
+        target = f
+    if not target:
+        return _team_buy_metrics([])
+    return _team_buy_metrics([p for p in target.get("players", []) if p.get("team") == team])
+
+
+def _classify_team_buy(m: dict, is_pistol: bool) -> str:
+    """Per spec sections 7.1–7.5 — classify a team into one of:
+    pistol / hard_eco / eco / force_buy / half_buy / full_buy.
+
+    Pistol round overrides equipment-based logic. Otherwise rules apply in order
+    of strictness (full → hard_eco → half → force → eco), with the weighted buy
+    score as the tie-breaker when raw thresholds are ambiguous.
+    """
+    if is_pistol:
+        return "pistol"
+
+    equip     = m["equip_value"]
+    util      = m["utility_value"]
+    rifles    = m["rifle_count"]
+    smgs      = m["smg_count"]
+    armor_n   = m["armor_players"]
+    remaining = m["remaining_money"]
+    score     = m["team_buy_score"]
+
+    # Full buy — strict spec rule (§7.5) OR very high weighted score.
+    if rifles >= 3 and armor_n >= 4 and util >= 2500 and equip >= 22000:
+        return "full_buy"
+    if score >= 300:
+        return "full_buy"
+
+    # Hard eco — pistols only, almost nothing bought (§7.1).
+    if equip < 7000 and rifles == 0 and util < 1000 and score < 80:
+        return "hard_eco"
+
+    # Half buy — meaningful spend while preserving economy (§7.4).
+    if equip >= 16000 and equip < 26000 and remaining >= 7000 * max(m["alive"], 1) // 5:
+        # Per-player average remaining ≥ $1400 → economy preserved
+        return "half_buy"
+    if score >= 220 and score < 300 and remaining >= 7000:
+        return "half_buy"
+
+    # Eco — light spend, mostly pistols (§7.2). Checked BEFORE score-based force
+    # so that P250 + armor buys (score ~150, no rifles) classify as eco, not force.
+    if equip < 14000 and rifles <= 1 and smgs == 0:
+        return "eco"
+
+    # Force buy — spent money but broken economy / mixed weapons (§7.3).
+    if equip >= 10000 and equip < 24000 and remaining < 4000:
+        return "force_buy"
+    if rifles + smgs >= 3 and remaining < 5000 and equip < 22000:
+        return "force_buy"
+    if score >= 140 and score < 220:
+        return "force_buy"
+
+    # Score-based fallback for ambiguous cases
+    if score < 140:
+        return "eco"
+    if score < 220:
+        return "force_buy"
+    if score < 300:
+        return "half_buy"
+    return "full_buy"
+
+
+def _classify_contextual(my_buy: str, opp_buy: str):
+    """Per spec §8–9. Returns 'anti_eco' / 'anti_force' / 'mirrored_full_buy' /
+    'force_vs_force' / None. These are LABELS layered on top of the base buy type.
+    """
+    if my_buy in ("full_buy", "half_buy") and opp_buy in ("eco", "hard_eco"):
+        return "anti_eco"
+    if my_buy == "full_buy" and opp_buy == "force_buy":
+        return "anti_force"
+    if my_buy == "full_buy" and opp_buy == "full_buy":
+        return "mirrored_full_buy"
+    if my_buy == "force_buy" and opp_buy == "force_buy":
+        return "force_vs_force"
+    return None
 
 
 def build_slim_payload(parsed: dict) -> dict:
@@ -1134,18 +1329,22 @@ def build_slim_payload(parsed: dict) -> dict:
         team_a_side = r.get("team_a_side")
         team_b_side = "t" if team_a_side == "ct" else ("ct" if team_a_side == "t" else None)
         is_pistol = _is_pistol_round(rounds_in, i)
-        val_a = _team_equip_value_at_tick(frames_in, freeze_end_tick, team_a_side) if team_a_side else 0
-        val_b = _team_equip_value_at_tick(frames_in, freeze_end_tick, team_b_side) if team_b_side else 0
+        metrics_a = _team_buy_metrics_at_tick(frames_in, freeze_end_tick, team_a_side) if team_a_side else _team_buy_metrics([])
+        metrics_b = _team_buy_metrics_at_tick(frames_in, freeze_end_tick, team_b_side) if team_b_side else _team_buy_metrics([])
+        buy_a = _classify_team_buy(metrics_a, is_pistol)
+        buy_b = _classify_team_buy(metrics_b, is_pistol)
         rounds_out.append({
-            "idx":               i,
-            "side_team_a":       team_a_side,
-            "freeze_end_tick":   freeze_end_tick,
-            "end_tick":          int(r.get("end_tick", 0)),
-            "winner":            r.get("winner_side"),
-            "won_by":            _slim_won_by(r.get("reason")),
-            "bomb_planted_site": r.get("bomb_planted_site"),
-            "buy_type_a":        _classify_buy(val_a, val_b, is_pistol),
-            "buy_type_b":        _classify_buy(val_b, val_a, is_pistol),
+            "idx":                i,
+            "side_team_a":        team_a_side,
+            "freeze_end_tick":    freeze_end_tick,
+            "end_tick":           int(r.get("end_tick", 0)),
+            "winner":             r.get("winner_side"),
+            "won_by":             _slim_won_by(r.get("reason")),
+            "bomb_planted_site":  r.get("bomb_planted_site"),
+            "buy_type_a":         buy_a,
+            "buy_type_b":         buy_b,
+            "context_a":          _classify_contextual(buy_a, buy_b),
+            "context_b":          _classify_contextual(buy_b, buy_a),
         })
 
     frames_out = []
@@ -1708,10 +1907,13 @@ def compute_team_stats(parsed: dict) -> list[dict]:
                 "first_kills": 0, "first_deaths": 0,
                 "first_kills_t": 0, "first_kills_ct": 0,
                 "first_deaths_t": 0, "first_deaths_ct": 0,
+                "hard_eco_wins": 0, "hard_eco_played": 0,
                 "eco_wins": 0, "eco_played": 0,
                 "force_wins": 0, "force_played": 0,
-                "anti_eco_wins": 0, "anti_eco_played": 0,
+                "half_buy_wins": 0, "half_buy_played": 0,
                 "full_buy_wins": 0, "full_buy_played": 0,
+                "anti_eco_wins": 0, "anti_eco_played": 0,
+                "anti_force_wins": 0, "anti_force_played": 0,
                 "bomb_plants": 0, "bomb_defuses": 0,
                 "ct_round_wins": 0, "ct_rounds_played": 0,
                 "t_round_wins": 0, "t_rounds_played": 0,
@@ -1771,25 +1973,39 @@ def compute_team_stats(parsed: dict) -> list[dict]:
                         b["five_v_four_wins"]             += 1
                         b[f"five_v_four_{b_side}_wins"]   += 1
 
-            # Buy classification — needs equip values per team
-            a_equip = _team_equip_value_at_tick(frames, rnd.get("freeze_end_tick", rnd["start_tick"]), a_side)
-            b_equip = _team_equip_value_at_tick(frames, rnd.get("freeze_end_tick", rnd["start_tick"]), b_side)
+            # Buy classification — spec-driven (weighted score + raw thresholds).
+            freeze_tick = rnd.get("freeze_end_tick", rnd["start_tick"])
+            a_metrics = _team_buy_metrics_at_tick(frames, freeze_tick, a_side)
+            b_metrics = _team_buy_metrics_at_tick(frames, freeze_tick, b_side)
             is_pistol = _is_pistol_round(rounds, ri)
-            a_buy = _classify_buy(a_equip, b_equip, is_pistol)
-            b_buy = _classify_buy(b_equip, a_equip, is_pistol)
-            for team, buy, side in ((a, a_buy, a_side), (b, b_buy, b_side)):
-                if buy == "eco":
-                    team["eco_played"] += 1
-                    if winner == side: team["eco_wins"] += 1
-                elif buy == "force":
-                    team["force_played"] += 1
-                    if winner == side: team["force_wins"] += 1
-                elif buy == "antieco":
+            a_buy = _classify_team_buy(a_metrics, is_pistol)
+            b_buy = _classify_team_buy(b_metrics, is_pistol)
+            # Pistol round is bucketed under "pistol_*" only (already counted above);
+            # don't double-count it in any economy bucket.
+            _BUY_BUCKETS = {
+                "hard_eco": ("hard_eco_played", "hard_eco_wins"),
+                "eco":      ("eco_played",      "eco_wins"),
+                "force_buy": ("force_played",   "force_wins"),
+                "half_buy": ("half_buy_played", "half_buy_wins"),
+                "full_buy": ("full_buy_played", "full_buy_wins"),
+            }
+            for team, buy, opp_buy, side in (
+                (a, a_buy, b_buy, a_side),
+                (b, b_buy, a_buy, b_side),
+            ):
+                bucket = _BUY_BUCKETS.get(buy)
+                if bucket:
+                    p_col, w_col = bucket
+                    team[p_col] += 1
+                    if winner == side: team[w_col] += 1
+                # Contextual labels (anti_eco, anti_force) are layered counters
+                ctx = _classify_contextual(buy, opp_buy)
+                if ctx == "anti_eco":
                     team["anti_eco_played"] += 1
                     if winner == side: team["anti_eco_wins"] += 1
-                elif buy == "fullbuy":
-                    team["full_buy_played"] += 1
-                    if winner == side: team["full_buy_wins"] += 1
+                elif ctx == "anti_force":
+                    team["anti_force_played"] += 1
+                    if winner == side: team["anti_force_wins"] += 1
 
         # Bomb plants/defuses
         for ev in bomb:
