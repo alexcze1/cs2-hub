@@ -8,6 +8,7 @@ import sys
 import traceback
 import uuid
 import datetime
+from concurrent.futures import ProcessPoolExecutor
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -39,6 +40,12 @@ POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", "10"))
 STUCK_MINUTES = 2
 DEMOS_DIR     = Path("/opt/midround/demos")
 
+# Parser concurrency. parse_demo is CPU-bound (demoparser2 + Python loops) so
+# multiple demos can only parse in parallel via separate processes — threads
+# serialize on the GIL. Default leaves one core for FastAPI + DB + HLTV ingest.
+PARSE_WORKERS = int(os.getenv("PARSE_WORKERS", str(max(1, min((os.cpu_count() or 2) - 1, 4)))))
+_parse_pool: ProcessPoolExecutor | None = None
+
 # HLTV ingest loop: how often to scan + how far back to scan each cycle.
 # 24h interval with a 2-day window gives 1-day overlap to catch matches posted
 # late after the previous cycle.
@@ -50,12 +57,16 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global _parse_pool
     DEMOS_DIR.mkdir(parents=True, exist_ok=True)
+    _parse_pool = ProcessPoolExecutor(max_workers=PARSE_WORKERS)
+    print(f"Parser pool started with {PARSE_WORKERS} worker(s)")
     poll_task   = asyncio.create_task(_poll_loop())
     ingest_task = asyncio.create_task(_hltv_ingest_loop())
     yield
     poll_task.cancel()
     ingest_task.cancel()
+    _parse_pool.shutdown(wait=False, cancel_futures=True)
 
 app = FastAPI(lifespan=lifespan)
 
@@ -199,8 +210,12 @@ def _fetch_pending():
 async def _process_pending():
     loop = asyncio.get_event_loop()
     demos = await loop.run_in_executor(None, _fetch_pending)
-    for demo in demos:
-        await _process_one(demo)
+    if not demos:
+        return
+    # Run the batch concurrently — parse_demo is offloaded to the process pool
+    # (PARSE_WORKERS workers), DB/storage steps share the default thread pool.
+    # asyncio.gather lets multiple demos overlap their I/O + CPU phases.
+    await asyncio.gather(*(_process_one(d) for d in demos), return_exceptions=True)
 
 
 def _db_set_processing(demo_id):
@@ -399,7 +414,8 @@ async def _process_one(demo: dict):
                 tmp.write(file_bytes)
                 tmp_path = tmp.name
 
-        match_data = await loop.run_in_executor(None, parse_demo, tmp_path)
+        # CPU-bound parse runs in a worker process to bypass the GIL.
+        match_data = await loop.run_in_executor(_parse_pool, parse_demo, tmp_path)
         slim_data  = build_slim_payload(match_data)
 
         meta     = match_data["meta"]
