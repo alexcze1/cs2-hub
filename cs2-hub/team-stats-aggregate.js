@@ -35,10 +35,13 @@ function sumOne(rows, key) {
 export function aggregateTeamStats(rows) {
   const pistols      = sumWinsPlayed(rows, 'pistol_wins',       'pistol_played')
   const five_v_four  = sumWinsPlayed(rows, 'five_v_four_wins',  'five_v_four_played')
+  const hard_eco     = sumWinsPlayed(rows, 'hard_eco_wins',     'hard_eco_played')
   const eco          = sumWinsPlayed(rows, 'eco_wins',          'eco_played')
   const force        = sumWinsPlayed(rows, 'force_wins',        'force_played')
-  const anti_ecos    = sumWinsPlayed(rows, 'anti_eco_wins',     'anti_eco_played')
+  const half_buy     = sumWinsPlayed(rows, 'half_buy_wins',     'half_buy_played')
   const full_buy     = sumWinsPlayed(rows, 'full_buy_wins',     'full_buy_played')
+  const anti_ecos    = sumWinsPlayed(rows, 'anti_eco_wins',     'anti_eco_played')
+  const anti_force   = sumWinsPlayed(rows, 'anti_force_wins',   'anti_force_played')
   const ct           = sumWinsPlayed(rows, 'ct_round_wins',     'ct_rounds_played')
   const t            = sumWinsPlayed(rows, 't_round_wins',      't_rounds_played')
 
@@ -50,8 +53,11 @@ export function aggregateTeamStats(rows) {
   return {
     pistols:      { ...pistols,     pct: pct(pistols.wins,     pistols.played) },
     anti_ecos:    { ...anti_ecos,   pct: pct(anti_ecos.wins,   anti_ecos.played) },
+    anti_force:   { ...anti_force,  pct: pct(anti_force.wins,  anti_force.played) },
+    hard_eco:     { ...hard_eco,    pct: pct(hard_eco.wins,    hard_eco.played) },
     eco:          { ...eco,         pct: pct(eco.wins,         eco.played) },
-    force:        { ...force },  // no pct
+    force:        { ...force,       pct: pct(force.wins,       force.played) },
+    half_buy:     { ...half_buy,    pct: pct(half_buy.wins,    half_buy.played) },
     full_buy:     { ...full_buy,    pct: pct(full_buy.wins,    full_buy.played) },
     first_kills,
     first_deaths,
@@ -89,8 +95,11 @@ export function computeDeltas(current, prior, { minPlayed = 10 } = {}) {
   return {
     pistols:      withDelta('pistols'),
     anti_ecos:    withDelta('anti_ecos'),
+    anti_force:   withDelta('anti_force'),
+    hard_eco:     withDelta('hard_eco'),
     eco:          withDelta('eco'),
-    force:        withoutDelta('force'),
+    force:        withDelta('force'),
+    half_buy:     withDelta('half_buy'),
     full_buy:     withDelta('full_buy'),
     first_kills:  current.first_kills,
     first_deaths: current.first_deaths,

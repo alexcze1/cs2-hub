@@ -93,10 +93,13 @@ function aggregateTeamPlayers(rows) {
 // Tile shape: { label, value (string), sub (string|null) }
 function economyTiles(view) {
   return [
-    { label: 'Eco wins',     value: fmtPct(view.eco.pct),       sub: fmtWL(view.eco.wins, view.eco.played) },
-    { label: 'Force buy',    value: fmtWL(view.force.wins, view.force.played), sub: null },
-    { label: 'Anti-eco',     value: fmtPct(view.anti_ecos.pct), sub: fmtWL(view.anti_ecos.wins, view.anti_ecos.played) },
-    { label: 'Full buy',     value: fmtPct(view.full_buy.pct),  sub: fmtWL(view.full_buy.wins, view.full_buy.played) },
+    { label: 'Hard eco',  value: fmtPct(view.hard_eco.pct),   sub: fmtWL(view.hard_eco.wins,  view.hard_eco.played) },
+    { label: 'Eco wins',  value: fmtPct(view.eco.pct),        sub: fmtWL(view.eco.wins,       view.eco.played) },
+    { label: 'Force buy', value: fmtPct(view.force.pct),      sub: fmtWL(view.force.wins,     view.force.played) },
+    { label: 'Half buy',  value: fmtPct(view.half_buy.pct),   sub: fmtWL(view.half_buy.wins,  view.half_buy.played) },
+    { label: 'Full buy',  value: fmtPct(view.full_buy.pct),   sub: fmtWL(view.full_buy.wins,  view.full_buy.played) },
+    { label: 'Anti-eco',  value: fmtPct(view.anti_ecos.pct),  sub: fmtWL(view.anti_ecos.wins, view.anti_ecos.played) },
+    { label: 'Anti-force',value: fmtPct(view.anti_force.pct), sub: fmtWL(view.anti_force.wins, view.anti_force.played) },
   ]
 }
 
@@ -183,10 +186,13 @@ export function renderAdvancedTeamStats(container, { teamStatsRows, playerRowsAl
   // the aggregate directly (wrapped to match tile readers).
   const flatView = {
     pistols:     view.pistols,
+    hard_eco:    view.hard_eco,
     eco:         view.eco,
     force:       view.force,
-    anti_ecos:   view.anti_ecos,
+    half_buy:    view.half_buy,
     full_buy:    view.full_buy,
+    anti_ecos:   view.anti_ecos,
+    anti_force:  view.anti_force,
     five_v_four: view.five_v_four,
     first_kills: view.first_kills,
     first_deaths: view.first_deaths,

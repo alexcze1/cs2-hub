@@ -37,8 +37,11 @@ function fmtCount(n) { return n == null ? '—' : String(n) }
 const TILES = [
   { label: 'Pistols',         format: r => r ? fmtWLPct(r.pistol_wins,      r.pistol_played)     : '—' },
   { label: 'Anti-ecos',       format: r => r ? fmtWLPct(r.anti_eco_wins,    r.anti_eco_played)   : '—' },
+  { label: 'Anti-force',      format: r => r ? fmtWLPct(r.anti_force_wins,  r.anti_force_played) : '—' },
+  { label: 'Hard eco wins',   format: r => r ? fmtWLPct(r.hard_eco_wins,    r.hard_eco_played)   : '—' },
   { label: 'Eco wins',        format: r => r ? fmtWLPct(r.eco_wins,         r.eco_played)        : '—' },
-  { label: 'Force-buy wins',  format: r => r ? fmtWL(r.force_wins,          r.force_played)      : '—' },
+  { label: 'Force-buy wins',  format: r => r ? fmtWLPct(r.force_wins,       r.force_played)      : '—' },
+  { label: 'Half-buy wins',   format: r => r ? fmtWLPct(r.half_buy_wins,    r.half_buy_played)   : '—' },
   { label: 'Full-buy wins',   format: r => r ? fmtWLPct(r.full_buy_wins,    r.full_buy_played)   : '—' },
   { label: 'First kills',     format: r => r ? fmtCount(r.first_kills)  : '—' },
   { label: 'First deaths',    format: r => r ? fmtCount(r.first_deaths) : '—' },

@@ -18,12 +18,16 @@ const MIN_SIDE_SAMPLE = 24    // rounds played for a side (CT/T) to be eligible
 // Candidates: array of { key, label, wins, played, kind }
 function weaknessCandidates(agg) {
   return [
-    { key: 'pistols',   label: 'Pistol rounds', ...agg.pistols,   min: MIN_AREA_SAMPLE },
-    { key: 'eco',       label: 'Eco rounds',    ...agg.eco,       min: MIN_AREA_SAMPLE },
-    { key: 'anti_ecos', label: 'Anti-eco',      ...agg.anti_ecos, min: MIN_AREA_SAMPLE },
-    { key: 'full_buy',  label: 'Full-buy',      ...agg.full_buy,  min: MIN_AREA_SAMPLE },
-    { key: 'ct',        label: 'CT side',       ...agg.ct,        min: MIN_SIDE_SAMPLE },
-    { key: 't',         label: 'T side',        ...agg.t,         min: MIN_SIDE_SAMPLE },
+    { key: 'pistols',    label: 'Pistol rounds', ...agg.pistols,    min: MIN_AREA_SAMPLE },
+    { key: 'hard_eco',   label: 'Hard eco',      ...agg.hard_eco,   min: MIN_AREA_SAMPLE },
+    { key: 'eco',        label: 'Eco rounds',    ...agg.eco,        min: MIN_AREA_SAMPLE },
+    { key: 'force',      label: 'Force buy',     ...agg.force,      min: MIN_AREA_SAMPLE },
+    { key: 'half_buy',   label: 'Half buy',      ...agg.half_buy,   min: MIN_AREA_SAMPLE },
+    { key: 'full_buy',   label: 'Full-buy',      ...agg.full_buy,   min: MIN_AREA_SAMPLE },
+    { key: 'anti_ecos',  label: 'Anti-eco',      ...agg.anti_ecos,  min: MIN_AREA_SAMPLE },
+    { key: 'anti_force', label: 'Anti-force',    ...agg.anti_force, min: MIN_AREA_SAMPLE },
+    { key: 'ct',         label: 'CT side',       ...agg.ct,         min: MIN_SIDE_SAMPLE },
+    { key: 't',          label: 'T side',        ...agg.t,          min: MIN_SIDE_SAMPLE },
   ]
 }
 

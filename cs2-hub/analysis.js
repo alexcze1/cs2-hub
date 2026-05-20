@@ -22,7 +22,7 @@ const state = {
     side:       'ct',        // 'ct' | 't' | 'both'
     opponent:   'any',       // 'any' | string
     matchIds:   null,        // Set<string> | null (null = all matches for current map)
-    buyTypes:   new Set(),   // Set<'fullbuy'|'antieco'|'eco'|'pistol'> — empty = all
+    buyTypes:   new Set(),   // Set<'full_buy'|'half_buy'|'force_buy'|'eco'|'hard_eco'|'pistol'> — empty = all
   },
   corpus:      [],           // [{id, map, played_at, ct_team_name, t_team_name, ...}]
   slimCache:   new Map(),    // demoId → slim payload
@@ -205,8 +205,15 @@ function renderFilterRail() {
   )
   // matchIds null means "all" — turn into Set on first interaction.
   const selectedIds = state.filters.matchIds ?? new Set(demosForMap.map(d => d.id))
-  const buyTypes    = ['fullbuy', 'antieco', 'eco', 'pistol']
-  const buyLabel    = { fullbuy: 'Full', antieco: 'Anti-eco', eco: 'Eco', pistol: 'Pistol' }
+  const buyTypes    = ['full_buy', 'half_buy', 'force_buy', 'eco', 'hard_eco', 'pistol']
+  const buyLabel    = {
+    full_buy:  'Full',
+    half_buy:  'Half',
+    force_buy: 'Force',
+    eco:       'Eco',
+    hard_eco:  'Hard eco',
+    pistol:    'Pistol',
+  }
 
   rail.innerHTML = `
     <button class="filter-rail-toggle" id="f-toggle" title="Collapse">‹</button>
