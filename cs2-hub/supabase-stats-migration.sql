@@ -73,3 +73,12 @@ create policy "team stats follow demo"
 -- 6. Ship 3: anti-eco counters (rounds where opponent was on eco)
 alter table demo_team_stats add column if not exists anti_eco_wins   int;
 alter table demo_team_stats add column if not exists anti_eco_played int;
+
+-- 7. Ship 4: spec-driven economy classification — hard_eco / half_buy / anti_force
+-- (eco / force_buy / full_buy / anti_eco already exist as columns above).
+alter table demo_team_stats add column if not exists hard_eco_wins   int;
+alter table demo_team_stats add column if not exists hard_eco_played int;
+alter table demo_team_stats add column if not exists half_buy_wins   int;
+alter table demo_team_stats add column if not exists half_buy_played int;
+alter table demo_team_stats add column if not exists anti_force_wins   int;
+alter table demo_team_stats add column if not exists anti_force_played int;
