@@ -452,7 +452,7 @@ async function maybeAutoOpenAssignModal(updated) {
     if (_autoModalShown.has(updated.series_id)) return
     const { data: sib } = await supabase
       .from('demos')
-      .select('id,series_id,match_data,ct_team_name,t_team_name,created_at,status')
+      .select('id,series_id,match_data_url,ct_team_name,t_team_name,created_at,status')
       .eq('series_id', updated.series_id)
       .order('created_at', { ascending: true })
     if (!sib?.length) return

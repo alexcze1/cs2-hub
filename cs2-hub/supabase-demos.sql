@@ -140,3 +140,45 @@ alter table demos add column if not exists match_data_slim jsonb;
 -- Indexes covering the common analysis lookup: "all demos where team T played map M"
 create index if not exists demos_ct_team_map_idx on demos (ct_team_name, map);
 create index if not exists demos_t_team_map_idx  on demos (t_team_name,  map);
+
+-- Migration 2026-05-21: move match_data out of jsonb into Storage as gzipped JSON.
+-- A 43 MB jsonb UPDATE through the Supabase pooler from the parser VPS was hitting
+-- the 240 s asyncio cap before the statement could finish uploading. match_data_slim
+-- (~12 MB) stays in Postgres because analysis.html joins it across many demos.
+--
+-- match_data_url stores the storage object path: '{team_id}/{demo_id}.json.gz'.
+-- NULL means "not migrated yet — read from the legacy match_data jsonb column".
+alter table demos add column if not exists match_data_url text;
+
+-- Storage bucket for the gzipped match_data blobs. Private; same team-scoping
+-- pattern as the existing 'demos' bucket. Path conventions:
+--   '{team_id}/{demo_id}.json.gz' for team-uploaded demos
+--   'public/{demo_id}.json.gz'    for HLTV-ingested public demos (team_id IS NULL)
+insert into storage.buckets (id, name, public)
+values ('match-data', 'match-data', false)
+on conflict do nothing;
+
+drop policy if exists "team_match_data_storage_select"  on storage.objects;
+drop policy if exists "public_match_data_storage_read"  on storage.objects;
+
+create policy "team_match_data_storage_select" on storage.objects
+  for select to authenticated
+  using (
+    bucket_id = 'match-data'
+    AND (storage.foldername(name))[1] IN (
+      select distinct team_id::text from demos where uploaded_by = auth.uid()
+    )
+  );
+
+-- Public-read for HLTV-ingested demos under the 'public/' prefix. Matches the
+-- 'public_demos_read' RLS on the demos table itself so unauthenticated visitors
+-- can view public match data.
+create policy "public_match_data_storage_read" on storage.objects
+  for select to anon, authenticated
+  using (
+    bucket_id = 'match-data'
+    AND (storage.foldername(name))[1] = 'public'
+  );
+
+-- Inserts and deletes happen from the VPS service-role key, which bypasses RLS.
+-- No insert/delete policies for authenticated users — they should never write here.

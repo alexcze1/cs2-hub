@@ -6,6 +6,7 @@ import { toast } from './toast.js'
 import { attachTeamAutocomplete } from './team-autocomplete.js'
 import { narrowRoundsForTeam, framesForRound, grenadesForRound } from './analysis-rounds.js'
 import { worldToCanvas } from './demo-map-data.js'
+import { loadMatchData } from './match-data-fetch.js'
 
 await requireAuth()
 renderSidebar('analysis')
@@ -786,9 +787,9 @@ async function fetchFullMatch(demoId) {
   showChip('Loading round details…', 'info')
   try {
     const { data, error } = await supabase
-      .from('demos').select('match_data').eq('id', demoId).single()
+      .from('demos').select('match_data, match_data_url').eq('id', demoId).single()
     if (error) throw error
-    const full = data?.match_data
+    const full = await loadMatchData(data)
     if (!full) { showChip('No full data available for this demo', 'warn'); return null }
     state.fullCache.set(demoId, full)
     while (state.fullCache.size > FULL_CACHE_MAX) {

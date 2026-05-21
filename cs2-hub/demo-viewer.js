@@ -9,6 +9,7 @@ import { openSavePopoverFor, closeSavePopover, isPopoverOpen } from './save-popo
 import { findRoundMemberships } from './playlists.js'
 import { mountScoreboard }      from './scoreboard.js'
 import { isCoach }              from './demo-player-filters.js'
+import { loadMatchData, hydrateMatchData } from './match-data-fetch.js'
 
 // Note: requireAuth() runs AFTER we fetch the demo. Public (HLTV-ingested)
 // demos are readable by anon visitors via RLS — we only enforce auth for
@@ -49,7 +50,7 @@ const loadingEl = document.getElementById('viewer-loading')
 
 const { data: demo, error } = await supabase
   .from('demos')
-  .select('is_public,match_data,map,status,ct_team_name,t_team_name,team_a_first_side,team_a_score,team_b_score,series_id')
+  .select('is_public,match_data_url,map,status,ct_team_name,t_team_name,team_a_first_side,team_a_score,team_b_score,series_id')
   .eq('id', demoId)
   .single()
 
@@ -78,10 +79,10 @@ if (!demo.is_public && (!demo.ct_team_name || !demo.t_team_name)) {
   if (demo.series_id) {
     const { data: sib } = await supabase
       .from('demos')
-      .select('id,series_id,match_data,ct_team_name,t_team_name,created_at')
+      .select('id,series_id,match_data_url,ct_team_name,t_team_name,created_at')
       .eq('series_id', demo.series_id)
       .order('created_at', { ascending: true })
-    if (sib?.length) target = sib
+    if (sib?.length) target = await hydrateMatchData(sib)
   }
   const result = await showAssignTeamsModal(target, {
     onCancel: () => { window.location.href = 'demos.html' },
@@ -93,7 +94,11 @@ if (!demo.is_public && (!demo.ct_team_name || !demo.t_team_name)) {
   throw new Error('awaiting team names')
 }
 
-state.match         = demo.match_data
+state.match         = await loadMatchData(demo)
+if (!state.match) {
+  loadingEl.textContent = 'Could not load match data.'
+  throw new Error('match_data load failed')
+}
 state.match.rounds  = state.match.rounds ?? []
 state.match.frames  = state.match.frames ?? []
 state.match.kills    = state.match.kills     ?? []

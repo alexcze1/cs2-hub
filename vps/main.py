@@ -1,5 +1,6 @@
 # vps/main.py
 import asyncio
+import gzip
 import json
 import os
 import shutil
@@ -236,12 +237,31 @@ def _db_set_error(demo_id, msg):
             )
 
 
-def _db_write_results(demo_id, meta, ct_score, t_score, match_data, slim_data):
+def _db_write_results(demo_id, team_id, meta, ct_score, t_score, match_data, slim_data):
     print(f"[db] serializing match_data (frames={len(match_data.get('frames', []))}) ...")
     match_json = json.dumps(match_data)
     slim_json  = json.dumps(slim_data)
     print(f"[db] match_data JSON size: {len(match_json) / 1024 / 1024:.1f} MB")
     print(f"[db] match_data_slim JSON size: {len(slim_json) / 1024 / 1024:.2f} MB")
+
+    # match_data goes to Storage (gzipped) — the 40+ MB jsonb UPDATE was hitting
+    # the 240 s asyncio cap before the statement could even finish uploading
+    # through the cross-region pooler. Storage handles the blob; Postgres only
+    # gets the path + the small slim payload that analysis.html joins on.
+    match_gz = gzip.compress(match_json.encode("utf-8"), compresslevel=6)
+    print(f"[storage] match_data gzipped: {len(match_gz) / 1024 / 1024:.2f} MB")
+    # HLTV-ingested demos have team_id=NULL; bucket them under 'public/' so the
+    # storage RLS policy can grant anon read access to those (matches the public
+    # RLS on the demos table itself).
+    storage_path = f"{team_id or 'public'}/{demo_id}.json.gz"
+    # x-upsert lets a re-parse overwrite a previous upload for the same demo.
+    supabase.storage.from_("match-data").upload(
+        storage_path,
+        match_gz,
+        file_options={"content-type": "application/gzip", "x-upsert": "true"},
+    )
+    print(f"[storage] uploaded to match-data/{storage_path}")
+
     with get_db() as conn:
         with conn.cursor() as cur:
             print(f"[db] writing to postgres ...")
@@ -257,7 +277,8 @@ def _db_write_results(demo_id, meta, ct_score, t_score, match_data, slim_data):
                      team_a_first_side = %s,
                      duration_ticks = %s,
                      tick_rate = %s,
-                     match_data = %s,
+                     match_data = NULL,
+                     match_data_url = %s,
                      match_data_slim = %s
                    WHERE id = %s""",
                 (
@@ -270,7 +291,7 @@ def _db_write_results(demo_id, meta, ct_score, t_score, match_data, slim_data):
                     meta.get("team_a_first_side"),
                     meta["total_ticks"],
                     meta["tick_rate"],
-                    match_json,
+                    storage_path,
                     slim_json,
                     demo_id,
                 ),
@@ -395,6 +416,7 @@ def write_stats_for_demo(demo_id: str, parsed: dict) -> None:
 
 async def _process_one(demo: dict):
     demo_id      = demo["id"]
+    team_id      = demo["team_id"]
     storage_path = demo["storage_path"]
     is_local     = storage_path.startswith("local:")
     is_public    = bool(demo.get("is_public"))
@@ -430,7 +452,7 @@ async def _process_one(demo: dict):
         try:
             await asyncio.wait_for(
                 loop.run_in_executor(
-                    None, _db_write_results, demo_id, meta, ct_score, t_score, match_data, slim_data
+                    None, _db_write_results, demo_id, team_id, meta, ct_score, t_score, match_data, slim_data
                 ),
                 timeout=240,
             )

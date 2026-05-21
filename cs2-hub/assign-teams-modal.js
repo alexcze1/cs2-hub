@@ -4,6 +4,7 @@
 import { supabase } from './supabase.js'
 import { attachTeamAutocomplete } from './team-autocomplete.js'
 import { detectRosters, namesForDemo } from './assign-teams.js'
+import { loadMatchData, hydrateMatchData } from './match-data-fetch.js'
 import {
   findCandidateVods,
   pickBestVod,
@@ -105,14 +106,14 @@ export async function showAssignTeamsModal(demoIdOrSeries, opts = {}) {
   } else {
     const { data: d, error } = await supabase
       .from('demos')
-      .select('id,series_id,match_data,ct_team_name,t_team_name,created_at,team_id,played_at,team_a_score,team_b_score,team_a_first_side,map')
+      .select('id,series_id,match_data_url,ct_team_name,t_team_name,created_at,team_id,played_at,team_a_score,team_b_score,team_a_first_side,map')
       .eq('id', demoIdOrSeries)
       .single()
     if (error || !d) { alert('Could not load demo data.'); return }
     if (d.series_id) {
       const { data: sib } = await supabase
         .from('demos')
-        .select('id,series_id,match_data,ct_team_name,t_team_name,created_at,team_id,played_at,team_a_score,team_b_score,team_a_first_side,map')
+        .select('id,series_id,match_data_url,ct_team_name,t_team_name,created_at,team_id,played_at,team_a_score,team_b_score,team_a_first_side,map')
         .eq('series_id', d.series_id)
         .order('created_at', { ascending: true })
       demos = sib || [d]
@@ -120,6 +121,7 @@ export async function showAssignTeamsModal(demoIdOrSeries, opts = {}) {
       demos = [d]
     }
   }
+  await hydrateMatchData(demos)
   if (!demos.length || !demos[0].match_data) { alert('No demo data.'); return }
 
   const { rosterA, rosterB, confident } = detectRosters(demos)
@@ -217,12 +219,14 @@ export async function showAssignTeamsModal(demoIdOrSeries, opts = {}) {
 export async function showLegacyBySideModal(demoId, opts = {}) {
   const { data, error } = await supabase
     .from('demos')
-    .select('match_data,ct_team_name,t_team_name,series_id,team_id,map,played_at,created_at,team_a_score,team_b_score,team_a_first_side')
+    .select('match_data_url,ct_team_name,t_team_name,series_id,team_id,map,played_at,created_at,team_a_score,team_b_score,team_a_first_side')
     .eq('id', demoId)
     .single()
-  if (error || !data?.match_data) { alert('Could not load demo data.'); return null }
-  const firstFrame = data.match_data.frames?.[0]
-  const meta = data.match_data.players_meta ?? {}
+  if (error || !data) { alert('Could not load demo data.'); return null }
+  const match_data = await loadMatchData(data)
+  if (!match_data) { alert('Could not load demo data.'); return null }
+  const firstFrame = match_data.frames?.[0]
+  const meta = match_data.players_meta ?? {}
   const nameOf = p => meta[p.steam_id]?.name ?? p.name ?? ''
   const ctPlayers  = (firstFrame?.players ?? []).filter(p => p.team === 'ct').map(nameOf)
   const tPlayers   = (firstFrame?.players ?? []).filter(p => p.team === 't').map(nameOf)
