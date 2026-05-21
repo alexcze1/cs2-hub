@@ -81,6 +81,75 @@ function assert(cond, msg) {
   assert(root.querySelector('.rr-empty'), 'empty state rendered')
 }
 
+// ---- Unlinked demo contributes to plays/W/L ----
+{
+  const vods = [{ maps: [{ map: 'mirage', score_us: 13, score_them: 8 }] }]
+  // Our team is on T-side first, t_team_name='NAVI'. They started T → team_a_first_side='t'.
+  // team_a = NAVI = us. team_b = opponent. team_a_score 13 vs team_b_score 7 → we win 13-7.
+  const demos = [{
+    id: 'd1', map: 'de_mirage',
+    ct_team_name: 'FaZe', t_team_name: 'NAVI',
+    team_a_score: 13, team_b_score: 7, team_a_first_side: 't',
+  }]
+  const out = computeMapPool(vods, { unlinkedDemos: demos, ourTeamName: 'NAVI' })
+  const mirage = out.find(r => r.map === 'mirage')
+  assert(mirage.plays === 2, 'unlinked demo merged with vod by normalized map → 2 plays')
+  assert(mirage.w === 2 && mirage.l === 0, 'both wins')
+}
+
+// ---- de_ prefix merge ----
+{
+  const vods = [{ maps: [{ map: 'ancient', score_us: 7, score_them: 13 }] }]
+  const demos = [{
+    id: 'd2', map: 'de_ancient',
+    ct_team_name: 'NAVI', t_team_name: 'FaZe',
+    team_a_score: 6, team_b_score: 13, team_a_first_side: 'ct',
+  }]
+  const out = computeMapPool(vods, { unlinkedDemos: demos, ourTeamName: 'NAVI' })
+  assert(out.length === 1, 'de_ancient merges with ancient → single row')
+  assert(out[0].plays === 2 && out[0].l === 2, 'both losses, single map key')
+}
+
+// ---- Demo missing team_a_first_side is skipped ----
+{
+  const demos = [{
+    id: 'd3', map: 'inferno',
+    ct_team_name: 'NAVI', t_team_name: 'FaZe',
+    team_a_score: 13, team_b_score: 4, /* no team_a_first_side */
+  }]
+  const out = computeMapPool([], { unlinkedDemos: demos, ourTeamName: 'NAVI' })
+  assert(out.length === 0, 'demo missing first-side info is skipped (would otherwise add inferno)')
+}
+
+// ---- Demo where neither side is us → skipped ----
+{
+  const demos = [{
+    id: 'd4', map: 'mirage',
+    ct_team_name: 'FaZe', t_team_name: 'G2',
+    team_a_score: 13, team_b_score: 7, team_a_first_side: 'ct',
+  }]
+  const out = computeMapPool([], { unlinkedDemos: demos, ourTeamName: 'NAVI' })
+  assert(out.length === 0, 'demo with no us-side match is skipped')
+}
+
+// ---- ourTeamName empty → all demos skipped ----
+{
+  const demos = [{
+    id: 'd5', map: 'mirage',
+    ct_team_name: 'FaZe', t_team_name: 'NAVI',
+    team_a_score: 13, team_b_score: 7, team_a_first_side: 't',
+  }]
+  const out = computeMapPool([], { unlinkedDemos: demos, ourTeamName: '' })
+  assert(out.length === 0, 'no ourTeamName → demos skipped')
+}
+
+// ---- Backward compat: single-arg call still works ----
+{
+  const vods = [{ maps: [{ map: 'mirage', score_us: 13, score_them: 8 }] }]
+  const out = computeMapPool(vods)
+  assert(out.length === 1 && out[0].plays === 1, 'computeMapPool(vods) — 1-arg form unchanged')
+}
+
 // ---- Trend column ----
 {
   const root = document.getElementById('root')

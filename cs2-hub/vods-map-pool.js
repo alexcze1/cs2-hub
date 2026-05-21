@@ -5,6 +5,7 @@
 // Clicking the currently-active card emits null (clear filter).
 
 import { computeTrend } from './vods-trend.js'
+import { normMap, normName, scoresFromDemo } from './auto-fill-vod.js'
 
 const TREND_THRESHOLD_PCT = 5
 const CONF_HIGH = 8
@@ -22,26 +23,68 @@ export function confidenceLabel(plays) {
   return 'LOW'
 }
 
+// Pick the opponent name from a demo by elimination — whichever of ct/t isn't us.
+// Returns null when we can't disambiguate (ourTeamName missing, or neither side
+// matches). The demo is then skipped by the caller.
+function opponentNameFromDemo(demo, ourTeamName) {
+  const us = normName(ourTeamName)
+  if (!us) return null
+  const ct = (demo.ct_team_name || '').trim()
+  const t  = (demo.t_team_name  || '').trim()
+  const ctIsUs = !!ct && normName(ct) === us
+  const tIsUs  = !!t  && normName(t)  === us
+  if (ctIsUs && !tIsUs) return t || null
+  if (tIsUs  && !ctIsUs) return ct || null
+  return null
+}
+
 // Returns rows sorted by plays desc (then WR desc).
-export function computeMapPool(vods) {
+//
+// unlinkedDemos are demos with no matching vod (and therefore no double-count
+// risk). For each, we derive score_us/score_them via scoresFromDemo and key
+// on the normalized map name so 'de_ancient' from demos merges with 'ancient'
+// from vods.
+export function computeMapPool(vods, { unlinkedDemos = [], ourTeamName = '' } = {}) {
   const by = {}
+
+  function add(mapKey, us, them) {
+    if (!mapKey) return
+    if (!by[mapKey]) by[mapKey] = { map: mapKey, w: 0, l: 0, plays: 0 }
+    by[mapKey].plays++
+    if (us > them) by[mapKey].w++
+    else if (them > us) by[mapKey].l++
+  }
+
   for (const v of vods || []) {
     for (const m of v.maps ?? []) {
       const us = m.score_us ?? 0, them = m.score_them ?? 0
-      if (!by[m.map]) by[m.map] = { map: m.map, w: 0, l: 0, plays: 0 }
-      by[m.map].plays++
-      if (us > them) by[m.map].w++
-      else if (them > us) by[m.map].l++
+      add(normMap(m.map) || m.map, us, them)
     }
   }
+
+  for (const d of unlinkedDemos || []) {
+    const opp = opponentNameFromDemo(d, ourTeamName)
+    if (!opp) continue
+    const s = scoresFromDemo(d, opp)
+    if (!s) continue
+    add(normMap(d.map), s.score_us, s.score_them)
+  }
+
   return Object.values(by)
     .map(r => ({ ...r, wr: pct(r.w, r.w + r.l), confidence: confidenceLabel(r.plays) }))
     .sort((a, b) => b.plays - a.plays || (b.wr ?? -1) - (a.wr ?? -1))
 }
 
-export function renderMapPool(root, { vodsCurrent, vodsPrior, activeMap }) {
-  const rows  = computeMapPool(vodsCurrent || [])
-  const prior = computeMapPool(vodsPrior   || [])
+export function renderMapPool(root, {
+  vodsCurrent,
+  vodsPrior,
+  activeMap,
+  unlinkedDemosCurrent = [],
+  unlinkedDemosPrior = [],
+  ourTeamName = '',
+}) {
+  const rows  = computeMapPool(vodsCurrent || [], { unlinkedDemos: unlinkedDemosCurrent, ourTeamName })
+  const prior = computeMapPool(vodsPrior   || [], { unlinkedDemos: unlinkedDemosPrior,   ourTeamName })
   const priorByMap = new Map(prior.map(r => [r.map, r]))
 
   if (rows.length === 0) {

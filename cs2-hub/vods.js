@@ -127,6 +127,36 @@ function partitionRows({ rows, demosById, demoToVod, currentVodIds, priorVodIds,
   return { current, prior }
 }
 
+// Partition demos that didn't auto-link to any vod, so Map Pool Intelligence
+// can count them without double-counting the vod-driven scores.
+// '10' window is vod-anchored — unlinked demos have nowhere to live; skip them.
+// '30d'/'90d' use the demo's own date. 'all' puts everything in current.
+function partitionUnlinkedDemos({ demos, demoToVod, filter, now = new Date() }) {
+  const unlinked = (demos || []).filter(d => !demoToVod.has(d.id))
+  if (!unlinked.length) return { current: [], prior: [] }
+
+  if (filter.window === '10') return { current: [], prior: [] }
+  if (filter.window === 'all') return { current: unlinked.slice(), prior: [] }
+
+  const days = filter.window === '30d' ? 30 : filter.window === '90d' ? 90 : null
+  if (days == null) return { current: unlinked.slice(), prior: [] }
+
+  const cur = new Date(now); cur.setDate(cur.getDate() - days)
+  const pri = new Date(now); pri.setDate(pri.getDate() - 2 * days)
+  const curCutoff = ymdLocal(cur)
+  const priCutoff = ymdLocal(pri)
+
+  const current = [], prior = []
+  for (const d of unlinked) {
+    const ts = d.played_at || d.created_at
+    if (!ts) continue
+    const dStr = String(ts).slice(0, 10)
+    if (dStr >= curCutoff) current.push(d)
+    else if (dStr >= priCutoff) prior.push(d)
+  }
+  return { current, prior }
+}
+
 async function fetchDemosForVodWindow(vods, filter) {
   const empty = {
     demos: [], rowsAll: [], rowsCT: [], rowsT: [],
@@ -154,7 +184,7 @@ async function fetchDemosForVodWindow(vods, filter) {
 
   const { data: demos, error: e1 } = await supabase
     .from('demos')
-    .select('id,series_id,map,played_at,opponent_name,ct_team_name,t_team_name,created_at,status,team_id')
+    .select('id,series_id,map,played_at,opponent_name,ct_team_name,t_team_name,team_a_score,team_b_score,team_a_first_side,created_at,status,team_id')
     .eq('team_id', teamId)
     .eq('status', 'ready')
     .gte('created_at', `${minDate}T00:00:00`)
@@ -286,8 +316,18 @@ async function rebuild(filter) {
   renderPlayerImpact(document.getElementById('rr-player-impact'), {
     roster, rowsCurrent, rowsPrior, onPick: openPlayerPanel,
   })
+  const { current: unlinkedDemosCurrent, prior: unlinkedDemosPrior } = partitionUnlinkedDemos({
+    demos: data.demos,
+    demoToVod: data.demoToVod,
+    filter,
+  })
   renderMapPool(document.getElementById('rr-map-pool'), {
-    vodsCurrent: currentFiltered, vodsPrior: priorFiltered, activeMap: state.mapFilter,
+    vodsCurrent: currentFiltered,
+    vodsPrior: priorFiltered,
+    activeMap: state.mapFilter,
+    unlinkedDemosCurrent,
+    unlinkedDemosPrior,
+    ourTeamName,
   })
   renderAdvancedTeamStats(document.getElementById('rr-team-stats-advanced'), {
     teamStatsRows: teamStatsCurrent,
