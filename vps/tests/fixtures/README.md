@@ -47,6 +47,31 @@ worth installing for the occasional `.zip` archive.
 apt-get install -y unrar unzip
 ```
 
+## Cloudflare + Playwright fallback (2026-05+)
+
+Cloudflare's anti-bot now hard-blocks `cloudscraper` for both /results and the
+GOTV download URLs (the CDN at `r2-demos.hltv.org` checks the TLS fingerprint,
+not just cookies). `hltv_scraper.py` falls back to Playwright + Chromium when
+cloudscraper hits a 403/503.
+
+VPS install (one-time):
+
+```bash
+pip install -r requirements.txt           # pulls playwright
+python -m playwright install --with-deps chromium
+```
+
+The `--with-deps` flag installs the system libraries Chromium needs
+(`libnss3`, `libnspr4`, `libdrm2`, etc.) via apt — required on a fresh
+Debian/Ubuntu box.
+
+Force-Playwright mode (skip cloudscraper entirely) is useful for boxes where
+we know CF won't ever let cloudscraper through:
+
+```bash
+HLTV_FORCE_PLAYWRIGHT=1 ...
+```
+
 ## When to re-capture
 
 - A test starts failing on a fresh run with no code change → HLTV markup drift.

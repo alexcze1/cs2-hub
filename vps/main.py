@@ -68,6 +68,12 @@ async def lifespan(app: FastAPI):
     poll_task.cancel()
     ingest_task.cancel()
     _parse_pool.shutdown(wait=False, cancel_futures=True)
+    # Tear down the Playwright Chromium if the ingest loop launched it.
+    try:
+        from hltv_scraper import shutdown_playwright
+        shutdown_playwright()
+    except Exception:
+        pass
 
 app = FastAPI(lifespan=lifespan)
 

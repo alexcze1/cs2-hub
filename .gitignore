@@ -2,3 +2,5 @@ node_modules/
 .superpowers/
 vps/.env
 .worktrees/
+__pycache__/
+*.pyc

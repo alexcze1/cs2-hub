@@ -19,6 +19,7 @@ import logging
 import os
 import re
 import shutil
+import threading
 import time
 import uuid
 from dataclasses import dataclass
@@ -33,6 +34,13 @@ log = logging.getLogger(__name__)
 
 BASE = "https://www.hltv.org"
 
+# Realistic desktop-Chrome UA used by both cloudscraper and Playwright. Keeping
+# them aligned helps when we hand off cookies between transports.
+_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+)
+
 # One session per process; cloudscraper caches the CF clearance cookie.
 _session = cloudscraper.create_scraper(
     browser={"browser": "chrome", "platform": "windows", "desktop": True},
@@ -41,6 +49,117 @@ _session = cloudscraper.create_scraper(
 # Default sleep before every fetch. Callers can pass `sleep=` to override
 # (backfill uses larger values), but never smaller than DEFAULT_SLEEP.
 DEFAULT_SLEEP = 2.0
+
+# ── Playwright fallback ─────────────────────────────────────────────────────
+# Cloudflare regularly hard-blocks cloudscraper (the JS challenge has moved
+# past what cloudscraper can solve). When that happens we switch the whole
+# process to Playwright with a real Chromium engine.
+#
+# Lazy import + lazy launch — Playwright is a 150 MB browser download, so a
+# dev box / CI that never hits the fallback doesn't pay for it. Once flipped,
+# we stay on Playwright for the rest of the process; probing cloudscraper
+# every request would just add CF-challenge latency we already failed.
+_pw_lock = threading.Lock()
+_pw_handle = None       # sync_playwright().start() handle
+_pw_browser = None
+_pw_context = None
+_use_playwright = bool(int(os.getenv("HLTV_FORCE_PLAYWRIGHT", "0")))
+
+
+def _ensure_playwright() -> None:
+    """Lazy-launch a single headless Chromium for the rest of the process."""
+    global _pw_handle, _pw_browser, _pw_context
+    if _pw_browser is not None:
+        return
+    with _pw_lock:
+        if _pw_browser is not None:
+            return
+        from playwright.sync_api import sync_playwright  # lazy import
+        _pw_handle = sync_playwright().start()
+        _pw_browser = _pw_handle.chromium.launch(headless=True)
+        _pw_context = _pw_browser.new_context(
+            user_agent=_UA,
+            viewport={"width": 1440, "height": 900},
+        )
+        log.info("[hltv] Playwright Chromium launched for CF fallback")
+
+
+def shutdown_playwright() -> None:
+    """Stop the headless browser. Safe to call from a FastAPI lifespan shutdown."""
+    global _pw_handle, _pw_browser, _pw_context
+    with _pw_lock:
+        if _pw_browser is not None:
+            try: _pw_browser.close()
+            except Exception: pass
+            _pw_browser = None
+            _pw_context = None
+        if _pw_handle is not None:
+            try: _pw_handle.stop()
+            except Exception: pass
+            _pw_handle = None
+
+
+def _get_via_playwright(url: str) -> str:
+    _ensure_playwright()
+    page = _pw_context.new_page()
+    try:
+        page.goto(url, wait_until="domcontentloaded", timeout=30000)
+        # Let CF's JS challenge settle — the network "settles" before the
+        # challenge resolves so domcontentloaded fires too early on fresh
+        # sessions.
+        page.wait_for_timeout(2000)
+        return page.content()
+    finally:
+        page.close()
+
+
+def _download_archive_via_playwright(url: str, out_path: Path) -> None:
+    """Download the GOTV archive via Playwright.
+
+    HLTV's `/download/demo/<id>` returns a 302 → `r2-demos.hltv.org/.../<file>.rar`
+    served as `application/x-compressed`. Chromium recognises the binary
+    response as a download and raises "Page.goto: Download is starting".
+
+    Direct HTTP via cloudscraper or APIRequestContext both 403 here even with
+    valid CF cookies — HLTV's CDN appears to require the browser's TLS
+    fingerprint. Doing the download through a real page sidesteps the issue.
+
+    We use an explicit `page.on('download', ...)` listener + poll instead of
+    `expect_download()`. The latter occasionally races with the navigation
+    exception when the binary response arrives faster than expect_download's
+    internal subscriber finishes registering.
+    """
+    _ensure_playwright()
+    page = _pw_context.new_page()
+    captured: list = []
+    page.on("download", lambda d: captured.append(d))
+    try:
+        try:
+            # Default wait_until='load' would block until a non-download page
+            # loaded — for a binary response we just need the navigation
+            # request to commit so Chromium decides "this is a download".
+            page.goto(url, wait_until="commit", timeout=30000)
+        except Exception:
+            # "Page.goto: Download is starting" is the expected signal here.
+            pass
+
+        # Poll up to 180s for the download event. Real-world archives sit in
+        # the 30-200 MB range — most fire within the first second once the
+        # CDN responds, but big archives can take a while to even begin.
+        for _ in range(180):
+            if captured:
+                break
+            page.wait_for_timeout(1000)
+        if not captured:
+            raise RuntimeError(f"no download triggered for {url}")
+
+        download = captured[0]
+        download.save_as(str(out_path))
+        failure = download.failure()
+        if failure:
+            raise RuntimeError(f"download failed for {url}: {failure}")
+    finally:
+        page.close()
 
 
 @dataclass
@@ -74,9 +193,24 @@ def _dir_size(p: Path) -> int:
 
 
 def _get(path_or_url: str, *, sleep: float = DEFAULT_SLEEP) -> str:
-    """Fetch a URL or root-relative path. Sleeps `max(sleep, DEFAULT_SLEEP)` first."""
+    """Fetch a URL or root-relative path. Sleeps `max(sleep, DEFAULT_SLEEP)` first.
+
+    Transport choice:
+      1. cloudscraper (cheap, fast) for the first request, with one retry.
+      2. If both attempts hard-block (403/503), flip the process to Playwright
+         and stay there. Cloudscraper rarely recovers mid-process once CF has
+         decided we're a bot.
+
+    Setting HLTV_FORCE_PLAYWRIGHT=1 skips cloudscraper entirely — useful on
+    boxes where we know CF won't let cloudscraper through.
+    """
+    global _use_playwright
     time.sleep(max(sleep, DEFAULT_SLEEP))
     url = path_or_url if path_or_url.startswith("http") else f"{BASE}{path_or_url}"
+
+    if _use_playwright:
+        return _get_via_playwright(url)
+
     for attempt in (1, 2):
         r = _session.get(url, timeout=30)
         if r.status_code in (403, 503) and attempt == 1:
@@ -85,7 +219,10 @@ def _get(path_or_url: str, *, sleep: float = DEFAULT_SLEEP) -> str:
             time.sleep(10)
             continue
         if r.status_code in (403, 503):
-            raise HLTVBlockedError(f"{r.status_code} on {url}")
+            log.warning("HLTV %s persists on %s — escalating to Playwright for the "
+                        "rest of this process", r.status_code, url)
+            _use_playwright = True
+            return _get_via_playwright(url)
         r.raise_for_status()
         return r.text
     raise HLTVBlockedError(f"Unreachable: exhausted retries on {url}")  # defensive
@@ -123,10 +260,17 @@ _MATCH_ID_RE = re.compile(r"/matches/(\d+)/")
 
 
 def _parse_results_page(html: str) -> list[MatchRef]:
-    """Parse one /results page into a list of MatchRef (newest-first)."""
-    # FIXME(scraper): selectors below are a placeholder based on HLTV's
-    # historical structure (.result-con > .a-reset wrapping each result).
-    # Validate / repair using tests/fixtures/hltv_results.html once captured.
+    """Parse one /results page into a list of MatchRef (newest-first).
+
+    Selector layout (validated 2026-05-22 against tests/fixtures/hltv_results.html):
+      .results-sublist
+        .standard-headline    ('Results for May 22nd 2026' or 'Featured results')
+        .result-con
+          a.a-reset[href=/matches/<id>/<slug>]
+            .team             team-a name
+            .team.team-won    team-b name (winner gets extra class)
+            .event-name       event title
+    """
     soup = BeautifulSoup(html, "html.parser")
     out: list[MatchRef] = []
 
@@ -176,28 +320,48 @@ def _extract_row_date(row) -> datetime | None:
     return _parse_headline_date(headline.get_text(strip=True))
 
 
-_HEADLINE_DATE_RE = re.compile(
-    r"(\d{1,2})\w{0,2}\s+of\s+([A-Za-z]+)\s+(\d{4})",
-    re.IGNORECASE,
-)
-
 _MONTHS = {
     "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6,
     "july": 7, "august": 8, "september": 9, "october": 10, "november": 11, "december": 12,
 }
 
+# HLTV uses month-first form: "Results for May 22nd 2026" (modern, 2025+).
+# We also accept the older day-first form "17th of May 2026" so legacy
+# fixtures keep parsing. Both forms must produce identical datetimes.
+_HEADLINE_DATE_RE_MONTH_FIRST = re.compile(
+    r"([A-Za-z]+)\s+(\d{1,2})\w{0,2}\s+(\d{4})",
+    re.IGNORECASE,
+)
+_HEADLINE_DATE_RE_DAY_FIRST = re.compile(
+    r"(\d{1,2})\w{0,2}\s+of\s+([A-Za-z]+)\s+(\d{4})",
+    re.IGNORECASE,
+)
+
 
 def _parse_headline_date(text: str) -> datetime | None:
-    """Parse 'Results for 17th of May 2026' → datetime(2026, 5, 17, 0, 0)."""
-    m = _HEADLINE_DATE_RE.search(text)
-    if not m:
-        return None
-    day = int(m.group(1))
-    month = _MONTHS.get(m.group(2).lower())
-    year = int(m.group(3))
+    """Parse a /results sublist headline → datetime at midnight UTC.
+
+    Accepts both modern and legacy HLTV phrasings:
+      - 'Results for May 22nd 2026'    (modern, month-first)
+      - 'Results for 17th of May 2026' (legacy)
+
+    Returns None for non-dated headlines like 'Featured results'.
+    """
+    # Try day-first first because it's the more specific pattern (contains "of").
+    # Otherwise "May 22nd 2026" would loosely match against the day-first regex
+    # in unrelated text by accident.
+    m = _HEADLINE_DATE_RE_DAY_FIRST.search(text)
+    if m:
+        day, month_name, year = m.group(1), m.group(2), m.group(3)
+    else:
+        m = _HEADLINE_DATE_RE_MONTH_FIRST.search(text)
+        if not m:
+            return None
+        month_name, day, year = m.group(1), m.group(2), m.group(3)
+    month = _MONTHS.get(month_name.lower())
     if not month:
         return None
-    return datetime(year, month, day)
+    return datetime(int(year), month, int(day))
 
 
 # --------------------------------------------------------------------------- #
@@ -277,11 +441,24 @@ def download_demos(match_url: str, dest_dir: Path) -> list[tuple[int, Path, dict
 
 
 def _download_archive(url: str, out_path: Path) -> None:
-    """Stream a (potentially large) archive to disk via the rate-limited session."""
+    """Stream a (potentially large) archive to disk.
+
+    Uses cloudscraper streaming by default, falls back to Playwright's download
+    API when CF blocks. Playwright is automatically picked when the process has
+    already flipped via _get().
+    """
     time.sleep(DEFAULT_SLEEP)
+
+    if _use_playwright:
+        _download_archive_via_playwright(url, out_path)
+        return
+
     with _session.get(url, stream=True, timeout=120) as r:
         if r.status_code in (403, 503):
-            raise HLTVBlockedError(f"{r.status_code} on {url}")
+            log.warning("HLTV %s on archive %s — escalating to Playwright", r.status_code, url)
+            globals()["_use_playwright"] = True
+            _download_archive_via_playwright(url, out_path)
+            return
         r.raise_for_status()
         with out_path.open("wb") as f:
             for chunk in r.iter_content(chunk_size=1024 * 1024):
