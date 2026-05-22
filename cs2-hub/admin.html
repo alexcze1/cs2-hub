@@ -8,20 +8,77 @@
   <title>Admin — MIDROUND</title>
   <link rel="stylesheet" href="style.css"/>
   <style>
-    .admin-team-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:12px; overflow:hidden; }
-    .admin-team-header { display:flex; align-items:center; gap:14px; padding:16px 20px; cursor:pointer; }
-    .admin-team-header:hover { background:rgba(255,255,255,0.03); }
-    .admin-team-name { font-size:15px; font-weight:700; flex:1; }
-    .admin-team-meta { font-size:12px; color:var(--muted); }
-    .admin-team-code { font-family:monospace; font-size:12px; background:var(--bg); border:1px solid var(--border); border-radius:5px; padding:2px 8px; color:var(--accent); letter-spacing:1px; }
-    .admin-members { border-top:1px solid var(--border); padding:12px 20px; display:none; }
-    .admin-members.open { display:block; }
-    .admin-member-row { display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--border); }
-    .admin-member-row:last-child { border-bottom:none; }
-    .admin-member-name { font-size:13px; font-weight:600; flex:1; }
-    .admin-member-meta { font-size:11px; color:var(--muted); }
-    .admin-danger { color:var(--danger); border-color:var(--danger); }
-    .admin-danger:hover { background:rgba(239,68,68,0.1); }
+    .admin-team-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--r-md);
+      margin-bottom: 10px;
+      overflow: hidden;
+      transition: border-color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
+    }
+    .admin-team-card:hover {
+      border-color: rgba(0,255,156,0.20);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.30);
+    }
+    .admin-team-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 18px;
+      cursor: pointer;
+    }
+    .admin-team-header:hover { background: var(--hover-bg-accent); }
+    .admin-team-name {
+      font-family: var(--display-font);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.005em;
+      flex: 1;
+    }
+    .admin-team-meta {
+      font-family: var(--display-font);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+    .admin-team-code {
+      font-family: monospace;
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--input-bg);
+      border: 1px solid var(--border-solid);
+      border-radius: var(--r-sm);
+      padding: 3px 9px;
+      color: var(--accent);
+      letter-spacing: 2px;
+    }
+    .admin-members {
+      border-top: 1px solid var(--glass-border);
+      padding: 10px 18px 14px;
+      display: none;
+      background: rgba(0,0,0,0.15);
+    }
+    .admin-members.open { display: block; }
+    .admin-member-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--hairline);
+    }
+    .admin-member-row:last-child { border-bottom: none; }
+    .admin-member-name { font-size: 13px; font-weight: 600; flex: 1; }
+    .admin-member-meta {
+      font-family: var(--display-font);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .admin-danger { color: var(--danger); border-color: var(--danger); }
+    .admin-danger:hover { background: rgba(255,77,77,0.10); color: var(--danger); }
   </style>
 </head>
 <body>
@@ -54,7 +111,7 @@
       </div>
     </div>
 
-    <div id="teams-list"><div class="empty-state"><h3>Loading…</h3></div></div>
+    <div id="teams-list"><div class="loading">Loading teams</div></div>
   </main>
 </div>
 <script type="module" src="admin.js"></script>

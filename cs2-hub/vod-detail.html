@@ -15,16 +15,16 @@
 
     <div class="page-header">
       <div>
-        <a href="vods.html" style="color:var(--muted);font-size:13px;text-decoration:none">← Match Results</a>
-        <div class="page-title" id="page-title" style="margin-top:6px">New Match</div>
+        <a href="vods.html" class="breadcrumb">Match Results</a>
+        <div class="page-title" id="page-title">New Match</div>
       </div>
-      <div style="display:flex;gap:10px;align-items:center">
+      <div class="page-header-actions">
         <button class="btn btn-danger" id="delete-btn" style="display:none">Delete</button>
         <button class="btn btn-primary" id="save-btn">Save Match</button>
       </div>
     </div>
 
-    <div style="max-width:800px">
+    <div class="detail-container">
 
       <!-- Match Info -->
       <div class="info-panel">
@@ -64,8 +64,8 @@
 
       <!-- Review Notes -->
       <div id="review-section" style="margin-top:24px;display:none">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-          <div class="section-label" style="margin:0">Match Review</div>
+        <div class="section-row-meta">
+          <div class="section-label">Match Review</div>
           <span id="notes-status" class="notes-status-label"></span>
         </div>
 

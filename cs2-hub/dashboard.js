@@ -259,10 +259,13 @@ document.getElementById('stat-vods-form').innerHTML = recentForm.map(r =>
 
 const { data: issuesData } = await supabase.from('issues').select('status').eq('team_id', teamId)
 const openIssues = (issuesData ?? []).filter(i => i.status !== 'resolved').length
-const issueColor = openIssues > 0 ? 'var(--danger)' : 'var(--success)'
-document.getElementById('stat-issues').innerHTML = `<span style="color:${issueColor}">${openIssues}</span>`
+const issueClass = openIssues > 0 ? 'stat-card-danger' : 'stat-card-success'
+const issueColorVar = openIssues > 0 ? 'var(--danger)' : 'var(--success)'
+document.getElementById('stat-issues').innerHTML = `<span style="color:${issueColorVar}">${openIssues}</span>`
 document.getElementById('stat-issues-sub').textContent = openIssues === 0 ? 'All clear' : `${openIssues} need attention`
-document.getElementById('stat-issues-card').style.borderTopColor = issueColor
+const issuesCard = document.getElementById('stat-issues-card')
+issuesCard.classList.remove('stat-card-muted')
+issuesCard.classList.add(issueClass)
 
 const { data: recentStrats } = await supabase
   .from('strats')

@@ -21,8 +21,8 @@
     </div>
 
     <!-- Inline ghost form (owner-only, hidden by default) -->
-    <div id="ghost-form" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:20px;max-width:520px">
-      <div style="font-weight:700;letter-spacing:1px;font-size:13px;margin-bottom:12px">ADD GHOST PLAYER</div>
+    <div id="ghost-form" class="inline-card" style="display:none">
+      <div class="inline-card-title">Add ghost player</div>
       <div class="form-group">
         <label class="form-label">Nickname</label>
         <input class="form-input" id="g-nickname" placeholder="e.g. fl0m"/>
@@ -46,7 +46,7 @@
         </select>
       </div>
       <div class="error-msg" id="ghost-error" style="display:none"></div>
-      <div style="display:flex;gap:8px;justify-content:flex-end">
+      <div class="inline-card-actions">
         <button class="btn btn-ghost" id="ghost-cancel-btn">Cancel</button>
         <button class="btn btn-primary" id="ghost-save-btn">Add</button>
       </div>

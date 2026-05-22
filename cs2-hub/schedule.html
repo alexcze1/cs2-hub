@@ -17,13 +17,15 @@
         <div class="page-title">Schedule</div>
         <div class="page-sub">Scrims, tournaments, meetings &amp; VOD sessions</div>
       </div>
-      <div style="display:flex;gap:10px;align-items:center">
-        <button class="btn btn-ghost btn-sm" id="cal-prev">&#8249;</button>
-        <div class="cal-month-label" id="cal-header"></div>
-        <button class="btn btn-ghost btn-sm" id="cal-next">&#8250;</button>
-        <button class="btn btn-ghost btn-sm" id="gcal-btn" style="margin-left:8px">Google Calendar</button>
-        <button class="btn btn-ghost btn-sm" id="pracc-settings-btn" style="margin-left:8px">Pracc Calendar</button>
-        <button class="btn btn-primary" id="add-btn" style="margin-left:8px">+ Add Event</button>
+      <div class="page-header-actions">
+        <div class="cal-nav">
+          <button class="btn btn-ghost btn-sm cal-nav-btn" id="cal-prev" aria-label="Previous month">&#8249;</button>
+          <div class="cal-month-label" id="cal-header"></div>
+          <button class="btn btn-ghost btn-sm cal-nav-btn" id="cal-next" aria-label="Next month">&#8250;</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="gcal-btn">Google Calendar</button>
+        <button class="btn btn-ghost btn-sm" id="pracc-settings-btn">Pracc Calendar</button>
+        <button class="btn btn-primary" id="add-btn">+ Add Event</button>
       </div>
     </div>
 
