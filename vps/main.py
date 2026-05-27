@@ -181,34 +181,43 @@ def _hltv_ingest_once():
     env = os.environ.copy()
     env["DEMOS_DIR"] = str(DEMOS_DIR)
     env["HLTV_INGEST_DAYS"] = str(HLTV_INGEST_DAYS)
+    env["PYTHONUNBUFFERED"] = "1"
 
-    # 2-hour cap: a full cycle of ~100 matches × ~60s download averages ~100 min.
+    # Stream stdout line-by-line so each "discovered N matches" / "ingested N
+    # demos" line appears in the journal immediately — `subprocess.run` with
+    # capture_output buffers everything until the process exits, which makes
+    # a multi-hour ingest cycle look indistinguishable from a hang. `-u` flag
+    # plus PYTHONUNBUFFERED defeats Python's own block buffering on stdout.
+    # stderr is merged into stdout so errors interleave with progress.
+    proc = subprocess.Popen(
+        [sys.executable, "-u", "-m", "hltv_ingest_subprocess"],
+        cwd=str(Path(__file__).resolve().parent),
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        bufsize=1,
+        text=True,
+    )
+
+    # 2-hour cap: a full cycle of ~100 matches × ~60 s download averages ~100 min.
     # If the subprocess exceeds that, something is stuck.
+    deadline = datetime.datetime.utcnow() + datetime.timedelta(seconds=7200)
     try:
-        proc = subprocess.run(
-            [sys.executable, "-m", "hltv_ingest_subprocess"],
-            cwd=str(Path(__file__).resolve().parent),
-            env=env,
-            capture_output=True,
-            text=True,
-            timeout=7200,
-        )
-    except subprocess.TimeoutExpired as e:
-        print(f"[hltv] subprocess timed out after {e.timeout}s")
-        if e.stdout: sys.stdout.write(e.stdout)
-        if e.stderr: sys.stdout.write(e.stderr)
-        return
+        for line in proc.stdout:                 # blocks until the child writes a line
+            sys.stdout.write(line)
+            if datetime.datetime.utcnow() > deadline:
+                print("[hltv] subprocess deadline exceeded — killing")
+                proc.kill()
+                break
+        proc.wait(timeout=60)
+    except Exception as e:
+        print(f"[hltv] subprocess stream error: {type(e).__name__}: {e}")
+        try: proc.kill()
+        except Exception: pass
+        proc.wait(timeout=60)
 
-    # Surface the child's stdout into our journal so each cycle's progress is
-    # visible via `journalctl -u midround-demo-parser`.
-    if proc.stdout:
-        sys.stdout.write(proc.stdout)
     if proc.returncode != 0:
         print(f"[hltv] subprocess exited with {proc.returncode}")
-        # stderr only on failure — trim to last 2KB so we don't flood the journal.
-        if proc.stderr:
-            tail = proc.stderr[-2000:]
-            sys.stdout.write(tail)
 
 
 def _reset_stuck_sync(cutoff):
