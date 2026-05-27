@@ -159,6 +159,9 @@ async def _poll_loop():
 
 
 async def _hltv_ingest_loop():
+    if not int(os.getenv("HLTV_INGEST_ENABLED", "1")):
+        print("HLTV ingest loop disabled (HLTV_INGEST_ENABLED=0) — skipping")
+        return
     print(f"HLTV ingest loop started (interval={HLTV_INGEST_INTERVAL}s, days={HLTV_INGEST_DAYS})")
     # Track whether the previous cycle exited cleanly so a transient Playwright
     # crash (Chromium OOM, CF rate-limit, network blip) only costs ~15 min,
@@ -189,6 +192,9 @@ async def _hltv_refresh_loop():
     headless Chromium instances simultaneously; observed symptom is both
     Playwrights hitting `Page.goto: Timeout 30000ms exceeded` and crashing.
     """
+    if not int(os.getenv("HLTV_REFRESH_ENABLED", "1")):
+        print("HLTV refresh loop disabled (HLTV_REFRESH_ENABLED=0) — skipping")
+        return
     initial_delay = int(os.getenv("HLTV_REFRESH_STARTUP_DELAY", "2700"))  # 45 min
     print(f"HLTV refresh loop started (interval={HLTV_REFRESH_INTERVAL}s, "
           f"first run in {initial_delay}s)")
