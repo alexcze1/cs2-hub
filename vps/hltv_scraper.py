@@ -65,6 +65,26 @@ _pw_browser = None
 _pw_context = None
 _use_playwright = bool(int(os.getenv("HLTV_FORCE_PLAYWRIGHT", "0")))
 
+# Anti-detection init script. Without this, headless Chromium is identified by
+# Cloudflare's bot heuristics (navigator.webdriver is True, no window.chrome,
+# zero plugins) and served the "Just a moment..." JS challenge page — which the
+# automated browser can never solve, because the challenge specifically detects
+# automation. Apply once at context creation so every page inherits it.
+_STEALTH_JS = """
+Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});
+Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
+window.chrome = window.chrome || { runtime: {} };
+const originalQuery = window.navigator.permissions && window.navigator.permissions.query;
+if (originalQuery) {
+  window.navigator.permissions.query = (parameters) => (
+    parameters.name === 'notifications'
+      ? Promise.resolve({state: Notification.permission})
+      : originalQuery(parameters)
+  );
+}
+"""
+
 
 def _ensure_playwright() -> None:
     """Lazy-launch a single headless Chromium for the rest of the process."""
@@ -76,11 +96,20 @@ def _ensure_playwright() -> None:
             return
         from playwright.sync_api import sync_playwright  # lazy import
         _pw_handle = sync_playwright().start()
-        _pw_browser = _pw_handle.chromium.launch(headless=True)
+        # --disable-blink-features=AutomationControlled removes the
+        # `navigator.webdriver = true` signal that CF flags as automation.
+        # Combined with _STEALTH_JS this is enough to clear CF's match-page
+        # challenge consistently (verified live 2026-05-27).
+        _pw_browser = _pw_handle.chromium.launch(
+            headless=True,
+            args=["--disable-blink-features=AutomationControlled"],
+        )
         _pw_context = _pw_browser.new_context(
             user_agent=_UA,
             viewport={"width": 1440, "height": 900},
+            accept_downloads=True,
         )
+        _pw_context.add_init_script(_STEALTH_JS)
         log.info("[hltv] Playwright Chromium launched for CF fallback")
 
 
@@ -104,10 +133,17 @@ def _get_via_playwright(url: str) -> str:
     page = _pw_context.new_page()
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=30000)
-        # Let CF's JS challenge settle — the network "settles" before the
-        # challenge resolves so domcontentloaded fires too early on fresh
-        # sessions.
-        page.wait_for_timeout(2000)
+        # If CF served the JS challenge page, the title is "Just a moment..."
+        # Poll up to 20 s for it to clear (with _STEALTH_JS it normally clears
+        # in well under a second — this is a safety net for the day CF tightens).
+        deadline = time.time() + 20.0
+        while time.time() < deadline:
+            if "Just a moment" not in page.title():
+                break
+            page.wait_for_timeout(500)
+        else:
+            log.warning("[hltv] CF challenge did not clear for %s after 20s — "
+                        "returning challenge HTML; selectors will not match", url)
         return page.content()
     finally:
         page.close()
