@@ -198,13 +198,17 @@ async function fetchDemosForVodWindow(vods, filter) {
     .gte('created_at', `${minDate}T00:00:00`)
     .lte('created_at', `${maxDate}T23:59:59`)
 
-  const publicDemosP = ourTeamName
+  // PostgREST .or() splits on commas, and an ilike value containing one of
+  // [(),] would break the parser. Strip those before building the filter —
+  // they're not part of any real team name, so the match still works.
+  const safeName = (ourTeamName || '').replace(/[(),]/g, '').trim()
+  const publicDemosP = safeName
     ? supabase
         .from('demos')
         .select(COLS)
         .eq('is_public', true)
         .eq('status', 'ready')
-        .or(`team_a_name.ilike.${ourTeamName},team_b_name.ilike.${ourTeamName}`)
+        .or(`team_a_name.ilike.${safeName},team_b_name.ilike.${safeName}`)
         .gte('created_at', `${minDate}T00:00:00`)
         .lte('created_at', `${maxDate}T23:59:59`)
     : Promise.resolve({ data: [], error: null })
