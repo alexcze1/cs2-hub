@@ -5,6 +5,7 @@ import json
 import os
 import shutil
 import socket
+import subprocess
 import sys
 import traceback
 import uuid
@@ -165,29 +166,49 @@ async def _hltv_ingest_loop():
 
 
 def _hltv_ingest_once():
-    # Imported lazily so a missing cloudscraper dep (e.g. dev box) doesn't break
-    # the rest of main.py at import time.
-    from hltv_scraper import list_recent_matches, HLTVBlockedError, DiskCapExceeded
-    from hltv_ingest import ingest_match
+    """Spawn a subprocess to run one HLTV ingest cycle.
 
-    matches = list_recent_matches(days=HLTV_INGEST_DAYS)
-    print(f"[hltv] discovered {len(matches)} matches in last {HLTV_INGEST_DAYS}d")
-    for m in matches:
-        try:
-            n = ingest_match(m, DEMOS_DIR)
-            if n:
-                print(f"[hltv] ingested {n} demos for {m.team_a} vs {m.team_b} ({m.hltv_id})")
-        except DiskCapExceeded as e:
-            # Hit the soft cap mid-cycle — stop fetching; the parser will drain
-            # pending rows and next cycle will resume from where we stopped.
-            print(f"[hltv] disk cap reached, stopping cycle: {e}")
-            return
-        except HLTVBlockedError as e:
-            # Cloudflare is angry; bail out of this cycle and try again next interval.
-            print(f"[hltv] Cloudflare block, stopping cycle: {e}")
-            return
-        except Exception as e:
-            print(f"[hltv] skip {m.hltv_id} ({type(e).__name__}): {e}")
+    The subprocess isolates sync_playwright from this process's asyncio loop —
+    Playwright's sync API guard would otherwise trip "Sync API inside the
+    asyncio loop" on subsequent cycles when partial state from a failed cycle
+    leaked across the worker thread. A fresh interpreter avoids that entirely.
+
+    Env propagated via os.environ inheritance (DATABASE_URL, SUPABASE_*,
+    HLTV_INGEST_DAYS, HLTV_FORCE_PLAYWRIGHT, HLTV_DEMOS_DIR_SOFT_CAP_BYTES).
+    DEMOS_DIR is passed explicitly so the subprocess writes .dem files where
+    _process_pending() will find them.
+    """
+    env = os.environ.copy()
+    env["DEMOS_DIR"] = str(DEMOS_DIR)
+    env["HLTV_INGEST_DAYS"] = str(HLTV_INGEST_DAYS)
+
+    # 2-hour cap: a full cycle of ~100 matches × ~60s download averages ~100 min.
+    # If the subprocess exceeds that, something is stuck.
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-m", "hltv_ingest_subprocess"],
+            cwd=str(Path(__file__).resolve().parent),
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=7200,
+        )
+    except subprocess.TimeoutExpired as e:
+        print(f"[hltv] subprocess timed out after {e.timeout}s")
+        if e.stdout: sys.stdout.write(e.stdout)
+        if e.stderr: sys.stdout.write(e.stderr)
+        return
+
+    # Surface the child's stdout into our journal so each cycle's progress is
+    # visible via `journalctl -u midround-demo-parser`.
+    if proc.stdout:
+        sys.stdout.write(proc.stdout)
+    if proc.returncode != 0:
+        print(f"[hltv] subprocess exited with {proc.returncode}")
+        # stderr only on failure — trim to last 2KB so we don't flood the journal.
+        if proc.stderr:
+            tail = proc.stderr[-2000:]
+            sys.stdout.write(tail)
 
 
 def _reset_stuck_sync(cutoff):
