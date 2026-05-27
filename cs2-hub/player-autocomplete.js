@@ -1,8 +1,31 @@
-// Shared HLTV player autocomplete — attach to any text input
+// Shared HLTV player autocomplete — attach to any text input.
+//
+// Source of truth: the `hltv_players` table populated daily by the VPS
+// refresh job. Falls back to the static hltv-players.json shipped with the
+// site on any query error so autocomplete still works if the DB is down.
+
+import { supabase } from './supabase.js'
+
 let _players = null
 
 async function loadPlayers() {
   if (_players) return _players
+  try {
+    const { data, error } = await supabase
+      .from('hltv_players')
+      .select('id, ign, full_name, team_name, country, photo_url')
+    if (error) throw error
+    if (data && data.length) {
+      // Map to the legacy JSON shape so existing consumers don't need updates.
+      _players = data.map(p => ({
+        id: p.id, ign: p.ign, name: p.full_name,
+        team: p.team_name, country: p.country, image: p.photo_url,
+      }))
+      return _players
+    }
+  } catch (e) {
+    console.warn('[player-autocomplete] DB load failed, falling back to JSON:', e)
+  }
   try {
     const r = await fetch('hltv-players.json')
     _players = await r.json()

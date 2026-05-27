@@ -54,6 +54,10 @@ _parse_pool: ProcessPoolExecutor | None = None
 HLTV_INGEST_INTERVAL = int(os.getenv("HLTV_INGEST_INTERVAL", str(24 * 3600)))
 HLTV_INGEST_DAYS     = int(os.getenv("HLTV_INGEST_DAYS", "2"))
 
+# HLTV team / player refresh: every 24 h. Cheaper than ingest (no demo
+# downloads), so the loop is shorter — usually 5-10 min wall time.
+HLTV_REFRESH_INTERVAL = int(os.getenv("HLTV_REFRESH_INTERVAL", str(24 * 3600)))
+
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
@@ -63,11 +67,13 @@ async def lifespan(app: FastAPI):
     DEMOS_DIR.mkdir(parents=True, exist_ok=True)
     _parse_pool = ProcessPoolExecutor(max_workers=PARSE_WORKERS)
     print(f"Parser pool started with {PARSE_WORKERS} worker(s)")
-    poll_task   = asyncio.create_task(_poll_loop())
-    ingest_task = asyncio.create_task(_hltv_ingest_loop())
+    poll_task    = asyncio.create_task(_poll_loop())
+    ingest_task  = asyncio.create_task(_hltv_ingest_loop())
+    refresh_task = asyncio.create_task(_hltv_refresh_loop())
     yield
     poll_task.cancel()
     ingest_task.cancel()
+    refresh_task.cancel()
     _parse_pool.shutdown(wait=False, cancel_futures=True)
     # Tear down the Playwright Chromium if the ingest loop launched it.
     try:
@@ -163,6 +169,59 @@ async def _hltv_ingest_loop():
         except BaseException as e:
             print(f"HLTV ingest error ({type(e).__name__}): {e}")
         await asyncio.sleep(HLTV_INGEST_INTERVAL)
+
+
+async def _hltv_refresh_loop():
+    """Daily HLTV team + player refresh — keeps autocomplete logos/photos fresh."""
+    print(f"HLTV refresh loop started (interval={HLTV_REFRESH_INTERVAL}s)")
+    while True:
+        try:
+            await asyncio.get_event_loop().run_in_executor(None, _hltv_refresh_once)
+        except asyncio.CancelledError:
+            print("HLTV refresh loop cancelled — shutting down")
+            raise
+        except BaseException as e:
+            print(f"HLTV refresh error ({type(e).__name__}): {e}")
+        await asyncio.sleep(HLTV_REFRESH_INTERVAL)
+
+
+def _hltv_refresh_once():
+    """Spawn a subprocess to run one HLTV team + player refresh cycle.
+
+    Same subprocess-isolation rationale as _hltv_ingest_once: sync Playwright
+    needs a fresh interpreter to avoid the parent's asyncio loop.
+    """
+    env = os.environ.copy()
+    env["PYTHONUNBUFFERED"] = "1"
+
+    proc = subprocess.Popen(
+        [sys.executable, "-u", "-m", "hltv_refresh_subprocess"],
+        cwd=str(Path(__file__).resolve().parent),
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        bufsize=1,
+        text=True,
+    )
+    # 30-min cap — a healthy refresh runs in 5-10 min (30 teams × 2 page fetches
+    # × ~5 s incl. networkidle waits). 30 min absorbs CF retries comfortably.
+    deadline = datetime.datetime.utcnow() + datetime.timedelta(seconds=1800)
+    try:
+        for line in proc.stdout:
+            sys.stdout.write(line)
+            if datetime.datetime.utcnow() > deadline:
+                print("[refresh] subprocess deadline exceeded — killing")
+                proc.kill()
+                break
+        proc.wait(timeout=60)
+    except Exception as e:
+        print(f"[refresh] subprocess stream error: {type(e).__name__}: {e}")
+        try: proc.kill()
+        except Exception: pass
+        proc.wait(timeout=60)
+
+    if proc.returncode != 0:
+        print(f"[refresh] subprocess exited with {proc.returncode}")
 
 
 def _hltv_ingest_once():

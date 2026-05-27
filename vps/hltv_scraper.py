@@ -129,24 +129,46 @@ def shutdown_playwright() -> None:
 
 
 def _get_via_playwright(url: str) -> str:
+    """Fetch `url` through the headless Chromium context.
+
+    CF protection varies per endpoint — /results passes with stealth in <1 s
+    but /team/<id>/<slug> and other less-common URLs sometimes see a stricter
+    challenge that doesn't resolve. We try once, wait up to 30 s for the
+    challenge to clear, and if it doesn't, close + reopen the page and retry
+    once. A second navigation usually slips past because CF treats it as a
+    follow-up click on a "settled" session.
+    """
     _ensure_playwright()
-    page = _pw_context.new_page()
-    try:
-        page.goto(url, wait_until="domcontentloaded", timeout=30000)
-        # If CF served the JS challenge page, the title is "Just a moment..."
-        # Poll up to 20 s for it to clear (with _STEALTH_JS it normally clears
-        # in well under a second — this is a safety net for the day CF tightens).
-        deadline = time.time() + 20.0
-        while time.time() < deadline:
-            if "Just a moment" not in page.title():
-                break
-            page.wait_for_timeout(500)
-        else:
-            log.warning("[hltv] CF challenge did not clear for %s after 20s — "
-                        "returning challenge HTML; selectors will not match", url)
-        return page.content()
-    finally:
-        page.close()
+    for attempt in (1, 2):
+        page = _pw_context.new_page()
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            deadline = time.time() + 30.0
+            while time.time() < deadline:
+                if "Just a moment" not in page.title():
+                    # Past the CF challenge — give lazy-loaded resources a
+                    # chance to fire (HLTV's team pages set img.src via JS after
+                    # the bodyshot CDN replies, and that comes well after
+                    # domcontentloaded). networkidle = no network activity for
+                    # 500 ms; cap at 10 s so a single slow tracker pixel
+                    # doesn't hold us up.
+                    try:
+                        page.wait_for_load_state("networkidle", timeout=10000)
+                    except Exception:
+                        pass
+                    return page.content()
+                page.wait_for_timeout(500)
+            if attempt == 2:
+                log.warning("[hltv] CF challenge did not clear for %s after retry — "
+                            "returning challenge HTML; selectors will not match", url)
+                return page.content()
+            log.info("[hltv] CF stuck on %s, retrying with fresh page", url)
+        finally:
+            page.close()
+        # Pause briefly between attempts so CF's session state has time to settle.
+        time.sleep(3)
+    # Unreachable — the loop above either returns or falls through.
+    raise RuntimeError("unreachable")
 
 
 def _download_archive_via_playwright(url: str, out_path: Path) -> None:

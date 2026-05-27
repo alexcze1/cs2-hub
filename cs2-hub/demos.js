@@ -45,6 +45,27 @@ function relativeTime(iso) {
   return formatDate(iso)
 }
 
+// Shared logo cache + teamChip. Both team and public scopes feed names through
+// here so cards render with the same chips. `warmLogos` is fire-and-forget;
+// chips render with the placeholder until the lookups resolve, then re-render.
+const logoCache = {}
+async function warmLogos(names) {
+  await Promise.all(
+    [...names].filter(Boolean).map(async n => {
+      if (n in logoCache) return
+      logoCache[n] = await getTeamLogo(n)
+    }),
+  )
+}
+function teamChip(name, logoSize = 28) {
+  const logo = teamLogoEl(logoCache[name] ?? null, name ?? '???', logoSize)
+  return `
+    <div class="dx-team-chip">
+      ${logo}
+      <span class="dx-team-name">${esc(name ?? '—')}</span>
+    </div>`
+}
+
 // ── scope router ──────────────────────────────────────────────
 // /demos.html supports two scopes: "team" (signed-in user's uploaded demos) and
 // "public" (HLTV-ingested pro demos, readable by anon visitors). The bulk of
@@ -80,7 +101,6 @@ const state = {
   filter:   loadSavedFilter(),
   rawDemos: [],
   entries:  [],
-  logoMap:  {},
 }
 
 const playlistsState = {
@@ -125,15 +145,14 @@ async function loadDemos() {
   entries.sort((a, b) => b.latestAt - a.latestAt)
   state.entries = entries
 
-  // Resolve team logos for every team name we'll show.
+  // Resolve team logos for every team name we'll show (module-level cache).
   const names = new Set()
   for (const d of state.rawDemos) {
     if (d.ct_team_name) names.add(d.ct_team_name)
     if (d.t_team_name)  names.add(d.t_team_name)
     if (d.opponent_name) names.add(d.opponent_name)
   }
-  state.logoMap = {}
-  await Promise.all([...names].map(async n => { state.logoMap[n] = await getTeamLogo(n) }))
+  await warmLogos(names)
 
   renderAll()
 }
@@ -279,15 +298,6 @@ function actionMenu(d, td, opts = {}) {
     items.push(`<button class="dx-action-ghost dx-danger" title="Delete demo" onclick="deleteDemo('${d.id}')">✕</button>`)
   }
   return items.join('')
-}
-
-function teamChip(name, logoSize = 28) {
-  const logo = teamLogoEl(state.logoMap[name] ?? null, name ?? '???', logoSize)
-  return `
-    <div class="dx-team-chip">
-      ${logo}
-      <span class="dx-team-name">${esc(name ?? '—')}</span>
-    </div>`
 }
 
 function scoreStrip(td, hasResult) {
@@ -894,13 +904,13 @@ function renderPublicSeriesCard(demos) {
         ${first.source_url ? `<a class="dx-action-ghost" href="${esc(first.source_url)}" target="_blank" rel="noopener">↗ HLTV</a>` : ''}
       </header>
       <div class="dx-series-versus">
-        <div class="dx-team-chip"><span class="dx-team-name">${esc(teamA)}</span></div>
+        ${teamChip(teamA, 32)}
         <div class="dx-score-strip dx-score-strip-lg">
           <span class="dx-score">${mapsAWon}</span>
           <span class="dx-score-sep">—</span>
           <span class="dx-score">${mapsBWon}</span>
         </div>
-        <div class="dx-team-chip"><span class="dx-team-name">${esc(teamB)}</span></div>
+        ${teamChip(teamB, 32)}
       </div>
       <div class="dx-series-maps">${mapsHtml}</div>
     </article>`
@@ -927,13 +937,13 @@ function renderPublicSingleCard(d) {
           <span class="dx-card-date">${esc(dateStr)}</span>
         </div>
         <div class="dx-card-versus">
-          <div class="dx-team-chip"><span class="dx-team-name">${esc(teamA)}</span></div>
+          ${teamChip(teamA)}
           <div class="dx-score-strip">
             <span class="dx-score ${hasResult ? '' : 'dx-score-none'}">${a ?? '—'}</span>
             <span class="dx-score-sep">—</span>
             <span class="dx-score ${hasResult ? '' : 'dx-score-none'}">${b ?? '—'}</span>
           </div>
-          <div class="dx-team-chip"><span class="dx-team-name">${esc(teamB)}</span></div>
+          ${teamChip(teamB)}
         </div>
       </div>
       <div class="dx-card-actions">
@@ -987,6 +997,16 @@ async function runPublicScope() {
     listEl.innerHTML = `<div class="empty-state"><h3>No pro demos yet</h3><p>The HLTV ingest worker hasn't picked up any matches yet — check back soon.</p></div>`
     return
   }
+
+  // Warm the shared logo cache for the team names we'll show. teamChip()
+  // reads from logoCache — without this pre-load, Pro cards render with the
+  // placeholder abbreviation instead of HLTV logos.
+  const teamNames = new Set()
+  for (const d of rows) {
+    if (d.team_a_name) teamNames.add(d.team_a_name)
+    if (d.team_b_name) teamNames.add(d.team_b_name)
+  }
+  await warmLogos(teamNames)
 
   // Group by source_match_id so BO3s render as one card.
   const groups = new Map()

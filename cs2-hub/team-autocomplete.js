@@ -1,8 +1,30 @@
-// Shared HLTV team autocomplete — attach to any text input
+// Shared HLTV team autocomplete — attach to any text input.
+//
+// Source of truth: the `hltv_teams` table populated daily by the VPS refresh
+// job. Falls back to the static hltv-teams.json shipped with the site on any
+// query error (offline, RLS misconfiguration, etc.) so autocomplete keeps
+// working in degraded modes.
+
+import { supabase } from './supabase.js'
+
 let _teams = null
 
 async function loadTeams() {
   if (_teams) return _teams
+  try {
+    const { data, error } = await supabase
+      .from('hltv_teams')
+      .select('id, name, logo_url, rank')
+      .order('rank', { ascending: true, nullsFirst: false })
+    if (error) throw error
+    if (data && data.length) {
+      // Shape preserved so getTeamLogo / attachTeamAutocomplete don't need to change.
+      _teams = data.map(t => ({ id: t.id, name: t.name, logo: t.logo_url, rank: t.rank }))
+      return _teams
+    }
+  } catch (e) {
+    console.warn('[team-autocomplete] DB load failed, falling back to JSON:', e)
+  }
   try {
     const r = await fetch('hltv-teams.json')
     _teams = await r.json()

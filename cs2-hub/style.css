@@ -3770,8 +3770,14 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
   align-items: center;
   min-width: 0;
 }
-.dx-team-chip:last-child { justify-content: flex-end; flex-direction: row-reverse; }
-.dx-team-chip:last-child .dx-team-name { text-align: right; }
+/* Both chips hug the centre score so the name-to-score gap is symmetric.
+   Without this, the first chip defaulted to the left edge of its 1fr column
+   while the last chip was already pushed inward — giving lopsided spacing
+   between team names and the score regardless of name length. */
+.dx-team-chip:first-child { justify-content: flex-end; }
+.dx-team-chip:first-child .dx-team-name { text-align: right; }
+.dx-team-chip:last-child  { justify-content: flex-end; flex-direction: row-reverse; }
+.dx-team-chip:last-child  .dx-team-name { text-align: left; }
 .dx-team-name {
   font-weight: 700;
   font-size: 15px;

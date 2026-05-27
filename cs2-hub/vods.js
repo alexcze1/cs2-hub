@@ -182,14 +182,41 @@ async function fetchDemosForVodWindow(vods, filter) {
     maxDate = widenDate(dates[dates.length - 1], 1)
   }
 
-  const { data: demos, error: e1 } = await supabase
+  // Team-owned demos plus any public (HLTV) demos whose team_a_name or
+  // team_b_name matches this team's name. A team page named "Vitality" thus
+  // includes the user's own uploads AND every Vitality match HLTV has scraped.
+  // We do this as two queries + merge — embedding ILIKE values inside a PostgREST
+  // .or() string is fiddly with quoting/escaping, and a second .from('demos')
+  // call costs us a few ms at most.
+  const COLS = 'id,series_id,map,played_at,opponent_name,ct_team_name,t_team_name,team_a_name,team_b_name,team_a_score,team_b_score,team_a_first_side,created_at,status,team_id,is_public'
+
+  const teamDemosP = supabase
     .from('demos')
-    .select('id,series_id,map,played_at,opponent_name,ct_team_name,t_team_name,team_a_score,team_b_score,team_a_first_side,created_at,status,team_id')
+    .select(COLS)
     .eq('team_id', teamId)
     .eq('status', 'ready')
     .gte('created_at', `${minDate}T00:00:00`)
     .lte('created_at', `${maxDate}T23:59:59`)
-  if (e1) throw e1
+
+  const publicDemosP = ourTeamName
+    ? supabase
+        .from('demos')
+        .select(COLS)
+        .eq('is_public', true)
+        .eq('status', 'ready')
+        .or(`team_a_name.ilike.${ourTeamName},team_b_name.ilike.${ourTeamName}`)
+        .gte('created_at', `${minDate}T00:00:00`)
+        .lte('created_at', `${maxDate}T23:59:59`)
+    : Promise.resolve({ data: [], error: null })
+
+  const [teamRes, publicRes] = await Promise.all([teamDemosP, publicDemosP])
+  if (teamRes.error)   throw teamRes.error
+  if (publicRes.error) throw publicRes.error
+  // Dedup defensively in case a future schema change ever lets a row qualify
+  // for both lists (e.g. is_public true on a team-uploaded row).
+  const seen = new Set()
+  const demos = [...(teamRes.data ?? []), ...(publicRes.data ?? [])]
+    .filter(d => (seen.has(d.id) ? false : (seen.add(d.id), true)))
 
   const demoToVod = linkDemosToVods(demos || [], vods)
 
