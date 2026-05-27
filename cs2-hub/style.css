@@ -3954,6 +3954,217 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
   .dx-series-row-actions { grid-column: 1 / -1; justify-content: flex-end; padding-top: 4px; }
 }
 
+/* ──────────────────────────────────────────────────────────────────────── */
+/* Compact demo row layout                                                  */
+/* Used on demos.html. ~52 px tall vs the old ~150 px card — 3x density,    */
+/* essential when the Pro tab can hold 1000+ HLTV matches.                  */
+/* ──────────────────────────────────────────────────────────────────────── */
+
+.dx-card-compact {
+  display: grid;
+  grid-template-columns: 64px 110px minmax(0, 1fr) auto;
+  align-items: center;
+  background: rgba(15, 25, 38, 0.45);
+  border: 1px solid var(--glass-border);
+  border-left: 3px solid var(--muted);
+  border-radius: 8px;
+  margin-bottom: 4px;
+  min-height: 52px;
+  overflow: hidden;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+.dx-card-compact:hover { background: rgba(15, 25, 38, 0.72); }
+.dx-card-compact.dx-card-win  { border-left-color: var(--accent); }
+.dx-card-compact.dx-card-loss { border-left-color: var(--danger); }
+.dx-card-compact.dx-card-draw { border-left-color: var(--warning); }
+.dx-card-compact.dx-card-none { border-left-color: var(--muted); }
+
+.dx-card-compact-map {
+  position: relative;
+  width: 64px; height: 52px;
+  background-size: cover;
+  background-position: center;
+  background-color: rgba(255,255,255,0.02);
+}
+.dx-card-compact-map-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(15,25,38,0.05) 0%, rgba(15,25,38,0.75) 100%);
+}
+.dx-card-compact-map-label {
+  position: absolute;
+  bottom: 4px; left: 6px;
+  font-family: var(--display-font);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.85);
+}
+
+.dx-card-compact-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+.dx-card-compact-meta .dx-card-tag {
+  font-size: 9px;
+  padding: 2px 6px;
+  letter-spacing: 0.12em;
+}
+.dx-card-compact-meta .dx-card-date {
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dx-card-compact-event {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.dx-card-compact-versus {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+}
+.dx-card-compact-versus .dx-team-chip { gap: 8px; }
+.dx-card-compact-versus .dx-team-name {
+  font-size: 13px;
+  font-weight: 700;
+}
+.dx-card-compact-versus .dx-score-strip { gap: 6px; }
+.dx-card-compact-versus .dx-score { font-size: 20px; }
+.dx-card-compact-versus .dx-score-sep { font-size: 14px; }
+
+.dx-card-compact-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px 0 6px;
+}
+.dx-card-compact-actions .dx-watch {
+  padding: 6px 10px;
+  font-size: 11px;
+}
+.dx-card-compact-actions .dx-action-ghost {
+  padding: 5px 8px;
+  font-size: 11px;
+}
+
+/* Compact series — a small header row showing the series outcome, followed
+   by an ultra-short row per map. Keeps individual-map Watch buttons usable
+   without exploding vertical space the way the old card did. */
+.dx-series-compact {
+  background: rgba(15, 25, 38, 0.45);
+  border: 1px solid var(--glass-border);
+  border-left: 3px solid var(--muted);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  overflow: hidden;
+  transition: background 140ms ease;
+}
+.dx-series-compact:hover { background: rgba(15, 25, 38, 0.55); }
+.dx-series-compact.dx-card-win  { border-left-color: var(--accent); }
+.dx-series-compact.dx-card-loss { border-left-color: var(--danger); }
+.dx-series-compact.dx-card-draw { border-left-color: var(--warning); }
+.dx-series-compact.dx-card-none { border-left-color: var(--muted); }
+
+.dx-series-compact-head {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0;
+  min-height: 44px;
+  padding: 0 12px 0 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.02);
+}
+.dx-series-compact-head .dx-card-tag {
+  font-size: 9px;
+  padding: 2px 6px;
+  letter-spacing: 0.12em;
+}
+.dx-series-compact-head-left {
+  display: flex; align-items: center; gap: 8px;
+  min-width: 0;
+}
+.dx-series-compact-head .dx-card-compact-versus {
+  padding: 0 12px;
+}
+.dx-series-compact-head .dx-card-compact-versus .dx-team-name { font-size: 13px; }
+.dx-series-compact-head .dx-card-compact-versus .dx-score { font-size: 22px; }
+.dx-series-compact-head-right {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--muted);
+}
+.dx-series-compact-head .dx-card-compact-event {
+  font-size: 10px; max-width: 180px;
+}
+
+.dx-series-compact-row {
+  display: grid;
+  grid-template-columns: 28px 90px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0;
+  min-height: 32px;
+  padding: 0 12px 0 14px;
+  border-top: 1px solid rgba(255,255,255,0.02);
+  transition: background 100ms;
+}
+.dx-series-compact-row:first-child { border-top: none; }
+.dx-series-compact-row:hover { background: rgba(255,255,255,0.03); }
+.dx-series-compact-row-icon { font-size: 10px; color: var(--muted); }
+.dx-series-compact-row-map  {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text);
+}
+.dx-series-compact-row-score {
+  display: flex; gap: 6px; align-items: baseline;
+  justify-content: center;
+  font-family: var(--display-font);
+  font-weight: 800;
+  font-size: 14px;
+  padding: 0 12px;
+}
+.dx-series-compact-row-score .dx-score-sep { font-size: 11px; color: var(--muted); }
+.dx-series-compact-row-actions {
+  display: flex; gap: 6px; align-items: center;
+}
+.dx-series-compact-row-actions .dx-watch {
+  padding: 4px 8px;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+}
+.dx-series-compact-row-actions .dx-status {
+  font-size: 9px;
+  padding: 2px 6px;
+}
+
+@media (max-width: 900px) {
+  .dx-card-compact {
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+  }
+  .dx-card-compact-meta { display: none; }
+  .dx-series-compact-head { grid-template-columns: 1fr auto; }
+  .dx-series-compact-head-left { display: none; }
+  .dx-series-compact-row { grid-template-columns: 24px 70px minmax(0,1fr) auto; }
+  .dx-series-compact-row-actions .dx-watch { padding: 3px 6px; }
+}
+
 /* ── Shared tactical chrome (used by stratbook/issues/goals) ── */
 .dx-hero-actions {
   display: flex;

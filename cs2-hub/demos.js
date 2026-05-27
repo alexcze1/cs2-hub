@@ -324,26 +324,24 @@ function singleCard(d) {
     : td.leftScore < td.rightScore ? 'dx-card-loss'
     : 'dx-card-draw'
   return `
-    <article class="dx-card ${winCls}" id="demo-row-${d.id}">
-      <div class="dx-card-map" style="${mapBg(d.map) ? `background-image:url('${esc(mapBg(d.map))}')` : ''}">
-        <div class="dx-card-map-overlay"></div>
-        <div class="dx-card-map-label">${esc(mapDisplay(d.map))}</div>
+    <article class="dx-card-compact ${winCls}" id="demo-row-${d.id}">
+      <div class="dx-card-compact-map" style="${mapBg(d.map) ? `background-image:url('${esc(mapBg(d.map))}')` : ''}">
+        <div class="dx-card-compact-map-overlay"></div>
+        <div class="dx-card-compact-map-label">${esc(mapDisplay(d.map))}</div>
       </div>
-      <div class="dx-card-main">
-        <div class="dx-card-head">
-          <span class="dx-card-tag dx-card-tag-demo">DEMO</span>
-          <span class="dx-card-date">${esc(dateStr)}</span>
-          ${statusBadge(d)}
-        </div>
-        <div class="dx-card-versus">
-          ${teamChip(leftName)}
-          ${scoreStrip(td, hasResult)}
-          ${teamChip(rightName)}
-        </div>
+      <div class="dx-card-compact-meta">
+        <span class="dx-card-tag dx-card-tag-demo">DEMO</span>
+        <span class="dx-card-date">${esc(dateStr)}</span>
       </div>
-      <div class="dx-card-actions">
+      <div class="dx-card-compact-versus">
+        ${teamChip(leftName, 22)}
+        ${scoreStrip(td, hasResult)}
+        ${teamChip(rightName, 22)}
+      </div>
+      <div class="dx-card-compact-actions">
+        ${statusBadge(d)}
         ${watchBtn(d)}
-        <div class="dx-card-actions-row">${actionMenu(d, td)}</div>
+        ${actionMenu(d, td)}
       </div>
     </article>`
 }
@@ -353,24 +351,22 @@ function seriesMapRow(d, i) {
   const hasResult = td.leftScore != null && td.rightScore != null && d.status === 'ready'
   const leftWin  = hasResult && td.leftScore  > td.rightScore
   const rightWin = hasResult && td.rightScore > td.leftScore
-  const winnerName = !hasResult ? '' : (leftWin ? td.left : rightWin ? td.right : '') ?? ''
   return `
-    <div class="dx-series-row" id="demo-row-${d.id}">
-      ${mapImg(d.map, 'demo-map-sm')}
-      <div class="dx-series-row-meta">
-        <div class="dx-series-row-map">Map ${i + 1} · ${esc(mapDisplay(d.map))}</div>
-        ${winnerName ? `<div class="dx-series-row-winner">${esc(winnerName)} won</div>` : ''}
-      </div>
-      <div class="dx-series-row-score">
+    <div class="dx-series-compact-row" id="demo-row-${d.id}">
+      <div class="dx-series-compact-row-icon">M${i + 1}</div>
+      <div class="dx-series-compact-row-map">${esc(mapDisplay(d.map))}</div>
+      <div class="dx-series-compact-row-score">
         ${hasResult
           ? `<span class="${leftWin ? 'dx-score-win' : 'dx-score-loss'}">${td.leftScore}</span>
              <span class="dx-score-sep">—</span>
              <span class="${rightWin ? 'dx-score-win' : 'dx-score-loss'}">${td.rightScore}</span>`
           : '<span class="dx-score-none">— —</span>'}
       </div>
-      <div class="dx-series-row-actions">
+      <div class="dx-series-compact-row-actions">
         ${statusBadge(d)}
         ${watchBtn(d)}
+      </div>
+      <div class="dx-series-compact-row-actions">
         ${actionMenu(d, td)}
       </div>
     </div>`
@@ -399,25 +395,30 @@ function seriesCard(demos) {
   const rightName = td.right ?? null
   const seriesId = first.series_id
 
+  const leftScoreCls  = decided && mapsLeftWon  > mapsRightWon ? 'dx-score-win'  : decided ? 'dx-score-loss' : 'dx-score-none'
+  const rightScoreCls = decided && mapsRightWon > mapsLeftWon  ? 'dx-score-win'  : decided ? 'dx-score-loss' : 'dx-score-none'
+
   return `
-    <article class="dx-series ${winCls}">
-      <header class="dx-series-head">
-        <div class="dx-series-tag">${boLabel} SERIES</div>
-        <div class="dx-series-date">${esc(dateStr)}</div>
-        <button class="dx-action-ghost dx-danger" title="Delete entire series" onclick="deleteSeries('${seriesId}', ${demos.length})">✕ Delete series</button>
-      </header>
-      <div class="dx-series-versus">
-        ${teamChip(leftName, 32)}
-        <div class="dx-score-strip dx-score-strip-lg">
-          <span class="dx-score ${decided && mapsLeftWon > mapsRightWon ? 'dx-score-win' : decided ? 'dx-score-loss' : 'dx-score-none'}">${mapsLeftWon}</span>
-          <span class="dx-score-sep">—</span>
-          <span class="dx-score ${decided && mapsRightWon > mapsLeftWon ? 'dx-score-win' : decided ? 'dx-score-loss' : 'dx-score-none'}">${mapsRightWon}</span>
+    <article class="dx-series-compact ${winCls}">
+      <header class="dx-series-compact-head">
+        <div class="dx-series-compact-head-left">
+          <span class="dx-card-tag dx-card-tag-demo">${boLabel}</span>
+          <span class="dx-card-date">${esc(dateStr)}</span>
         </div>
-        ${teamChip(rightName, 32)}
-      </div>
-      <div class="dx-series-maps">
-        ${demos.map((d, i) => seriesMapRow(d, i)).join('')}
-      </div>
+        <div class="dx-card-compact-versus">
+          ${teamChip(leftName, 22)}
+          <div class="dx-score-strip">
+            <span class="dx-score ${leftScoreCls}">${mapsLeftWon}</span>
+            <span class="dx-score-sep">—</span>
+            <span class="dx-score ${rightScoreCls}">${mapsRightWon}</span>
+          </div>
+          ${teamChip(rightName, 22)}
+        </div>
+        <div class="dx-series-compact-head-right">
+          <button class="dx-action-ghost dx-danger" title="Delete entire series" onclick="deleteSeries('${seriesId}', ${demos.length})">✕</button>
+        </div>
+      </header>
+      ${demos.map((d, i) => seriesMapRow(d, i)).join('')}
     </article>`
 }
 
@@ -858,8 +859,6 @@ function renderPublicSeriesCard(demos) {
   const teamA   = first.team_a_name ?? first.ct_team_name ?? 'Team A'
   const teamB   = first.team_b_name ?? first.t_team_name  ?? 'Team B'
   const dateStr = first.played_at ? formatDate(first.played_at) : formatDate(first.created_at)
-  const eventTag = first.event_name
-    ? `<span class="dx-card-tag dx-card-tag-event">${esc(first.event_name)}</span>` : ''
 
   let mapsAWon = 0, mapsBWon = 0
   for (const d of demos) {
@@ -869,7 +868,14 @@ function renderPublicSeriesCard(demos) {
     if (a > b) mapsAWon++
     else if (b > a) mapsBWon++
   }
-  const boLabel = demos.length <= 3 ? 'BO3' : demos.length <= 5 ? 'BO5' : `BO${demos.length}`
+  const boLabel = demos.length <= 1 ? 'BO1' : demos.length <= 3 ? 'BO3' : demos.length <= 5 ? 'BO5' : `BO${demos.length}`
+
+  const decided = mapsAWon !== mapsBWon
+  const winCls = !decided ? 'dx-card-none'
+    : mapsAWon > mapsBWon ? 'dx-card-win'
+    : 'dx-card-loss'
+  const leftScoreCls  = decided && mapsAWon > mapsBWon ? 'dx-score-win'  : decided ? 'dx-score-loss' : 'dx-score-none'
+  const rightScoreCls = decided && mapsBWon > mapsAWon ? 'dx-score-win'  : decided ? 'dx-score-loss' : 'dx-score-none'
 
   const mapsHtml = demos.map((d, i) => {
     const [a, b] = pubScoreFor(d)
@@ -877,42 +883,45 @@ function renderPublicSeriesCard(demos) {
     const aWin = hasResult && a > b
     const bWin = hasResult && b > a
     return `
-      <div class="dx-series-row" id="demo-row-${d.id}">
-        ${mapImg(d.map, 'demo-map-sm')}
-        <div class="dx-series-row-meta">
-          <div class="dx-series-row-map">Map ${i + 1} · ${esc(mapDisplay(d.map))}</div>
-        </div>
-        <div class="dx-series-row-score">
+      <div class="dx-series-compact-row" id="demo-row-${d.id}">
+        <div class="dx-series-compact-row-icon">M${i + 1}</div>
+        <div class="dx-series-compact-row-map">${esc(mapDisplay(d.map))}</div>
+        <div class="dx-series-compact-row-score">
           ${hasResult
             ? `<span class="${aWin ? 'dx-score-win' : 'dx-score-loss'}">${a}</span><span class="dx-score-sep">—</span><span class="${bWin ? 'dx-score-win' : 'dx-score-loss'}">${b}</span>`
             : '<span class="dx-score-none">— —</span>'}
         </div>
-        <div class="dx-series-row-actions">
+        <div class="dx-series-compact-row-actions">
           ${d.status === 'ready'
             ? `<a class="dx-watch" href="demo-viewer.html?id=${d.id}">▶ Watch</a>`
             : `<span class="dx-status dx-status-pending">● Processing</span>`}
         </div>
+        <div class="dx-series-compact-row-actions"></div>
       </div>`
   }).join('')
 
   return `
-    <article class="dx-series dx-card-none">
-      <header class="dx-series-head">
-        <div class="dx-series-tag">${boLabel} · PRO</div>
-        ${eventTag}
-        <div class="dx-series-date">${esc(dateStr)}</div>
-        ${first.source_url ? `<a class="dx-action-ghost" href="${esc(first.source_url)}" target="_blank" rel="noopener">↗ HLTV</a>` : ''}
-      </header>
-      <div class="dx-series-versus">
-        ${teamChip(teamA, 32)}
-        <div class="dx-score-strip dx-score-strip-lg">
-          <span class="dx-score">${mapsAWon}</span>
-          <span class="dx-score-sep">—</span>
-          <span class="dx-score">${mapsBWon}</span>
+    <article class="dx-series-compact ${winCls}">
+      <header class="dx-series-compact-head">
+        <div class="dx-series-compact-head-left">
+          <span class="dx-card-tag dx-card-tag-demo">${boLabel} · PRO</span>
+          <span class="dx-card-date">${esc(dateStr)}</span>
         </div>
-        ${teamChip(teamB, 32)}
-      </div>
-      <div class="dx-series-maps">${mapsHtml}</div>
+        <div class="dx-card-compact-versus">
+          ${teamChip(teamA, 22)}
+          <div class="dx-score-strip">
+            <span class="dx-score ${leftScoreCls}">${mapsAWon}</span>
+            <span class="dx-score-sep">—</span>
+            <span class="dx-score ${rightScoreCls}">${mapsBWon}</span>
+          </div>
+          ${teamChip(teamB, 22)}
+        </div>
+        <div class="dx-series-compact-head-right">
+          ${first.event_name ? `<span class="dx-card-compact-event" title="${esc(first.event_name)}">${esc(first.event_name)}</span>` : ''}
+          ${first.source_url ? `<a class="dx-action-ghost" href="${esc(first.source_url)}" target="_blank" rel="noopener" title="View on HLTV">↗</a>` : ''}
+        </div>
+      </header>
+      ${mapsHtml}
     </article>`
 }
 
@@ -922,35 +931,37 @@ function renderPublicSingleCard(d) {
   const dateStr = d.played_at ? formatDate(d.played_at) : formatDate(d.created_at)
   const [a, b] = pubScoreFor(d)
   const hasResult = a != null && b != null && d.status === 'ready'
-  const eventTag = d.event_name
-    ? `<span class="dx-card-tag dx-card-tag-event">${esc(d.event_name)}</span>` : ''
+  const aWin = hasResult && a > b
+  const bWin = hasResult && b > a
+  const winCls = !hasResult ? 'dx-card-none'
+    : aWin ? 'dx-card-win'
+    : bWin ? 'dx-card-loss'
+    : 'dx-card-draw'
   return `
-    <article class="dx-card dx-card-none" id="demo-row-${d.id}">
-      <div class="dx-card-map" style="${mapBg(d.map) ? `background-image:url('${esc(mapBg(d.map))}')` : ''}">
-        <div class="dx-card-map-overlay"></div>
-        <div class="dx-card-map-label">${esc(mapDisplay(d.map))}</div>
+    <article class="dx-card-compact ${winCls}" id="demo-row-${d.id}">
+      <div class="dx-card-compact-map" style="${mapBg(d.map) ? `background-image:url('${esc(mapBg(d.map))}')` : ''}">
+        <div class="dx-card-compact-map-overlay"></div>
+        <div class="dx-card-compact-map-label">${esc(mapDisplay(d.map))}</div>
       </div>
-      <div class="dx-card-main">
-        <div class="dx-card-head">
-          <span class="dx-card-tag dx-card-tag-demo">PRO</span>
-          ${eventTag}
-          <span class="dx-card-date">${esc(dateStr)}</span>
-        </div>
-        <div class="dx-card-versus">
-          ${teamChip(teamA)}
-          <div class="dx-score-strip">
-            <span class="dx-score ${hasResult ? '' : 'dx-score-none'}">${a ?? '—'}</span>
-            <span class="dx-score-sep">—</span>
-            <span class="dx-score ${hasResult ? '' : 'dx-score-none'}">${b ?? '—'}</span>
-          </div>
-          ${teamChip(teamB)}
-        </div>
+      <div class="dx-card-compact-meta">
+        <span class="dx-card-tag dx-card-tag-demo">PRO</span>
+        <span class="dx-card-date">${esc(dateStr)}</span>
       </div>
-      <div class="dx-card-actions">
+      <div class="dx-card-compact-versus">
+        ${teamChip(teamA, 22)}
+        <div class="dx-score-strip">
+          <span class="dx-score ${hasResult ? (aWin ? 'dx-score-win' : 'dx-score-loss') : 'dx-score-none'}">${a ?? '—'}</span>
+          <span class="dx-score-sep">—</span>
+          <span class="dx-score ${hasResult ? (bWin ? 'dx-score-win' : 'dx-score-loss') : 'dx-score-none'}">${b ?? '—'}</span>
+        </div>
+        ${teamChip(teamB, 22)}
+      </div>
+      <div class="dx-card-compact-actions">
+        ${d.event_name ? `<span class="dx-card-compact-event" title="${esc(d.event_name)}">${esc(d.event_name)}</span>` : ''}
         ${d.status === 'ready'
           ? `<a class="dx-watch" href="demo-viewer.html?id=${d.id}">▶ Watch</a>`
           : `<button class="dx-watch is-disabled" disabled>▶ Processing</button>`}
-        ${d.source_url ? `<a class="dx-action-ghost" href="${esc(d.source_url)}" target="_blank" rel="noopener">↗ HLTV</a>` : ''}
+        ${d.source_url ? `<a class="dx-action-ghost" href="${esc(d.source_url)}" target="_blank" rel="noopener" title="View on HLTV">↗</a>` : ''}
       </div>
     </article>`
 }
