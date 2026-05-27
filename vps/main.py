@@ -160,7 +160,12 @@ async def _poll_loop():
 
 async def _hltv_ingest_loop():
     print(f"HLTV ingest loop started (interval={HLTV_INGEST_INTERVAL}s, days={HLTV_INGEST_DAYS})")
+    # Track whether the previous cycle exited cleanly so a transient Playwright
+    # crash (Chromium OOM, CF rate-limit, network blip) only costs ~15 min,
+    # not a full 24 h. _hltv_ingest_once sets _last_ingest_ok on the module.
     while True:
+        global _last_ingest_ok
+        _last_ingest_ok = True
         try:
             await asyncio.get_event_loop().run_in_executor(None, _hltv_ingest_once)
         except asyncio.CancelledError:
@@ -168,12 +173,26 @@ async def _hltv_ingest_loop():
             raise
         except BaseException as e:
             print(f"HLTV ingest error ({type(e).__name__}): {e}")
-        await asyncio.sleep(HLTV_INGEST_INTERVAL)
+            _last_ingest_ok = False
+        delay = HLTV_INGEST_INTERVAL if _last_ingest_ok else 900   # 15 min on failure
+        await asyncio.sleep(delay)
+
+
+_last_ingest_ok = True
 
 
 async def _hltv_refresh_loop():
-    """Daily HLTV team + player refresh — keeps autocomplete logos/photos fresh."""
-    print(f"HLTV refresh loop started (interval={HLTV_REFRESH_INTERVAL}s)")
+    """Daily HLTV team + player refresh — keeps autocomplete logos/photos fresh.
+
+    Starts 45 min after the service boots so its Chromium doesn't compete with
+    the ingest subprocess at startup. A 512 MB VPS can't comfortably run two
+    headless Chromium instances simultaneously; observed symptom is both
+    Playwrights hitting `Page.goto: Timeout 30000ms exceeded` and crashing.
+    """
+    initial_delay = int(os.getenv("HLTV_REFRESH_STARTUP_DELAY", "2700"))  # 45 min
+    print(f"HLTV refresh loop started (interval={HLTV_REFRESH_INTERVAL}s, "
+          f"first run in {initial_delay}s)")
+    await asyncio.sleep(initial_delay)
     while True:
         try:
             await asyncio.get_event_loop().run_in_executor(None, _hltv_refresh_once)
@@ -277,6 +296,9 @@ def _hltv_ingest_once():
 
     if proc.returncode != 0:
         print(f"[hltv] subprocess exited with {proc.returncode}")
+        # Flag failure so _hltv_ingest_loop retries in 15 min instead of 24 h.
+        global _last_ingest_ok
+        _last_ingest_ok = False
 
 
 def _reset_stuck_sync(cutoff):
