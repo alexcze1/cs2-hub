@@ -981,57 +981,94 @@ async function runPublicScope() {
   const filtersEl = document.getElementById('demos-filters')
   const listEl    = document.getElementById('demos-list')
 
+  filtersEl.innerHTML = ''
+
+  // Hero rendered once; the count is patched in place each reload below.
   heroEl.innerHTML = `
     <div class="dx-hero-grid">
       <div class="dx-hero-left">
         <div class="dx-hero-title">PRO DEMOS</div>
         <div class="dx-hero-substats">
           <div class="dx-kv"><div class="dx-kv-k">Source</div><div class="dx-kv-v">HLTV (last 90 days)</div></div>
+          <div class="dx-kv"><div class="dx-kv-k">Total</div><div class="dx-kv-v" id="pro-total-count">…</div></div>
+          <div class="dx-kv"><div class="dx-kv-k">Live</div><div class="dx-kv-v" id="pro-live-status">connecting…</div></div>
         </div>
       </div>
     </div>`
-  filtersEl.innerHTML = ''
 
-  const { data, error } = await supabase
-    .from('demos')
-    .select('id, map, played_at, score_ct, score_t, team_a_score, team_b_score, team_a_first_side, team_a_name, team_b_name, ct_team_name, t_team_name, event_name, source_url, source_match_id, source_map_index, status, created_at')
-    .eq('is_public', true)
-    .order('played_at', { ascending: false, nullsFirst: false })
-    .limit(100)
+  // Fetch + render. Called on first paint and again whenever the realtime
+  // channel tells us a public demo row changed. Debounced from the subscription
+  // so a backfill burst doesn't re-render dozens of times per second.
+  async function reloadPublicList() {
+    const [{ data, error }, countRes] = await Promise.all([
+      supabase
+        .from('demos')
+        .select('id, map, played_at, score_ct, score_t, team_a_score, team_b_score, team_a_first_side, team_a_name, team_b_name, ct_team_name, t_team_name, event_name, source_url, source_match_id, source_map_index, status, created_at')
+        .eq('is_public', true)
+        .order('played_at', { ascending: false, nullsFirst: false })
+        .limit(300),
+      supabase.from('demos').select('id', { count: 'exact', head: true }).eq('is_public', true),
+    ])
 
-  if (error) {
-    listEl.innerHTML = `<div class="empty-state"><h3>Failed to load pro demos</h3><p>${esc(error.message)}</p></div>`
-    return
-  }
-  const rows = data ?? []
-  if (!rows.length) {
-    listEl.innerHTML = `<div class="empty-state"><h3>No pro demos yet</h3><p>The HLTV ingest worker hasn't picked up any matches yet — check back soon.</p></div>`
-    return
+    const countEl = document.getElementById('pro-total-count')
+    if (countEl) countEl.textContent = countRes.count != null ? String(countRes.count) : '—'
+
+    if (error) {
+      listEl.innerHTML = `<div class="empty-state"><h3>Failed to load pro demos</h3><p>${esc(error.message)}</p></div>`
+      return
+    }
+    const rows = data ?? []
+    if (!rows.length) {
+      listEl.innerHTML = `<div class="empty-state"><h3>No pro demos yet</h3><p>The HLTV ingest worker hasn't picked up any matches yet — check back soon.</p></div>`
+      return
+    }
+
+    const teamNames = new Set()
+    for (const d of rows) {
+      if (d.team_a_name) teamNames.add(d.team_a_name)
+      if (d.team_b_name) teamNames.add(d.team_b_name)
+    }
+    await warmLogos(teamNames)
+
+    const groups = new Map()
+    for (const d of rows) {
+      const key = d.source_match_id ?? `single:${d.id}`
+      if (!groups.has(key)) groups.set(key, [])
+      groups.get(key).push(d)
+    }
+    const cards = []
+    for (const demos of groups.values()) {
+      demos.sort((a, b) => (a.source_map_index ?? 0) - (b.source_map_index ?? 0))
+      cards.push(demos.length > 1 ? renderPublicSeriesCard(demos) : renderPublicSingleCard(demos[0]))
+    }
+    listEl.innerHTML = cards.join('')
   }
 
-  // Warm the shared logo cache for the team names we'll show. teamChip()
-  // reads from logoCache — without this pre-load, Pro cards render with the
-  // placeholder abbreviation instead of HLTV logos.
-  const teamNames = new Set()
-  for (const d of rows) {
-    if (d.team_a_name) teamNames.add(d.team_a_name)
-    if (d.team_b_name) teamNames.add(d.team_b_name)
-  }
-  await warmLogos(teamNames)
+  await reloadPublicList()
 
-  // Group by source_match_id so BO3s render as one card.
-  const groups = new Map()
-  for (const d of rows) {
-    const key = d.source_match_id ?? `single:${d.id}`
-    if (!groups.has(key)) groups.set(key, [])
-    groups.get(key).push(d)
+  // Live updates — debounce reloads so a backfill INSERT burst (one row per map,
+  // BO3 = 3 inserts in a few seconds) reflows the list only once.
+  let reloadTimer = null
+  const scheduleReload = () => {
+    if (reloadTimer) clearTimeout(reloadTimer)
+    reloadTimer = setTimeout(() => { reloadTimer = null; reloadPublicList() }, 2500)
   }
-  const cards = []
-  for (const demos of groups.values()) {
-    demos.sort((a, b) => (a.source_map_index ?? 0) - (b.source_map_index ?? 0))
-    cards.push(demos.length > 1 ? renderPublicSeriesCard(demos) : renderPublicSingleCard(demos[0]))
-  }
-  listEl.innerHTML = cards.join('')
+
+  const liveStatusEl = document.getElementById('pro-live-status')
+  supabase.channel('public-demos-stream')
+    .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'demos', filter: 'is_public=eq.true' },
+        () => scheduleReload())
+    .subscribe(status => {
+      if (liveStatusEl) {
+        liveStatusEl.textContent = status === 'SUBSCRIBED' ? 'on' : status.toLowerCase()
+      }
+    })
+
+  // Belt-and-suspenders periodic refresh — covers the case where the realtime
+  // socket silently drops or RLS replication lags. 60 s is short enough that
+  // the user sees the count climb but cheap enough on the DB.
+  setInterval(reloadPublicList, 60000)
 }
 
 
