@@ -857,14 +857,29 @@ function pubScoreFor(d) {
 
 function renderPublicSeriesCard(demos) {
   const first   = demos[0]
+  // Pick a canonical (teamA, teamB) for the series. Per-map rows may have the
+  // names in either order (legacy data ingested before HLTV-authoritative
+  // scores), so we align each map's scores to the canonical pair by NAME
+  // rather than trusting team_a_score == "score for the left chip".
   const teamA   = first.team_a_name ?? first.ct_team_name ?? 'Team A'
   const teamB   = first.team_b_name ?? first.t_team_name  ?? 'Team B'
   const dateStr = first.played_at ? formatDate(first.played_at) : formatDate(first.created_at)
 
+  // Resolve a map's (left, right) score for the series's canonical chip order.
+  // Returns nulls when scores aren't populated or alignment can't be resolved.
+  const scoresAligned = (d) => {
+    const ta = d.team_a_score, tb = d.team_b_score
+    if (ta == null || tb == null) return [null, null]
+    if (d.team_a_name === teamA && d.team_b_name === teamB) return [ta, tb]
+    if (d.team_a_name === teamB && d.team_b_name === teamA) return [tb, ta]
+    // Unknown name pair (drift). Best-effort: keep row order.
+    return [ta, tb]
+  }
+
   let mapsAWon = 0, mapsBWon = 0
   for (const d of demos) {
     if (d.status !== 'ready') continue
-    const [a, b] = pubScoreFor(d)
+    const [a, b] = scoresAligned(d)
     if (a == null || b == null) continue
     if (a > b) mapsAWon++
     else if (b > a) mapsBWon++
@@ -879,7 +894,7 @@ function renderPublicSeriesCard(demos) {
   const rightScoreCls = decided && mapsBWon > mapsAWon ? 'dx-score-win'  : decided ? 'dx-score-loss' : 'dx-score-none'
 
   const mapsHtml = demos.map((d, i) => {
-    const [a, b] = pubScoreFor(d)
+    const [a, b] = scoresAligned(d)
     const hasResult = a != null && b != null && d.status === 'ready'
     const aWin = hasResult && a > b
     const bWin = hasResult && b > a

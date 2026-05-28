@@ -130,6 +130,67 @@ const oldDemo = {
   assert(pubGroupMatchesFilter([noPlayedAt], f), 'falls back to created_at')
 }
 
+// --- Series score-alignment logic (regression test for series-wide bug) ----
+// renderPublicSeriesCard's `scoresAligned` resolves each map's (left, right)
+// scores against the series header's canonical (teamA, teamB) pair. Failure
+// mode it guards: legacy rows where team_a_name on one map points to a
+// different team than on the next, which used to make the series header sum
+// up scores belonging to different teams.
+{
+  // Inline the exact predicate from demos.js — copy-paste so the test stays
+  // independent of the page wiring (renderPublicSeriesCard touches the DOM).
+  function scoresAlignedFor(teamA, teamB, d) {
+    const ta = d.team_a_score, tb = d.team_b_score
+    if (ta == null || tb == null) return [null, null]
+    if (d.team_a_name === teamA && d.team_b_name === teamB) return [ta, tb]
+    if (d.team_a_name === teamB && d.team_b_name === teamA) return [tb, ta]
+    return [ta, tb]
+  }
+
+  // BO3: legacy data where map 2's team_a_name is swapped (G2/Vitality instead of Vitality/G2).
+  const m1 = { team_a_name:'Vitality', team_b_name:'G2', team_a_score:13, team_b_score:7 }   // Vitality 13-7
+  const m2 = { team_a_name:'G2', team_b_name:'Vitality', team_a_score:13, team_b_score:11 }  // G2 13-11
+  const m3 = { team_a_name:'Vitality', team_b_name:'G2', team_a_score:11, team_b_score:13 }  // G2 13-11
+
+  const series = [m1, m2, m3]
+  const teamA = series[0].team_a_name  // Vitality (canonical)
+  const teamB = series[0].team_b_name  // G2
+
+  // Map 1: same orientation → no swap
+  let [l, r] = scoresAlignedFor(teamA, teamB, m1)
+  assert(l === 13 && r === 7, 'm1 aligned: Vitality 13-7')
+
+  // Map 2: row has names backwards → must swap scores
+  ;[l, r] = scoresAlignedFor(teamA, teamB, m2)
+  assert(l === 11 && r === 13, 'm2 swapped: Vitality 11-13')
+
+  // Map 3: same orientation
+  ;[l, r] = scoresAlignedFor(teamA, teamB, m3)
+  assert(l === 11 && r === 13, 'm3 aligned: Vitality 11-13')
+
+  // Series tally: Vitality won map 1 only → 1-2
+  let aw = 0, bw = 0
+  for (const m of series) {
+    const [la, lb] = scoresAlignedFor(teamA, teamB, m)
+    if (la > lb) aw++
+    else if (lb > la) bw++
+  }
+  assert(aw === 1 && bw === 2, 'series Vitality 1-2 G2 (was previously summing wrong team\'s scores)')
+}
+
+// scoresAligned passes through nulls
+{
+  function scoresAlignedFor(teamA, teamB, d) {
+    const ta = d.team_a_score, tb = d.team_b_score
+    if (ta == null || tb == null) return [null, null]
+    if (d.team_a_name === teamA && d.team_b_name === teamB) return [ta, tb]
+    if (d.team_a_name === teamB && d.team_b_name === teamA) return [tb, ta]
+    return [ta, tb]
+  }
+  const [l, r] = scoresAlignedFor('A','B', { team_a_name:'A', team_b_name:'B', team_a_score:null, team_b_score:null })
+  assert(l === null && r === null, 'nulls passed through')
+}
+
 console.log('all done')
 </script>
 </body>

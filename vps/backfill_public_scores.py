@@ -66,39 +66,31 @@ def _fetch_public_demos(limit: int | None) -> list[dict]:
 
 
 def _resolve_one(
-    demo: dict, map_results: list[MapResult],
+    demo: dict,
+    map_results: list[MapResult],
+    canonical_team_a: str,
+    canonical_team_b: str,
 ) -> tuple[int, int, str, str] | None:
     """Return the corrected (team_a_score, team_b_score, team_a_name, team_b_name) or None.
 
-    First tries with the demo's current name order; if HLTV doesn't have a
-    match, tries the swapped order — that flips both the scores AND the
-    name columns so the row is self-consistent post-write.
+    Always writes names in the canonical (series-wide) order so the front-end
+    can rely on team_a_name being consistent across every map of a series.
+    The canonical pair is taken from the first played map on the HLTV match
+    page; map_results was parsed once per match by the caller.
     """
     map_name = (demo.get("map") or "").lower().replace("de_", "")
     map_index = demo.get("source_map_index") or 0
-    a = demo["team_a_name"]
-    b = demo["team_b_name"]
 
-    direct = match_scores_for(
-        team_a_name=a, team_b_name=b,
-        map_name=map_name, map_index=map_index,
+    scores = match_scores_for(
+        team_a_name=canonical_team_a,
+        team_b_name=canonical_team_b,
+        map_name=map_name,
+        map_index=map_index,
         map_results=map_results,
     )
-    if direct is not None:
-        return (direct[0], direct[1], a, b)
-
-    swapped = match_scores_for(
-        team_a_name=b, team_b_name=a,
-        map_name=map_name, map_index=map_index,
-        map_results=map_results,
-    )
-    if swapped is not None:
-        # The DB row had names backwards — write them back in HLTV order,
-        # along with the matching scores. team_a_score now belongs to the
-        # team currently stored as team_b_name, so swap both.
-        return (swapped[0], swapped[1], b, a)
-
-    return None
+    if scores is None:
+        return None
+    return (scores[0], scores[1], canonical_team_a, canonical_team_b)
 
 
 def _apply_update(demo_id: str, ta_score: int, tb_score: int,
@@ -174,8 +166,13 @@ def main(argv: list[str] | None = None) -> int:
             unmatched += len(rows)
             continue
 
+        # HLTV is consistent across maps within a match — the first played
+        # map's team1/team2 names are the canonical series-wide order.
+        canonical_a = map_results[0].team1_name
+        canonical_b = map_results[0].team2_name
+
         for d in rows:
-            resolved = _resolve_one(d, map_results)
+            resolved = _resolve_one(d, map_results, canonical_a, canonical_b)
             if resolved is None:
                 unmatched += 1
                 continue
