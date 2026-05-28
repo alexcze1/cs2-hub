@@ -1,9 +1,13 @@
 // Shared HLTV team autocomplete — attach to any text input.
 //
-// Source of truth: the `hltv_teams` table populated daily by the VPS refresh
-// job. Falls back to the static hltv-teams.json shipped with the site on any
-// query error (offline, RLS misconfiguration, etc.) so autocomplete keeps
-// working in degraded modes.
+// We MERGE two sources so lower-tier teams (which the daily refresh's
+// top-30 scope misses) still get their logo:
+//   1. `hltv_teams` Supabase table — fresh, daily-refreshed, top-30 only.
+//   2. Bundled `hltv-teams.json` — hundreds of teams captured once, may be
+//      stale on logo URLs but covers the long tail.
+// DB entries win on collisions (case-insensitive name match), so a team
+// renamed/rebranded since the JSON was captured still resolves to the
+// current logo when it makes the top 30.
 
 import { supabase } from './supabase.js'
 
@@ -11,26 +15,36 @@ let _teams = null
 
 async function loadTeams() {
   if (_teams) return _teams
-  try {
-    const { data, error } = await supabase
-      .from('hltv_teams')
-      .select('id, name, logo_url, rank')
-      .order('rank', { ascending: true, nullsFirst: false })
-    if (error) throw error
-    if (data && data.length) {
-      // Shape preserved so getTeamLogo / attachTeamAutocomplete don't need to change.
-      _teams = data.map(t => ({ id: t.id, name: t.name, logo: t.logo_url, rank: t.rank }))
-      return _teams
-    }
-  } catch (e) {
-    console.warn('[team-autocomplete] DB load failed, falling back to JSON:', e)
+
+  const [dbTeams, jsonTeams] = await Promise.all([
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('hltv_teams')
+          .select('id, name, logo_url, rank')
+          .order('rank', { ascending: true, nullsFirst: false })
+        if (error) throw error
+        return (data ?? []).map(t => ({ id: t.id, name: t.name, logo: t.logo_url, rank: t.rank }))
+      } catch (e) {
+        console.warn('[team-autocomplete] DB load failed:', e)
+        return []
+      }
+    })(),
+    (async () => {
+      try { return await (await fetch('hltv-teams.json')).json() }
+      catch { return [] }
+    })(),
+  ])
+
+  // Merge keyed on lowercased name. DB wins; JSON fills the long tail.
+  const byName = new Map()
+  for (const t of jsonTeams) {
+    if (t?.name) byName.set(t.name.toLowerCase(), t)
   }
-  try {
-    const r = await fetch('hltv-teams.json')
-    _teams = await r.json()
-  } catch {
-    _teams = []
+  for (const t of dbTeams) {
+    if (t?.name) byName.set(t.name.toLowerCase(), t)
   }
+  _teams = [...byName.values()]
   return _teams
 }
 

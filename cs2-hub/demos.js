@@ -353,8 +353,10 @@ function seriesMapRow(d, i) {
   const rightWin = hasResult && td.rightScore > td.leftScore
   return `
     <div class="dx-series-compact-row" id="demo-row-${d.id}">
-      <div class="dx-series-compact-row-icon">M${i + 1}</div>
-      <div class="dx-series-compact-row-map">${esc(mapDisplay(d.map))}</div>
+      <div class="dx-series-compact-row-left">
+        <span class="dx-series-compact-row-icon">M${i + 1}</span>
+        <span class="dx-series-compact-row-map">${esc(mapDisplay(d.map))}</span>
+      </div>
       <div class="dx-series-compact-row-score">
         ${hasResult
           ? `<span class="${leftWin ? 'dx-score-win' : 'dx-score-loss'}">${td.leftScore}</span>
@@ -362,11 +364,9 @@ function seriesMapRow(d, i) {
              <span class="${rightWin ? 'dx-score-win' : 'dx-score-loss'}">${td.rightScore}</span>`
           : '<span class="dx-score-none">— —</span>'}
       </div>
-      <div class="dx-series-compact-row-actions">
+      <div class="dx-series-compact-row-right">
         ${statusBadge(d)}
         ${watchBtn(d)}
-      </div>
-      <div class="dx-series-compact-row-actions">
         ${actionMenu(d, td)}
       </div>
     </div>`
@@ -884,19 +884,20 @@ function renderPublicSeriesCard(demos) {
     const bWin = hasResult && b > a
     return `
       <div class="dx-series-compact-row" id="demo-row-${d.id}">
-        <div class="dx-series-compact-row-icon">M${i + 1}</div>
-        <div class="dx-series-compact-row-map">${esc(mapDisplay(d.map))}</div>
+        <div class="dx-series-compact-row-left">
+          <span class="dx-series-compact-row-icon">M${i + 1}</span>
+          <span class="dx-series-compact-row-map">${esc(mapDisplay(d.map))}</span>
+        </div>
         <div class="dx-series-compact-row-score">
           ${hasResult
             ? `<span class="${aWin ? 'dx-score-win' : 'dx-score-loss'}">${a}</span><span class="dx-score-sep">—</span><span class="${bWin ? 'dx-score-win' : 'dx-score-loss'}">${b}</span>`
             : '<span class="dx-score-none">— —</span>'}
         </div>
-        <div class="dx-series-compact-row-actions">
+        <div class="dx-series-compact-row-right">
           ${d.status === 'ready'
             ? `<a class="dx-watch" href="demo-viewer.html?id=${d.id}">▶ Watch</a>`
             : `<span class="dx-status dx-status-pending">● Processing</span>`}
         </div>
-        <div class="dx-series-compact-row-actions"></div>
       </div>`
   }).join('')
 

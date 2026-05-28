@@ -4080,13 +4080,18 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
 .dx-series-compact.dx-card-draw { border-left-color: var(--warning); }
 .dx-series-compact.dx-card-none { border-left-color: var(--muted); }
 
-.dx-series-compact-head {
+/* Header + map-row share the SAME 3-column grid so the series score in the
+   header lines up vertically with every per-map score below it. Equal-fr
+   left+right columns keep the score (centre column) at the card's centre. */
+.dx-series-compact-head,
+.dx-series-compact-row {
   display: grid;
-  grid-template-columns: 110px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) 220px minmax(0, 1fr);
   align-items: center;
-  gap: 0;
-  min-height: 44px;
   padding: 0 12px 0 14px;
+}
+.dx-series-compact-head {
+  min-height: 44px;
   border-bottom: 1px solid rgba(255,255,255,0.04);
   background: rgba(255,255,255,0.02);
 }
@@ -4098,29 +4103,61 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
 .dx-series-compact-head-left {
   display: flex; align-items: center; gap: 8px;
   min-width: 0;
+  font-size: 11px; color: var(--muted);
 }
 .dx-series-compact-head .dx-card-compact-versus {
-  padding: 0 12px;
+  /* This versus block IS the score column. justify-self centers it within
+     the 220 px slot so the score itself anchors at the card's vertical
+     centerline. */
+  justify-self: center;
+  width: 100%;
+  max-width: 220px;
+  padding: 0;
+  gap: 8px;
+  grid-template-columns: minmax(0,1fr) auto minmax(0,1fr);
 }
-.dx-series-compact-head .dx-card-compact-versus .dx-team-name { font-size: 13px; }
-.dx-series-compact-head .dx-card-compact-versus .dx-score { font-size: 22px; }
+.dx-series-compact-head .dx-card-compact-versus .dx-team-chip { gap: 6px; }
+.dx-series-compact-head .dx-card-compact-versus .dx-team-name { font-size: 12px; }
+.dx-series-compact-head .dx-card-compact-versus .dx-score { font-size: 20px; }
 .dx-series-compact-head-right {
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; gap: 8px;
+  justify-self: end;
   font-size: 11px; color: var(--muted);
+  min-width: 0;
 }
 .dx-series-compact-head .dx-card-compact-event {
   font-size: 10px; max-width: 180px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
 .dx-series-compact-row {
-  display: grid;
-  grid-template-columns: 28px 90px minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 0;
   min-height: 32px;
-  padding: 0 12px 0 14px;
   border-top: 1px solid rgba(255,255,255,0.02);
   transition: background 100ms;
+}
+.dx-series-compact-row-left {
+  display: flex; align-items: center; gap: 10px;
+  min-width: 0;
+  font-size: 11px;
+}
+.dx-series-compact-row-left .dx-series-compact-row-icon {
+  font-size: 10px; color: var(--muted); flex-shrink: 0;
+}
+.dx-series-compact-row-left .dx-series-compact-row-map {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dx-series-compact-row-score {
+  justify-self: center;
+}
+.dx-series-compact-row-right {
+  display: flex; gap: 6px; align-items: center;
+  justify-self: end;
 }
 .dx-series-compact-row:first-child { border-top: none; }
 .dx-series-compact-row:hover { background: rgba(255,255,255,0.03); }
@@ -4159,10 +4196,15 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
     grid-template-columns: 56px minmax(0, 1fr) auto;
   }
   .dx-card-compact-meta { display: none; }
-  .dx-series-compact-head { grid-template-columns: 1fr auto; }
-  .dx-series-compact-head-left { display: none; }
-  .dx-series-compact-row { grid-template-columns: 24px 70px minmax(0,1fr) auto; }
-  .dx-series-compact-row-actions .dx-watch { padding: 3px 6px; }
+  /* On narrow screens drop the meta+event columns; just keep score centred
+     and Watch button on the right. Series header reduces to score+actions. */
+  .dx-series-compact-head,
+  .dx-series-compact-row {
+    grid-template-columns: minmax(0, 1fr) 160px minmax(0, 1fr);
+  }
+  .dx-series-compact-head-left { font-size: 10px; }
+  .dx-series-compact-head .dx-card-compact-event { display: none; }
+  .dx-series-compact-row-right .dx-watch { padding: 3px 6px; }
 }
 
 /* ── Shared tactical chrome (used by stratbook/issues/goals) ── */
