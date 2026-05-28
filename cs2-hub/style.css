@@ -3657,6 +3657,34 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
   color: var(--accent);
   font-weight: 600;
 }
+.dx-search-input {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 12px;
+  padding: 7px 10px;
+  min-width: 200px;
+  outline: none;
+  transition: border-color 120ms, background 120ms;
+}
+.dx-search-input::placeholder { color: var(--muted); }
+.dx-search-input:focus {
+  border-color: var(--accent);
+  background: rgba(255,255,255,0.06);
+}
+.dx-select {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 12px;
+  padding: 6px 10px;
+  outline: none;
+  max-width: 280px;
+  cursor: pointer;
+}
+.dx-select:focus { border-color: var(--accent); }
 
 /* Empty / cards */
 .dx-empty {

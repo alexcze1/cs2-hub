@@ -11,12 +11,15 @@ import pytest
 
 from hltv_scraper import (
     DiskCapExceeded,
+    MapResult,
     _dir_size,
     _map_from_filename,
     _parse_headline_date,
     _parse_match_page_demo_href,
     _parse_results_page,
     download_demos,
+    match_scores_for,
+    parse_match_page_map_results,
 )
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -93,6 +96,164 @@ def test_parse_match_page_demo_href_returns_none_when_absent():
 def test_parse_match_page_demo_href_matches_id_pattern():
     html = '<html><body><a href="/download/demo/98765">GOTV</a></body></html>'
     assert _parse_match_page_demo_href(html) == "/download/demo/98765"
+
+
+# --- match page map-results parser ------------------------------------------
+
+
+@pytest.mark.skipif(not MATCH_HTML.exists(),
+                    reason="capture tests/fixtures/hltv_match.html first — see README")
+def test_parse_match_page_map_results_basic_shape():
+    results = parse_match_page_map_results(MATCH_HTML.read_text(encoding="utf-8"))
+    assert results, "expected at least one played map"
+    for r in results:
+        assert r.map_name, "map_name empty"
+        assert r.team1_name, "team1_name empty"
+        assert r.team2_name, "team2_name empty"
+        assert isinstance(r.team1_score, int)
+        assert isinstance(r.team2_score, int)
+        assert r.team1_score >= 0 and r.team2_score >= 0
+
+
+@pytest.mark.skipif(not MATCH_HTML.exists(),
+                    reason="capture tests/fixtures/hltv_match.html first — see README")
+def test_parse_match_page_map_results_indexes_played_only():
+    """map_index must be 0-based and contiguous over played maps only."""
+    results = parse_match_page_map_results(MATCH_HTML.read_text(encoding="utf-8"))
+    assert [r.map_index for r in results] == list(range(len(results)))
+
+
+@pytest.mark.skipif(not MATCH_HTML.exists(),
+                    reason="capture tests/fixtures/hltv_match.html first — see README")
+def test_parse_match_page_map_results_known_tyloo_vs_pain():
+    """Locked to the checked-in fixture: TYLOO vs paiN BO3 (Mirage/Nuke/Overpass)."""
+    results = parse_match_page_map_results(MATCH_HTML.read_text(encoding="utf-8"))
+    by_map = {r.map_name: r for r in results}
+    assert set(by_map) >= {"mirage", "nuke", "overpass"}, f"got {list(by_map)}"
+
+    mirage = by_map["mirage"]
+    assert {mirage.team1_name, mirage.team2_name} == {"TYLOO", "paiN"}
+    # paiN beat TYLOO 13-5 on Mirage
+    pain_score = mirage.team1_score if mirage.team1_name == "paiN" else mirage.team2_score
+    tyloo_score = mirage.team1_score if mirage.team1_name == "TYLOO" else mirage.team2_score
+    assert (pain_score, tyloo_score) == (13, 5)
+
+    nuke = by_map["nuke"]
+    pain_score = nuke.team1_score if nuke.team1_name == "paiN" else nuke.team2_score
+    tyloo_score = nuke.team1_score if nuke.team1_name == "TYLOO" else nuke.team2_score
+    assert (tyloo_score, pain_score) == (13, 8)
+
+
+def test_parse_match_page_map_results_returns_empty_for_no_maps():
+    assert parse_match_page_map_results("<html><body></body></html>") == []
+
+
+def test_parse_match_page_map_results_skips_unplayed():
+    """Mapholder without .results.played (BO3 unplayed map 3) must be skipped."""
+    html = """
+      <div class="mapholder">
+        <div class="played"><div class="map-name-holder"><div class="mapname">Mirage</div></div></div>
+        <div class="results played">
+          <div class="results-left"><div class="results-teamname">A</div><div class="results-team-score">13</div></div>
+          <div class="results-right"><div class="results-teamname">B</div><div class="results-team-score">5</div></div>
+        </div>
+      </div>
+      <div class="mapholder">
+        <div class="map-name-holder"><div class="mapname">Nuke</div></div>
+        <!-- no .results.played -> not played -->
+      </div>
+    """
+    results = parse_match_page_map_results(html)
+    assert [r.map_name for r in results] == ["mirage"]
+    assert results[0].map_index == 0
+
+
+def test_parse_match_page_map_results_skips_walkover_dash_score():
+    """Forfeit rows can carry '-' instead of a numeric score; skip cleanly."""
+    html = """
+      <div class="mapholder">
+        <div class="played"><div class="mapname">Inferno</div></div>
+        <div class="results played">
+          <div class="results-left"><div class="results-teamname">A</div><div class="results-team-score">-</div></div>
+          <div class="results-right"><div class="results-teamname">B</div><div class="results-team-score">-</div></div>
+        </div>
+      </div>
+    """
+    assert parse_match_page_map_results(html) == []
+
+
+# --- match_scores_for (label↔score join) ------------------------------------
+
+
+def _mr(idx, mname, t1n, t1s, t2n, t2s):
+    return MapResult(map_index=idx, map_name=mname,
+                     team1_name=t1n, team1_score=t1s,
+                     team2_name=t2n, team2_score=t2s)
+
+
+def test_match_scores_for_same_ordering_passes_through():
+    res = [_mr(0, "mirage", "Foo", 16, "Bar", 13)]
+    assert match_scores_for(team_a_name="Foo", team_b_name="Bar",
+                            map_name="de_mirage", map_index=0,
+                            map_results=res) == (16, 13)
+
+
+def test_match_scores_for_swapped_ordering_swaps_scores():
+    """team_a_name must always pair with team_a_score even if HLTV listed
+    the teams in the opposite order on the match page."""
+    res = [_mr(0, "nuke", "Bar", 16, "Foo", 8)]
+    assert match_scores_for(team_a_name="Foo", team_b_name="Bar",
+                            map_name="nuke", map_index=0,
+                            map_results=res) == (8, 16)
+
+
+def test_match_scores_for_joins_by_map_name_not_index():
+    """When parser's map name is right, use it even if the index doesn't line up."""
+    res = [
+        _mr(0, "mirage",   "Foo", 16, "Bar", 13),
+        _mr(1, "nuke",     "Foo", 8,  "Bar", 16),
+        _mr(2, "overpass", "Foo", 13, "Bar", 16),
+    ]
+    # Demo claims map_index=0 but its map_name is overpass -> should pick map 2.
+    assert match_scores_for(team_a_name="Foo", team_b_name="Bar",
+                            map_name="overpass", map_index=0,
+                            map_results=res) == (13, 16)
+
+
+def test_match_scores_for_falls_back_to_index_when_name_missing():
+    res = [_mr(0, "mirage", "Foo", 16, "Bar", 13)]
+    assert match_scores_for(team_a_name="Foo", team_b_name="Bar",
+                            map_name=None, map_index=0,
+                            map_results=res) == (16, 13)
+
+
+def test_match_scores_for_returns_none_when_team_names_dont_match():
+    """HLTV-reported names differ from MatchRef -> don't guess, leave null."""
+    res = [_mr(0, "mirage", "Foozball", 16, "Barbell", 13)]
+    assert match_scores_for(team_a_name="Foo", team_b_name="Bar",
+                            map_name="mirage", map_index=0,
+                            map_results=res) is None
+
+
+def test_match_scores_for_handles_de_prefix_and_dust2_alias():
+    """Match page uses 'Dust2' display name, .dem filenames use 'de_dust' / 'dust' — align them."""
+    res = [_mr(0, "dust2", "Foo", 13, "Bar", 16)]
+    assert match_scores_for(team_a_name="Foo", team_b_name="Bar",
+                            map_name="de_dust", map_index=0,
+                            map_results=res) == (13, 16)
+
+
+def test_match_scores_for_returns_none_when_results_empty():
+    assert match_scores_for(team_a_name="A", team_b_name="B",
+                            map_name="mirage", map_index=0,
+                            map_results=[]) is None
+
+
+def test_match_scores_for_is_case_insensitive_on_team_names():
+    res = [_mr(0, "mirage", "FOO", 16, "bar", 13)]
+    assert match_scores_for(team_a_name="foo", team_b_name="BAR",
+                            map_name="mirage", map_index=0,
+                            map_results=res) == (16, 13)
 
 
 # --- pure helpers -----------------------------------------------------------

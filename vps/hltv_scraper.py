@@ -230,6 +230,23 @@ class MatchRef:
     event: str
 
 
+@dataclass
+class MapResult:
+    """One played map within a match, as reported by HLTV.
+
+    Names are taken verbatim from the match page and may differ in casing
+    or spelling from MatchRef.team_a / team_b (HLTV occasionally swaps left/
+    right ordering between the results list and the match page). Callers
+    should match by case-insensitive name when joining back to MatchRef.
+    """
+    map_index: int        # 0-based, in HLTV's mapholder order
+    map_name: str         # 'mirage', 'nuke', ... (lower, no de_ prefix)
+    team1_name: str       # left team on the match page
+    team1_score: int
+    team2_name: str       # right team
+    team2_score: int
+
+
 class HLTVBlockedError(RuntimeError):
     """Cloudflare blocked us (403/503 after retry). Caller should back off."""
 
@@ -445,7 +462,17 @@ def download_demos(match_url: str, dest_dir: Path) -> list[tuple[int, Path, dict
     """Download the GOTV archive for a match, extract, return one tuple per .dem.
 
     Returns: list of (map_index, dem_path, meta) where map_index is 0-based by
-    sorted filename order inside the archive, and meta is {"map_name": str | None}.
+    sorted filename order inside the archive, and meta is:
+      {
+        "map_name": str | None,
+        "map_results": list[MapResult],  # all played maps for the match
+      }
+
+    The same map_results list is attached to every dem in the batch so the
+    ingest layer can resolve per-map scores. Callers join by map name
+    (case-insensitive, with the de_ prefix and 'dust' alias stripped) and
+    fall back to map_index when the name lookup misses.
+
     Returns [] if the match has no published demo.
 
     Side effects:
@@ -466,6 +493,10 @@ def download_demos(match_url: str, dest_dir: Path) -> list[tuple[int, Path, dict
     download_path = _parse_match_page_demo_href(html)
     if not download_path:
         return []
+
+    # Per-map scores from the same match page we just fetched; reused for every
+    # dem in the batch so ingest doesn't re-hit HLTV.
+    map_results = parse_match_page_map_results(html)
 
     # Stream the archive to a temp file (could be hundreds of MB). cloudscraper
     # follows the /download/demo/<id> redirect to the CDN automatically.
@@ -489,13 +520,64 @@ def download_demos(match_url: str, dest_dir: Path) -> list[tuple[int, Path, dict
             final = dest_dir / f".staged-{uuid.uuid4()}.dem"
             shutil.move(str(src), str(final))
             map_name = _map_from_filename(src.name)
-            out.append((idx, final, {"map_name": map_name}))
+            out.append((idx, final, {"map_name": map_name, "map_results": map_results}))
         return out
 
     finally:
         tmp_archive.unlink(missing_ok=True)
         if extract_dir.exists():
             shutil.rmtree(extract_dir, ignore_errors=True)
+
+
+def match_scores_for(
+    *,
+    team_a_name: str,
+    team_b_name: str,
+    map_name: str | None,
+    map_index: int,
+    map_results: list[MapResult],
+) -> tuple[int, int] | None:
+    """Resolve (team_a_score, team_b_score) for one .dem using HLTV match data.
+
+    Joins on map_name first (case-insensitive, stripped of 'de_' prefix and
+    the dust/dust2 alias), then falls back to map_index. Returns None when:
+      - map_results is empty
+      - the map can't be located by name OR index
+      - neither HLTV-side name matches our team_a_name / team_b_name
+
+    Falling back to index handles the rare case where the parser's map_name
+    inference from the .dem filename misses (random archive naming); the
+    archive's sorted-filename order matches HLTV's mapholder order in
+    practice. If both joins fail we return None and the caller leaves the
+    scores NULL — better than guessing.
+    """
+    if not map_results:
+        return None
+
+    norm = lambda s: (s or "").lower().replace("de_", "").replace("dust2", "dust")
+    map_key = norm(map_name)
+
+    mr = None
+    if map_key:
+        for r in map_results:
+            if norm(r.map_name) == map_key:
+                mr = r
+                break
+    if mr is None and 0 <= map_index < len(map_results):
+        mr = map_results[map_index]
+    if mr is None:
+        return None
+
+    ta = team_a_name.strip().lower()
+    tb = team_b_name.strip().lower()
+    t1 = mr.team1_name.strip().lower()
+    t2 = mr.team2_name.strip().lower()
+
+    if t1 == ta and t2 == tb:
+        return (mr.team1_score, mr.team2_score)
+    if t1 == tb and t2 == ta:
+        return (mr.team2_score, mr.team1_score)
+    return None
 
 
 def _download_archive(url: str, out_path: Path) -> None:
@@ -534,6 +616,77 @@ def _parse_match_page_demo_href(html: str) -> str | None:
         if _DEMO_DOWNLOAD_HREF_RE.match(href):
             return href
     return None
+
+
+def parse_match_page_map_results(html: str) -> list[MapResult]:
+    """Parse per-map (team, score) pairs from a match page.
+
+    Skips unplayed maps (BO3/5 maps the loser didn't reach). map_index is
+    assigned in document order over PLAYED maps only — this aligns with
+    the .dem archive ordering used by download_demos, so callers can join
+    on map_index.
+
+    Selector layout (validated 2026-05-28 against tests/fixtures/hltv_match.html):
+      .mapholder
+        .played .mapname                  -> map display name
+        .results.played                    -> only present for played maps
+          .results-left   .results-teamname   -> team1 name
+                          .results-team-score -> team1 score
+          .results-right  .results-teamname   -> team2 name
+                          .results-team-score -> team2 score
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    out: list[MapResult] = []
+    idx = 0
+    for holder in soup.select("div.mapholder"):
+        results = holder.select_one("div.results.played")
+        if not results:
+            continue  # unplayed map in a BO3/5
+
+        name_el = holder.select_one(".mapname")
+        map_name = (name_el.get_text(strip=True) if name_el else "").lower()
+        if not map_name:
+            continue
+
+        left  = results.select_one(".results-left")
+        right = results.select_one(".results-right")
+        if not left or not right:
+            continue
+
+        t1_name_el  = left.select_one(".results-teamname")
+        t1_score_el = left.select_one(".results-team-score")
+        t2_name_el  = right.select_one(".results-teamname")
+        t2_score_el = right.select_one(".results-team-score")
+        if not (t1_name_el and t1_score_el and t2_name_el and t2_score_el):
+            continue
+
+        try:
+            t1_score = int(t1_score_el.get_text(strip=True))
+            t2_score = int(t2_score_el.get_text(strip=True))
+        except ValueError:
+            # Forfeit/walkover rows sometimes carry '-' instead of a number.
+            continue
+
+        out.append(MapResult(
+            map_index=idx,
+            map_name=map_name,
+            team1_name=t1_name_el.get_text(strip=True),
+            team1_score=t1_score,
+            team2_name=t2_name_el.get_text(strip=True),
+            team2_score=t2_score,
+        ))
+        idx += 1
+
+    return out
+
+
+def fetch_match_page_map_results(match_url: str) -> list[MapResult]:
+    """Fetch a match page and parse per-map results. Convenience wrapper.
+
+    Useful for the public-demos backfill, which needs scores for an existing
+    match without going through the full download_demos path.
+    """
+    return parse_match_page_map_results(_get(match_url))
 
 
 def _map_from_filename(name: str) -> str | None:

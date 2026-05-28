@@ -1,5 +1,6 @@
 # vps/main.py
 import asyncio
+import functools
 import gzip
 import json
 import os
@@ -360,7 +361,7 @@ def _db_set_error(demo_id, msg):
             )
 
 
-def _db_write_results(demo_id, team_id, meta, ct_score, t_score, match_data, slim_data):
+def _db_write_results(demo_id, team_id, meta, ct_score, t_score, match_data, slim_data, *, is_public=False):
     print(f"[db] serializing match_data (frames={len(match_data.get('frames', []))}) ...")
     match_json = json.dumps(match_data)
     slim_json  = json.dumps(slim_data)
@@ -385,40 +386,74 @@ def _db_write_results(demo_id, team_id, meta, ct_score, t_score, match_data, sli
     )
     print(f"[storage] uploaded to match-data/{storage_path}")
 
+    # For public (HLTV-ingested) demos the team_a_score / team_b_score columns
+    # are set at INGEST from the HLTV match page, which is authoritative and
+    # correctly paired with team_a_name. The parser's per-CT-roster scores
+    # swap per map within a series and would mis-pair with our constant
+    # team_a_name. So we don't touch them here.
     with get_db() as conn:
         with conn.cursor() as cur:
             print(f"[db] writing to postgres ...")
-            cur.execute(
-                """UPDATE demos SET
-                     status = 'ready',
-                     updated_at = %s,
-                     map = %s,
-                     score_ct = %s,
-                     score_t = %s,
-                     team_a_score = %s,
-                     team_b_score = %s,
-                     team_a_first_side = %s,
-                     duration_ticks = %s,
-                     tick_rate = %s,
-                     match_data = NULL,
-                     match_data_url = %s,
-                     match_data_slim = %s
-                   WHERE id = %s""",
-                (
-                    datetime.datetime.utcnow().isoformat(),
-                    meta["map"],
-                    ct_score,
-                    t_score,
-                    meta.get("team_a_score"),
-                    meta.get("team_b_score"),
-                    meta.get("team_a_first_side"),
-                    meta["total_ticks"],
-                    meta["tick_rate"],
-                    storage_path,
-                    slim_json,
-                    demo_id,
-                ),
-            )
+            if is_public:
+                cur.execute(
+                    """UPDATE demos SET
+                         status = 'ready',
+                         updated_at = %s,
+                         map = %s,
+                         score_ct = %s,
+                         score_t = %s,
+                         team_a_first_side = %s,
+                         duration_ticks = %s,
+                         tick_rate = %s,
+                         match_data = NULL,
+                         match_data_url = %s,
+                         match_data_slim = %s
+                       WHERE id = %s""",
+                    (
+                        datetime.datetime.utcnow().isoformat(),
+                        meta["map"],
+                        ct_score,
+                        t_score,
+                        meta.get("team_a_first_side"),
+                        meta["total_ticks"],
+                        meta["tick_rate"],
+                        storage_path,
+                        slim_json,
+                        demo_id,
+                    ),
+                )
+            else:
+                cur.execute(
+                    """UPDATE demos SET
+                         status = 'ready',
+                         updated_at = %s,
+                         map = %s,
+                         score_ct = %s,
+                         score_t = %s,
+                         team_a_score = %s,
+                         team_b_score = %s,
+                         team_a_first_side = %s,
+                         duration_ticks = %s,
+                         tick_rate = %s,
+                         match_data = NULL,
+                         match_data_url = %s,
+                         match_data_slim = %s
+                       WHERE id = %s""",
+                    (
+                        datetime.datetime.utcnow().isoformat(),
+                        meta["map"],
+                        ct_score,
+                        t_score,
+                        meta.get("team_a_score"),
+                        meta.get("team_b_score"),
+                        meta.get("team_a_first_side"),
+                        meta["total_ticks"],
+                        meta["tick_rate"],
+                        storage_path,
+                        slim_json,
+                        demo_id,
+                    ),
+                )
             print(f"[db] postgres write done")
 
 
@@ -575,7 +610,12 @@ async def _process_one(demo: dict):
         try:
             await asyncio.wait_for(
                 loop.run_in_executor(
-                    None, _db_write_results, demo_id, team_id, meta, ct_score, t_score, match_data, slim_data
+                    None,
+                    functools.partial(
+                        _db_write_results,
+                        demo_id, team_id, meta, ct_score, t_score, match_data, slim_data,
+                        is_public=is_public,
+                    ),
                 ),
                 timeout=240,
             )
@@ -594,17 +634,9 @@ async def _process_one(demo: dict):
         except asyncio.TimeoutError:
             print(f"[stats] write exceeded 240s for {demo_id} — skipping (demo write already committed)")
 
-        # Reconcile HLTV's (team_a_name, team_b_name) with the parser's actual
-        # team_a (= CT-at-round-1). Needs demo_players to be populated, which
-        # write_stats_for_demo just did. Swap is a no-op when already correct.
-        if is_public:
-            try:
-                from fix_public_team_assignment import reconcile_one_demo
-                outcome = await loop.run_in_executor(None, reconcile_one_demo, demo_id)
-                if outcome == "fixed":
-                    print(f"[team-fix] swapped team_a/b for public demo {demo_id}")
-            except Exception as e:
-                print(f"[team-fix] error reconciling {demo_id}: {type(e).__name__}: {e}")
+        # No post-parse team reconciliation needed: for public demos, both
+        # (team_a_name, team_b_name) and (team_a_score, team_b_score) are
+        # set at ingest from the HLTV match page and are guaranteed paired.
 
         print(f"Done: {demo_id} — {meta['map']} {ct_score}-{t_score}")
 

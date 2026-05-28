@@ -33,6 +33,16 @@ def _stage_dem(dir: Path, n: int = 1) -> list[Path]:
     return out
 
 
+def _map_results(*entries):
+    """Build a list[MapResult] from (map_name, t1_name, t1_score, t2_name, t2_score) tuples."""
+    from hltv_scraper import MapResult
+    return [
+        MapResult(map_index=i, map_name=m, team1_name=n1, team1_score=s1,
+                  team2_name=n2, team2_score=s2)
+        for i, (m, n1, s1, n2, s2) in enumerate(entries)
+    ]
+
+
 def test_ingest_returns_zero_when_already_ingested(tmp_path, monkeypatch):
     monkeypatch.setattr(hltv_ingest, "_already_ingested", lambda _: True)
     # download_demos must NOT be called when the idempotency guard fires
@@ -53,7 +63,7 @@ def test_ingest_returns_zero_when_no_demos_available(tmp_path, monkeypatch):
 
 def test_ingest_inserts_one_row_per_dem_and_renames(tmp_path, monkeypatch):
     staged = _stage_dem(tmp_path, n=3)
-    pairs = [(i, p, {"map_name": None}) for i, p in enumerate(staged)]
+    pairs = [(i, p, {"map_name": None, "map_results": []}) for i, p in enumerate(staged)]
 
     inserts = []
     monkeypatch.setattr(hltv_ingest, "_already_ingested", lambda _: False)
@@ -75,11 +85,58 @@ def test_ingest_inserts_one_row_per_dem_and_renames(tmp_path, monkeypatch):
         assert row["team_a_name"] == "Foo"
         assert row["team_b_name"] == "Bar"
         assert row["event_name"] == "ESL Pro League S99"
+        # No HLTV scores available -> insert with NULLs (don't guess).
+        assert row["team_a_score"] is None
+        assert row["team_b_score"] is None
     # map_index covers 0..2
     assert sorted(r["source_map_index"] for r in inserts) == [0, 1, 2]
     # All originally-staged files were moved (no longer at staged path)
     for p in staged:
         assert not p.exists(), f"staged file not moved: {p}"
+
+
+def test_ingest_attaches_hltv_scores_aligned_to_team_a(tmp_path, monkeypatch):
+    """Per-map scores come straight from HLTV and are paired with team_a_name."""
+    staged = _stage_dem(tmp_path, n=2)
+    map_results = _map_results(
+        # Map 1: HLTV left=Foo (our team_a), right=Bar -> straight pass-through.
+        ("mirage", "Foo", 16, "Bar", 13),
+        # Map 2: HLTV swapped left/right ordering (Bar left, Foo right).
+        # team_a_score must still be Foo's (8), team_b_score Bar's (16).
+        ("nuke",   "Bar", 16, "Foo",  8),
+    )
+    pairs = [
+        (0, staged[0], {"map_name": "mirage", "map_results": map_results}),
+        (1, staged[1], {"map_name": "nuke",   "map_results": map_results}),
+    ]
+
+    inserts = []
+    monkeypatch.setattr(hltv_ingest, "_already_ingested", lambda _: False)
+    monkeypatch.setattr(hltv_ingest, "download_demos", lambda *a, **kw: pairs)
+    monkeypatch.setattr(hltv_ingest, "_insert_pending_public", lambda **kw: inserts.append(kw))
+
+    hltv_ingest.ingest_match(_make_match(), tmp_path)
+
+    by_idx = {r["source_map_index"]: r for r in inserts}
+    assert (by_idx[0]["team_a_score"], by_idx[0]["team_b_score"]) == (16, 13)
+    assert (by_idx[1]["team_a_score"], by_idx[1]["team_b_score"]) == (8, 16)
+
+
+def test_ingest_leaves_scores_null_when_team_names_dont_match(tmp_path, monkeypatch):
+    """HLTV reports different team names (rename / typo) -> NULL, don't guess."""
+    [staged] = _stage_dem(tmp_path, n=1)
+    map_results = _map_results(("mirage", "Foozball", 16, "Barbell", 13))
+    pairs = [(0, staged, {"map_name": "mirage", "map_results": map_results})]
+
+    inserts = []
+    monkeypatch.setattr(hltv_ingest, "_already_ingested", lambda _: False)
+    monkeypatch.setattr(hltv_ingest, "download_demos", lambda *a, **kw: pairs)
+    monkeypatch.setattr(hltv_ingest, "_insert_pending_public", lambda **kw: inserts.append(kw))
+
+    hltv_ingest.ingest_match(_make_match(), tmp_path)
+
+    assert inserts[0]["team_a_score"] is None
+    assert inserts[0]["team_b_score"] is None
 
 
 def test_ingest_cleans_up_file_when_insert_fails(tmp_path, monkeypatch):

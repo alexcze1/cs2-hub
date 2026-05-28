@@ -15,7 +15,7 @@ from pathlib import Path
 import psycopg2.errors
 
 from db import get_db
-from hltv_scraper import MatchRef, download_demos
+from hltv_scraper import MatchRef, download_demos, match_scores_for
 
 log = logging.getLogger(__name__)
 
@@ -40,10 +40,26 @@ def ingest_match(match: MatchRef, demos_dir: Path) -> int:
         return 0
 
     inserted = 0
-    for map_index, staged_path, _meta in pairs:
+    for map_index, staged_path, meta in pairs:
         demo_id = str(uuid.uuid4())
         final = demos_dir / f"{demo_id}.dem"
         staged_path.rename(final)
+
+        # HLTV is authoritative for per-team scores: the parser's team_a is
+        # whoever started CT round 1, which swaps per map within a series,
+        # but our team_a_name is constant across the match. Pulling the
+        # score from the match page (already fetched as part of download)
+        # gives us a label↔score pair that's correct without any
+        # post-hoc reconciliation.
+        scores = match_scores_for(
+            team_a_name=match.team_a,
+            team_b_name=match.team_b,
+            map_name=meta.get("map_name"),
+            map_index=map_index,
+            map_results=meta.get("map_results") or [],
+        )
+        team_a_score, team_b_score = scores if scores else (None, None)
+
         try:
             _insert_pending_public(
                 demo_id=demo_id,
@@ -54,6 +70,8 @@ def ingest_match(match: MatchRef, demos_dir: Path) -> int:
                 event_name=match.event,
                 team_a_name=match.team_a,
                 team_b_name=match.team_b,
+                team_a_score=team_a_score,
+                team_b_score=team_b_score,
             )
             inserted += 1
         except psycopg2.errors.UniqueViolation:
@@ -89,6 +107,8 @@ def _insert_pending_public(
     event_name: str,
     team_a_name: str,
     team_b_name: str,
+    team_a_score: int | None,
+    team_b_score: int | None,
 ) -> None:
     with get_db() as conn:
         with conn.cursor() as cur:
@@ -97,15 +117,18 @@ def _insert_pending_public(
                 INSERT INTO demos
                   (id, team_id, uploaded_by, status, storage_path,
                    is_public, source, source_match_id, source_map_index,
-                   source_url, event_name, team_a_name, team_b_name)
+                   source_url, event_name, team_a_name, team_b_name,
+                   team_a_score, team_b_score)
                 VALUES
                   (%s, NULL, NULL, 'pending', %s,
                    TRUE, 'hltv', %s, %s,
-                   %s, %s, %s, %s)
+                   %s, %s, %s, %s,
+                   %s, %s)
                 """,
                 (
                     demo_id, storage_path,
                     source_match_id, source_map_index,
                     source_url, event_name, team_a_name, team_b_name,
+                    team_a_score, team_b_score,
                 ),
             )

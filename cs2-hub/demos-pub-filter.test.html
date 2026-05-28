@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script type="module">
+import {
+  PUB_FILTER_LS_KEY, PUB_DEFAULT_FILTER,
+  loadPubFilter, savePubFilter, pubGroupMatchesFilter,
+} from './demos-pub-filter.js'
+
+function assert(cond, msg) {
+  if (!cond) { console.error('FAIL:', msg); return }
+  console.log('PASS:', msg)
+}
+
+const today = new Date()
+const daysAgo = (n) => new Date(today.getTime() - n * 86400000).toISOString()
+
+const demoMirage = {
+  id: '1', map: 'de_mirage', played_at: daysAgo(2),
+  team_a_name: 'Vitality', team_b_name: 'G2', event_name: 'IEM Katowice',
+}
+const demoNuke = {
+  id: '2', map: 'de_nuke', played_at: daysAgo(2),
+  team_a_name: 'Vitality', team_b_name: 'G2', event_name: 'IEM Katowice',
+}
+const oldDemo = {
+  id: '3', map: 'de_mirage', played_at: daysAgo(45),
+  team_a_name: 'NaVi', team_b_name: 'Heroic', event_name: 'BLAST Spring',
+}
+
+// Default filter matches every group
+{
+  const f = PUB_DEFAULT_FILTER
+  assert(pubGroupMatchesFilter([demoMirage], f), 'default matches single-map group')
+  assert(pubGroupMatchesFilter([demoMirage, demoNuke], f), 'default matches series group')
+}
+
+// loadPubFilter falls back when no LS entry
+{
+  localStorage.removeItem(PUB_FILTER_LS_KEY)
+  const f = loadPubFilter()
+  assert(f.window === 'all' && f.map === 'all' && f.event === 'all' && f.q === '',
+         'loadPubFilter -> defaults when LS empty')
+}
+
+// loadPubFilter merges partial saved state
+{
+  localStorage.setItem(PUB_FILTER_LS_KEY, JSON.stringify({ map: 'de_nuke' }))
+  const f = loadPubFilter()
+  assert(f.map === 'de_nuke' && f.window === 'all',
+         'loadPubFilter merges saved map onto default window')
+}
+
+// savePubFilter writes JSON
+{
+  savePubFilter({ window: '30d', map: 'all', event: 'all', q: '' })
+  const raw = JSON.parse(localStorage.getItem(PUB_FILTER_LS_KEY))
+  assert(raw.window === '30d', 'savePubFilter persists window')
+}
+
+// Window filter: 7d excludes anything older
+{
+  const f = { ...PUB_DEFAULT_FILTER, window: '7d' }
+  assert(pubGroupMatchesFilter([demoMirage], f), '2-day-old demo in 7d window')
+  assert(!pubGroupMatchesFilter([oldDemo], f), '45-day-old demo excluded from 7d window')
+}
+
+// Window filter: 30d
+{
+  const f = { ...PUB_DEFAULT_FILTER, window: '30d' }
+  assert(pubGroupMatchesFilter([demoMirage], f), '2-day demo in 30d')
+  assert(!pubGroupMatchesFilter([oldDemo], f), '45-day demo not in 30d')
+}
+
+// Window filter: 90d
+{
+  const f = { ...PUB_DEFAULT_FILTER, window: '90d' }
+  assert(pubGroupMatchesFilter([oldDemo], f), '45-day demo in 90d')
+}
+
+// Map filter excludes non-matching map
+{
+  const f = { ...PUB_DEFAULT_FILTER, map: 'de_nuke' }
+  assert(!pubGroupMatchesFilter([demoMirage], f), 'mirage-only group excluded by map=nuke')
+  assert(pubGroupMatchesFilter([demoMirage, demoNuke], f),
+         'series with nuke included by map=nuke even when other maps differ')
+}
+
+// Event filter
+{
+  const f = { ...PUB_DEFAULT_FILTER, event: 'IEM Katowice' }
+  assert(pubGroupMatchesFilter([demoMirage], f), 'IEM Katowice group matches event filter')
+  assert(!pubGroupMatchesFilter([oldDemo], f),  'BLAST Spring group excluded')
+}
+
+// Search q matches team name
+{
+  const f = { ...PUB_DEFAULT_FILTER, q: 'vita' }
+  assert(pubGroupMatchesFilter([demoMirage], f), 'q=vita matches Vitality')
+  assert(!pubGroupMatchesFilter([oldDemo], f),  'q=vita excludes NaVi/Heroic')
+}
+
+// Search q matches event name
+{
+  const f = { ...PUB_DEFAULT_FILTER, q: 'blast' }
+  assert(pubGroupMatchesFilter([oldDemo], f), 'q=blast matches BLAST Spring')
+  assert(!pubGroupMatchesFilter([demoMirage], f), 'q=blast excludes IEM Katowice')
+}
+
+// Search q is case-insensitive and trims
+{
+  const f = { ...PUB_DEFAULT_FILTER, q: '  G2  ' }
+  assert(pubGroupMatchesFilter([demoMirage], f), 'q=" G2 " (trimmed) matches G2')
+}
+
+// Combined filters AND together
+{
+  const f = { window: '7d', map: 'de_mirage', event: 'IEM Katowice', q: 'vita' }
+  assert(pubGroupMatchesFilter([demoMirage], f), 'all four filters satisfied')
+
+  const f2 = { ...f, q: 'navi' }
+  assert(!pubGroupMatchesFilter([demoMirage], f2), 'AND breaks when q does not match')
+}
+
+// Group falls back to created_at when played_at missing
+{
+  const noPlayedAt = { id: '4', map: 'de_dust', created_at: daysAgo(2),
+                       team_a_name: 'X', team_b_name: 'Y', event_name: 'E' }
+  const f = { ...PUB_DEFAULT_FILTER, window: '7d' }
+  assert(pubGroupMatchesFilter([noPlayedAt], f), 'falls back to created_at')
+}
+
+console.log('all done')
+</script>
+</body>
+</html>

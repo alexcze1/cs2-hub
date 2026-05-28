@@ -8,6 +8,7 @@ import {
   loadPlaylists, loadPlaylistRounds, createPlaylist, deletePlaylist, renamePlaylist,
   removeRoundFromPlaylist, sortByPosition,
 } from './playlists.js'
+import { loadPubFilter, savePubFilter, pubGroupMatchesFilter } from './demos-pub-filter.js'
 import { toast } from './toast.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
@@ -982,7 +983,13 @@ async function runPublicScope() {
   const filtersEl = document.getElementById('demos-filters')
   const listEl    = document.getElementById('demos-list')
 
-  filtersEl.innerHTML = ''
+  // All loaded rows, kept in module-scope so the filter UI can re-render
+  // without re-querying Supabase. reloadPublicList() refreshes this.
+  const state = {
+    rows: [],
+    groups: [],
+    filter: loadPubFilter(),
+  }
 
   // Hero rendered once; the count is patched in place each reload below.
   heroEl.innerHTML = `
@@ -992,12 +999,96 @@ async function runPublicScope() {
         <div class="dx-hero-substats">
           <div class="dx-kv"><div class="dx-kv-k">Source</div><div class="dx-kv-v">HLTV (last 90 days)</div></div>
           <div class="dx-kv"><div class="dx-kv-k">Total</div><div class="dx-kv-v" id="pro-total-count">…</div></div>
+          <div class="dx-kv"><div class="dx-kv-k">Showing</div><div class="dx-kv-v" id="pro-showing-count">…</div></div>
           <div class="dx-kv"><div class="dx-kv-k">Live</div><div class="dx-kv-v" id="pro-live-status">connecting…</div></div>
         </div>
       </div>
     </div>`
 
-  // Fetch + render. Called on first paint and again whenever the realtime
+  function renderFilters() {
+    const f = state.filter
+    const wins = [['7d','Last 7 days'], ['30d','Last 30 days'], ['90d','Last 90 days'], ['all','All time']]
+
+    const mapSet = new Set()
+    const eventSet = new Set()
+    for (const d of state.rows) {
+      if (d.map) mapSet.add(d.map)
+      if (d.event_name) eventSet.add(d.event_name)
+    }
+    const maps = [...mapSet].sort()
+    const events = [...eventSet].sort((a, b) => a.localeCompare(b))
+
+    filtersEl.innerHTML = `
+      <div class="dx-filter-row">
+        <input type="search" id="dx-pub-search" class="dx-search-input"
+               placeholder="Search team or event…" value="${esc(f.q)}"/>
+        <div class="dx-filter-group" data-group="window">
+          ${wins.map(([k,l]) => `<button type="button" class="dx-pill ${f.window===k?'is-active':''}" data-val="${k}">${esc(l)}</button>`).join('')}
+        </div>
+        <div class="dx-filter-divider"></div>
+        <div class="dx-filter-group" data-group="map">
+          <button type="button" class="dx-pill ${f.map==='all'?'is-active':''}" data-val="all">All maps</button>
+          ${maps.map(m => `<button type="button" class="dx-pill ${f.map===m?'is-active':''}" data-val="${esc(m)}">${esc(mapDisplay(m))}</button>`).join('')}
+        </div>
+        <div class="dx-filter-divider"></div>
+        <select id="dx-pub-event" class="dx-select">
+          <option value="all" ${f.event==='all'?'selected':''}>All events</option>
+          ${events.map(e => `<option value="${esc(e)}" ${f.event===e?'selected':''}>${esc(e)}</option>`).join('')}
+        </select>
+      </div>
+    `
+
+    for (const btn of filtersEl.querySelectorAll('.dx-pill')) {
+      btn.addEventListener('click', () => {
+        const group = btn.parentElement.dataset.group
+        const val   = btn.dataset.val
+        if (state.filter[group] === val) return
+        state.filter = { ...state.filter, [group]: val }
+        savePubFilter(state.filter)
+        renderFilters()
+        renderList()
+      })
+    }
+
+    const searchEl = filtersEl.querySelector('#dx-pub-search')
+    let searchTimer = null
+    searchEl.addEventListener('input', () => {
+      if (searchTimer) clearTimeout(searchTimer)
+      searchTimer = setTimeout(() => {
+        state.filter = { ...state.filter, q: searchEl.value }
+        savePubFilter(state.filter)
+        renderList()
+      }, 180)
+    })
+
+    const eventEl = filtersEl.querySelector('#dx-pub-event')
+    eventEl.addEventListener('change', () => {
+      state.filter = { ...state.filter, event: eventEl.value }
+      savePubFilter(state.filter)
+      renderList()
+    })
+  }
+
+  function renderList() {
+    const showingEl = document.getElementById('pro-showing-count')
+    if (!state.groups.length) {
+      listEl.innerHTML = `<div class="empty-state"><h3>No pro demos yet</h3><p>The HLTV ingest worker hasn't picked up any matches yet — check back soon.</p></div>`
+      if (showingEl) showingEl.textContent = '0'
+      return
+    }
+    const filtered = state.groups.filter(demos => pubGroupMatchesFilter(demos, state.filter))
+    if (showingEl) showingEl.textContent = String(filtered.length)
+    if (!filtered.length) {
+      listEl.innerHTML = `<div class="dx-empty">No pro demos match the current filters.</div>`
+      return
+    }
+    const cards = filtered.map(demos =>
+      demos.length > 1 ? renderPublicSeriesCard(demos) : renderPublicSingleCard(demos[0])
+    )
+    listEl.innerHTML = cards.join('')
+  }
+
+  // Fetch + (re-)render. Called on first paint and again whenever the realtime
   // channel tells us a public demo row changed. Debounced from the subscription
   // so a backfill burst doesn't re-render dozens of times per second.
   async function reloadPublicList() {
@@ -1018,31 +1109,28 @@ async function runPublicScope() {
       listEl.innerHTML = `<div class="empty-state"><h3>Failed to load pro demos</h3><p>${esc(error.message)}</p></div>`
       return
     }
-    const rows = data ?? []
-    if (!rows.length) {
-      listEl.innerHTML = `<div class="empty-state"><h3>No pro demos yet</h3><p>The HLTV ingest worker hasn't picked up any matches yet — check back soon.</p></div>`
-      return
-    }
+    state.rows = data ?? []
 
     const teamNames = new Set()
-    for (const d of rows) {
+    for (const d of state.rows) {
       if (d.team_a_name) teamNames.add(d.team_a_name)
       if (d.team_b_name) teamNames.add(d.team_b_name)
     }
     await warmLogos(teamNames)
 
-    const groups = new Map()
-    for (const d of rows) {
+    const groupMap = new Map()
+    for (const d of state.rows) {
       const key = d.source_match_id ?? `single:${d.id}`
-      if (!groups.has(key)) groups.set(key, [])
-      groups.get(key).push(d)
+      if (!groupMap.has(key)) groupMap.set(key, [])
+      groupMap.get(key).push(d)
     }
-    const cards = []
-    for (const demos of groups.values()) {
+    state.groups = [...groupMap.values()]
+    for (const demos of state.groups) {
       demos.sort((a, b) => (a.source_map_index ?? 0) - (b.source_map_index ?? 0))
-      cards.push(demos.length > 1 ? renderPublicSeriesCard(demos) : renderPublicSingleCard(demos[0]))
     }
-    listEl.innerHTML = cards.join('')
+
+    renderFilters()
+    renderList()
   }
 
   await reloadPublicList()
