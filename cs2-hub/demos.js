@@ -1143,6 +1143,15 @@ async function runPublicScope() {
     for (const demos of state.groups) {
       demos.sort((a, b) => (a.source_map_index ?? 0) - (b.source_map_index ?? 0))
     }
+    // Sort series newest-first by HLTV match date (played_at), falling back to
+    // upload time when a row hasn't been backfilled yet. The initial SQL order
+    // is by played_at on the row level, but per-map rows within a series can
+    // share or differ in played_at and Map insertion order isn't a reliable
+    // proxy for "latest match" once we've grouped.
+    const latestPlayedAt = demos => Math.max(
+      ...demos.map(d => +new Date(d.played_at ?? d.created_at)),
+    )
+    state.groups.sort((a, b) => latestPlayedAt(b) - latestPlayedAt(a))
 
     renderFilters()
     renderList()

@@ -20,6 +20,7 @@ from hltv_scraper import (
     download_demos,
     match_scores_for,
     parse_match_page_map_results,
+    parse_match_page_played_at,
 )
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -146,6 +147,34 @@ def test_parse_match_page_map_results_known_tyloo_vs_pain():
 
 def test_parse_match_page_map_results_returns_empty_for_no_maps():
     assert parse_match_page_map_results("<html><body></body></html>") == []
+
+
+# --- match page played_at parser --------------------------------------------
+
+
+@pytest.mark.skipif(not MATCH_HTML.exists(),
+                    reason="capture tests/fixtures/hltv_match.html first — see README")
+def test_parse_match_page_played_at_known_fixture():
+    """Fixture is TYLOO vs paiN — scheduled 21st of May 2026, data-unix 1779367800000."""
+    ts = parse_match_page_played_at(MATCH_HTML.read_text(encoding="utf-8"))
+    assert ts == datetime.utcfromtimestamp(1779367800000 / 1000.0)
+    assert ts.year == 2026 and ts.month == 5 and ts.day == 21
+
+
+def test_parse_match_page_played_at_returns_none_when_absent():
+    assert parse_match_page_played_at("<html><body></body></html>") is None
+
+
+def test_parse_match_page_played_at_returns_none_on_garbage_unix():
+    html = '<div class="timeAndEvent"><div class="time" data-unix="not-a-number">x</div></div>'
+    assert parse_match_page_played_at(html) is None
+
+
+def test_parse_match_page_played_at_falls_back_to_date_element():
+    """Older fixtures may only have .date — parser should still find it."""
+    html = '<div class="timeAndEvent"><div class="date" data-unix="1779367800000">21 May</div></div>'
+    ts = parse_match_page_played_at(html)
+    assert ts == datetime.utcfromtimestamp(1779367800000 / 1000.0)
 
 
 def test_parse_match_page_map_results_skips_unplayed():

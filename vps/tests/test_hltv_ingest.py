@@ -85,6 +85,9 @@ def test_ingest_inserts_one_row_per_dem_and_renames(tmp_path, monkeypatch):
         assert row["team_a_name"] == "Foo"
         assert row["team_b_name"] == "Bar"
         assert row["event_name"] == "ESL Pro League S99"
+        # HLTV's scheduled-match date flows through as played_at — UI keys
+        # display + sort off it instead of the upload timestamp.
+        assert row["played_at"] == datetime(2026, 5, 17)
         # No HLTV scores available -> insert with NULLs (don't guess).
         assert row["team_a_score"] is None
         assert row["team_b_score"] is None

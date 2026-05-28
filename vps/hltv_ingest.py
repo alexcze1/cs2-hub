@@ -72,6 +72,7 @@ def ingest_match(match: MatchRef, demos_dir: Path) -> int:
                 team_b_name=match.team_b,
                 team_a_score=team_a_score,
                 team_b_score=team_b_score,
+                played_at=match.date,
             )
             inserted += 1
         except psycopg2.errors.UniqueViolation:
@@ -109,6 +110,7 @@ def _insert_pending_public(
     team_b_name: str,
     team_a_score: int | None,
     team_b_score: int | None,
+    played_at,
 ) -> None:
     with get_db() as conn:
         with conn.cursor() as cur:
@@ -118,17 +120,17 @@ def _insert_pending_public(
                   (id, team_id, uploaded_by, status, storage_path,
                    is_public, source, source_match_id, source_map_index,
                    source_url, event_name, team_a_name, team_b_name,
-                   team_a_score, team_b_score)
+                   team_a_score, team_b_score, played_at)
                 VALUES
                   (%s, NULL, NULL, 'pending', %s,
                    TRUE, 'hltv', %s, %s,
                    %s, %s, %s, %s,
-                   %s, %s)
+                   %s, %s, %s)
                 """,
                 (
                     demo_id, storage_path,
                     source_match_id, source_map_index,
                     source_url, event_name, team_a_name, team_b_name,
-                    team_a_score, team_b_score,
+                    team_a_score, team_b_score, played_at,
                 ),
             )

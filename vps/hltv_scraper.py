@@ -689,6 +689,32 @@ def fetch_match_page_map_results(match_url: str) -> list[MapResult]:
     return parse_match_page_map_results(_get(match_url))
 
 
+def parse_match_page_played_at(html: str) -> datetime | None:
+    """Extract the scheduled-match datetime (UTC) from an HLTV match page.
+
+    HLTV renders the time as ``<div class="time" data-unix="1779367800000">``
+    inside ``div.timeAndEvent`` (milliseconds since epoch, UTC). Returns None
+    when the element is missing or the value isn't an integer — callers fall
+    back to whatever date they already had.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    el = soup.select_one("div.timeAndEvent .time[data-unix]") \
+        or soup.select_one("div.timeAndEvent .date[data-unix]")
+    if not el:
+        return None
+    raw = el.get("data-unix") or ""
+    try:
+        ms = int(raw)
+    except ValueError:
+        return None
+    return datetime.utcfromtimestamp(ms / 1000.0)
+
+
+def fetch_match_page_played_at(match_url: str) -> datetime | None:
+    """Fetch a match page and return its scheduled-match datetime (UTC)."""
+    return parse_match_page_played_at(_get(match_url))
+
+
 def _map_from_filename(name: str) -> str | None:
     """Best-effort: pull a known map name from a demo filename. Returns None
     if no known map is in the name. The parser fills in the authoritative map
