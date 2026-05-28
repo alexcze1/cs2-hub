@@ -27,12 +27,52 @@
 
 from __future__ import annotations
 
+import json
 import os
 import sys
+from pathlib import Path
 
 import psycopg2.extras
 
 from db import get_db
+
+
+# Static fallback — same file the frontend's player-autocomplete used to load.
+# hltv_players is refreshed daily but only covers the top ~30 teams; this JSON
+# was captured once and covers ~1300 players from many lower-tier teams, which
+# is exactly where the new public demos come from. We use the JSON only when
+# the DB has no entry for an ign (DB wins on collision so a renamed/transferred
+# player is right).
+_PLAYERS_JSON_PATH = Path(__file__).resolve().parent.parent / "cs2-hub" / "hltv-players.json"
+
+
+def _load_json_player_map() -> dict[str, str]:
+    """ign_lower → team_name (string), loaded once from the static JSON."""
+    try:
+        data = json.loads(_PLAYERS_JSON_PATH.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        print(f"[fix-teams] WARN: {_PLAYERS_JSON_PATH} not found — fallback disabled")
+        return {}
+    out: dict[str, str] = {}
+    for p in data:
+        ign = (p.get("ign") or "").strip().lower()
+        team = (p.get("team") or "").strip()
+        if ign and team:
+            out[ign] = team
+    return out
+
+
+def _team_for_ign_db(conn, igns: list[str]) -> dict[str, str]:
+    """Look ups (lower(ign)) → team_name from hltv_players. Only ign-with-team rows."""
+    if not igns:
+        return {}
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT lower(ign) AS ign, team_name
+            FROM hltv_players
+            WHERE lower(ign) = ANY (%s) AND team_name IS NOT NULL
+        """, (igns,))
+        return {r[0]: r[1] for r in cur.fetchall()}
 
 
 def main() -> int:
@@ -40,6 +80,9 @@ def main() -> int:
     skipped_no_lookup = 0
     already_correct = 0
     unmatched_team = 0
+
+    json_map = _load_json_player_map()
+    print(f"[fix-teams] loaded {len(json_map)} ign→team entries from hltv-players.json")
 
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
@@ -70,43 +113,35 @@ def main() -> int:
                 skipped_no_lookup += 1
                 continue
 
-            # Look up players in hltv_players (case-insensitive). Tally team_ids.
-            with conn.cursor() as cur:
-                cur.execute("""
-                    SELECT lower(ign) AS ign, team_id, team_name
-                    FROM hltv_players
-                    WHERE lower(ign) = ANY (%s) AND team_id IS NOT NULL
-                """, (a_igns,))
-                rows = cur.fetchall()
+            # DB first, JSON fills gaps. DB wins on collision because it's the
+            # current daily-refreshed roster, whereas JSON is a point-in-time
+            # snapshot.
+            db_map = _team_for_ign_db(conn, a_igns)
+            ign_to_team: dict[str, str] = {}
+            for ign in a_igns:
+                t = db_map.get(ign) or json_map.get(ign)
+                if t:
+                    ign_to_team[ign] = t
 
-            if len(rows) < 2:
-                # < 2 of the 5 players matched — not enough confidence to assert
-                # which HLTV team parser_a belongs to. Leave as-is.
+            if len(ign_to_team) < 2:
                 skipped_no_lookup += 1
                 continue
 
-            team_votes: dict[int, int] = {}
-            team_id_to_name: dict[int, str] = {}
-            for _ign, tid, tname in rows:
-                team_votes[tid] = team_votes.get(tid, 0) + 1
-                team_id_to_name[tid] = tname or ""
-
-            winner_tid = max(team_votes.items(), key=lambda kv: kv[1])[0]
-            parser_a_team_name = (team_id_to_name.get(winner_tid) or "").strip().lower()
-
-            if not parser_a_team_name:
-                unmatched_team += 1
-                continue
+            # Vote by team name (string), case-insensitive.
+            votes: dict[str, int] = {}
+            for tname in ign_to_team.values():
+                k = tname.strip().lower()
+                votes[k] = votes.get(k, 0) + 1
+            parser_a_team_lower = max(votes.items(), key=lambda kv: kv[1])[0]
 
             ta_lower = team_a_name.strip().lower()
             tb_lower = team_b_name.strip().lower()
 
-            if parser_a_team_name == ta_lower:
+            if parser_a_team_lower == ta_lower:
                 already_correct += 1
                 continue
 
-            if parser_a_team_name == tb_lower:
-                # Swap so HLTV's team_a_name corresponds to parser's team_a.
+            if parser_a_team_lower == tb_lower:
                 with conn.cursor() as cur:
                     cur.execute("""
                         UPDATE demos
@@ -117,8 +152,9 @@ def main() -> int:
                 fixed += 1
                 continue
 
-            # Parser_a's HLTV team is NEITHER team_a_name NOR team_b_name. Probably
-            # an obscure roster move or a name spelling difference. Leave alone.
+            # Parser_a's vote team is NEITHER team_a_name NOR team_b_name —
+            # likely a name spelling drift (e.g. "Lilmix" vs "lilmix esport")
+            # or recent roster move. Leave the row alone.
             unmatched_team += 1
 
     print(f"[fix-teams] examined {len(demos)} public demos:")
