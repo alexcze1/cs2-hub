@@ -1640,23 +1640,31 @@ refreshSaveBtnState()
 updateTimelineKills()
 requestAnimationFrame(ts => { state.lastTs = ts; loop(ts) })
 
-// Antistrat drawer + save-to-playlist popover are team-only features.
-// Public demos hide them rather than letting an anon click hit RLS errors.
-if (!demo.is_public) {
-  mountAntistratDrawer({ teamId: getTeamId() })
+// Antistrat drawer is team-only (it edits the team's antistrat library).
+// The save-to-playlist popover, though, makes sense on any demo a user can
+// view — the playlist lives on their team, but the demo it references can be
+// public. So we attach the save handler whenever the user has a team to save
+// INTO, regardless of who owns the demo. Anon visitors (no teamId) hide the
+// button since they have nowhere to save.
+const userTeamId = getTeamId()
 
-  document.getElementById('vh-save-btn').addEventListener('click', async (e) => {
+if (!demo.is_public) {
+  mountAntistratDrawer({ teamId: userTeamId })
+}
+
+const saveBtn = document.getElementById('vh-save-btn')
+if (userTeamId) {
+  saveBtn?.addEventListener('click', async (e) => {
     const rect = e.currentTarget.getBoundingClientRect()
     await openSavePopoverFor({
       demoId,
       roundIdx:   state.roundIdx,
       anchorRect: rect,
-      teamId:     getTeamId(),
+      teamId:     userTeamId,
       onChanged:  () => refreshSaveBtnState(),
     })
   })
 } else {
-  const saveBtn = document.getElementById('vh-save-btn')
   if (saveBtn) saveBtn.style.display = 'none'
 }
 

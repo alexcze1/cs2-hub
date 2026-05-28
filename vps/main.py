@@ -594,6 +594,18 @@ async def _process_one(demo: dict):
         except asyncio.TimeoutError:
             print(f"[stats] write exceeded 240s for {demo_id} — skipping (demo write already committed)")
 
+        # Reconcile HLTV's (team_a_name, team_b_name) with the parser's actual
+        # team_a (= CT-at-round-1). Needs demo_players to be populated, which
+        # write_stats_for_demo just did. Swap is a no-op when already correct.
+        if is_public:
+            try:
+                from fix_public_team_assignment import reconcile_one_demo
+                outcome = await loop.run_in_executor(None, reconcile_one_demo, demo_id)
+                if outcome == "fixed":
+                    print(f"[team-fix] swapped team_a/b for public demo {demo_id}")
+            except Exception as e:
+                print(f"[team-fix] error reconciling {demo_id}: {type(e).__name__}: {e}")
+
         print(f"Done: {demo_id} — {meta['map']} {ct_score}-{t_score}")
 
         # Public demos (HLTV-ingested) discard the local .dem after a successful

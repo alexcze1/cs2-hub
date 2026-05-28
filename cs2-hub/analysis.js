@@ -143,15 +143,54 @@ if (state.team) {
 maybeShowOnboardingHint()
 
 async function loadCorpus(teamName) {
+  // We have to query twice and merge:
+  //   1) Team-uploaded demos: ct_team_name / t_team_name set by the parser.
+  //   2) HLTV public demos: ct_team_name is null, but team_a_name / team_b_name
+  //      come from HLTV. (After the team-identity reconciliation, those names
+  //      pair with the parser's team_a / team_b correctly, so they're suitable
+  //      for analysis filtering.)
+  // Strip characters that have special meaning inside a PostgREST .or() value.
+  const safe = (teamName || '').replace(/[(),]/g, '').trim()
+  if (!safe) return []
   try {
-    const { data, error } = await supabase
-      .from('demos')
-      .select('id, map, played_at, ct_team_name, t_team_name, score_ct, score_t, team_a_first_side, team_a_score, team_b_score')
-      .eq('status', 'ready')
-      .or(`ct_team_name.eq.${teamName},t_team_name.eq.${teamName}`)
-      .order('played_at', { ascending: false })
-    if (error) throw error
-    return data ?? []
+    const COLS = 'id, map, played_at, ct_team_name, t_team_name, team_a_name, team_b_name, score_ct, score_t, team_a_first_side, team_a_score, team_b_score, is_public'
+    const [team, pub] = await Promise.all([
+      supabase
+        .from('demos')
+        .select(COLS)
+        .eq('status', 'ready')
+        .or(`ct_team_name.eq.${safe},t_team_name.eq.${safe}`),
+      supabase
+        .from('demos')
+        .select(COLS)
+        .eq('status', 'ready')
+        .eq('is_public', true)
+        .or(`team_a_name.ilike.${safe},team_b_name.ilike.${safe}`),
+    ])
+    if (team.error) throw team.error
+    if (pub.error) throw pub.error
+    const seen = new Set()
+    const merged = []
+    for (const d of [...(team.data ?? []), ...(pub.data ?? [])]) {
+      if (seen.has(d.id)) continue
+      seen.add(d.id)
+      // For public demos, project the HLTV team names into ct/t slots so the
+      // rest of analysis.js — which keys off ct_team_name / t_team_name — works
+      // unchanged. team_a starts CT per the parser, so the projection mirrors
+      // team_a_first_side='ct' for the first round.
+      if (d.is_public && !d.ct_team_name && d.team_a_name && d.team_b_name) {
+        if (d.team_a_first_side === 't') {
+          d.ct_team_name = d.team_b_name
+          d.t_team_name  = d.team_a_name
+        } else {
+          d.ct_team_name = d.team_a_name
+          d.t_team_name  = d.team_b_name
+        }
+      }
+      merged.push(d)
+    }
+    merged.sort((a, b) => new Date(b.played_at || 0) - new Date(a.played_at || 0))
+    return merged
   } catch (e) {
     console.error('[analysis] corpus load failed:', e)
     showChip('Failed to load corpus — check network', 'error')

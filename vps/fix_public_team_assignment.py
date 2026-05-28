@@ -75,6 +75,73 @@ def _team_for_ign_db(conn, igns: list[str]) -> dict[str, str]:
         return {r[0]: r[1] for r in cur.fetchall()}
 
 
+# Cached on first use for reconcile_one_demo so per-demo calls during a backfill
+# don't reread the 1300-row JSON.
+_json_map_cache: dict[str, str] | None = None
+
+
+def _json_map() -> dict[str, str]:
+    global _json_map_cache
+    if _json_map_cache is None:
+        _json_map_cache = _load_json_player_map()
+    return _json_map_cache
+
+
+def reconcile_one_demo(demo_id: str) -> str:
+    """Reconcile the team_a/b name assignment for one public demo. Idempotent.
+
+    Returns one of: 'fixed' (swap performed), 'already-correct',
+    'no-lookup' (not enough player data), 'unmatched' (parser_a's team
+    doesn't match either HLTV team).
+    """
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT team_a_name, team_b_name FROM demos WHERE id = %s",
+                (demo_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return "no-lookup"
+            team_a_name, team_b_name = row
+            if not team_a_name or not team_b_name:
+                return "no-lookup"
+
+            cur.execute("""
+                SELECT lower(name) FROM demo_players
+                WHERE demo_id = %s AND team = 'a' AND side = 'all'
+            """, (demo_id,))
+            a_igns = [r[0] for r in cur.fetchall() if r[0]]
+
+        if not a_igns:
+            return "no-lookup"
+
+        db_map = _team_for_ign_db(conn, a_igns)
+        json_map = _json_map()
+        votes: dict[str, int] = {}
+        for ign in a_igns:
+            t = db_map.get(ign) or json_map.get(ign)
+            if t:
+                k = t.strip().lower()
+                votes[k] = votes.get(k, 0) + 1
+        if sum(votes.values()) < 2:
+            return "no-lookup"
+
+        parser_a = max(votes.items(), key=lambda kv: kv[1])[0]
+        ta = team_a_name.strip().lower()
+        tb = team_b_name.strip().lower()
+        if parser_a == ta:
+            return "already-correct"
+        if parser_a == tb:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE demos SET team_a_name=%s, team_b_name=%s WHERE id=%s",
+                    (team_b_name, team_a_name, demo_id),
+                )
+            return "fixed"
+        return "unmatched"
+
+
 def main() -> int:
     fixed = 0
     skipped_no_lookup = 0
