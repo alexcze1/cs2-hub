@@ -735,11 +735,36 @@ def parse_demo(dem_path: str) -> dict:
     print(f"[parser] rounds built: {len(rounds)}")
 
     # Build sampled tick list from round boundaries — avoids loading full DataFrame into memory
+    # The viewer plays continuously across rounds, so we also keep ticks in the
+    # post-round restart phase (between this round's end_tick and the next
+    # round's start_tick). Without these, state.tick advancing past end_tick
+    # would have no frames to draw and the viewer would freeze on the last
+    # frame of the round until the next round's start_tick popped the index.
+    # Bound the gap so a late round_start (rare HLTV warmup quirk) can't
+    # drag a giant idle window through the sampler.
     if rounds:
         min_tick = rounds[0]["start_tick"]
         max_tick = rounds[-1]["end_tick"]
         candidate = list(range(min_tick, max_tick + 1, SAMPLE_RATE))
-        sampled = [t for t in candidate if any(r["start_tick"] <= t <= r["end_tick"] for r in rounds)]
+
+        GAP_MAX_TICKS = 700  # ~11s at 64Hz: covers round_restart_delay + freeze
+        # Build inclusive ranges that cover each round plus the trailing gap
+        # to the next round.
+        sample_ranges: list[tuple[int, int]] = []
+        for i, r in enumerate(rounds):
+            start = r["start_tick"]
+            end   = r["end_tick"]
+            next_start = rounds[i + 1]["start_tick"] if i + 1 < len(rounds) else end
+            extended_end = min(next_start - 1, end + GAP_MAX_TICKS) if next_start > end else end
+            sample_ranges.append((start, extended_end))
+
+        def _in_any_range(t: int) -> bool:
+            for s, e in sample_ranges:
+                if s <= t <= e:
+                    return True
+            return False
+
+        sampled = [t for t in candidate if _in_any_range(t)]
     else:
         sampled = []
     print(f"[parser] sampled ticks: {len(sampled)}")

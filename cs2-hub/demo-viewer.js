@@ -660,26 +660,27 @@ function renderBomb(round, tick, cw, ch, tc, mapSize) {
   if (latest.x == null || latest.y == null) { ctx.restore(); return }
   const { x, y } = tc(latest.x, latest.y)
   if (latest.type === 'planted') {
-    // Subtle red glow underneath — smaller and static (no Math.sin pulse,
-    // which made the previous indicator throb visibly large). The bomb icon
-    // is the primary signal; the glow just disambiguates the icon from a
-    // regular weapon-drop sprite.
-    const glowR = mapSize * 0.016
+    // Pulsing red glow ring — the animated "danger" cue. Pulse only the
+    // GLOW; the icon and countdown text stay anchored to fixed positions
+    // so they don't wobble with it (the wobble was the previous bug).
+    const glowBase  = mapSize * 0.018
+    const glowR     = glowBase + Math.sin(tick / 8) * mapSize * 0.008
     ctx.beginPath()
     ctx.arc(x, y, glowR, 0, Math.PI * 2)
-    ctx.fillStyle = 'rgba(255,50,50,0.45)'
+    ctx.fillStyle = 'rgba(255,50,50,0.55)'
     ctx.fill()
 
-    // Bomb icon, centred on plant location. Sized so it sits inside the
-    // glow with a small breathing margin. drawIconContained preserves the
-    // C4 SVG's aspect ratio.
+    // Bomb icon, centred on plant location at a CONSTANT size — independent
+    // of the pulse so the icon doesn't jitter. drawIconContained preserves
+    // the C4 SVG's aspect ratio.
     const iconSize = mapSize * 0.028
     if (C4_ICON.complete && C4_ICON.naturalWidth > 0) {
       drawIconContained(C4_ICON, x, y, iconSize)
     }
 
-    // Countdown — anchored to a constant offset above the icon so the
-    // number stays put rather than tracking the (formerly pulsing) glow.
+    // Countdown — anchored to a CONSTANT offset above the icon (using the
+    // static iconSize, not the pulsing glowR) so the number stays put
+    // rather than tracking the glow.
     const seconds = Math.max(0, 40 - (tick - latest.tick) / tickRate)
     ctx.fillStyle    = '#fff'
     ctx.font         = `700 ${fontSize}px Inter, system-ui, sans-serif`

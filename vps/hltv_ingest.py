@@ -60,6 +60,12 @@ def ingest_match(match: MatchRef, demos_dir: Path) -> int:
         )
         team_a_score, team_b_score = scores if scores else (None, None)
 
+        # Prefer the precise UTC timestamp parsed from the match page over
+        # match.date, which the /results headline only gave at midnight-of-
+        # day. Fall back to match.date when the match page didn't carry a
+        # data-unix attribute (rare; some old archive pages).
+        played_at = meta.get("played_at") or match.date
+
         try:
             _insert_pending_public(
                 demo_id=demo_id,
@@ -72,7 +78,7 @@ def ingest_match(match: MatchRef, demos_dir: Path) -> int:
                 team_b_name=match.team_b,
                 team_a_score=team_a_score,
                 team_b_score=team_b_score,
-                played_at=match.date,
+                played_at=played_at,
             )
             inserted += 1
         except psycopg2.errors.UniqueViolation:

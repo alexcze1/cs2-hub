@@ -551,9 +551,13 @@ def download_demos(match_url: str, dest_dir: Path) -> list[tuple[int, Path, dict
     if not download_path:
         return []
 
-    # Per-map scores from the same match page we just fetched; reused for every
-    # dem in the batch so ingest doesn't re-hit HLTV.
+    # Per-map scores + precise played-at datetime from the same match page
+    # we just fetched; reused for every dem in the batch so ingest doesn't
+    # re-hit HLTV. played_at is the scheduled-match datetime in UTC; the
+    # /results headline only gives midnight-of-date, so this is the only
+    # path to a real timestamp.
     map_results = parse_match_page_map_results(html)
+    played_at = parse_match_page_played_at(html)
 
     # Stream the archive to a temp file (could be hundreds of MB). cloudscraper
     # follows the /download/demo/<id> redirect to the CDN automatically.
@@ -577,7 +581,11 @@ def download_demos(match_url: str, dest_dir: Path) -> list[tuple[int, Path, dict
             final = dest_dir / f".staged-{uuid.uuid4()}.dem"
             shutil.move(str(src), str(final))
             map_name = _map_from_filename(src.name)
-            out.append((idx, final, {"map_name": map_name, "map_results": map_results}))
+            out.append((idx, final, {
+                "map_name":    map_name,
+                "map_results": map_results,
+                "played_at":   played_at,
+            }))
         return out
 
     finally:
