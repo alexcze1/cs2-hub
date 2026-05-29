@@ -86,6 +86,30 @@ if (originalQuery) {
 """
 
 
+# Counter for proactive context recycling. CF gradually fingerprints a
+# long-running context by tracking its cookie/JS-challenge history; once
+# flagged, subsequent fetches all serve the "Just a moment..." page. Cheap
+# to rotate the context every PAGE_RECYCLE_EVERY fetches and re-clear the
+# challenge from scratch.
+_pw_fetch_count = 0
+PAGE_RECYCLE_EVERY = int(os.getenv("HLTV_PW_RECYCLE_EVERY", "30"))
+
+
+def _new_context():
+    """Build a fresh BrowserContext with the standard stealth setup.
+
+    Pulled out so we can rotate the context without restarting Chromium.
+    Caller must hold `_pw_lock`.
+    """
+    ctx = _pw_browser.new_context(
+        user_agent=_UA,
+        viewport={"width": 1440, "height": 900},
+        accept_downloads=True,
+    )
+    ctx.add_init_script(_STEALTH_JS)
+    return ctx
+
+
 def _ensure_playwright() -> None:
     """Lazy-launch a single headless Chromium for the rest of the process."""
     global _pw_handle, _pw_browser, _pw_context
@@ -104,18 +128,33 @@ def _ensure_playwright() -> None:
             headless=True,
             args=["--disable-blink-features=AutomationControlled"],
         )
-        _pw_context = _pw_browser.new_context(
-            user_agent=_UA,
-            viewport={"width": 1440, "height": 900},
-            accept_downloads=True,
-        )
-        _pw_context.add_init_script(_STEALTH_JS)
+        _pw_context = _new_context()
         log.info("[hltv] Playwright Chromium launched for CF fallback")
+
+
+def _recycle_context() -> None:
+    """Drop the current context and build a fresh one (same browser).
+
+    Closing the context wipes cookies + page state, so the next CF challenge
+    starts from scratch. ~100ms to set up — much cheaper than relaunching
+    Chromium. Used both proactively (every PAGE_RECYCLE_EVERY fetches) and
+    reactively (after a CF challenge that won't clear).
+    """
+    global _pw_context, _pw_fetch_count
+    with _pw_lock:
+        try:
+            if _pw_context is not None:
+                _pw_context.close()
+        except Exception as e:
+            log.warning("[hltv] context close failed: %s", e)
+        _pw_context = _new_context()
+        _pw_fetch_count = 0
+        log.info("[hltv] Playwright context recycled")
 
 
 def shutdown_playwright() -> None:
     """Stop the headless browser. Safe to call from a FastAPI lifespan shutdown."""
-    global _pw_handle, _pw_browser, _pw_context
+    global _pw_handle, _pw_browser, _pw_context, _pw_fetch_count
     with _pw_lock:
         if _pw_browser is not None:
             try: _pw_browser.close()
@@ -126,20 +165,38 @@ def shutdown_playwright() -> None:
             try: _pw_handle.stop()
             except Exception: pass
             _pw_handle = None
+        _pw_fetch_count = 0
 
 
 def _get_via_playwright(url: str) -> str:
     """Fetch `url` through the headless Chromium context.
 
     CF protection varies per endpoint — /results passes with stealth in <1 s
-    but /team/<id>/<slug> and other less-common URLs sometimes see a stricter
-    challenge that doesn't resolve. We try once, wait up to 30 s for the
-    challenge to clear, and if it doesn't, close + reopen the page and retry
-    once. A second navigation usually slips past because CF treats it as a
-    follow-up click on a "settled" session.
+    but /matches/<id>/... sometimes see a stricter challenge that doesn't
+    resolve. Three attempts:
+      1. fresh page in current context
+      2. fresh page in current context after a 3 s pause
+      3. RECYCLED context (drops cookies, re-runs stealth init) + fresh page
+
+    Attempt 3 is the important one: once CF flags a context's cookie/JS
+    challenge history, every page in that context inherits the flag.
+    Opening a new page in the same context wasn't escaping the flag — the
+    trickle was stuck CF-blocking 100% of match pages for hours despite
+    the per-page retry. Closing+rebuilding the context starts CF over.
+
+    Also rotates the context proactively every PAGE_RECYCLE_EVERY fetches
+    so we don't drift into the flagged state in the first place.
     """
     _ensure_playwright()
-    for attempt in (1, 2):
+
+    global _pw_fetch_count
+    if _pw_fetch_count >= PAGE_RECYCLE_EVERY:
+        _recycle_context()
+    _pw_fetch_count += 1
+
+    for attempt in (1, 2, 3):
+        if attempt == 3:
+            _recycle_context()
         page = _pw_context.new_page()
         try:
             page.goto(url, wait_until="domcontentloaded", timeout=30000)
@@ -158,11 +215,11 @@ def _get_via_playwright(url: str) -> str:
                         pass
                     return page.content()
                 page.wait_for_timeout(500)
-            if attempt == 2:
-                log.warning("[hltv] CF challenge did not clear for %s after retry — "
-                            "returning challenge HTML; selectors will not match", url)
+            if attempt == 3:
+                log.warning("[hltv] CF challenge did not clear for %s after context "
+                            "recycle — returning challenge HTML; selectors will not match", url)
                 return page.content()
-            log.info("[hltv] CF stuck on %s, retrying with fresh page", url)
+            log.info("[hltv] CF stuck on %s (attempt %d), retrying", url, attempt)
         finally:
             page.close()
         # Pause briefly between attempts so CF's session state has time to settle.
