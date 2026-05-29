@@ -743,19 +743,28 @@ def parse_demo(dem_path: str) -> dict:
     # Bound the gap so a late round_start (rare HLTV warmup quirk) can't
     # drag a giant idle window through the sampler.
     if rounds:
+        GAP_MAX_TICKS = 700  # ~11s at 64Hz: covers round_restart_delay + freeze
         min_tick = rounds[0]["start_tick"]
-        max_tick = rounds[-1]["end_tick"]
+        # Include the final round's trailing gap in the candidate range too,
+        # otherwise its post-end frames get clipped here even though the
+        # per-round sample_ranges below would have asked for them.
+        max_tick = rounds[-1]["end_tick"] + GAP_MAX_TICKS
         candidate = list(range(min_tick, max_tick + 1, SAMPLE_RATE))
 
-        GAP_MAX_TICKS = 700  # ~11s at 64Hz: covers round_restart_delay + freeze
         # Build inclusive ranges that cover each round plus the trailing gap
-        # to the next round.
+        # to the next round (or a fixed cap for the final round). The gap
+        # frames keep the viewer's playhead alive through CS2's
+        # round_restart_delay so the post-round action stays animated
+        # instead of freezing on the last in-round frame.
         sample_ranges: list[tuple[int, int]] = []
         for i, r in enumerate(rounds):
             start = r["start_tick"]
             end   = r["end_tick"]
-            next_start = rounds[i + 1]["start_tick"] if i + 1 < len(rounds) else end
-            extended_end = min(next_start - 1, end + GAP_MAX_TICKS) if next_start > end else end
+            if i + 1 < len(rounds):
+                next_start = rounds[i + 1]["start_tick"]
+                extended_end = min(next_start - 1, end + GAP_MAX_TICKS) if next_start > end else end
+            else:
+                extended_end = end + GAP_MAX_TICKS
             sample_ranges.append((start, extended_end))
 
         def _in_any_range(t: int) -> bool:

@@ -643,6 +643,17 @@
       background: var(--danger);
       opacity: 0.85;
     }
+    /* Vertical divider at the round_end tick — bar extends past this point
+       through the post-round restart phase (~7s). */
+    .tl-round-end-mark {
+      position: absolute;
+      top: 0;
+      height: 100%;
+      width: 1px;
+      background: rgba(255,255,255,0.45);
+      pointer-events: none;
+      transform: translateX(-50%);
+    }
     .tl-speeds {
       display: flex;
       gap: 4px;

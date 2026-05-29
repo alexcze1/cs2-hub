@@ -10,6 +10,7 @@ import { findRoundMemberships } from './playlists.js'
 import { mountScoreboard }      from './scoreboard.js'
 import { isCoach }              from './demo-player-filters.js'
 import { loadMatchData, hydrateMatchData } from './match-data-fetch.js'
+import { postEndTick }                     from './post-end-tick.js'
 
 // Note: requireAuth() runs AFTER we fetch the demo. Public (HLTV-ingested)
 // demos are readable by anon visitors via RLS — we only enforce auth for
@@ -317,7 +318,9 @@ new ResizeObserver(resizeCanvas).observe(wrap)
 
 // ── Round helpers ─────────────────────────────────────────────
 function currentRound() { return state.match.rounds[state.roundIdx] }
+function nextRoundOf(idx) { return state.match.rounds[idx + 1] ?? null }
 function freezeEnd(round) { return round.freeze_end_tick ?? round.start_tick }
+function playEnd(round, nextRound) { return postEndTick(round, nextRound) }
 
 function jumpToRound(idx) {
   state.roundIdx  = Math.max(0, Math.min(idx, state.match.rounds.length - 1))
@@ -1344,7 +1347,11 @@ function updateTimer() {
   const round    = currentRound()
   const tickRate = state.match.meta.tick_rate
   const fe       = freezeEnd(round)
-  const elapsed  = Math.max(0, (state.tick - fe) / tickRate)
+  // Freeze the displayed round clock at the round_end tick: the playhead
+  // continues advancing past it (post-round restart phase, by design), but
+  // the in-round clock should not keep ticking down or wrap negative.
+  const clockTick = Math.min(state.tick, round.end_tick)
+  const elapsed   = Math.max(0, (clockTick - fe) / tickRate)
 
   let plantEvent = null, bombEnded = false
   for (const ev of state.match.bomb) {
@@ -1355,7 +1362,7 @@ function updateTimer() {
 
   let timeStr, cls
   if (plantEvent && !bombEnded) {
-    const bombRemain = Math.max(0, 40 - (state.tick - plantEvent.tick) / tickRate)
+    const bombRemain = Math.max(0, 40 - (clockTick - plantEvent.tick) / tickRate)
     const remSec     = Math.ceil(bombRemain)
     timeStr = `0:${String(remSec).padStart(2, '0')}`
     cls     = bombRemain < 10 ? 'bomb-low' : 'bomb'
@@ -1406,10 +1413,11 @@ function updateRoundRow() {
 function updateTimelineKills() {
   const round  = currentRound()
   const fe     = freezeEnd(round)
-  const span   = round.end_tick - fe
+  const pe     = playEnd(round, nextRoundOf(state.roundIdx))
+  const span   = pe - fe
   const track  = document.getElementById('timeline-track')
 
-  track.querySelectorAll('.tl-kill-mark').forEach(el => el.remove())
+  track.querySelectorAll('.tl-kill-mark, .tl-round-end-mark').forEach(el => el.remove())
   if (span <= 0) return
 
   // Kill marks: CT in top half, T in bottom half
@@ -1434,12 +1442,26 @@ function updateTimelineKills() {
     el.style.left = pct + '%'
     track.appendChild(el)
   }
+
+  // Round-end divider: visual cue where the round_end event fired. The bar
+  // continues past this point through the post-round restart phase so the
+  // user can see they have ~7s of remaining playback before the next round.
+  if (pe > round.end_tick) {
+    const endPct = ((round.end_tick - fe) / span) * 100
+    if (endPct > 0 && endPct < 100) {
+      const el = document.createElement('div')
+      el.className = 'tl-round-end-mark'
+      el.style.left = endPct + '%'
+      track.appendChild(el)
+    }
+  }
 }
 
 function updateTimeline() {
   const round   = currentRound()
   const fe      = freezeEnd(round)
-  const span    = round.end_tick - fe
+  const pe      = playEnd(round, nextRoundOf(state.roundIdx))
+  const span    = pe - fe
   const pct     = span > 0 ? ((state.tick - fe) / span) * 100 : 0
   const clamped = Math.max(0, Math.min(100, pct))
 
@@ -1467,23 +1489,28 @@ function loop(ts) {
       const ticksPerMs = (state.match.meta.tick_rate * state.speed) / 1000
       state.tick      += dt * ticksPerMs
 
-      const round = currentRound()
-      const nextRound = state.match.rounds[state.roundIdx + 1] ?? null
-      // Keep playing past round.end_tick into the post-round / restart phase.
-      // Previously we snapped to the next round's freeze_end the instant the
-      // win condition fired, cutting off ~7 s of CS2's round_restart_delay
-      // plus the freeze. Now we only advance roundIdx when state.tick
-      // actually crosses next.start_tick — the natural flow of demo frames
-      // carries the playhead through the dead/restart period without a jump.
-      if (nextRound && state.tick >= nextRound.start_tick) {
-        state.roundIdx += 1
-        refreshSaveBtnState()
-        updateRoundRow()
-        updateTimelineKills()
-      } else if (!nextRound && state.tick >= round.end_tick) {
-        state.tick    = round.end_tick
-        state.playing = false
-        updatePlayBtn()
+      const round     = currentRound()
+      const nextRound = nextRoundOf(state.roundIdx)
+      const pe        = playEnd(round, nextRound)
+      // Keep playing past round.end_tick into the post-round restart phase
+      // (CS2's round_restart_delay, ~7s default). playEnd() bounds that
+      // phase: it returns nextRound.start_tick for normal gaps, end_tick + cap
+      // for halftime-sized gaps (so we skip ~15s of dead air), and a fixed
+      // ~7s offset for the final round (no nextRound to bound on).
+      if (state.tick >= pe) {
+        if (nextRound) {
+          // For normal gaps pe === nextRound.start_tick so this is a no-op;
+          // for halftime/timeout gaps it snaps over the dead window.
+          state.tick     = nextRound.start_tick
+          state.roundIdx += 1
+          refreshSaveBtnState()
+          updateRoundRow()
+          updateTimelineKills()
+        } else {
+          state.tick    = pe
+          state.playing = false
+          updatePlayBtn()
+        }
       }
     }
     state.lastTs = ts
@@ -1513,7 +1540,11 @@ for (const panelId of ['ct-panel', 't-panel']) {
 // ── Controls ──────────────────────────────────────────────────
 document.getElementById('play-btn').addEventListener('click', () => {
   const round = currentRound()
-  if (state.tick >= round.end_tick) state.tick = freezeEnd(round)
+  // Only snap back if playback has wound past the post-end (final-round
+  // auto-stop). Pausing during the restart phase should resume in place.
+  if (state.tick >= playEnd(round, nextRoundOf(state.roundIdx))) {
+    state.tick = freezeEnd(round)
+  }
   state.playing = !state.playing
   updatePlayBtn()
 })
@@ -1598,7 +1629,9 @@ document.addEventListener('keydown', e => {
   if (e.code === 'Space') {
     e.preventDefault()
     const round = currentRound()
-    if (state.tick >= round.end_tick) state.tick = freezeEnd(round)
+    if (state.tick >= playEnd(round, nextRoundOf(state.roundIdx))) {
+      state.tick = freezeEnd(round)
+    }
     state.playing = !state.playing
     updatePlayBtn()
     return
@@ -1705,7 +1738,8 @@ function seekFromEvent(e) {
   const pct   = Math.max(0, Math.min(1, (e.clientX - left) / width))
   const round = currentRound()
   const fe    = freezeEnd(round)
-  state.tick  = fe + pct * (round.end_tick - fe)
+  const pe    = playEnd(round, nextRoundOf(state.roundIdx))
+  state.tick  = fe + pct * (pe - fe)
 }
 track.addEventListener('mousedown', e => { dragging = true; seekFromEvent(e) })
 window.addEventListener('mousemove', e => { if (dragging) seekFromEvent(e) })

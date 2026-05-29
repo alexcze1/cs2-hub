@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h1>post-end-tick tests</h1>
+<pre id="out"></pre>
+<script type="module">
+import { postEndTick } from './post-end-tick.js'
+
+const out = document.getElementById('out')
+let pass = 0, fail = 0
+function assert(cond, msg) {
+  const line = (cond ? '✓ ' : '✗ ') + msg
+  out.textContent += line + '\n'
+  if (cond) pass++; else fail++
+}
+
+const round = { end_tick: 10000 }
+
+// Normal CS2 round_restart_delay (7s @ 64Hz = 448 ticks): use the actual gap
+assert(
+  postEndTick(round, { start_tick: 10448 }) === 10448,
+  'normal 7s gap returns nextRound.start_tick',
+)
+
+// Slightly long gap (8s = 512 ticks), still under cap: use actual gap
+assert(
+  postEndTick(round, { start_tick: 10512 }) === 10512,
+  '8s gap returns nextRound.start_tick',
+)
+
+// Gap exactly at cap (650 ticks ≈ 10.16s): use full gap (boundary inclusive)
+assert(
+  postEndTick(round, { start_tick: 10650 }) === 10650,
+  'gap exactly at 650-tick cap uses full gap',
+)
+
+// Gap just over cap: clip to end_tick + cap
+const justOver = postEndTick(round, { start_tick: 10651 })
+assert(justOver === 10650, `gap 651 ticks clips to end+650 (got ${justOver})`)
+
+// Halftime: round 12 → round 13 typical gap ≈ 22s (~1408 ticks at 64Hz)
+const halftime = postEndTick(round, { start_tick: 11408 })
+assert(halftime === 10650, `halftime ~22s gap clips to end+650 (got ${halftime})`)
+
+// Final round (no next): end_tick + 450 ticks (~7s restart estimate)
+assert(
+  postEndTick(round, null) === 10450,
+  'final round returns end_tick + 450',
+)
+
+// Robustness: same when nextRound is explicitly undefined
+assert(
+  postEndTick(round, undefined) === 10450,
+  'final round handles undefined nextRound',
+)
+
+out.textContent += `\n${pass} passed, ${fail} failed\n`
+</script>
+</body>
+</html>
