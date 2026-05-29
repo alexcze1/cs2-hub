@@ -912,7 +912,9 @@ function renderPublicSeriesCard(demos) {
         <div class="dx-series-compact-row-right">
           ${d.status === 'ready'
             ? `<a class="dx-watch" href="demo-viewer.html?id=${d.id}">▶ Watch</a>`
-            : `<span class="dx-status dx-status-pending">● Processing</span>`}
+            : d.status === 'error'
+              ? `<span class="dx-status dx-status-error" title="parse failed">● Failed</span>`
+              : `<span class="dx-status dx-status-pending">● Processing</span>`}
         </div>
       </div>`
   }).join('')
@@ -977,6 +979,8 @@ function renderPublicSingleCard(d) {
         ${d.event_name ? `<span class="dx-card-compact-event" title="${esc(d.event_name)}">${esc(d.event_name)}</span>` : ''}
         ${d.status === 'ready'
           ? `<a class="dx-watch" href="demo-viewer.html?id=${d.id}">▶ Watch</a>`
+          : d.status === 'error'
+          ? `<span class="dx-status dx-status-error" title="parse failed">● Failed</span>`
           : `<button class="dx-watch is-disabled" disabled>▶ Processing</button>`}
         ${d.source_url ? `<a class="dx-action-ghost" href="${esc(d.source_url)}" target="_blank" rel="noopener" title="View on HLTV">↗</a>` : ''}
       </div>
