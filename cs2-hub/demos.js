@@ -102,6 +102,43 @@ const state = {
   filter:   loadSavedFilter(),
   rawDemos: [],
   entries:  [],
+  // The user's own team name (from the teams table). Used to anchor the
+  // win/loss border accent on each card — green when the team page's team
+  // won, red when it lost. Without this, the accent would just follow
+  // whichever team got rendered on the left, which inverts per-map for
+  // series where sides flip.
+  ownTeamName: null,
+}
+
+async function loadOwnTeamName() {
+  if (!teamId) return null
+  const { data } = await supabase
+    .from('teams')
+    .select('name')
+    .eq('id', teamId)
+    .maybeSingle()
+  return data?.name ?? null
+}
+
+// Returns 'win' | 'loss' | 'draw' | null for a single demo, anchored on the
+// team page's own team name. Null when we can't tell (no scores, can't match
+// own team to either side).
+function ownOutcome(d, ownName) {
+  if (d.status !== 'ready' || !ownName) return null
+  const td = teamDisplay(d)
+  if (td.leftScore == null || td.rightScore == null) return null
+  const own = ownName.toLowerCase()
+  let ours, theirs
+  if (td.left && td.left.toLowerCase() === own) {
+    ours = td.leftScore; theirs = td.rightScore
+  } else if (td.right && td.right.toLowerCase() === own) {
+    ours = td.rightScore; theirs = td.leftScore
+  } else {
+    return null
+  }
+  if (ours > theirs) return 'win'
+  if (ours < theirs) return 'loss'
+  return 'draw'
 }
 
 const playlistsState = {
@@ -110,6 +147,12 @@ const playlistsState = {
 
 // ── Data layer ────────────────────────────────────────────────
 async function loadDemos() {
+  // Fetch the user's own team name once (lazy) — cached on state so we don't
+  // re-query on every realtime reload.
+  if (state.ownTeamName == null) {
+    state.ownTeamName = await loadOwnTeamName()
+  }
+
   const { data, error } = await supabase
     .from('demos')
     .select('id,status,error_message,map,played_at,score_ct,score_t,team_a_score,team_b_score,team_a_first_side,opponent_name,ct_team_name,t_team_name,series_id,storage_path,created_at')
@@ -320,10 +363,15 @@ function singleCard(d) {
   const dateStr   = d.played_at ? formatDate(d.played_at) : formatDate(d.created_at)
   const leftName  = td.left  ?? d.opponent_name ?? null
   const rightName = td.right ?? null
+  // Anchor the accent on the user's own team — not on whoever ended up on
+  // the left chip. Same team can be on either side across maps in a series
+  // when team_a_first_side flips, so left-side anchoring inverted per-map.
+  const outcome = ownOutcome(d, state.ownTeamName)
   const winCls = !hasResult ? 'dx-card-none'
-    : td.leftScore > td.rightScore ? 'dx-card-win'
-    : td.leftScore < td.rightScore ? 'dx-card-loss'
-    : 'dx-card-draw'
+    : outcome === 'win'  ? 'dx-card-win'
+    : outcome === 'loss' ? 'dx-card-loss'
+    : outcome === 'draw' ? 'dx-card-draw'
+    : 'dx-card-none'
   return `
     <article class="dx-card-compact ${winCls}" id="demo-row-${d.id}">
       <div class="dx-card-compact-map" style="${mapBg(d.map) ? `background-image:url('${esc(mapBg(d.map))}')` : ''}">
@@ -378,16 +426,23 @@ function seriesCard(demos) {
   const named = demos.find(d => d.ct_team_name && d.t_team_name) ?? first
   const td = teamDisplay(named)
   let mapsLeftWon = 0, mapsRightWon = 0
+  // Series accent counts maps the user's team won, not maps the left chip
+  // won — same reasoning as singleCard.
+  let oursWon = 0, oursLost = 0
   for (const d of demos) {
     const t = teamDisplay(d)
     if (d.status !== 'ready' || t.leftScore == null) continue
     if (t.leftScore  > t.rightScore) mapsLeftWon++
     else if (t.rightScore > t.leftScore) mapsRightWon++
+    const o = ownOutcome(d, state.ownTeamName)
+    if (o === 'win')  oursWon++
+    if (o === 'loss') oursLost++
   }
   const decided = mapsLeftWon !== mapsRightWon
-  const winCls = !decided ? 'dx-card-none'
-    : mapsLeftWon  > mapsRightWon ? 'dx-card-win'
-    : mapsRightWon > mapsLeftWon  ? 'dx-card-loss'
+  const oursDecided = oursWon !== oursLost
+  const winCls = !oursDecided ? 'dx-card-none'
+    : oursWon  > oursLost ? 'dx-card-win'
+    : oursLost > oursWon  ? 'dx-card-loss'
     : 'dx-card-draw'
   const total = demos.length
   const boLabel = total <= 1 ? 'BO1' : total <= 3 ? 'BO3' : total <= 5 ? 'BO5' : `BO${total}`
@@ -887,9 +942,10 @@ function renderPublicSeriesCard(demos) {
   const boLabel = demos.length <= 1 ? 'BO1' : demos.length <= 3 ? 'BO3' : demos.length <= 5 ? 'BO5' : `BO${demos.length}`
 
   const decided = mapsAWon !== mapsBWon
-  const winCls = !decided ? 'dx-card-none'
-    : mapsAWon > mapsBWon ? 'dx-card-win'
-    : 'dx-card-loss'
+  // Public viewers have no stake in either team — keep the card neutral
+  // (no win/loss border accent). Per-row scores still get coloured by the
+  // map's own winner so the result is still visible at a glance.
+  const winCls = ''
   const leftScoreCls  = decided && mapsAWon > mapsBWon ? 'dx-score-win'  : decided ? 'dx-score-loss' : 'dx-score-none'
   const rightScoreCls = decided && mapsBWon > mapsAWon ? 'dx-score-win'  : decided ? 'dx-score-loss' : 'dx-score-none'
 
@@ -952,10 +1008,9 @@ function renderPublicSingleCard(d) {
   const hasResult = a != null && b != null && d.status === 'ready'
   const aWin = hasResult && a > b
   const bWin = hasResult && b > a
-  const winCls = !hasResult ? 'dx-card-none'
-    : aWin ? 'dx-card-win'
-    : bWin ? 'dx-card-loss'
-    : 'dx-card-draw'
+  // Public viewers have no stake in either team — keep the card neutral
+  // (no win/loss border accent). Scores still get coloured below.
+  const winCls = ''
   return `
     <article class="dx-card-compact ${winCls}" id="demo-row-${d.id}">
       <div class="dx-card-compact-map" style="${mapBg(d.map) ? `background-image:url('${esc(mapBg(d.map))}')` : ''}">

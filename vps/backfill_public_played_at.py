@@ -64,7 +64,7 @@ def _apply_update(demo_ids: list[str], ts: datetime) -> int:
     with get_db() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "UPDATE demos SET played_at = %s WHERE id = ANY(%s) AND played_at IS NULL",
+                "UPDATE demos SET played_at = %s WHERE id = ANY(%s::uuid[]) AND played_at IS NULL",
                 (ts, demo_ids),
             )
             return cur.rowcount

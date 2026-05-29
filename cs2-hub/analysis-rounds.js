@@ -35,12 +35,22 @@ export function narrowRoundsForTeam(payloads, filters) {
         if (!buyType || !filters.buyTypes.has(buyType)) continue
       }
 
+      // AWP-only filter — drop rounds where no player on the selected
+      // team's side carried an AWP. Set of steam_ids comes from the slim
+      // payload (parser pre-aggregates AWPers per round). Old slim payloads
+      // without the field are kept regardless so they don't silently
+      // disappear when the toggle is on — UI shows that as the only caveat.
+      if (filters.awpOnly && Array.isArray(round.awpers)) {
+        if (!round.awpers.length) continue
+      }
+
       out.push({
         demoId:         payload._demo_id,
         roundIdx:       round.idx,
         freezeEndTick:  round.freeze_end_tick,
         endTick:        round.end_tick,
         teamSide,
+        awpers:         Array.isArray(round.awpers) ? new Set(round.awpers) : null,
         hue:            (hueIdx++ * 137) % 360,   // golden-angle distribution
         // Frames + grenades referenced lazily — caller indexes into payload by roundIdx
         _payload:       payload,

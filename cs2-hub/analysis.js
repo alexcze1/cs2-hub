@@ -24,6 +24,7 @@ const state = {
     opponent:   'any',       // 'any' | string
     matchIds:   null,        // Set<string> | null (null = all matches for current map)
     buyTypes:   new Set(),   // Set<'full_buy'|'half_buy'|'force_buy'|'eco'|'hard_eco'|'pistol'> — empty = all
+    awpOnly:    false,       // when true, only show AWPing players (and drop rounds with no AWP)
   },
   corpus:      [],           // [{id, map, played_at, ct_team_name, t_team_name, ...}]
   slimCache:   new Map(),    // demoId → slim payload
@@ -51,6 +52,7 @@ function readUrl() {
   state.filters.opponent = p.get('opponent')        || 'any'
   const buys = p.get('buy')
   state.filters.buyTypes = buys ? new Set(buys.split(',').filter(Boolean)) : new Set()
+  state.filters.awpOnly  = p.get('awp') === '1'
   // matchIds is too large for URL — left at null on load (= all matches for current map).
   state.filters.matchIds = null
 }
@@ -63,6 +65,7 @@ function writeUrl() {
   if (state.filters.side !== 'ct') p.set('side', state.filters.side)
   if (state.filters.opponent !== 'any') p.set('opponent', state.filters.opponent)
   if (state.filters.buyTypes.size) p.set('buy', [...state.filters.buyTypes].join(','))
+  if (state.filters.awpOnly)       p.set('awp', '1')
   const qs = p.toString()
   history.replaceState(null, '', qs ? `?${qs}` : location.pathname)
 }
@@ -298,6 +301,11 @@ function renderFilterRail() {
       `).join('')}
     </div>
 
+    <div class="label">Weapon</div>
+    <div class="seg-row" id="f-awp">
+      <button class="seg-btn ${state.filters.awpOnly ? 'active' : ''}" data-v="awp">AWP only</button>
+    </div>
+
     <div class="filter-readout">
       <span class="num" id="f-rounds">0</span> rounds<br>
       from <span class="num" id="f-demos">0</span> demos
@@ -317,6 +325,13 @@ function renderFilterRail() {
     const t = btn.dataset.v
     if (state.filters.buyTypes.has(t)) state.filters.buyTypes.delete(t)
     else state.filters.buyTypes.add(t)
+    writeUrl()
+    renderFilterRail()
+    reloadRoundSet()
+  })
+  rail.querySelector('#f-awp').addEventListener('click', e => {
+    const btn = e.target.closest('.seg-btn'); if (!btn) return
+    state.filters.awpOnly = !state.filters.awpOnly
     writeUrl()
     renderFilterRail()
     reloadRoundSet()
@@ -346,6 +361,7 @@ function renderFilterRail() {
     state.filters.opponent = 'any'
     state.filters.matchIds = null
     state.filters.buyTypes = new Set()
+    state.filters.awpOnly = false
     writeUrl()
     renderFilterRail()
     reloadRoundSet()
@@ -481,6 +497,7 @@ async function reloadRoundSet() {
       state.filters.side !== 'ct' ||
       state.filters.opponent !== 'any' ||
       state.filters.buyTypes.size > 0 ||
+      state.filters.awpOnly ||
       (state.filters.matchIds && state.filters.matchIds.size === 0)
     setEmptyMessage(
       hasNarrowFilters ? 'No rounds match these filters' : 'No rounds found.',
@@ -972,10 +989,15 @@ function drawGrenade(tc, g, targetTick, tickRate, mapSize, teamColor) {
 
   const { x, y } = tc(g.land_x, g.land_y)
   if (!Number.isFinite(x) || !Number.isFinite(y)) return
-  const typeColor = g.type === 'smoke'   ? 'rgba(200,200,200,0.6)'
-                  : g.type === 'molotov' ? 'rgba(255,140,0,0.6)'
-                  : g.type === 'flash'   ? 'rgba(255,255,255,0.5)'
-                  :                        'rgba(255,220,0,0.6)'
+  // Trajectory colours — picked to read clearly against dark map backgrounds
+  // and to feel like a broadcast overlay rather than the washed-out previous
+  // palette (which had near-white smoke + near-white flash). Each is a
+  // saturated mid-tone so the line stroke + drop-shadow stand out without
+  // glare; flash is the only intentionally bright one because it's the rarest.
+  const typeColor = g.type === 'smoke'   ? 'rgba(124,178,232,0.78)'  // cool ice blue
+                  : g.type === 'molotov' ? 'rgba(255,107,53,0.82)'   // vivid orange
+                  : g.type === 'flash'   ? 'rgba(255,217,61,0.82)'   // saturated marigold
+                  :                        'rgba(255,71,87,0.82)'    // alarm red (HE)
 
   // ── Trajectory ──────────────────────────────────────────────
   const pathPts = g.trajectory
@@ -1119,6 +1141,7 @@ function renderOverlay(tc, mapSize) {
         if (player.team !== r.teamSide) continue
         if (!player.alive) continue
         if (state.soloSid && player.steam_id !== state.soloSid) continue
+        if (state.filters.awpOnly && r.awpers && !r.awpers.has(player.steam_id)) continue
         ctx.beginPath()
         let started = false
         for (let i = trailStart; i <= idx; i++) {
@@ -1137,6 +1160,12 @@ function renderOverlay(tc, mapSize) {
     for (const player of frame.players) {
       if (player.team !== r.teamSide) continue
       if (state.soloSid && player.steam_id !== state.soloSid) continue
+      // AWP-only filter — when on, hide players who didn't hold an AWP
+      // during this round. r.awpers is populated by narrowRoundsForTeam
+      // from the slim payload (parser-aggregated). null = legacy payload
+      // without the field; we let the player render so old data isn't
+      // silently invisible.
+      if (state.filters.awpOnly && r.awpers && !r.awpers.has(player.steam_id)) continue
       drawPlayer(tc, player, getPlayerColor(player.steam_id), mapSize)
     }
   }
@@ -1714,11 +1743,13 @@ async function playSelectionAsPlaylist() {
 
 document.getElementById('gp-play-selection')?.addEventListener('click', playSelectionAsPlaylist)
 
+// Legend swatches mirror the canvas trajectory colours so the panel chip
+// reads as the same utility on the map.
 const UTIL_TYPES = [
-  { type: 'smoke',   label: 'Smoke',    color: '#b3b3b3' },
-  { type: 'molotov', label: 'Molotov',  color: '#ff7a30' },
-  { type: 'flash',   label: 'Flash',    color: '#ffeb55' },
-  { type: 'he',      label: 'HE',       color: '#dc3232' },
+  { type: 'smoke',   label: 'Smoke',    color: '#7CB2E8' },
+  { type: 'molotov', label: 'Molotov',  color: '#FF6B35' },
+  { type: 'flash',   label: 'Flash',    color: '#FFD93D' },
+  { type: 'he',      label: 'HE',       color: '#FF4757' },
 ]
 
 function refreshUtilPanel() {

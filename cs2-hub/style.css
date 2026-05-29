@@ -4243,6 +4243,11 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
   margin-top: 20px;
   flex-wrap: wrap;
 }
+/* dx-upload-cta has its own margin-top:20px for the standalone hero CTA
+   case. When it lives inside dx-hero-actions, the parent already supplies
+   that gap, so the button rendered 20px lower than its sibling Match View
+   ghost-cta. Strip the extra margin in that context. */
+.dx-hero-actions .dx-upload-cta { margin-top: 0; }
 .dx-ghost-cta {
   display: inline-flex;
   align-items: center;

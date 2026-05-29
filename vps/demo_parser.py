@@ -1333,6 +1333,24 @@ def build_slim_payload(parsed: dict) -> dict:
         metrics_b = _team_buy_metrics_at_tick(frames_in, freeze_end_tick, team_b_side) if team_b_side else _team_buy_metrics([])
         buy_a = _classify_team_buy(metrics_a, is_pistol)
         buy_b = _classify_team_buy(metrics_b, is_pistol)
+
+        # AWPers for the round: steam_ids that held an AWP at any sampled
+        # tick between start and end. Lets the analyser's "AWP only" toggle
+        # work over slim data — without this, the slim payload has no
+        # weapon info at all.
+        start_tick = int(r.get("start_tick", freeze_end_tick))
+        end_tick   = int(r.get("end_tick", 0))
+        awpers = set()
+        for f in frames_in:
+            ft = int(f.get("tick", 0))
+            if ft < start_tick or ft > end_tick:
+                continue
+            for p in f.get("players", []):
+                if (p.get("weapon") or "") == "AWP":
+                    sid = p.get("steam_id") or ""
+                    if sid:
+                        awpers.add(sid)
+
         rounds_out.append({
             "idx":                i,
             "side_team_a":        team_a_side,
@@ -1345,6 +1363,7 @@ def build_slim_payload(parsed: dict) -> dict:
             "buy_type_b":         buy_b,
             "context_a":          _classify_contextual(buy_a, buy_b),
             "context_b":          _classify_contextual(buy_b, buy_a),
+            "awpers":             sorted(awpers),
         })
 
     frames_out = []

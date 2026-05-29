@@ -487,7 +487,7 @@ function renderGrenades(round, tick, frame, cw, ch, tc, mapSize) {
         if (icon && icon.complete && icon.naturalWidth) {
           const iconSz = mapSize * 0.022 * arcScale
           ctx.globalAlpha = 0.9
-          ctx.drawImage(icon, iconX - iconSz / 2, iconY - iconSz / 2, iconSz, iconSz)
+          drawIconContained(icon, iconX, iconY, iconSz)
         } else {
           ctx.beginPath(); ctx.arc(iconX, iconY, mapSize * 0.008 * arcScale, 0, Math.PI * 2)
           ctx.fillStyle = typeColor; ctx.fill()
@@ -537,7 +537,7 @@ function renderGrenades(round, tick, frame, cw, ch, tc, mapSize) {
         const icon = GRENADE_ICONS[g.type]
         if (icon && icon.complete && icon.naturalWidth) {
           const iconSz = mapSize * 0.022 * arcScale; ctx.globalAlpha = 0.9
-          ctx.drawImage(icon, iconX - iconSz / 2, iconY - iconSz / 2, iconSz, iconSz)
+          drawIconContained(icon, iconX, iconY, iconSz)
         } else {
           ctx.beginPath(); ctx.arc(iconX, iconY, mapSize * 0.008 * arcScale, 0, Math.PI * 2)
           ctx.fillStyle = typeColor; ctx.fill()
@@ -660,17 +660,32 @@ function renderBomb(round, tick, cw, ch, tc, mapSize) {
   if (latest.x == null || latest.y == null) { ctx.restore(); return }
   const { x, y } = tc(latest.x, latest.y)
   if (latest.type === 'planted') {
-    const r = mapSize * 0.018 + Math.sin(tick / 8) * mapSize * 0.006
+    // Subtle red glow underneath — smaller and static (no Math.sin pulse,
+    // which made the previous indicator throb visibly large). The bomb icon
+    // is the primary signal; the glow just disambiguates the icon from a
+    // regular weapon-drop sprite.
+    const glowR = mapSize * 0.016
     ctx.beginPath()
-    ctx.arc(x, y, r, 0, Math.PI * 2)
-    ctx.fillStyle = 'rgba(255,50,50,0.7)'
+    ctx.arc(x, y, glowR, 0, Math.PI * 2)
+    ctx.fillStyle = 'rgba(255,50,50,0.45)'
     ctx.fill()
+
+    // Bomb icon, centred on plant location. Sized so it sits inside the
+    // glow with a small breathing margin. drawIconContained preserves the
+    // C4 SVG's aspect ratio.
+    const iconSize = mapSize * 0.028
+    if (C4_ICON.complete && C4_ICON.naturalWidth > 0) {
+      drawIconContained(C4_ICON, x, y, iconSize)
+    }
+
+    // Countdown — anchored to a constant offset above the icon so the
+    // number stays put rather than tracking the (formerly pulsing) glow.
     const seconds = Math.max(0, 40 - (tick - latest.tick) / tickRate)
     ctx.fillStyle    = '#fff'
     ctx.font         = `700 ${fontSize}px Inter, system-ui, sans-serif`
     ctx.textAlign    = 'center'
     ctx.textBaseline = 'bottom'
-    ctx.fillText(Math.ceil(seconds), x, y - r - 2)
+    ctx.fillText(Math.ceil(seconds), x, y - iconSize / 2 - 4)
   } else if (latest.type === 'defused') {
     ctx.beginPath()
     ctx.arc(x, y, mapSize * 0.018, 0, Math.PI * 2)
@@ -775,6 +790,27 @@ const GRENADE_ICONS = {}
   img.src = `images/weapons/${filename}.svg`
   GRENADE_ICONS[type] = img
 })
+
+// C4 icon for the bomb-planted indicator. Same preload pattern; rendered
+// inside renderBomb when the latest event is a plant.
+const C4_ICON = new Image()
+C4_ICON.src = 'images/weapons/c4.svg'
+
+// Draw an SVG/PNG centred on (cx, cy), scaled to fit inside maxSize × maxSize
+// while preserving the source's intrinsic aspect ratio. Most weapon/util SVGs
+// in images/weapons/ are tall portraits (e.g. smokegrenade is 12.3 × 32) or
+// wide landscapes (ak47 is 88.5 × 32) — drawing them as a forced square via
+// drawImage(..., sz, sz) stretches the artwork. Chrome rasterises that
+// stretch directly; Firefox sometimes happens to preserve aspect when the
+// SVG has a viewBox but no width/height, which is why this bug only showed
+// up cross-browser. Always go through this helper for icons drawn on canvas.
+function drawIconContained(icon, cx, cy, maxSize) {
+  const w = icon.naturalWidth, h = icon.naturalHeight
+  if (!w || !h) return
+  const scale = Math.min(maxSize / w, maxSize / h)
+  const dw = w * scale, dh = h * scale
+  ctx.drawImage(icon, cx - dw / 2, cy - dh / 2, dw, dh)
+}
 
 function drawRoundRect(ctx, x, y, w, h, r) {
   ctx.beginPath()
@@ -1016,11 +1052,17 @@ function render() {
       const iconName  = WEAPON_ICON_MAP[rawWeapon] ?? rawWeapon
       const wIcon     = WEAPON_CANVAS_ICONS[iconName]
       if (wIcon && wIcon.complete && wIcon.naturalWidth) {
-        const sz = Math.round(mapSize * 0.018)
+        // sz is the max box; the actual draw width/height come out of the
+        // SVG's intrinsic aspect via drawIconContained. Position the icon's
+        // bottom edge two pixels above the player pill, regardless of which
+        // dimension dominated after aspect-fit.
+        const sz = Math.round(mapSize * 0.026)
         const ph = pillFontSz + 5
         const py = (y - dotR) - ph - 2
+        const iconAspect = wIcon.naturalWidth / wIcon.naturalHeight
+        const drawH = iconAspect >= 1 ? sz / iconAspect : sz
         ctx.save()
-        ctx.drawImage(wIcon, x - sz / 2, py - sz - 2, sz, sz)
+        drawIconContained(wIcon, x, py - drawH / 2 - 2, sz)
         ctx.restore()
       }
     }
@@ -1425,19 +1467,22 @@ function loop(ts) {
       state.tick      += dt * ticksPerMs
 
       const round = currentRound()
-      if (state.tick >= round.end_tick) {
-        const nextIdx = state.roundIdx + 1
-        if (nextIdx < state.match.rounds.length) {
-          state.roundIdx = nextIdx
-          refreshSaveBtnState()
-          state.tick     = freezeEnd(currentRound())
-          updateRoundRow()
-          updateTimelineKills()
-        } else {
-          state.tick    = round.end_tick
-          state.playing = false
-          updatePlayBtn()
-        }
+      const nextRound = state.match.rounds[state.roundIdx + 1] ?? null
+      // Keep playing past round.end_tick into the post-round / restart phase.
+      // Previously we snapped to the next round's freeze_end the instant the
+      // win condition fired, cutting off ~7 s of CS2's round_restart_delay
+      // plus the freeze. Now we only advance roundIdx when state.tick
+      // actually crosses next.start_tick — the natural flow of demo frames
+      // carries the playhead through the dead/restart period without a jump.
+      if (nextRound && state.tick >= nextRound.start_tick) {
+        state.roundIdx += 1
+        refreshSaveBtnState()
+        updateRoundRow()
+        updateTimelineKills()
+      } else if (!nextRound && state.tick >= round.end_tick) {
+        state.tick    = round.end_tick
+        state.playing = false
+        updatePlayBtn()
       }
     }
     state.lastTs = ts
@@ -1470,6 +1515,39 @@ document.getElementById('play-btn').addEventListener('click', () => {
   if (state.tick >= round.end_tick) state.tick = freezeEnd(round)
   state.playing = !state.playing
   updatePlayBtn()
+})
+
+// Fullscreen toggle. Targets the whole viewer shell so the bottom timeline
+// + panels come along. F key shortcut mirrors the button. Updates the
+// inline icon between the "expand" and "compress" arrows on state change.
+const fsBtn = document.getElementById('fs-btn')
+const fsRoot = document.getElementById('viewer-shell')
+function isFullscreen() {
+  return !!(document.fullscreenElement || document.webkitFullscreenElement)
+}
+function updateFsIcon() {
+  const enter = document.getElementById('fs-icon-enter')
+  const exit  = document.getElementById('fs-icon-exit')
+  if (!enter || !exit) return
+  const fs = isFullscreen()
+  enter.style.display = fs ? 'none' : ''
+  exit.style.display  = fs ? '' : 'none'
+}
+async function toggleFullscreen() {
+  if (!fsRoot) return
+  if (isFullscreen()) {
+    try { await (document.exitFullscreen?.() ?? document.webkitExitFullscreen?.()) } catch {}
+  } else {
+    try { await (fsRoot.requestFullscreen?.() ?? fsRoot.webkitRequestFullscreen?.()) } catch {}
+  }
+}
+fsBtn?.addEventListener('click', toggleFullscreen)
+document.addEventListener('fullscreenchange', updateFsIcon)
+document.addEventListener('webkitfullscreenchange', updateFsIcon)
+window.addEventListener('keydown', e => {
+  // Ignore when the user is typing in an input or textarea.
+  if (e.target.matches('input, textarea, [contenteditable=true]')) return
+  if (e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleFullscreen() }
 })
 
 document.querySelectorAll('.speed-btn[data-speed]').forEach(btn => {
