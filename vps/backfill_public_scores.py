@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import time
 from collections import defaultdict
 from typing import Iterable
 
@@ -124,31 +125,69 @@ def _group_by_match(demos: Iterable[dict]) -> dict[str, list[dict]]:
     return out
 
 
+def _inconsistent_match_ids() -> list[str]:
+    """Return source_match_ids whose demos have inconsistent team_a_name."""
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT source_match_id
+                FROM demos
+                WHERE source = 'hltv' AND status = 'ready' AND team_a_name IS NOT NULL
+                GROUP BY source_match_id
+                HAVING count(DISTINCT team_a_name) > 1
+            """)
+            return [r[0] for r in cur.fetchall()]
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--limit", type=int, default=None,
                    help="Process at most N demos (still grouped by match).")
+    p.add_argument("--per-match-sleep", type=float, default=10.0,
+                   help="Seconds to sleep between match-page fetches "
+                        "(default 10; CF rate-limits aggressive scrapes).")
+    p.add_argument("--only-inconsistent", action="store_true",
+                   help="Restrict to matches whose demos currently have "
+                        "inconsistent team_a_name across maps. Useful for "
+                        "re-runs that finish what an earlier rate-limited "
+                        "run missed.")
     args = p.parse_args(argv)
 
     demos = _fetch_public_demos(args.limit)
+    if args.only_inconsistent:
+        keep = set(_inconsistent_match_ids())
+        before = len(demos)
+        demos = [d for d in demos if d["source_match_id"] in keep]
+        print(f"[backfill] --only-inconsistent: {len(demos)}/{before} demos "
+              f"({len(keep)} matches)")
+
     if not demos:
         print("[backfill] no public demos to inspect")
         return 0
 
     by_match = _group_by_match(demos)
-    print(f"[backfill] {len(demos)} demos across {len(by_match)} matches")
+    print(f"[backfill] {len(demos)} demos across {len(by_match)} matches "
+          f"(per-match sleep: {args.per_match_sleep}s)")
 
     updated = 0
     already_correct = 0
     unmatched = 0
     fetch_failed = 0
 
+    first = True
     for hltv_id, rows in by_match.items():
         # All rows in a group share source_url, but fall back gracefully if not.
         url = rows[0].get("source_url")
         if not url:
             unmatched += len(rows)
             continue
+
+        # Pace per-match-page fetches so we stay under CF's per-IP threshold.
+        # The trickle wrapper uses 180s; backfill is more aggressive (10s
+        # default) since it runs ad-hoc, but still leaves CF time to forget us.
+        if not first and args.per_match_sleep > 0:
+            time.sleep(args.per_match_sleep)
+        first = False
 
         try:
             map_results = fetch_match_page_map_results(url)
