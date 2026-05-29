@@ -43,6 +43,14 @@ POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", "10"))
 STUCK_MINUTES = 2
 DEMOS_DIR     = Path("/opt/midround/demos")
 
+# Auto-retry for status='error' demos. A transient failure (pooler timeout,
+# parser OOM, network blip during HLTV download) would otherwise park the
+# demo as "Failed" in the UI forever. Cap attempts so a truly broken demo
+# (corrupt .dem, unparseable format) eventually stops looping. Backoff
+# ensures we don't hammer the same failing demo every POLL_INTERVAL.
+RETRY_MAX         = int(os.getenv("RETRY_MAX", "3"))
+RETRY_BACKOFF_MIN = int(os.getenv("RETRY_BACKOFF_MIN", "30"))
+
 # Parser concurrency. parse_demo is CPU-bound (demoparser2 + Python loops) so
 # multiple demos can only parse in parallel via separate processes — threads
 # serialize on the GIL. Default leaves one core for FastAPI + DB + HLTV ingest.
@@ -150,6 +158,7 @@ async def _poll_loop():
     while True:
         try:
             await _reset_stuck()
+            await _retry_errors()
             await _process_pending()
         except asyncio.CancelledError:
             print("Poll loop cancelled — shutting down")
@@ -322,6 +331,34 @@ async def _reset_stuck():
     await asyncio.get_event_loop().run_in_executor(None, _reset_stuck_sync, cutoff)
 
 
+def _retry_errors_sync(cutoff, max_retries):
+    """Requeue error rows whose retry budget isn't exhausted and whose last
+    attempt was long enough ago. Returns the number of rows requeued so the
+    caller can log it (helps confirm the loop is alive in journalctl).
+    """
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """UPDATE demos
+                      SET status     = 'pending',
+                          updated_at = %s
+                    WHERE status      = 'error'
+                      AND retry_count < %s
+                      AND updated_at  < %s""",
+                (datetime.datetime.utcnow().isoformat(), max_retries, cutoff),
+            )
+            return cur.rowcount
+
+
+async def _retry_errors():
+    cutoff = (datetime.datetime.utcnow() - datetime.timedelta(minutes=RETRY_BACKOFF_MIN)).isoformat()
+    n = await asyncio.get_event_loop().run_in_executor(
+        None, _retry_errors_sync, cutoff, RETRY_MAX,
+    )
+    if n:
+        print(f"[retry] requeued {n} error row(s) (retry_count < {RETRY_MAX}, backoff {RETRY_BACKOFF_MIN}m)")
+
+
 def _fetch_pending():
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
@@ -353,10 +390,17 @@ def _db_set_processing(demo_id):
 
 
 def _db_set_error(demo_id, msg):
+    # Increment retry_count alongside the status change. _retry_errors() uses
+    # this to decide whether to requeue (caps at RETRY_MAX attempts).
     with get_db() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "UPDATE demos SET status = 'error', updated_at = %s, error_message = %s WHERE id = %s",
+                """UPDATE demos
+                      SET status        = 'error',
+                          updated_at    = %s,
+                          error_message = %s,
+                          retry_count   = COALESCE(retry_count, 0) + 1
+                    WHERE id = %s""",
                 (datetime.datetime.utcnow().isoformat(), msg[:500], demo_id),
             )
 
