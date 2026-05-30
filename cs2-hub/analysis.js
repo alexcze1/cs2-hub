@@ -158,11 +158,15 @@ async function loadCorpus(teamName) {
   try {
     const COLS = 'id, map, played_at, ct_team_name, t_team_name, team_a_name, team_b_name, score_ct, score_t, team_a_first_side, team_a_score, team_b_score, is_public'
     const [team, pub] = await Promise.all([
+      // Case-insensitive on both sources — autocomplete picks a canonical
+      // HLTV-cased name, but parser-stored ct_team_name / t_team_name often
+      // differ in case (older demos, manual uploads). Using .ilike without
+      // wildcards = case-insensitive equality on PostgREST.
       supabase
         .from('demos')
         .select(COLS)
         .eq('status', 'ready')
-        .or(`ct_team_name.eq.${safe},t_team_name.eq.${safe}`),
+        .or(`ct_team_name.ilike.${safe},t_team_name.ilike.${safe}`),
       supabase
         .from('demos')
         .select(COLS)
@@ -458,7 +462,12 @@ async function reloadRoundSet() {
   await fetchSlimPayloads(demos.map(d => d.id))
 
   // 3. Bind team identity to each payload (roster A vs B for the selected team).
-  const teamName = state.team
+  // Normalize for the case mismatch described above: the autocomplete name
+  // and the demo's stored name often disagree on casing/whitespace. Strict
+  // === here used to silently flip teamSide, drawing the OPPONENT as the
+  // selected team.
+  const norm = (s) => (s ?? '').toString().trim().toLowerCase()
+  const targetName = norm(state.team)
   const enriched = []
   for (const demo of demos) {
     const slim = state.slimCache.get(demo.id)
@@ -468,9 +477,9 @@ async function reloadRoundSet() {
     // determine whether it was roster A in this demo.
     const aFirstSide = slim._team_a_first_side
     let isRosterA = false
-    if (aFirstSide === 'ct')      isRosterA = (demo.ct_team_name === teamName)
-    else if (aFirstSide === 't')  isRosterA = (demo.t_team_name === teamName)
-    else                          isRosterA = (demo.ct_team_name === teamName)  // legacy fallback
+    if (aFirstSide === 'ct')      isRosterA = norm(demo.ct_team_name) === targetName
+    else if (aFirstSide === 't')  isRosterA = norm(demo.t_team_name) === targetName
+    else                          isRosterA = norm(demo.ct_team_name) === targetName  // legacy fallback
 
     enriched.push(Object.assign({ _is_roster_a: isRosterA, _demo_id: demo.id }, slim))
   }
