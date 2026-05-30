@@ -27,17 +27,22 @@ function esc(s) {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
-export function mountAntistratDrawer({ teamId }) {
+export function mountAntistratDrawer({ teamId, appendTo }) {
   if (!teamId) return
   if (typeof window === 'undefined') return
   if (window.innerWidth < NARROW_THRESHOLD) return
+
+  // Callers can pass a host element (e.g. the demo viewer's fullscreen root)
+  // so the pill + drawer remain visible when that element enters browser
+  // fullscreen — direct body children are clipped to the fullscreen subtree.
+  const host = appendTo ?? document.body
 
   // ---- DOM scaffolding ----
   const pill = document.createElement('button')
   pill.className = 'antistrat-pill'
   pill.type = 'button'
   pill.textContent = 'Antistrat'
-  document.body.appendChild(pill)
+  host.appendChild(pill)
 
   const drawer = document.createElement('aside')
   drawer.className = 'antistrat-drawer'
@@ -55,7 +60,7 @@ export function mountAntistratDrawer({ teamId }) {
     </div>
     <div class="antistrat-drawer-body"></div>
   `
-  document.body.appendChild(drawer)
+  host.appendChild(drawer)
 
   const opponentSelect = drawer.querySelector('.opponent-select')
   const mapSelect      = drawer.querySelector('.map-select')

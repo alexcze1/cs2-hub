@@ -651,8 +651,8 @@ function render() {
 const GREN_COLORS = {
   smoke:   { fill: 'rgba(180,180,180,0.55)', stroke: 'rgba(220,220,220,0.85)' },
   molotov: { fill: 'rgba(255,122,48,0.65)',  stroke: 'rgba(255,170,90,0.95)'  },
-  flash:   { fill: 'rgba(255,235,85,0.65)',  stroke: 'rgba(255,245,140,0.95)' },
-  he:      { fill: 'rgba(108,208,112,0.55)', stroke: 'rgba(150,230,150,0.95)' },
+  flash:   { fill: 'rgba(90,125,255,0.55)',  stroke: 'rgba(140,170,255,0.95)' },
+  he:      { fill: 'rgba(255,71,87,0.55)',   stroke: 'rgba(255,120,135,0.95)' },
 }
 const GREN_RADII = { smoke: 0.024, molotov: 0.014, flash: 0.012, he: 0.012 }
 
@@ -1748,7 +1748,7 @@ document.getElementById('gp-play-selection')?.addEventListener('click', playSele
 const UTIL_TYPES = [
   { type: 'smoke',   label: 'Smoke',    color: '#7CB2E8' },
   { type: 'molotov', label: 'Molotov',  color: '#FF6B35' },
-  { type: 'flash',   label: 'Flash',    color: '#FFD93D' },
+  { type: 'flash',   label: 'Flash',    color: '#5A7DFF' },
   { type: 'he',      label: 'HE',       color: '#FF4757' },
 ]
 

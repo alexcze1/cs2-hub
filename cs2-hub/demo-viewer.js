@@ -1762,7 +1762,10 @@ requestAnimationFrame(ts => { state.lastTs = ts; loop(ts) })
 const userTeamId = getTeamId()
 
 if (!demo.is_public) {
-  mountAntistratDrawer({ teamId: userTeamId })
+  // Mount inside the viewer-shell so the pill stays visible after the user
+  // hits the fullscreen button — fsRoot is the element passed to
+  // requestFullscreen() and anything outside it gets hidden in fullscreen.
+  mountAntistratDrawer({ teamId: userTeamId, appendTo: fsRoot ?? document.body })
 }
 
 const saveBtn = document.getElementById('vh-save-btn')
