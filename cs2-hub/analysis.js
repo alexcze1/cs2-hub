@@ -504,8 +504,16 @@ async function reloadRoundSet() {
 
     let isRosterA = null
 
-    // (a) IGN evidence — count user-roster sids per side in round 0 frame.
-    // Public demos go through here when we have any HLTV roster data.
+    // (a) IGN evidence — for every sid in the slim's player meta, check
+    // whether their name matches the user's HLTV roster. Then count those
+    // matched sids per starting side (round 0's first frame, before any
+    // halftime swap). Whichever side has more matches is the user's team.
+    //
+    // The previous 3+ threshold was throwing away signal for teams whose
+    // hltv_players roster is partial (FaZe had 4 of 5 IGNs cached), or for
+    // demos with mid-game stand-ins. We now accept any non-zero plurality —
+    // a single distinctive IGN like "ZywOo" or "broky" landing on one side
+    // and not the other is conclusive evidence on its own.
     if (rosterIgns.size > 0) {
       const frame0 = (slim.frames || []).find(f => f.round_idx === 0)
       if (frame0) {
@@ -517,19 +525,18 @@ async function reloadRoundSet() {
           if (p.team === 'ct') ctMatches++
           else if (p.team === 't') tMatches++
         }
-        // Require a clear plurality of 3+ matches on one side. Below that the
-        // signal is noisy (a single name collision could mislead).
-        if (ctMatches >= 3 && ctMatches > tMatches) {
-          // User started CT. Roster A iff team_a started CT too (which is
-          // ~always 'ct' from the parser, but compute correctly either way).
+        if (ctMatches > tMatches) {
           isRosterA = (aFirstSide === 'ct')
-        } else if (tMatches >= 3 && tMatches > ctMatches) {
+        } else if (tMatches > ctMatches) {
           isRosterA = (aFirstSide === 't')
         }
+        // ctMatches === tMatches (incl. 0–0) falls through to (b)
       }
     }
 
-    // (b) Name comparison fallback.
+    // (b) Name comparison fallback — works for team-uploaded demos (where
+    // ct_team_name / t_team_name were set by the user via assign-teams-modal)
+    // and for any demo where IGN evidence is ambiguous.
     if (isRosterA === null) {
       if (aFirstSide === 'ct')      isRosterA = norm(demo.ct_team_name) === targetName
       else if (aFirstSide === 't')  isRosterA = norm(demo.t_team_name) === targetName
