@@ -12,6 +12,7 @@ import traceback
 import uuid
 import datetime
 from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures.process import BrokenProcessPool
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -56,6 +57,25 @@ RETRY_BACKOFF_MIN = int(os.getenv("RETRY_BACKOFF_MIN", "30"))
 # serialize on the GIL. Default leaves one core for FastAPI + DB + HLTV ingest.
 PARSE_WORKERS = int(os.getenv("PARSE_WORKERS", str(max(1, min((os.cpu_count() or 2) - 1, 4)))))
 _parse_pool: ProcessPoolExecutor | None = None
+
+
+def _replace_pool_if_unchanged(broken_pool: ProcessPoolExecutor) -> None:
+    # ProcessPoolExecutor goes permanently dead the moment a worker is killed
+    # (OOM, segfault) — every submit() after that raises BrokenProcessPool.
+    # We install a fresh pool so the next poll cycle can parse normally; the
+    # demo that triggered the death still errors out and goes through the
+    # auto-retry path. Identity check makes this safe when several concurrent
+    # demos all observe the same broken pool: the first call replaces, the
+    # rest no-op.
+    global _parse_pool
+    if _parse_pool is not broken_pool:
+        return
+    _parse_pool = ProcessPoolExecutor(max_workers=PARSE_WORKERS)
+    try:
+        broken_pool.shutdown(wait=False, cancel_futures=True)
+    except Exception:
+        pass
+    print(f"[pool] recreated ProcessPoolExecutor (workers={PARSE_WORKERS}) after BrokenProcessPool")
 
 # HLTV ingest loop: how often to scan + how far back to scan each cycle.
 # 24h interval with a 2-day window gives 1-day overlap to catch matches posted
@@ -628,6 +648,7 @@ async def _process_one(demo: dict):
     print(f"Processing demo {demo_id}")
 
     tmp_path = None
+    pool_used: ProcessPoolExecutor | None = None
     try:
         if is_local:
             tmp_path = str(DEMOS_DIR / storage_path[6:])
@@ -639,7 +660,8 @@ async def _process_one(demo: dict):
                 tmp_path = tmp.name
 
         # CPU-bound parse runs in a worker process to bypass the GIL.
-        match_data = await loop.run_in_executor(_parse_pool, parse_demo, tmp_path)
+        pool_used = _parse_pool
+        match_data = await loop.run_in_executor(pool_used, parse_demo, tmp_path)
         slim_data  = build_slim_payload(match_data)
 
         meta     = match_data["meta"]
@@ -692,6 +714,11 @@ async def _process_one(demo: dict):
             Path(tmp_path).unlink(missing_ok=True)
             print(f"[cleanup] deleted local .dem for public demo {demo_id}")
 
+    except BrokenProcessPool as e:
+        print(f"Failed {demo_id} (BrokenProcessPool): {e}")
+        if pool_used is not None:
+            _replace_pool_if_unchanged(pool_used)
+        await loop.run_in_executor(None, _db_set_error, demo_id, f"BrokenProcessPool: {e}")
     except Exception as e:
         print(f"Failed {demo_id} ({type(e).__name__}): {e}")
         await loop.run_in_executor(None, _db_set_error, demo_id, str(e))
