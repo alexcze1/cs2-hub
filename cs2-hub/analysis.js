@@ -209,11 +209,34 @@ async function onTeamChanged() {
   if (!state.team) return
   setEmptyMessage('Loading rounds…', 'loading')
   state.corpus = await loadCorpus(state.team)
+  // Pre-fetch the selected team's HLTV roster IGNs. We use these later to
+  // detect, per public demo, which side the user's actual players are on at
+  // round 0 — fixes the case where HLTV's team_a_name doesn't line up with
+  // the parser's arbitrarily-chosen "team A" label and the projected
+  // ct_team_name / t_team_name end up swapped.
+  state._rosterIgns = await loadHltvRosterIgns(state.team)
   setEmptyMessage('')
   renderFilterRail()
   if (state.filters.map) loadMapImage(state.filters.map)
   // Round set built once filters apply — Task 9
   await reloadRoundSet()
+}
+
+async function loadHltvRosterIgns(teamName) {
+  if (!teamName) return new Set()
+  try {
+    const safe = teamName.replace(/[(),]/g, '').trim()
+    if (!safe) return new Set()
+    const { data, error } = await supabase
+      .from('hltv_players')
+      .select('ign')
+      .ilike('team_name', safe)
+    if (error) { console.warn('[analysis] hltv_players load failed', error); return new Set() }
+    return new Set((data ?? []).map(p => (p.ign || '').trim().toLowerCase()).filter(Boolean))
+  } catch (e) {
+    console.warn('[analysis] hltv_players load threw', e)
+    return new Set()
+  }
 }
 
 function renderFilterRail() {
@@ -462,24 +485,56 @@ async function reloadRoundSet() {
   await fetchSlimPayloads(demos.map(d => d.id))
 
   // 3. Bind team identity to each payload (roster A vs B for the selected team).
-  // Normalize for the case mismatch described above: the autocomplete name
-  // and the demo's stored name often disagree on casing/whitespace. Strict
-  // === here used to silently flip teamSide, drawing the OPPONENT as the
-  // selected team.
+  // Two strategies, in priority order:
+  //   (a) IGN evidence (preferred, public demos): look at round-0 frame and
+  //       see which side has the user's HLTV roster players. This works even
+  //       when HLTV's team_a_name doesn't align with the parser's arbitrary
+  //       team_a label — the bug that was flipping rosters before.
+  //   (b) Name comparison (fallback): for team-uploaded demos and demos of
+  //       teams not in hltv_players, compare the normalized name against
+  //       ct_team_name / t_team_name. Case-insensitive + whitespace-tolerant.
   const norm = (s) => (s ?? '').toString().trim().toLowerCase()
   const targetName = norm(state.team)
+  const rosterIgns = state._rosterIgns ?? new Set()
   const enriched = []
   for (const demo of demos) {
     const slim = state.slimCache.get(demo.id)
     if (!slim) continue   // skipped (null match_data_slim) — already chip-warned
-    // Roster A = team that started on the side recorded in team_a_first_side.
-    // Match the selected team's name to either ct_team_name or t_team_name to
-    // determine whether it was roster A in this demo.
     const aFirstSide = slim._team_a_first_side
-    let isRosterA = false
-    if (aFirstSide === 'ct')      isRosterA = norm(demo.ct_team_name) === targetName
-    else if (aFirstSide === 't')  isRosterA = norm(demo.t_team_name) === targetName
-    else                          isRosterA = norm(demo.ct_team_name) === targetName  // legacy fallback
+
+    let isRosterA = null
+
+    // (a) IGN evidence — count user-roster sids per side in round 0 frame.
+    // Public demos go through here when we have any HLTV roster data.
+    if (rosterIgns.size > 0) {
+      const frame0 = (slim.frames || []).find(f => f.round_idx === 0)
+      if (frame0) {
+        let ctMatches = 0, tMatches = 0
+        const pmeta = slim.meta?.players || {}
+        for (const p of frame0.players || []) {
+          const nm = norm(pmeta[p.steam_id]?.name)
+          if (!nm || !rosterIgns.has(nm)) continue
+          if (p.team === 'ct') ctMatches++
+          else if (p.team === 't') tMatches++
+        }
+        // Require a clear plurality of 3+ matches on one side. Below that the
+        // signal is noisy (a single name collision could mislead).
+        if (ctMatches >= 3 && ctMatches > tMatches) {
+          // User started CT. Roster A iff team_a started CT too (which is
+          // ~always 'ct' from the parser, but compute correctly either way).
+          isRosterA = (aFirstSide === 'ct')
+        } else if (tMatches >= 3 && tMatches > ctMatches) {
+          isRosterA = (aFirstSide === 't')
+        }
+      }
+    }
+
+    // (b) Name comparison fallback.
+    if (isRosterA === null) {
+      if (aFirstSide === 'ct')      isRosterA = norm(demo.ct_team_name) === targetName
+      else if (aFirstSide === 't')  isRosterA = norm(demo.t_team_name) === targetName
+      else                          isRosterA = norm(demo.ct_team_name) === targetName
+    }
 
     enriched.push(Object.assign({ _is_roster_a: isRosterA, _demo_id: demo.id }, slim))
   }
