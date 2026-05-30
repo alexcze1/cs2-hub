@@ -1,0 +1,697 @@
+/* dashboard.css — premium dark command-center overlay, scoped to body.dash-v2 only.
+   Loaded after style.css so it overrides; no other pages affected. */
+
+body.dash-v2 {
+  /* New palette per spec */
+  --d-bg-1: #111315;
+  --d-bg-2: #181A1D;
+  --d-bg-3: #1E2125;
+  --d-panel: #202329;
+  --d-surface-1: #22252B;
+  --d-surface-2: #262A31;
+  --d-surface-3: #2C3138;
+  --d-border: rgba(255,255,255,0.08);
+  --d-border-strong: rgba(255,255,255,0.12);
+  --d-text: #FFFFFF;
+  --d-text-2: #B8BDC6;
+  --d-text-3: #7E8591;
+  --d-blue: #5A7DFF;
+  --d-green: #2ECC71;
+  --d-yellow: #F2E7B7;
+  --d-purple: #D9CFF2;
+  --d-red: #FF5252;
+  --d-card-blue: #DCE3EC;
+  --d-card-green: #DDE5D5;
+  --d-card-yellow: #EFE6BB;
+  --d-card-purple: #DCD3E8;
+
+  background:
+    radial-gradient(1100px 600px at 12% -8%, rgba(90,125,255,0.06), transparent 60%),
+    radial-gradient(900px 500px at 100% 110%, rgba(217,207,242,0.05), transparent 60%),
+    var(--d-bg-1);
+  font-family: 'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif;
+  letter-spacing: -0.005em;
+  color: var(--d-text);
+}
+
+/* ── Shell: float a 72px icon rail; main fills the rest ── */
+body.dash-v2 .app-shell { display: block; }
+
+body.dash-v2 .sidebar {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: 72px;
+  background: #16181C;
+  border-right: 1px solid var(--d-border);
+  backdrop-filter: none;
+  padding: 16px 8px;
+  z-index: 50;
+  transition: width 220ms cubic-bezier(.2,.8,.2,1), box-shadow 220ms ease;
+  overflow: hidden;
+}
+body.dash-v2 .sidebar:hover {
+  width: 220px;
+  box-shadow: 6px 0 32px rgba(0,0,0,0.5);
+}
+
+body.dash-v2 .sidebar-brand {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+  padding: 0 4px;
+}
+body.dash-v2 .sidebar-logo-img {
+  height: 28px;
+  width: auto;
+  filter: brightness(1.1);
+}
+body.dash-v2 .sidebar:not(:hover) .sidebar-logo-img { max-width: 40px; object-fit: contain; }
+body.dash-v2 .team-name { display: none; }
+body.dash-v2 .sidebar:hover .team-name {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--d-text-3);
+  margin-left: 12px;
+  font-weight: 600;
+}
+
+body.dash-v2 .nav-section {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--d-text-3);
+  padding: 18px 12px 6px;
+  opacity: 0;
+  transition: opacity 160ms ease;
+  height: 14px;
+  overflow: hidden;
+}
+body.dash-v2 .sidebar:hover .nav-section { opacity: 1; }
+
+body.dash-v2 .nav-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 14px;
+  margin: 2px 4px;
+  color: var(--d-text-2);
+  font-size: 0;            /* hide label text by default */
+  font-weight: 500;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+}
+body.dash-v2 .nav-item .nav-icon {
+  font-size: 14px;
+  width: 22px; height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+body.dash-v2 .nav-item .nav-icon svg { width: 20px; height: 20px; stroke-width: 1.8; }
+body.dash-v2 .sidebar:hover .nav-item { font-size: 14px; }
+body.dash-v2 .nav-item:hover {
+  background: rgba(255,255,255,0.05);
+  color: var(--d-text);
+}
+body.dash-v2 .nav-item.active {
+  background: rgba(255,255,255,0.08);
+  color: var(--d-text);
+}
+body.dash-v2 .nav-item.active .nav-icon { opacity: 1; color: var(--d-text); }
+
+body.dash-v2 .sidebar-footer {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--d-border);
+}
+body.dash-v2 .sidebar { display: flex; flex-direction: column; }
+body.dash-v2 .nav-item-footer { font-size: 0; }
+body.dash-v2 .sidebar:hover .nav-item-footer { font-size: 13px; }
+
+/* ── Main content ── */
+body.dash-v2 .main-content {
+  padding: 32px 40px 64px 104px;     /* 72px sidebar + 32 gutter */
+  max-width: none;
+  margin: 0;
+}
+
+/* ── Top header ── */
+body.dash-v2 .page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  padding: 0;
+  border: 0;
+}
+body.dash-v2 .page-title {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 36px;
+  font-weight: 600;
+  letter-spacing: -0.022em;
+  line-height: 1.15;
+  color: var(--d-text);
+  background: none;
+  -webkit-text-fill-color: var(--d-text);
+}
+body.dash-v2 .page-title::after { content: none; }
+body.dash-v2 .page-sub {
+  color: var(--d-text-3);
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 8px;
+  letter-spacing: 0;
+}
+
+/* ── Section labels + links ── */
+body.dash-v2 .section-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 32px 0 14px;
+}
+body.dash-v2 .section-label {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--d-text-3);
+  margin: 0;
+}
+body.dash-v2 .section-link {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--d-text-2);
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--d-border);
+  transition: background 160ms ease, border-color 160ms ease;
+}
+body.dash-v2 .section-link:hover {
+  background: rgba(255,255,255,0.04);
+  border-color: var(--d-border-strong);
+  color: var(--d-text);
+}
+
+/* ── Hero card ── */
+body.dash-v2 .hero-card,
+body.dash-v2 .hero-empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 240px;
+  padding: 36px 44px;
+  border-radius: 28px;
+  border: 1px solid var(--d-border);
+  background:
+    radial-gradient(540px 320px at 88% 30%, rgba(90,125,255,0.18), transparent 65%),
+    radial-gradient(380px 280px at 96% 92%, rgba(217,207,242,0.10), transparent 70%),
+    linear-gradient(135deg, #111827 0%, #1A1F28 100%);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.04);
+  overflow: hidden;
+  position: relative;
+}
+body.dash-v2 .hero-card::before { content: none; }
+body.dash-v2 .hero-card::after {
+  /* Floating glow orb in the visual zone */
+  content: "";
+  position: absolute;
+  right: -120px;
+  top: -120px;
+  width: 360px; height: 360px;
+  background: radial-gradient(circle, rgba(90,125,255,0.30), transparent 65%);
+  filter: blur(20px);
+  pointer-events: none;
+}
+
+body.dash-v2 .hero-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--d-border);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--d-text-2);
+  text-transform: uppercase;
+}
+body.dash-v2 .hero-tag::before {
+  content: "";
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--d-blue);
+  box-shadow: 0 0 8px var(--d-blue);
+}
+body.dash-v2 .hero-vs {
+  font-size: 13px;
+  color: var(--d-text-3);
+  margin: 18px 0 6px;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+}
+body.dash-v2 .hero-opponent {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 52px;
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.028em;
+  color: var(--d-text);
+  margin-bottom: 18px;
+  max-width: 560px;
+}
+body.dash-v2 .hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--d-text-2);
+  font-weight: 500;
+}
+body.dash-v2 .hero-meta-divider {
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--d-text-3);
+  opacity: 0.6;
+}
+
+body.dash-v2 .hero-right {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 24px;
+}
+body.dash-v2 .hero-countdown-label {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  font-weight: 600;
+  color: var(--d-text-3);
+  text-transform: uppercase;
+  text-align: right;
+}
+body.dash-v2 .hero-countdown {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 84px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--d-text);
+  margin-top: 6px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+body.dash-v2 .hero-countdown-unit {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--d-text-3);
+  letter-spacing: 0;
+}
+body.dash-v2 .hero-form {
+  text-align: right;
+}
+body.dash-v2 .hero-form-label {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--d-text-3);
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+body.dash-v2 .hero-form-dots {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+body.dash-v2 .form-dot {
+  width: 26px; height: 26px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid var(--d-border);
+}
+body.dash-v2 .form-dot-win {
+  background: rgba(46,204,113,0.18);
+  color: var(--d-green);
+  border-color: rgba(46,204,113,0.25);
+}
+body.dash-v2 .form-dot-loss {
+  background: rgba(255,82,82,0.16);
+  color: var(--d-red);
+  border-color: rgba(255,82,82,0.25);
+}
+body.dash-v2 .form-dot-draw {
+  background: rgba(255,255,255,0.05);
+  color: var(--d-text-2);
+}
+
+body.dash-v2 .hero-empty {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  text-align: left;
+}
+body.dash-v2 .hero-empty-title {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--d-text);
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+body.dash-v2 .hero-empty-sub {
+  font-size: 15px;
+  color: var(--d-text-2);
+}
+
+/* ── KPI stats grid (pastel cards) ── */
+body.dash-v2 .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-top: 28px;
+}
+body.dash-v2 .stat-card {
+  position: relative;
+  min-height: 168px;
+  padding: 24px 26px;
+  border-radius: 24px;
+  border: 1px solid rgba(0,0,0,0.06);
+  background: var(--d-card-blue);
+  color: #111;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.22);
+  transition: transform 180ms cubic-bezier(.2,.8,.2,1), box-shadow 180ms ease;
+  overflow: hidden;
+}
+body.dash-v2 .stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.30);
+  border-color: rgba(0,0,0,0.08);
+}
+body.dash-v2 .stat-card-special { background: var(--d-card-purple); }
+body.dash-v2 .stat-card-success { background: var(--d-card-green); }
+body.dash-v2 .stat-card-danger  { background: var(--d-card-yellow); }
+body.dash-v2 .stat-card-muted   { background: var(--d-card-blue); }
+
+body.dash-v2 .stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(0,0,0,0.55);
+}
+body.dash-v2 .stat-value {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 56px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: #111;
+  margin-top: 8px;
+}
+body.dash-v2 .stat-value-sm {
+  font-size: 36px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+body.dash-v2 .stat-sub {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(0,0,0,0.55);
+  margin-top: 6px;
+}
+
+/* Override the inline color vars used in dashboard.js so they read on light pastel.
+   The JS emits `style="color:var(--success)"` etc.; we re-stake those tokens
+   only inside KPI cards. */
+body.dash-v2 .stat-card {
+  --success: #1f8a4d;
+  --danger:  #c0392b;
+  --muted:   rgba(0,0,0,0.45);
+  --border:  rgba(0,0,0,0.10);
+  --text:    #111;
+}
+body.dash-v2 .stat-card .form-dots { margin-top: 10px; }
+
+/* ── Timeline strip (Next 7 Days) ── */
+body.dash-v2 .timeline-strip {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 14px;
+  padding: 0;
+  background: none;
+  border: 0;
+  overflow: visible;
+}
+body.dash-v2 .timeline-day {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 144px;
+  padding: 16px;
+  border-radius: 18px;
+  background: var(--d-panel);
+  border: 1px solid var(--d-border);
+  text-decoration: none;
+  transition: transform 180ms cubic-bezier(.2,.8,.2,1), border-color 180ms ease, background 180ms ease;
+}
+body.dash-v2 .timeline-day:hover {
+  transform: translateY(-2px);
+  border-color: var(--d-border-strong);
+  background: var(--d-surface-1);
+}
+body.dash-v2 .timeline-day-today {
+  background: linear-gradient(180deg, rgba(90,125,255,0.10), rgba(90,125,255,0.02));
+  border-color: rgba(90,125,255,0.35);
+}
+body.dash-v2 .timeline-day-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+body.dash-v2 .timeline-day-name {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  font-weight: 600;
+  color: var(--d-text-3);
+  text-transform: uppercase;
+}
+body.dash-v2 .timeline-day-today .timeline-day-name { color: var(--d-blue); }
+body.dash-v2 .timeline-day-num {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--d-text);
+  letter-spacing: -0.02em;
+}
+body.dash-v2 .timeline-day-events {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+body.dash-v2 .timeline-event {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+  border-left: 2px solid var(--d-border-strong);
+  font-size: 11px;
+  color: var(--d-text-2);
+}
+body.dash-v2 .timeline-event-time { font-weight: 600; color: var(--d-text); font-size: 10px; }
+body.dash-v2 .timeline-event-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.dash-v2 .timeline-event-tournament { border-left-color: var(--d-blue); background: rgba(90,125,255,0.10); }
+body.dash-v2 .timeline-event-tournament .timeline-event-title { color: var(--d-text); }
+body.dash-v2 .timeline-event-scrim      { border-left-color: var(--d-green); background: rgba(46,204,113,0.10); }
+body.dash-v2 .timeline-event-meeting    { border-left-color: var(--d-purple); background: rgba(217,207,242,0.10); }
+body.dash-v2 .timeline-event-vod_review { border-left-color: var(--d-yellow); background: rgba(242,231,183,0.10); }
+body.dash-v2 .timeline-event-more {
+  font-size: 10px;
+  color: var(--d-text-3);
+  padding-left: 10px;
+}
+body.dash-v2 .timeline-day-empty { color: var(--d-text-3); font-size: 11px; opacity: 0.5; }
+
+/* ── Insight grid ── */
+body.dash-v2 .insight-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+  margin-top: 14px;
+}
+body.dash-v2 .insight-card {
+  position: relative;
+  padding: 24px;
+  background: var(--d-panel);
+  border: 1px solid var(--d-border);
+  border-radius: 18px;
+  border-left-width: 1px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.22);
+  transition: transform 180ms cubic-bezier(.2,.8,.2,1), border-color 180ms ease;
+}
+body.dash-v2 .insight-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--d-border-strong);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.30);
+}
+body.dash-v2 .insight-card-positive {
+  background:
+    radial-gradient(420px 220px at -10% 50%, rgba(46,204,113,0.10), transparent 60%),
+    var(--d-panel);
+  border-color: rgba(46,204,113,0.22);
+}
+body.dash-v2 .insight-card-warning {
+  background:
+    radial-gradient(420px 220px at -10% 50%, rgba(242,231,183,0.10), transparent 60%),
+    var(--d-panel);
+  border-color: rgba(242,231,183,0.22);
+}
+body.dash-v2 .insight-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: rgba(255,255,255,0.06);
+  color: var(--d-text-2);
+  margin-bottom: 12px;
+}
+body.dash-v2 .insight-card-positive .insight-tag {
+  background: rgba(46,204,113,0.16);
+  color: var(--d-green);
+}
+body.dash-v2 .insight-card-warning .insight-tag {
+  background: rgba(242,231,183,0.16);
+  color: var(--d-yellow);
+}
+body.dash-v2 .insight-text {
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--d-text);
+  letter-spacing: -0.01em;
+}
+body.dash-v2 .insight-text strong { font-weight: 700; }
+body.dash-v2 .insight-card-positive .insight-text strong { color: var(--d-green); }
+body.dash-v2 .insight-card-warning  .insight-text strong { color: var(--d-yellow); }
+body.dash-v2 .insight-sub {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--d-text-3);
+}
+
+/* ── Recent strats list (lives inside its own panel) ── */
+body.dash-v2 #recent-strats {
+  background: var(--d-panel);
+  border: 1px solid var(--d-border);
+  border-radius: 24px;
+  padding: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.22);
+}
+body.dash-v2 #recent-strats .loading,
+body.dash-v2 #recent-strats .empty-state {
+  padding: 32px;
+  color: var(--d-text-3);
+  text-align: center;
+}
+body.dash-v2 .list-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  text-decoration: none;
+  color: var(--d-text);
+  background: transparent;
+  transition: background 160ms ease, transform 160ms ease;
+}
+body.dash-v2 .list-row + .list-row { margin-top: 4px; }
+body.dash-v2 .list-row:hover {
+  background: rgba(255,255,255,0.04);
+  transform: translateY(-1px);
+}
+body.dash-v2 .list-row .map-badge {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--d-surface-1);
+  border: 1px solid var(--d-border);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+body.dash-v2 .list-row .map-badge img { width: 100%; height: 100%; object-fit: cover; }
+body.dash-v2 .list-row .map-badge span {
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--d-text-2);
+}
+body.dash-v2 .list-row .row-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--d-text);
+  letter-spacing: -0.005em;
+}
+body.dash-v2 .list-row .row-meta {
+  font-size: 12px;
+  color: var(--d-text-3);
+  margin-top: 3px;
+  font-weight: 500;
+}
+body.dash-v2 .list-row .tag {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--d-border);
+  color: var(--d-text-2);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* ── Section labels above the recent-strats card need bottom margin ── */
+body.dash-v2 #insight-slot + .stats-grid { margin-top: 32px; }
+
+/* ── Small responsive cushion ── */
+@media (max-width: 1080px) {
+  body.dash-v2 .stats-grid { grid-template-columns: 1fr 1fr; }
+  body.dash-v2 .timeline-strip { grid-template-columns: repeat(4, 1fr); }
+  body.dash-v2 .hero-opponent { font-size: 40px; }
+  body.dash-v2 .hero-countdown { font-size: 64px; }
+  body.dash-v2 .main-content { padding: 24px 24px 48px 96px; }
+}
+@media (max-width: 720px) {
+  body.dash-v2 .stats-grid { grid-template-columns: 1fr; }
+  body.dash-v2 .timeline-strip { grid-template-columns: repeat(2, 1fr); }
+  body.dash-v2 .hero-card { flex-direction: column; align-items: flex-start; gap: 24px; padding: 28px; }
+  body.dash-v2 .hero-right { align-items: flex-start; }
+  body.dash-v2 .hero-form-dots { justify-content: flex-start; }
+}
