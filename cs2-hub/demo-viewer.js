@@ -1761,12 +1761,28 @@ requestAnimationFrame(ts => { state.lastTs = ts; loop(ts) })
 // button since they have nowhere to save.
 const userTeamId = getTeamId()
 
-if (!demo.is_public) {
-  // Mount inside the viewer-shell so the pill stays visible after the user
-  // hits the fullscreen button — fsRoot is the element passed to
-  // requestFullscreen() and anything outside it gets hidden in fullscreen.
-  mountAntistratDrawer({ teamId: userTeamId, appendTo: fsRoot ?? document.body })
+// Always mount when the user has a team — the antistrat lives against the
+// user's team, not the demo, so it's still useful while watching a public
+// match (notes on whatever opponent they're scouting).
+mountAntistratDrawer({ teamId: userTeamId })
+
+// Browser fullscreen hides anything outside the fullscreen subtree, so the
+// pill + drawer (children of body) disappear the moment F is pressed. Move
+// them into fsRoot on enter and back to body on exit; keeping them in body
+// otherwise preserves the original layout behaviour that the user noticed
+// broke when they lived inside the flex viewer-shell full-time.
+function reparentAntistratForFullscreen() {
+  const pill   = document.querySelector('.antistrat-pill')
+  const drawer = document.querySelector('.antistrat-drawer')
+  if (!pill || !drawer) return
+  const target = isFullscreen() ? fsRoot : document.body
+  if (target && pill.parentNode !== target) {
+    target.appendChild(pill)
+    target.appendChild(drawer)
+  }
 }
+document.addEventListener('fullscreenchange', reparentAntistratForFullscreen)
+document.addEventListener('webkitfullscreenchange', reparentAntistratForFullscreen)
 
 const saveBtn = document.getElementById('vh-save-btn')
 if (userTeamId) {
