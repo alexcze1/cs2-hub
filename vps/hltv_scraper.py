@@ -382,6 +382,37 @@ def list_recent_matches(days: int = 90) -> list[MatchRef]:
     return out
 
 
+def list_team_matches(team_id: int, days: int = 90, max_pages: int = 4) -> list[MatchRef]:
+    """Walk /results?team=<id>&offset=<n> for ONE team, newest-first.
+
+    HLTV's results page accepts a team filter and returns only matches where
+    that team played. Same chronological order + same .result-con structure
+    as the unfiltered list, so we reuse `_parse_results_page`.
+
+    Caps at `max_pages` * 100 = 400 results so a runaway team filter (or a
+    very prolific team) can't burn HLTV-rate-limit budget. days=90 is the
+    natural stop for the veto-sync use case.
+    """
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    out: list[MatchRef] = []
+    offset = 0
+    for _ in range(max_pages):
+        html = _get(f"/results?team={team_id}&offset={offset}")
+        page = _parse_results_page(html)
+        if not page:
+            break
+        oldest_seen = False
+        for m in page:
+            if m.date < cutoff:
+                oldest_seen = True
+                break
+            out.append(m)
+        if oldest_seen or len(page) < 100:
+            break
+        offset += len(page)
+    return out
+
+
 # --------------------------------------------------------------------------- #
 # Parsers — selectors confirmed against tests/fixtures/. If HLTV redesigns,
 # re-capture the fixture (see tests/fixtures/README.md) and fix here.

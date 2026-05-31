@@ -74,10 +74,38 @@ renderSidebar('veto')
 // (b) pull our own HLTV veto history so the simulator can predict OUR
 // bans/picks too. Falls back to "Us" when the user isn't on a team or the
 // teams row is missing.
+const VPS_URL = 'https://vps.midround.pro'
+
 let ourTeamName = 'Us'
 let ourHltvVetos = []
 let ourMapWinRates = new Map()
 let ourStats     = null  // computeStats output for our team (HLTV + saved)
+const _syncedTeamsThisSession = new Set()  // dedupe: don't re-sync same team twice in one tab
+
+async function syncTeamVetosFromHltv(name) {
+  // POST /sync-team-vetos on the VPS. Pulls fresh HLTV match-veto data for
+  // `name` over the last 3 months and upserts into hltv_team_vetos. The
+  // server is throttled (5 min per team) so dupe calls are cheap.
+  const safe = (name || '').trim()
+  if (!safe) return null
+  if (_syncedTeamsThisSession.has(safe.toLowerCase())) return null
+  _syncedTeamsThisSession.add(safe.toLowerCase())
+  try {
+    const { data: session } = await supabase.auth.getSession()
+    const token = session?.session?.access_token
+    if (!token) return null
+    const res = await fetch(`${VPS_URL}/sync-team-vetos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ team_name: safe, months: 3 }),
+    })
+    if (!res.ok) return null
+    return await res.json()
+  } catch (e) {
+    console.warn('[veto-sync] failed', e)
+    return null
+  }
+}
 
 try {
   const tid = getTeamId()
@@ -179,6 +207,21 @@ async function runSimulation(teamName, { editing = null, format = 'bo1' } = {}) 
     vsStatus.textContent = ''
     return
   }
+  vsStatus.textContent = 'Syncing HLTV…'
+  // Sync both the opponent AND our own team from HLTV first — pulls any new
+  // matches into hltv_team_vetos before we read it back below. Both calls are
+  // server-side-throttled so duplicate syncs are cheap.
+  try {
+    await Promise.all([
+      syncTeamVetosFromHltv(name),
+      syncTeamVetosFromHltv(ourTeamName),
+    ])
+  } catch (e) { /* sync failures fall through to whatever's already in DB */ }
+  // After our team gets new HLTV rows, recompute home stats.
+  await loadOurHltvVetos()
+  ourMapWinRates = await fetchTeamMapWinrates(ourTeamName)
+  recomputeOurStats()
+
   vsStatus.textContent = 'Loading…'
   try {
     const [data, awayMapWinRates] = await Promise.all([

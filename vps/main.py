@@ -2,6 +2,7 @@
 import asyncio
 import functools
 import gzip
+import time
 import json
 import os
 import shutil
@@ -21,10 +22,12 @@ import psycopg2.extras
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from supabase import create_client, Client
 
 from db import get_db
 from demo_parser import parse_demo, build_slim_payload, compute_player_stats, compute_team_stats
+from backfill_hltv_vetos import sync_team_vetos
 
 socket.setdefaulttimeout(30)
 sys.stdout.reconfigure(line_buffering=True)
@@ -124,6 +127,77 @@ app.add_middleware(
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+# ── On-demand HLTV veto sync ─────────────────────────────────────
+#
+# Frontend calls this when the user searches a team in the veto simulator.
+# We list the team's matches from /results?team=<id> for the last `months`,
+# diff against hltv_team_vetos, and parse the veto box on each new match
+# page. Idempotent — re-syncing a fully-cached team is a single /results
+# request.
+#
+# Throttled per-team so a user mashing the autocomplete can't burn HLTV's
+# per-IP rate budget (chrome-headless behind us already gets CF-flagged
+# pretty quickly under load).
+
+_veto_sync_last: dict[str, float] = {}     # team_name_lower -> ts
+_VETO_SYNC_THROTTLE_SEC = 300              # 5 min per team
+_VETO_SYNC_TIMEOUT_SEC  = 45               # hard cap per request
+_veto_sync_lock = asyncio.Lock()           # avoid concurrent HLTV pages
+
+
+class SyncTeamVetosRequest(BaseModel):
+    team_name: str
+    months: int = 3
+
+
+@app.post("/sync-team-vetos")
+async def sync_team_vetos_endpoint(
+    req: SyncTeamVetosRequest,
+    authorization: str = Header(None),
+):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing auth token")
+    token = authorization[7:]
+    try:
+        await asyncio.wait_for(
+            asyncio.get_event_loop().run_in_executor(None, lambda: supabase.auth.get_user(token)),
+            timeout=10,
+        )
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=503, detail="Auth service unavailable")
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid auth token")
+
+    name = (req.team_name or "").strip()
+    if not name:
+        return {"team_name": name, "throttled": False, "result": None, "reason": "empty"}
+
+    key = name.lower()
+    now = time.time()
+    last = _veto_sync_last.get(key)
+    if last and (now - last) < _VETO_SYNC_THROTTLE_SEC:
+        return {
+            "team_name": name,
+            "throttled": True,
+            "next_allowed_in_sec": int(_VETO_SYNC_THROTTLE_SEC - (now - last)),
+            "result": None,
+        }
+
+    months = max(1, min(12, int(req.months or 3)))
+    async with _veto_sync_lock:
+        try:
+            result = await asyncio.wait_for(
+                asyncio.get_event_loop().run_in_executor(
+                    None, lambda: sync_team_vetos(name, months=months, sleep=1.5),
+                ),
+                timeout=_VETO_SYNC_TIMEOUT_SEC,
+            )
+        except asyncio.TimeoutError:
+            return {"team_name": name, "throttled": False, "result": None, "reason": "timeout"}
+    _veto_sync_last[key] = time.time()
+    return {"team_name": name, "throttled": False, "result": result}
 
 
 @app.post("/upload")

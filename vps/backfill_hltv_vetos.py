@@ -28,7 +28,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from db import get_db
-from hltv_scraper import HLTVBlockedError, _get
+from hltv_scraper import HLTVBlockedError, _get, list_team_matches
 
 
 _MAP_NAME_NORM = {
@@ -144,6 +144,114 @@ def _upsert_veto(match_id: str, *, played_at, team_a: str, team_b: str,
                 """,
                 (match_id, played_at, team_a, team_b, fmt, json.dumps(seq)),
             )
+
+
+# --------------------------------------------------------------------------- #
+# Per-team on-demand sync
+# --------------------------------------------------------------------------- #
+#
+# Called from the FastAPI endpoint when the frontend's veto-simulator searches
+# a team. Picks up only the matches we don't already have for that team in
+# the last `months` window, so a sync for a fully-cached team is a single
+# /results page load + the team-id lookup.
+
+def _team_id_for_name(team_name: str) -> int | None:
+    """Look up the HLTV team_id from our hltv_teams table by name (CI)."""
+    if not team_name:
+        return None
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id FROM hltv_teams WHERE lower(name) = lower(%s) LIMIT 1",
+                (team_name.strip(),),
+            )
+            row = cur.fetchone()
+    return int(row[0]) if row and row[0] is not None else None
+
+
+def _existing_match_ids() -> set[str]:
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT match_id FROM hltv_team_vetos")
+            return {r[0] for r in cur.fetchall()}
+
+
+def sync_team_vetos(team_name: str, *, months: int = 3, sleep: float = 2.0) -> dict:
+    """Sync the last `months` of vetos for ONE team from HLTV.
+
+    Steps:
+      1. Look up team_id (if not in hltv_teams, we can't drive a filtered
+         results query — return early with a flag the caller can show).
+      2. List the team's matches in the window.
+      3. Filter out matches already in hltv_team_vetos.
+      4. Fetch + parse each new match page, upsert the veto.
+
+    Returns a small dict the API endpoint can surface to the frontend:
+      { team_name, team_id, listed, already_had, parsed, no_veto, failed,
+        blocked, in_window }
+    """
+    days = max(1, int(months) * 31)
+    result = {
+        "team_name":   team_name,
+        "team_id":     None,
+        "listed":      0,
+        "already_had": 0,
+        "parsed":      0,
+        "no_veto":     0,
+        "failed":      0,
+        "blocked":     False,
+        "in_window":   0,
+    }
+    team_id = _team_id_for_name(team_name)
+    if team_id is None:
+        # Team not in hltv_teams — backfill script's broad walk is the only
+        # path to coverage. Frontend falls back to whatever's in the DB.
+        return result
+    result["team_id"] = team_id
+
+    try:
+        matches = list_team_matches(team_id, days=days)
+    except HLTVBlockedError:
+        result["blocked"] = True
+        return result
+    result["listed"]    = len(matches)
+    result["in_window"] = len(matches)
+
+    already = _existing_match_ids()
+    todo = [m for m in matches if m.hltv_id not in already]
+    result["already_had"] = len(matches) - len(todo)
+    if not todo:
+        return result
+
+    for m in todo:
+        try:
+            html = _get(m.url)
+        except HLTVBlockedError:
+            result["blocked"] = True
+            break
+        except Exception:
+            result["failed"] += 1
+            time.sleep(sleep)
+            continue
+        seq = parse_veto_box(html)
+        if not seq:
+            result["no_veto"] += 1
+            time.sleep(sleep)
+            continue
+        try:
+            _upsert_veto(
+                m.hltv_id,
+                played_at=m.date,
+                team_a=m.team_a,
+                team_b=m.team_b,
+                fmt=_infer_format(seq),
+                seq=seq,
+            )
+            result["parsed"] += 1
+        except Exception:
+            result["failed"] += 1
+        time.sleep(sleep)
+    return result
 
 
 def main(argv: list[str] | None = None) -> int:
