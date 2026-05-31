@@ -308,14 +308,13 @@ export function renderOpponentOverview(container, data) {
     container.innerHTML = ''
   }
 
+  // Two cards: form/map summary on the left, recent matches on the right.
+  // The roster card we used to ship here is gone — the Player Impact section
+  // below already shows the picked team's players from the same data.
   container.insertAdjacentHTML('beforeend', `
-    <div class="opp-overview-grid">
+    <div class="opp-overview-grid opp-overview-grid-2col">
       <div class="opp-overview-card opp-summary-card">
         ${renderSummary(data)}
-      </div>
-      <div class="opp-overview-card opp-roster-card">
-        <div class="opp-card-title">Roster (HLTV demos)</div>
-        ${renderRoster(data)}
       </div>
       <div class="opp-overview-card opp-matches-card">
         <div class="opp-card-title">Recent Matches</div>

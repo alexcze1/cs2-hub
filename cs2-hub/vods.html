@@ -49,17 +49,19 @@
       font-size: 11px; color: var(--muted); letter-spacing: 0.06em;
       text-transform: uppercase; font-weight: 600;
     }
+    /* Two-card summary + matches layout (post-restructure). The old roster
+       grid area is left in the legacy stylesheet in case any other view
+       still mounts it. */
     .opp-overview-grid {
       display: grid; gap: 16px;
-      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr);
-      grid-template-areas: "summary roster" "matches matches";
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr);
     }
     @media (max-width: 1000px) {
-      .opp-overview-grid { grid-template-columns: 1fr; grid-template-areas: "summary" "roster" "matches"; }
+      .opp-overview-grid { grid-template-columns: 1fr; }
     }
-    .opp-summary-card  { grid-area: summary; }
-    .opp-roster-card   { grid-area: roster; }
-    .opp-matches-card  { grid-area: matches; }
+    .opp-summary-card  { /* left  */ }
+    .opp-matches-card  { /* right */ }
+    .opp-roster-card   { display: none; }
     .opp-overview-card {
       background: var(--glass-bg); border: 1px solid var(--glass-border);
       border-radius: var(--r-lg); padding: 16px; box-shadow: var(--shadow-card);

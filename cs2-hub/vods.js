@@ -755,13 +755,20 @@ async function rebuild(filter) {
     const ours = data.ourTeamByDemoId?.get(r.demo_id)
     if (ours && ours === r.team) teamStatsByDemoId.set(r.demo_id, r)
   }
-  renderMatchReports(document.getElementById('rr-match-reports'), {
-    vods: currentFiltered,
-    demoToVod: data.demoToVod,
-    demoPlayersByDemoId: groupByDemoId(data.rowsAll),
-    teamStatsByDemoId,
-    mapFilter: state.mapFilter,
-  })
+  // Match reports are vod-anchored — useless in scout mode (no logged vods
+  // for the scouted team). The Scout overview's Recent Matches list at the
+  // top of the page is the matches surface in that mode.
+  if (isScout) {
+    document.getElementById('rr-match-reports').innerHTML = ''
+  } else {
+    renderMatchReports(document.getElementById('rr-match-reports'), {
+      vods: currentFiltered,
+      demoToVod: data.demoToVod,
+      demoPlayersByDemoId: groupByDemoId(data.rowsAll),
+      teamStatsByDemoId,
+      mapFilter: state.mapFilter,
+    })
+  }
 
   // Refresh inline panel if open
   if (panel.isOpen() && state.openPlayerId) {
