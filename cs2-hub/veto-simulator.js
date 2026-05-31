@@ -314,27 +314,38 @@ function pickByScore(legalMaps, step, stats, oppStats, slot) {
 //   awayStats — opponent (required) — should include mapWinRates
 //   homeStats — our team (optional) — should include mapWinRates
 //   format    — 'bo1' | 'bo3'
+//   locks     — array of map names parallel to the sequence; entry i with a
+//               non-null value forces that map for step i (user manually
+//               picked it). Empty/missing entries are auto-predicted.
+//
 // Maps used in earlier steps are excluded for both sides (global usedAll
-// set), and the actor's prior steps inform the slot count.
-export function simulateVeto(awayStats, homeStats, format) {
+// set), and the actor's prior steps inform the slot count. Re-running with
+// different locks therefore recomputes all downstream predictions in light
+// of the new constraints — the percentages for un-locked steps reflect
+// "what's now most likely given the maps you've taken off the table".
+export function simulateVeto(awayStats, homeStats, format, locks = []) {
   const seq = format === 'bo3' ? BO3_SEQUENCE : BO1_SEQUENCE
   const usedAll = new Set()
   const out = []
   let awayBan = 0, awayPick = 0
   let homeBan = 0, homePick = 0
 
-  for (const step of seq) {
+  for (let i = 0; i < seq.length; i++) {
+    const step = seq[i]
+    const lock = locks[i] || null
     const legal = MAPS.filter(m => !usedAll.has(m))
+
     if (step.type === 'decider') {
-      // Score the remaining maps by combined leftover propensity. If we have
-      // away stats we lean on the opponent's leftover history; else home's.
+      if (lock && legal.includes(lock)) {
+        usedAll.add(lock)
+        out.push({ ...step, map: lock, confidence: null, locked: true })
+        continue
+      }
       const stats = awayStats?.totalMatches ? awayStats : homeStats
       let pick = null, confidence = null
       if (stats?.leftoverByMap?.size && legal.length) {
         const scores = new Map()
-        for (const m of legal) {
-          scores.set(m, rateOf(stats.leftoverByMap.get(m), stats.totalMatches))
-        }
+        for (const m of legal) scores.set(m, rateOf(stats.leftoverByMap.get(m), stats.totalMatches))
         const probs = softmax(scores)
         const ranked = [...probs.entries()].sort((a, b) => b[1] - a[1])
         pick = ranked[0]?.[0] ?? null
@@ -342,6 +353,7 @@ export function simulateVeto(awayStats, homeStats, format) {
       } else if (legal.length) {
         pick = legal[0]
       }
+      if (pick) usedAll.add(pick)
       out.push({ ...step, map: pick, confidence })
       continue
     }
@@ -355,14 +367,20 @@ export function simulateVeto(awayStats, homeStats, format) {
     if (step.type === 'ban') (isAway ? awayBan++ : homeBan++)
     else                      (isAway ? awayPick++ : homePick++)
 
+    if (lock && legal.includes(lock)) {
+      usedAll.add(lock)
+      out.push({ ...step, map: lock, confidence: null, locked: true })
+      continue
+    }
+
     if (!stats || !stats.totalMatches) {
       out.push({ ...step, map: null, confidence: null })
       continue
     }
 
     const { map, confidence, candidates } = pickByScore(legal, step, stats, opp, slot)
-    out.push({ ...step, map, confidence, candidates })
     if (map) usedAll.add(map)
+    out.push({ ...step, map, confidence, candidates })
   }
   return out
 }
@@ -439,18 +457,20 @@ export function renderVetoSimulator(container, opts) {
   // signals. Home stats arrive pre-attached.
   stats.mapWinRates = opts.awayMapWinRates ?? new Map()
 
+  // `locks` is parallel to the sequence. Each user-edited step puts its
+  // chosen map here; auto-predicted steps stay null. We re-run simulateVeto
+  // with this array every time the user changes a dropdown so all the
+  // downstream confidences refresh under the new constraints.
+  let locks
   if (editing && editing.format === format && Array.isArray(editing.steps) && editing.steps.length) {
-    const fresh = simulateVeto(stats, homeStats, format)
-    steps = editing.steps.map((s, i) => {
-      const f = fresh[i]
-      const predicted = !!(f && f.map && s.map === f.map)
-      return { ...s, _confidence: predicted ? f.confidence : null, _predicted: predicted }
-    })
+    // Opening a saved veto for edit — treat every saved step as a manual lock
+    // so the user sees exactly what they had, but they can clear any dropdown
+    // back to "auto" to reroll predictions from that point.
+    locks = editing.steps.map(s => s.map || null)
   } else {
-    steps = simulateVeto(stats, homeStats, format).map(s => ({
-      ...s, _predicted: s.map != null && s.type !== 'decider', _confidence: s.confidence,
-    }))
+    locks = new Array(7).fill(null)
   }
+  steps = computeSteps(stats, homeStats, format, locks)
 
   const titleInit = editing?.title ?? `vs ${teamName}`
   const notesInit = editing?.notes ?? ''
@@ -477,7 +497,9 @@ export function renderVetoSimulator(container, opts) {
       </div>
     </div>`
 
-  wireEditableSequence(container, steps, teamName, ourName)
+  wireEditableSequence(container, {
+    steps, locks, awayStats: stats, homeStats, format, teamName, ourName,
+  })
   wireSaveRow(container, {
     steps, format, teamName,
     editing, onSave, onDelete, onCancel,
@@ -493,6 +515,19 @@ function ourCoverageBlurb(homeStats, ourName) {
   return `${esc(ourName)} draws on ${n} ${n === 1 ? 'match' : 'matches'} of our own veto data`
 }
 
+// Compute the step list given current locks. The result has, per step:
+//   map, confidence, candidates, locked
+// plus our own _predicted / _confidence flags for the UI.
+function computeSteps(awayStats, homeStats, format, locks) {
+  const fresh = simulateVeto(awayStats, homeStats, format, locks)
+  return fresh.map((s, i) => ({
+    ...s,
+    _locked:    !!s.locked,
+    _predicted: !s.locked && s.map != null,
+    _confidence: s.confidence,
+  }))
+}
+
 function renderEditableSequence(steps, teamName, ourName = 'Us') {
   const usedMaps = new Set(steps.filter(s => s.map).map(s => s.map))
   return `
@@ -502,52 +537,52 @@ function renderEditableSequence(steps, teamName, ourName = 'Us') {
         const action = s.type === 'ban' ? 'BAN' : s.type === 'pick' ? 'PICK' : 'PLAYS'
         const actionCls = s.type === 'ban' ? 'vs-act-ban' : s.type === 'pick' ? 'vs-act-pick' : 'vs-act-decider'
         const conf = s._confidence != null ? `${Math.round(s._confidence * 100)}%` : ''
-        // Decider auto-computes from remaining maps every render — read only.
-        if (s.type === 'decider') {
-          const left = MAPS.filter(m => !usedMaps.has(m) || m === s.map)
-          const pick = s.map || left[0] || null
-          return `
-            <div class="vs-step vs-step-decider">
-              <div class="vs-step-num">${i + 1}</div>
-              <div class="vs-step-team">${who}</div>
-              <div class="vs-step-action ${actionCls}">${action}</div>
-              <div class="vs-step-map">
-                <div class="vs-step-map-badge" style="background-image:url('${pick ? mapImg(pick) : ''}')"></div>
-                <span>${pick ? esc(MAP_LABELS[pick] ?? pick) : '?'}</span>
-              </div>
-              <div class="vs-step-conf">${conf}</div>
-            </div>`
-        }
         const available = MAPS.filter(m => !usedMaps.has(m) || m === s.map)
+        // Every step (including the decider) is now an editable dropdown.
+        // Clearing the dropdown unlocks the step → re-simulates that slot.
+        const rowCls = s.type === 'decider' ? 'vs-step-decider'
+                     : s.team === 'home'    ? 'vs-step-home' : ''
+        const confLabel = s._locked
+          ? `<span class="vs-step-locked" title="You picked this map">FIXED</span>`
+          : s._predicted
+            ? `<span title="Softmax probability given current locks">SIM ${conf}</span>`
+            : ''
         return `
-          <div class="vs-step ${s.team === 'home' ? 'vs-step-home' : ''}">
+          <div class="vs-step ${rowCls}">
             <div class="vs-step-num">${i + 1}</div>
             <div class="vs-step-team">${who}</div>
             <div class="vs-step-action ${actionCls}">${action}</div>
             <div class="vs-step-map vs-step-map-edit">
               <div class="vs-step-map-badge" style="background-image:url('${s.map ? mapImg(s.map) : ''}')"></div>
               <select class="vs-step-select" data-i="${i}">
-                <option value="">Pick map…</option>
+                <option value="">Auto…</option>
                 ${available.map(m => `<option value="${m}" ${s.map === m ? 'selected' : ''}>${MAP_LABELS[m] ?? m}</option>`).join('')}
               </select>
             </div>
-            <div class="vs-step-conf" title="HLTV-prediction confidence">${s._predicted ? `SIM ${conf}` : ''}</div>
+            <div class="vs-step-conf">${confLabel}</div>
           </div>`
       }).join('')}
     </div>`
 }
 
-function wireEditableSequence(container, steps, teamName, ourName = 'Us') {
+function wireEditableSequence(container, ctx) {
   const host = container.querySelector('#vs-seq-host')
   if (!host) return
   for (const sel of host.querySelectorAll('.vs-step-select')) {
     sel.addEventListener('change', e => {
       const i = +e.target.dataset.i
-      steps[i].map = e.target.value || null
-      steps[i]._predicted = false
-      steps[i]._confidence = null
-      host.innerHTML = renderEditableSequence(steps, teamName, ourName)
-      wireEditableSequence(container, steps, teamName, ourName)
+      const value = e.target.value || null
+      // Empty = unlock. Any value = lock to that map.
+      ctx.locks[i] = value
+      // Re-run the whole sim with the new lock set, so downstream slots
+      // reflect "given that <map> is already taken here, what's most likely
+      // for the rest". Then mutate `steps` in place so the closures in
+      // saveRow keep seeing the live values.
+      const fresh = computeSteps(ctx.awayStats, ctx.homeStats, ctx.format, ctx.locks)
+      ctx.steps.length = 0
+      for (const s of fresh) ctx.steps.push(s)
+      host.innerHTML = renderEditableSequence(ctx.steps, ctx.teamName, ctx.ourName)
+      wireEditableSequence(container, ctx)
     })
   }
 }
