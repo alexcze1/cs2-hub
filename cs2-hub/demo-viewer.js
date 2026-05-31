@@ -3,6 +3,7 @@ import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { worldToCanvas } from './demo-map-data.js'
 import { getTeamLogo }   from './team-autocomplete.js'
+import { fetchAndResolveTeamNames } from './demo-team-names.js'
 import { showAssignTeamsModal } from './assign-teams-modal.js'
 import { mountAntistratDrawer } from './antistrat-drawer.js'
 import { openSavePopoverFor, closeSavePopover, isPopoverOpen } from './save-popover.js'
@@ -51,7 +52,7 @@ const loadingEl = document.getElementById('viewer-loading')
 
 const { data: demo, error } = await supabase
   .from('demos')
-  .select('is_public,match_data_url,map,status,ct_team_name,t_team_name,team_a_first_side,team_a_score,team_b_score,series_id')
+  .select('is_public,match_data_url,map,status,ct_team_name,t_team_name,team_a_name,team_b_name,team_a_first_side,team_a_score,team_b_score,series_id')
   .eq('id', demoId)
   .single()
 
@@ -215,19 +216,21 @@ let _rosterALogo = null, _rosterBLogo = null
 let _lastSideKey = null
 
 async function preloadTeamNames() {
-  const ctName    = demo.ct_team_name
-  const tName     = demo.t_team_name
+  // resolveTeamNames also handles public demos (no ct_team_name) by projecting
+  // from team_a_name / team_b_name + score correlation, so we get real HLTV
+  // names instead of "Team A / Team B".
+  const resolved = await fetchAndResolveTeamNames(demo)
+  // Map back to roster A / roster B so the existing per-round side-swap
+  // machinery keeps working unchanged.
   const aFirstSide = demo.team_a_first_side
-  if (!ctName && !tName) return
-
   if (aFirstSide === 't') {
-    _rosterAName = tName  || null
-    _rosterBName = ctName || null
+    _rosterAName = resolved.tName  || null
+    _rosterBName = resolved.ctName || null
   } else {
-    // 'ct' or unknown — assume ct_team_name is roster A (legacy behavior)
-    _rosterAName = ctName || null
-    _rosterBName = tName  || null
+    _rosterAName = resolved.ctName || null
+    _rosterBName = resolved.tName  || null
   }
+  if (!_rosterAName && !_rosterBName) return
 
   if (_rosterAName) _rosterALogo = await getTeamLogo(_rosterAName)
   if (_rosterBName) _rosterBLogo = await getTeamLogo(_rosterBName)

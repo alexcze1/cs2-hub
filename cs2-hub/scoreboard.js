@@ -6,6 +6,7 @@
 import { supabase } from './supabase.js'
 import { isCoach } from './demo-player-filters.js'
 import { renderTeamStats } from './scoreboard-team-stats.js'
+import { resolveTeamNames } from './demo-team-names.js'
 
 const SIDE_KEY = 'scoreboard:side'
 
@@ -24,7 +25,7 @@ export async function mountScoreboard(root, demoId) {
       supabase.from('demo_players')
         .select('*').eq('demo_id', demoId),
       supabase.from('demos')
-        .select('ct_team_name,t_team_name,team_a_first_side')
+        .select('ct_team_name,t_team_name,team_a_name,team_b_name,team_a_score,team_b_score,team_a_first_side')
         .eq('id', demoId).maybeSingle(),
       supabase.from('demo_team_stats')
         .select('*').eq('demo_id', demoId),
@@ -39,9 +40,13 @@ export async function mountScoreboard(root, demoId) {
       return
     }
 
+    // resolveTeamNames handles public demos (no ct/t_team_name) too, using
+    // team_a_score/team_b_score + parser per-letter wins to map HLTV names
+    // back to parser letters. Result: real team names instead of A/B.
+    const { ctName, tName } = resolveTeamNames(demo, teamStats || [])
     const aOnCtFirst = (demo?.team_a_first_side ?? 'ct') === 'ct'
-    const teamAName = (aOnCtFirst ? demo?.ct_team_name : demo?.t_team_name) || 'Team A'
-    const teamBName = (aOnCtFirst ? demo?.t_team_name  : demo?.ct_team_name) || 'Team B'
+    const teamAName = (aOnCtFirst ? ctName : tName) || 'Team A'
+    const teamBName = (aOnCtFirst ? tName  : ctName) || 'Team B'
 
     const teamA = (teamStats || []).find(r => r.team === 'a') || null
     const teamB = (teamStats || []).find(r => r.team === 'b') || null
