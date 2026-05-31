@@ -141,15 +141,36 @@ def health():
 # per-IP rate budget (chrome-headless behind us already gets CF-flagged
 # pretty quickly under load).
 
-_veto_sync_last: dict[str, float] = {}     # team_name_lower -> ts
-_VETO_SYNC_THROTTLE_SEC = 300              # 5 min per team
-_VETO_SYNC_TIMEOUT_SEC  = 45               # hard cap per request
-_veto_sync_lock = asyncio.Lock()           # avoid concurrent HLTV pages
+_veto_sync_last:    dict[str, float] = {}  # team_name_lower -> last completion ts
+_veto_sync_started: dict[str, float] = {}  # team_name_lower -> start ts (still running)
+_VETO_SYNC_THROTTLE_SEC = 600              # 10 min between successful runs per team
+_VETO_SYNC_RUNNING_GRACE_SEC = 1200        # 20 min — assume a still-running task is stuck if older
+_veto_sync_lock = asyncio.Lock()           # serialize HLTV page fetches across all in-flight syncs
 
 
 class SyncTeamVetosRequest(BaseModel):
     team_name: str
     months: int = 3
+
+
+async def _run_sync_in_bg(name: str, months: int) -> None:
+    """Run sync_team_vetos under the global HLTV-fetch lock and record
+    timestamps so the endpoint can throttle correctly without blocking the
+    caller. Each HLTV page is ~15-30s with CF, so 30 new matches takes
+    several minutes — frontend doesn't wait for this."""
+    key = name.lower()
+    _veto_sync_started[key] = time.time()
+    try:
+        async with _veto_sync_lock:
+            try:
+                await asyncio.get_event_loop().run_in_executor(
+                    None, lambda: sync_team_vetos(name, months=months, sleep=1.5),
+                )
+            except Exception as e:
+                print(f"[veto-sync] {name}: {type(e).__name__}: {e}")
+    finally:
+        _veto_sync_last[key] = time.time()
+        _veto_sync_started.pop(key, None)
 
 
 @app.post("/sync-team-vetos")
@@ -172,32 +193,21 @@ async def sync_team_vetos_endpoint(
 
     name = (req.team_name or "").strip()
     if not name:
-        return {"team_name": name, "throttled": False, "result": None, "reason": "empty"}
+        return {"team_name": name, "queued": False, "reason": "empty"}
 
     key = name.lower()
     now = time.time()
-    last = _veto_sync_last.get(key)
-    if last and (now - last) < _VETO_SYNC_THROTTLE_SEC:
-        return {
-            "team_name": name,
-            "throttled": True,
-            "next_allowed_in_sec": int(_VETO_SYNC_THROTTLE_SEC - (now - last)),
-            "result": None,
-        }
+    last_ok    = _veto_sync_last.get(key, 0)
+    started_at = _veto_sync_started.get(key, 0)
+    if now - last_ok < _VETO_SYNC_THROTTLE_SEC:
+        return {"team_name": name, "queued": False, "reason": "throttled",
+                "next_allowed_in_sec": int(_VETO_SYNC_THROTTLE_SEC - (now - last_ok))}
+    if started_at and (now - started_at) < _VETO_SYNC_RUNNING_GRACE_SEC:
+        return {"team_name": name, "queued": False, "reason": "in_progress"}
 
     months = max(1, min(12, int(req.months or 3)))
-    async with _veto_sync_lock:
-        try:
-            result = await asyncio.wait_for(
-                asyncio.get_event_loop().run_in_executor(
-                    None, lambda: sync_team_vetos(name, months=months, sleep=1.5),
-                ),
-                timeout=_VETO_SYNC_TIMEOUT_SEC,
-            )
-        except asyncio.TimeoutError:
-            return {"team_name": name, "throttled": False, "result": None, "reason": "timeout"}
-    _veto_sync_last[key] = time.time()
-    return {"team_name": name, "throttled": False, "result": result}
+    asyncio.create_task(_run_sync_in_bg(name, months))
+    return {"team_name": name, "queued": True}
 
 
 @app.post("/upload")

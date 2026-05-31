@@ -80,16 +80,13 @@ let ourTeamName = 'Us'
 let ourHltvVetos = []
 let ourMapWinRates = new Map()
 let ourStats     = null  // computeStats output for our team (HLTV + saved)
-const _syncedTeamsThisSession = new Set()  // dedupe: don't re-sync same team twice in one tab
-
 async function syncTeamVetosFromHltv(name) {
-  // POST /sync-team-vetos on the VPS. Pulls fresh HLTV match-veto data for
-  // `name` over the last 3 months and upserts into hltv_team_vetos. The
-  // server is throttled (5 min per team) so dupe calls are cheap.
+  // POST /sync-team-vetos on the VPS. Server queues the work in the
+  // background (each HLTV page is ~15-30s with CF), returns immediately
+  // with { queued: true } or { queued: false, reason: 'throttled' | 'in_progress' }.
+  // Server has its own 10 min per-team throttle so frontend doesn't need to dedupe.
   const safe = (name || '').trim()
   if (!safe) return null
-  if (_syncedTeamsThisSession.has(safe.toLowerCase())) return null
-  _syncedTeamsThisSession.add(safe.toLowerCase())
   try {
     const { data: session } = await supabase.auth.getSession()
     const token = session?.session?.access_token
@@ -207,17 +204,26 @@ async function runSimulation(teamName, { editing = null, format = 'bo1' } = {}) 
     vsStatus.textContent = ''
     return
   }
-  vsStatus.textContent = 'Syncing HLTV…'
-  // Sync both the opponent AND our own team from HLTV first — pulls any new
-  // matches into hltv_team_vetos before we read it back below. Both calls are
-  // server-side-throttled so duplicate syncs are cheap.
-  try {
-    await Promise.all([
-      syncTeamVetosFromHltv(name),
-      syncTeamVetosFromHltv(ourTeamName),
-    ])
-  } catch (e) { /* sync failures fall through to whatever's already in DB */ }
-  // After our team gets new HLTV rows, recompute home stats.
+  // Kick off background HLTV syncs for BOTH the picked team and our own
+  // team. Server queues the work and returns immediately; each HLTV page
+  // is ~15-30s with CF, so a full team-sync takes 5-10 minutes. We DON'T
+  // await — the simulator reads whatever's currently in the DB and the
+  // user re-searches later to pick up any new rows. Server-side throttle
+  // (10 min per team) keeps dupe calls cheap.
+  const syncStatus = { queued: 0, throttled: 0 }
+  Promise.all([
+    syncTeamVetosFromHltv(name).then(r => r?.queued && syncStatus.queued++),
+    syncTeamVetosFromHltv(ourTeamName).then(r => r?.queued && syncStatus.queued++),
+  ])
+    .then(() => {
+      if (syncStatus.queued > 0) {
+        vsStatus.textContent = `Syncing ${syncStatus.queued} team${syncStatus.queued === 1 ? '' : 's'} from HLTV in background — refresh in a few min for the full window`
+      }
+    })
+    .catch(() => {}) // fire and forget
+
+  // Always refresh home stats in case background syncs from earlier
+  // searches finished.
   await loadOurHltvVetos()
   ourMapWinRates = await fetchTeamMapWinrates(ourTeamName)
   recomputeOurStats()
