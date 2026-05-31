@@ -3,7 +3,7 @@ import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
 import { attachTeamAutocomplete, getTeamLogo, teamLogoEl } from './team-autocomplete.js'
-import { fetchTeamVetoHistory, renderVetoSimulator } from './veto-simulator.js'
+import { fetchTeamVetoHistory, renderVetoSimulator, computeStats, savedVetoToHltvShape } from './veto-simulator.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -70,6 +70,53 @@ function mapBg(map)   { return map ? `images/maps/${mapFile(map)}.png` : '' }
 await requireAuth()
 renderSidebar('veto')
 
+// Our team's name — used to (a) display "Us" rows with the real name and
+// (b) pull our own HLTV veto history so the simulator can predict OUR
+// bans/picks too. Falls back to "Us" when the user isn't on a team or the
+// teams row is missing.
+let ourTeamName = 'Us'
+let ourHltvVetos = []
+let ourStats     = null  // computeStats output for our team (HLTV + saved)
+
+try {
+  const tid = getTeamId()
+  if (tid) {
+    const { data: t } = await supabase.from('teams').select('name').eq('id', tid).maybeSingle()
+    if (t?.name) ourTeamName = t.name
+  }
+} catch (e) { console.warn('[veto] team-name load failed', e) }
+
+async function loadOurHltvVetos() {
+  if (!ourTeamName || ourTeamName === 'Us') { ourHltvVetos = []; return }
+  try {
+    const safe = ourTeamName.replace(/[(),]/g, '').trim()
+    if (!safe) { ourHltvVetos = []; return }
+    const { data, error } = await supabase
+      .from('hltv_team_vetos')
+      .select('match_id, played_at, team_a_name, team_b_name, format, sequence')
+      .or(`team_a_name.ilike.${safe},team_b_name.ilike.${safe}`)
+      .order('played_at', { ascending: false })
+      .limit(200)
+    if (error) throw error
+    ourHltvVetos = data ?? []
+  } catch (e) { console.warn('[veto] our hltv vetos load failed', e); ourHltvVetos = [] }
+}
+
+function recomputeOurStats() {
+  // Combine HLTV history (when present) with our existing saved veto rows.
+  // savedVetoToHltvShape converts a saved row into the same {sequence} shape
+  // so computeStats can ingest both feeds in one pass.
+  const combined = [
+    ...ourHltvVetos,
+    ...state.vetos.map(v => savedVetoToHltvShape(v, ourTeamName)),
+  ]
+  if (!combined.length) { ourStats = null; return }
+  ourStats = computeStats(combined, ourTeamName)
+  if (ourStats && !ourStats.totalMatches) ourStats = null
+}
+
+await loadOurHltvVetos()
+
 // ── Veto simulator wiring ──────────────────────────────────────
 // The Simulate-veto-for panel doubles as the create/edit form. Loading an
 // existing card → re-runs the simulator for that team and pre-populates the
@@ -135,6 +182,8 @@ async function runSimulation(teamName, { editing = null, format = 'bo1' } = {}) 
       data,
       format: editing?.format ?? format,
       editing,
+      homeStats: ourStats,
+      ourName:   ourTeamName,
       onSave:   saveFromSimulator,
       onDelete: deleteFromSimulator,
       onCancel: cancelEditInSimulator,
@@ -204,6 +253,9 @@ async function loadVetos() {
   }
   state.vetos = data ?? []
   state.logos = await Promise.all(state.vetos.map(v => getTeamLogo(v.opponent ?? v.title)))
+  // Recompute our team's combined stats now that saved vetos changed —
+  // savedVetos are part of the training set for our own predictions.
+  recomputeOurStats()
   renderAll()
 }
 

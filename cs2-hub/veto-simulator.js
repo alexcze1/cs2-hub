@@ -161,70 +161,117 @@ export function predictForSequence(sequence, stats, awayTeamKey = 'away') {
   return preds
 }
 
-// Run a step-by-step simulation in ESL BO1/BO3 order. For 'away' (the
-// picked / opponent team) we predict using their per-slot frequencies.
-// For 'home' (the user) we don't predict — those steps come back with a
-// null map so the user fills them in via the editable dropdown. For the
-// decider we pick the map most often left over for the team historically
-// (or the last remaining map).
-export function simulateVeto(stats, format) {
+// Run a step-by-step simulation in ESL BO1/BO3 order, predicting BOTH
+// sides when stats are available.
+//   awayStats — the picked / opponent team's stats (required)
+//   homeStats — our team's stats (optional; pass null to leave home steps blank
+//               for manual fill)
+// Maps a team has already played in this simulation are excluded for BOTH
+// teams via a global usedAll set — a map only gets banned/picked once per
+// match in real CS, so neither team can recycle it.
+export function simulateVeto(awayStats, homeStats, format) {
   const seq = format === 'bo3' ? BO3_SEQUENCE : BO1_SEQUENCE
-  const awayUsed = new Set()
+  const usedAll = new Set()
   const out = []
-  let bIdx = 0, pIdx = 0
+  let awayBan = 0, awayPick = 0
+  let homeBan = 0, homePick = 0
+
   for (const step of seq) {
     if (step.type === 'decider') {
-      const left = MAPS.filter(m => !awayUsed.has(m))
+      const left = MAPS.filter(m => !usedAll.has(m))
       let pick = null, confidence = null
-      const ranked = [...stats.leftoverByMap.entries()]
-        .filter(([m]) => left.includes(m))
-        .sort((a, b) => b[1] - a[1])
-      if (ranked.length) {
-        pick = ranked[0][0]
-        confidence = stats.totalMatches ? ranked[0][1] / stats.totalMatches : null
+      // Try the picked team's historical leftover first — we usually care
+      // about what map the OPPONENT ends up on more than we do our own.
+      const decider = awayStats ?? homeStats
+      if (decider) {
+        const ranked = [...decider.leftoverByMap.entries()]
+          .filter(([m]) => left.includes(m))
+          .sort((a, b) => b[1] - a[1])
+        if (ranked.length) {
+          pick = ranked[0][0]
+          confidence = decider.totalMatches ? ranked[0][1] / decider.totalMatches : null
+        } else if (left.length) {
+          pick = left[0]
+        }
       } else if (left.length) {
         pick = left[0]
       }
       out.push({ ...step, map: pick, confidence })
       continue
     }
-    if (step.team === 'away') {
-      let counts
-      if (step.type === 'ban') {
-        counts = stats.banBySlot[bIdx] || new Map(); bIdx++
-      } else {
-        counts = stats.pickBySlot[pIdx] || new Map(); pIdx++
-      }
-      const ranked = [...counts.entries()]
-        .filter(([m]) => !awayUsed.has(m))
-        .sort((a, b) => b[1] - a[1])
-      const pick = ranked.length ? ranked[0][0] : null
-      const confidence = pick && stats.totalMatches
-        ? ranked[0][1] / stats.totalMatches
-        : null
-      out.push({ ...step, map: pick, confidence, candidates: ranked.slice(0, 3) })
-      if (pick) awayUsed.add(pick)
-    } else {
-      // Home (the user) — no prediction. Leave map blank for them to fill.
+
+    const isAway = step.team === 'away'
+    const stats = isAway ? awayStats : homeStats
+    if (!stats || !stats.totalMatches) {
+      // No data for this side — leave blank for the user to fill in.
+      if (step.type === 'ban') { if (isAway) awayBan++; else homeBan++ }
+      else                     { if (isAway) awayPick++; else homePick++ }
       out.push({ ...step, map: null, confidence: null })
+      continue
     }
+
+    let counts, slot
+    if (step.type === 'ban') {
+      slot = isAway ? awayBan++ : homeBan++
+      counts = stats.banBySlot[slot] || new Map()
+    } else {
+      slot = isAway ? awayPick++ : homePick++
+      counts = stats.pickBySlot[slot] || new Map()
+    }
+    const ranked = [...counts.entries()]
+      .filter(([m]) => !usedAll.has(m))
+      .sort((a, b) => b[1] - a[1])
+    const pick = ranked.length ? ranked[0][0] : null
+    const confidence = pick && stats.totalMatches ? ranked[0][1] / stats.totalMatches : null
+    out.push({ ...step, map: pick, confidence, candidates: ranked.slice(0, 3) })
+    if (pick) usedAll.add(pick)
   }
   return out
+}
+
+// Convert a saved veto_predictions row into the same shape as an
+// hltv_team_vetos row, so computeStats can ingest both feeds uniformly.
+// The user's team is always the 'home' side in the saved record.
+export function savedVetoToHltvShape(savedVeto, ourTeamName) {
+  const oppName = savedVeto.opponent || 'Opponent'
+  return {
+    match_id:    `saved-${savedVeto.id}`,
+    played_at:   savedVeto.updated_at ?? savedVeto.created_at ?? null,
+    team_a_name: ourTeamName,
+    team_b_name: oppName,
+    format:      savedVeto.format,
+    sequence:    (savedVeto.steps || []).map((s, i) => ({
+      order:  i + 1,
+      team:   s.team === 'home' ? ourTeamName
+            : s.team === 'away' ? oppName
+            : null,
+      action: s.type,
+      map:    s.map ?? null,
+    })),
+  }
 }
 
 // ── Rendering ────────────────────────────────────────────────────
 
 // Render the simulator into `container`. Now also responsible for the
-// editable sequence + save controls. Caller passes:
-//   data      — output of fetchTeamVetoHistory
-//   format    — 'bo1' | 'bo3' (persists across re-renders inside the panel)
-//   editing   — optional existing veto row when re-opening from the saved list
-//   onSave    — async ({ format, steps, title, notes, opponent, editingId }) → void
-//   onDelete  — async (editingId) → void (only shown when editing)
-//   onCancel  — () → void (only shown when editing)
+// editable sequence + save controls + dual-side predictions.
+// Caller passes:
+//   data       — output of fetchTeamVetoHistory for the OPPONENT
+//   homeStats  — optional precomputed stats for OUR team (from HLTV + our
+//                saved veto_predictions); enables home-step predictions
+//   ourName    — our team's display name (shown on home rows)
+//   format     — 'bo1' | 'bo3' (persists across re-renders inside the panel)
+//   editing    — optional existing veto row when re-opening from the saved list
+//   onSave     — async ({ format, steps, title, notes, opponent, editingId }) → void
+//   onDelete   — async (editingId) → void (only shown when editing)
+//   onCancel   — () → void (only shown when editing)
 export function renderVetoSimulator(container, opts) {
   if (!opts || !opts.data) { container.innerHTML = ''; return }
-  const { data, format = 'bo1', editing = null, onSave, onDelete, onCancel } = opts
+  const {
+    data, format = 'bo1', editing = null,
+    homeStats = null, ourName = 'Us',
+    onSave, onDelete, onCancel,
+  } = opts
   const { teamName, vetos, windowMonths } = data
 
   if (!vetos.length) {
@@ -248,27 +295,31 @@ export function renderVetoSimulator(container, opts) {
 
   // If we have an existing veto in `editing` with matching format, prefer its
   // step set (so opening for edit shows what the user actually saved). Else
-  // freshly simulate.
+  // freshly simulate using BOTH the opponent's stats and our team's stats.
   let steps
   if (editing && editing.format === format && Array.isArray(editing.steps) && editing.steps.length) {
-    // Clone + tag any step that still matches our prediction as predicted.
-    const fresh = simulateVeto(stats, format)
+    const fresh = simulateVeto(stats, homeStats, format)
     steps = editing.steps.map((s, i) => {
       const f = fresh[i]
-      const predicted = f && f.map && s.map === f.map
+      const predicted = !!(f && f.map && s.map === f.map)
       return { ...s, _confidence: predicted ? f.confidence : null, _predicted: predicted }
     })
   } else {
-    steps = simulateVeto(stats, format).map(s => ({ ...s, _predicted: s.map != null && s.team === 'away', _confidence: s.confidence }))
+    steps = simulateVeto(stats, homeStats, format).map(s => ({
+      ...s, _predicted: s.map != null && s.type !== 'decider', _confidence: s.confidence,
+    }))
   }
 
   const titleInit = editing?.title ?? `vs ${teamName}`
   const notesInit = editing?.notes ?? ''
+  const ourCoverage = homeStats?.totalMatches
+    ? ` · ${ourCoverageBlurb(homeStats, ourName)}`
+    : ''
 
   container.innerHTML = `
     <div class="vs-grid">
       <div class="vs-card vs-summary">
-        <div class="vs-card-title">${esc(teamName)} — ${stats.totalMatches} match${stats.totalMatches === 1 ? '' : 'es'} (last ${windowMonths}m)</div>
+        <div class="vs-card-title">${esc(teamName)} — ${stats.totalMatches} match${stats.totalMatches === 1 ? '' : 'es'} (last ${windowMonths}m)${ourCoverage}</div>
         ${renderBanBreakdown(stats)}
       </div>
       <div class="vs-card vs-sim">
@@ -279,12 +330,12 @@ export function renderVetoSimulator(container, opts) {
             <button class="vs-fmt-btn ${format === 'bo3' ? 'is-active' : ''}" data-fmt="bo3">BO3</button>
           </div>
         </div>
-        <div id="vs-seq-host">${renderEditableSequence(steps, teamName)}</div>
+        <div id="vs-seq-host">${renderEditableSequence(steps, teamName, ourName)}</div>
         ${renderSaveRow({ titleInit, notesInit, editing })}
       </div>
     </div>`
 
-  wireEditableSequence(container, steps, teamName)
+  wireEditableSequence(container, steps, teamName, ourName)
   wireSaveRow(container, {
     steps, format, teamName,
     editing, onSave, onDelete, onCancel,
@@ -295,12 +346,17 @@ export function renderVetoSimulator(container, opts) {
   }
 }
 
-function renderEditableSequence(steps, teamName) {
+function ourCoverageBlurb(homeStats, ourName) {
+  const n = homeStats.totalMatches
+  return `${esc(ourName)} draws on ${n} ${n === 1 ? 'match' : 'matches'} of our own veto data`
+}
+
+function renderEditableSequence(steps, teamName, ourName = 'Us') {
   const usedMaps = new Set(steps.filter(s => s.map).map(s => s.map))
   return `
     <div class="vs-seq">
       ${steps.map((s, i) => {
-        const who = s.type === 'decider' ? 'Decider' : (s.team === 'away' ? esc(teamName) : 'Us')
+        const who = s.type === 'decider' ? 'Decider' : (s.team === 'away' ? esc(teamName) : esc(ourName))
         const action = s.type === 'ban' ? 'BAN' : s.type === 'pick' ? 'PICK' : 'PLAYS'
         const actionCls = s.type === 'ban' ? 'vs-act-ban' : s.type === 'pick' ? 'vs-act-pick' : 'vs-act-decider'
         const conf = s._confidence != null ? `${Math.round(s._confidence * 100)}%` : ''
@@ -339,7 +395,7 @@ function renderEditableSequence(steps, teamName) {
     </div>`
 }
 
-function wireEditableSequence(container, steps, teamName) {
+function wireEditableSequence(container, steps, teamName, ourName = 'Us') {
   const host = container.querySelector('#vs-seq-host')
   if (!host) return
   for (const sel of host.querySelectorAll('.vs-step-select')) {
@@ -348,8 +404,8 @@ function wireEditableSequence(container, steps, teamName) {
       steps[i].map = e.target.value || null
       steps[i]._predicted = false
       steps[i]._confidence = null
-      host.innerHTML = renderEditableSequence(steps, teamName)
-      wireEditableSequence(container, steps, teamName)
+      host.innerHTML = renderEditableSequence(steps, teamName, ourName)
+      wireEditableSequence(container, steps, teamName, ourName)
     })
   }
 }
