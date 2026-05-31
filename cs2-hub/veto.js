@@ -3,7 +3,7 @@ import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
 import { attachTeamAutocomplete, getTeamLogo, teamLogoEl } from './team-autocomplete.js'
-import { fetchTeamVetoHistory, renderVetoSimulator } from './veto-simulator.js'
+import { fetchTeamVetoHistory, renderVetoSimulator, computeStats, predictForSequence } from './veto-simulator.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -166,6 +166,11 @@ function renderVetoBuilder() {
     const teamLabel  = step.team === 'away' ? away : step.team === 'home' ? home : '—'
     const actionLabel = step.type === 'ban' ? 'BAN' : step.type === 'pick' ? 'PICK' : 'PLAYS'
     const actionColor = step.type === 'ban' ? 'var(--danger)' : step.type === 'pick' ? 'var(--success)' : 'var(--accent)'
+    const predBadge = vetoSteps[i]?._predicted && vetoSteps[i]?._confidence != null
+      ? `<span class="veto-builder-predicted" title="HLTV prediction confidence">SIM ${Math.round(vetoSteps[i]._confidence * 100)}%</span>`
+      : vetoSteps[i]?._predicted
+        ? `<span class="veto-builder-predicted">SIM</span>`
+        : ''
     if (step.type === 'decider') {
       const leftMap = MAPS.find(m => !usedMaps.slice(0, usedMaps.length - (vetoSteps[i].map ? 1 : 0)).includes(m)) ?? '?'
       return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--border)">
@@ -173,6 +178,7 @@ function renderVetoBuilder() {
         <span style="min-width:60px;color:var(--muted);font-size:11px">${esc(teamLabel)}</span>
         <span style="min-width:44px;color:${actionColor};font-size:11px;font-weight:700">${actionLabel}</span>
         <span style="font-size:13px;font-weight:700;color:var(--accent)">${esc(MAP_LABELS[leftMap] ?? leftMap)}</span>
+        ${predBadge}
       </div>`
     }
     const availableMaps = MAPS.filter(m => !usedMaps.includes(m) || m === vetoSteps[i]?.map)
@@ -184,10 +190,15 @@ function renderVetoBuilder() {
         <option value="">Pick map…</option>
         ${availableMaps.map(m => `<option value="${m}" ${vetoSteps[i]?.map === m ? 'selected' : ''}>${MAP_LABELS[m]}</option>`).join('')}
       </select>
+      ${predBadge}
     </div>`
   }).join('')}`
   el.querySelectorAll('select[data-i]').forEach(sel => sel.addEventListener('change', e => {
-    vetoSteps[+e.target.dataset.i].map = e.target.value
+    const i = +e.target.dataset.i
+    vetoSteps[i].map = e.target.value
+    // User override clears the SIM badge for that step.
+    vetoSteps[i]._predicted = false
+    vetoSteps[i]._confidence = null
     renderVetoBuilder()
   }))
 }
@@ -358,10 +369,19 @@ function openModal(id = null) {
   vetoSteps = v?.steps ? JSON.parse(JSON.stringify(v.steps)) : []
   document.getElementById('delete-btn').style.display = id ? 'block' : 'none'
   document.getElementById('modal-error').style.display = 'none'
+  // Clear any stale sim from a previous open, then refire for the new opponent.
+  modalSimStats = null
+  document.getElementById('veto-sim-summary').innerHTML = ''
   renderVetoBuilder()
   document.getElementById('modal').style.display = 'flex'
+  if (opp) refreshModalSim(opp)
 }
-function closeModal() { document.getElementById('modal').style.display = 'none'; editingId = null }
+function closeModal() {
+  document.getElementById('modal').style.display = 'none'
+  editingId = null
+  modalSimStats = null
+  document.getElementById('veto-sim-summary').innerHTML = ''
+}
 
 document.getElementById('modal-close').addEventListener('click', closeModal)
 document.getElementById('cancel-btn').addEventListener('click', closeModal)
@@ -402,11 +422,97 @@ function updateVetoLogo(logo, name) {
   vetoOppLogoWrap.innerHTML = logo || name ? teamLogoEl(logo, name, 36) : ''
 }
 
-attachTeamAutocomplete(vetoOppInput, team => updateVetoLogo(team.logo, team.name))
+// ── Modal sim integration ──────────────────────────────────────
+// When the opponent in the new-veto modal is set/picked, fetch their HLTV
+// veto history and prefill the AWAY team's predicted ban/pick maps into the
+// veto builder. User can still override any step via the existing dropdowns.
+
+let modalSimStats = null
+let modalSimToken = 0
+let modalSimTypingTimer = null
+
+async function refreshModalSim(oppName) {
+  const myToken = ++modalSimToken
+  const sumEl = document.getElementById('veto-sim-summary')
+  if (!sumEl) return
+  const name = (oppName || '').trim()
+  if (!name) { sumEl.innerHTML = ''; modalSimStats = null; return }
+  sumEl.innerHTML = `<div class="vs-modal-empty">Loading ${esc(name)}'s veto history…</div>`
+  try {
+    const data = await fetchTeamVetoHistory(name, { months: 3 })
+    if (myToken !== modalSimToken) return
+    if (!data.vetos.length) {
+      sumEl.innerHTML = `<div class="vs-modal-empty">No HLTV vetos for ${esc(name)} in the last 3 months.</div>`
+      modalSimStats = null
+      return
+    }
+    modalSimStats = computeStats(data.vetos, name)
+    if (!modalSimStats.totalMatches) {
+      sumEl.innerHTML = `<div class="vs-modal-empty">${data.vetos.length} matches found but the veto rows don't include ${esc(name)}'s actions.</div>`
+      modalSimStats = null
+      return
+    }
+    renderModalSimSummary(sumEl, name, modalSimStats)
+    autoFillFromSim()
+  } catch (e) {
+    if (myToken !== modalSimToken) return
+    console.error('[veto-modal-sim]', e)
+    sumEl.innerHTML = `<div class="vs-modal-empty">Couldn't load HLTV history: ${esc(e.message || e)}</div>`
+  }
+}
+
+function renderModalSimSummary(el, name, stats) {
+  const top3 = [...stats.banByMapTotal.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3)
+  const chips = top3.length
+    ? top3.map(([m, c]) => `<span class="vs-chip">${esc(MAP_LABELS[m] ?? m)} ${c}×</span>`).join('')
+    : '—'
+  el.innerHTML = `
+    <div class="vs-modal-summary">
+      <div class="vs-modal-summary-head">
+        <div>
+          <div class="vs-modal-summary-title">${esc(name)} — last 3 months</div>
+          <div class="vs-modal-summary-meta">${stats.totalMatches} match${stats.totalMatches === 1 ? '' : 'es'} (HLTV)</div>
+        </div>
+        <button type="button" class="vs-modal-fill-btn" id="vs-modal-fill">Re-fill predictions</button>
+      </div>
+      <div class="vs-modal-summary-chips">
+        Most banned: ${chips}
+      </div>
+    </div>`
+  el.querySelector('#vs-modal-fill').addEventListener('click', () => { autoFillFromSim(); renderVetoBuilder() })
+}
+
+function autoFillFromSim() {
+  if (!modalSimStats) return
+  const seq = getSequence()
+  while (vetoSteps.length < seq.length) vetoSteps.push({ ...seq[vetoSteps.length], map: '' })
+  if (vetoSteps.length > seq.length) vetoSteps.length = seq.length
+  const preds = predictForSequence(seq, modalSimStats, 'away')
+  for (let i = 0; i < seq.length; i++) {
+    if (!preds[i] || !preds[i].map) continue
+    vetoSteps[i].map = preds[i].map
+    vetoSteps[i]._predicted = true
+    vetoSteps[i]._confidence = preds[i].confidence
+  }
+  renderVetoBuilder()
+}
+
+attachTeamAutocomplete(vetoOppInput, team => {
+  updateVetoLogo(team.logo, team.name)
+  clearTimeout(modalSimTypingTimer)
+  refreshModalSim(team.name)
+})
 
 vetoOppInput.addEventListener('input', async () => {
   const n = vetoOppInput.value.trim()
   updateVetoLogo(n ? await getTeamLogo(n) : null, n)
+  clearTimeout(modalSimTypingTimer)
+  modalSimTypingTimer = setTimeout(() => refreshModalSim(n), 400)
+})
+
+// Format change resets vetoSteps, so re-apply predictions if we have them.
+document.getElementById('f-format').addEventListener('change', () => {
+  if (modalSimStats) autoFillFromSim()
 })
 
 function renderAll() { renderHero(); renderFilters(); renderList() }

@@ -111,6 +111,53 @@ const BO3_SEQUENCE = [
   { type: 'decider', team: null   },
 ]
 
+// Predict the picked team's map for each "them" step in an externally-provided
+// veto sequence (so callers can use any league's BO1/BO3 ordering — e.g. the
+// ESL away-home-home-away-away-home BO1 used in veto.js — without having to
+// adopt this module's BO1_SEQUENCE constant).
+//
+// `sequence` is an array of { type: 'ban' | 'pick' | 'decider', team }, where
+// `team === awayTeamKey` marks the picked team's turn. Returns an index-aligned
+// array of { map, confidence } | null.
+//
+// Tracks "used by them" so the team's later predictions don't repeat maps
+// they already banned/picked themselves. Home picks/bans are unknown so we
+// don't deduct them from the pool, but the decider falls back to whatever's
+// left among maps the OPPONENT didn't ban — close enough in practice.
+export function predictForSequence(sequence, stats, awayTeamKey = 'away') {
+  if (!Array.isArray(sequence) || !stats || !stats.totalMatches) {
+    return (sequence || []).map(() => null)
+  }
+  const themUsed = new Set()
+  let bSlot = 0, pSlot = 0
+  const preds = sequence.map(step => {
+    if (step.type === 'decider' || step.team !== awayTeamKey) return null
+    let counts
+    if (step.type === 'ban')  { counts = stats.banBySlot[bSlot]  || new Map(); bSlot++ }
+    else                      { counts = stats.pickBySlot[pSlot] || new Map(); pSlot++ }
+    const ranked = [...counts.entries()]
+      .filter(([m]) => !themUsed.has(m))
+      .sort((a, b) => b[1] - a[1])
+    const map = ranked.length ? ranked[0][0] : null
+    if (map) themUsed.add(map)
+    const confidence = map && stats.totalMatches ? ranked[0][1] / stats.totalMatches : null
+    return { map, confidence }
+  })
+  // Second pass for decider — pick the map most often left over for them,
+  // restricted to maps they didn't themselves ban.
+  for (let i = 0; i < sequence.length; i++) {
+    if (sequence[i].type !== 'decider') continue
+    const left = MAPS.filter(m => !themUsed.has(m))
+    const ranked = [...stats.leftoverByMap.entries()]
+      .filter(([m]) => left.includes(m))
+      .sort((a, b) => b[1] - a[1])
+    const map = ranked.length ? ranked[0][0] : (left[0] ?? null)
+    const confidence = map && stats.totalMatches && ranked.length ? ranked[0][1] / stats.totalMatches : null
+    preds[i] = { map, confidence }
+  }
+  return preds
+}
+
 // Run a step-by-step simulation. For 'them' (the picked team) we predict
 // using their per-slot frequencies; for 'opp' we placeholder. For decider
 // we pick the map most often left over for the team historically (or the

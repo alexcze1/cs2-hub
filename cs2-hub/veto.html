@@ -128,6 +128,41 @@
       background-color: var(--surface);
     }
     .vs-step-conf { text-align: right; font-size: 11px; color: var(--text-variant); font-variant-numeric: tabular-nums; }
+
+    /* ── Modal sim summary ────────────────────────────────── */
+    .vs-modal-summary {
+      background: var(--surface-low); border: 1px solid var(--border);
+      border-radius: var(--r-md); padding: 10px 12px;
+    }
+    .vs-modal-summary-head {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 10px; flex-wrap: wrap; margin-bottom: 8px;
+    }
+    .vs-modal-summary-title {
+      font-size: 12px; font-weight: 700; color: var(--text); letter-spacing: -0.005em;
+    }
+    .vs-modal-summary-meta {
+      font-size: 10px; color: var(--muted); letter-spacing: 0.08em;
+      text-transform: uppercase; font-weight: 600;
+    }
+    .vs-modal-fill-btn {
+      background: var(--accent); color: var(--accent-on);
+      border: 0; border-radius: var(--r-sm); cursor: pointer;
+      padding: 5px 12px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+    }
+    .vs-modal-fill-btn:hover { filter: brightness(1.1); }
+    .vs-modal-summary-chips {
+      display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+      font-size: 11px; color: var(--text-variant);
+    }
+    .vs-chip {
+      padding: 3px 8px; border-radius: 999px;
+      background: rgba(255,77,77,0.15); color: var(--danger);
+      font-weight: 600; font-size: 11px;
+    }
+    .vs-modal-empty { padding: 8px 10px; color: var(--muted); font-size: 12px; }
+    /* Predicted-step highlight in the builder */
+    .veto-builder-predicted { color: var(--special); font-size: 10px; font-weight: 700; letter-spacing: 0.08em; }
   </style>
 </head>
 <body>
@@ -184,6 +219,7 @@
             <input class="form-input" id="f-away" placeholder="Them" value="Them"/>
           </div>
         </div>
+        <div id="veto-sim-summary" style="margin-top:8px"></div>
         <div id="veto-builder" style="margin-top:8px"></div>
         <div class="form-group" style="margin-top:16px">
           <label class="form-label">Notes</label>
