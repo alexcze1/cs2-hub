@@ -45,49 +45,121 @@ export async function fetchTeamVetoHistory(teamName, { months = 3 } = {}) {
 }
 
 // ── Stats ────────────────────────────────────────────────────────
+//
+// computeStats v2 — adds recency weighting (exponential decay, half-life
+// 30 days) and per-map pick totals on top of the existing ban-slot /
+// pick-slot frequency counts. Older matches still count, just less.
 
-// For the picked team across all their matches, return:
-//   { banBySlot: [Map(map->count) for slot 0, 1, 2], pickBySlot,
-//     leftoverByMap, totalMatches }
-// slot 0 = the team's FIRST ban in a match, slot 1 = second, etc.
+const RECENCY_HALF_LIFE_DAYS = 30
+const MS_PER_DAY = 24 * 60 * 60 * 1000
+function recencyWeight(playedAt, now = Date.now()) {
+  if (!playedAt) return 1
+  const ageDays = Math.max(0, (now - new Date(playedAt).getTime()) / MS_PER_DAY)
+  return Math.pow(0.5, ageDays / RECENCY_HALF_LIFE_DAYS)
+}
+
+// Returns:
+//   banBySlot, pickBySlot   — Map(map → weighted count) per slot
+//   banByMapTotal, pickByMapTotal — Map(map → weighted count), all slots
+//   leftoverByMap           — Map(map → weighted count) of decider results
+//   totalMatches            — weighted count of the team's appearances
+//   rawMatches              — unweighted count (UI display)
 export function computeStats(vetos, teamName) {
   const target = norm(teamName)
-  const banBySlot = [new Map(), new Map(), new Map()]
-  const pickBySlot = [new Map(), new Map()]
-  const leftoverByMap = new Map()
-  const banByMapTotal = new Map()
+  const banBySlot     = [new Map(), new Map(), new Map()]
+  const pickBySlot    = [new Map(), new Map()]
+  const banByMapTotal  = new Map()
+  const pickByMapTotal = new Map()
+  const leftoverByMap  = new Map()
   let totalMatches = 0
+  let rawMatches   = 0
+  const now = Date.now()
 
   for (const v of vetos) {
     const seq = v.sequence || []
     if (!seq.length) continue
     const myActions = seq.filter(s => s.team && norm(s.team) === target)
     if (!myActions.length) continue
-    totalMatches++
+    const w = recencyWeight(v.played_at, now)
+    rawMatches += 1
+    totalMatches += w
     let bIdx = 0, pIdx = 0
     for (const s of myActions) {
       if (s.action === 'ban' && s.map) {
-        const total = banByMapTotal.get(s.map) || 0
-        banByMapTotal.set(s.map, total + 1)
+        banByMapTotal.set(s.map, (banByMapTotal.get(s.map) || 0) + w)
         if (bIdx < banBySlot.length) {
-          const m = banBySlot[bIdx]
-          m.set(s.map, (m.get(s.map) || 0) + 1)
+          banBySlot[bIdx].set(s.map, (banBySlot[bIdx].get(s.map) || 0) + w)
         }
         bIdx++
       } else if (s.action === 'pick' && s.map) {
+        pickByMapTotal.set(s.map, (pickByMapTotal.get(s.map) || 0) + w)
         if (pIdx < pickBySlot.length) {
-          const m = pickBySlot[pIdx]
-          m.set(s.map, (m.get(s.map) || 0) + 1)
+          pickBySlot[pIdx].set(s.map, (pickBySlot[pIdx].get(s.map) || 0) + w)
         }
         pIdx++
       }
     }
-    // Leftover/decider tracking — what map did they get left with?
     const decider = seq.find(s => s.action === 'decider' && s.map)
-    if (decider) leftoverByMap.set(decider.map, (leftoverByMap.get(decider.map) || 0) + 1)
+    if (decider) leftoverByMap.set(decider.map, (leftoverByMap.get(decider.map) || 0) + w)
   }
+  return { banBySlot, pickBySlot, banByMapTotal, pickByMapTotal, leftoverByMap, totalMatches, rawMatches }
+}
 
-  return { banBySlot, pickBySlot, leftoverByMap, banByMapTotal, totalMatches }
+// ── Map win rates from demos ──────────────────────────────────────
+//
+// Per-map W/L for a team, derived from the public demos we've ingested.
+// Returns Map(map → { wins, played, winRate }). Sparse data is the norm for
+// non-top-tier teams — the simulator's shrinkage rules handle that.
+export async function fetchTeamMapWinrates(teamName) {
+  const safe = (teamName || '').replace(/[(),]/g, '').trim()
+  const out = new Map()
+  if (!safe) return out
+  try {
+    const { data, error } = await supabase
+      .from('demos')
+      .select('map, team_a_name, team_b_name, team_a_score, team_b_score')
+      .eq('is_public', true)
+      .eq('status', 'ready')
+      .or(`team_a_name.ilike.${safe},team_b_name.ilike.${safe}`)
+      .not('map', 'is', null)
+      .limit(500)
+    if (error) throw error
+    const target = norm(teamName)
+    for (const d of data ?? []) {
+      const m = (d.map || '').replace(/^de_/, '')
+      if (!MAPS.includes(m)) continue
+      const tas = d.team_a_score, tbs = d.team_b_score
+      if (tas == null || tbs == null) continue
+      const isA = norm(d.team_a_name) === target
+      const isB = norm(d.team_b_name) === target
+      if (!isA && !isB) continue
+      const ourScore = isA ? tas : tbs
+      const oppScore = isA ? tbs : tas
+      const e = out.get(m) ?? { wins: 0, played: 0, winRate: 0 }
+      e.played++
+      if (ourScore > oppScore) e.wins++
+      out.set(m, e)
+    }
+    // Compute win rate per map
+    for (const e of out.values()) e.winRate = e.played ? e.wins / e.played : 0
+    return out
+  } catch (e) {
+    console.warn('[veto-sim] map winrate fetch failed', e)
+    return out
+  }
+}
+
+// Empirical Bayes shrinkage toward 0.5 with strength α. With α=4 it takes
+// ~4 matches before a 100% raw win rate shrinks below 80% on the adjusted.
+// Strong enough to avoid a "1 match = comfort pick" trap.
+const SHRINK_ALPHA = 4
+function shrinkWinRate(wr, played) {
+  if (!played) return 0.5
+  return (wr * played + 0.5 * SHRINK_ALPHA) / (played + SHRINK_ALPHA)
+}
+function getShrunkWR(stats, map) {
+  const wr = stats?.mapWinRates?.get(map)
+  return shrinkWinRate(wr?.winRate ?? 0.5, wr?.played ?? 0)
 }
 
 // ── Simulation ────────────────────────────────────────────────────
@@ -161,14 +233,89 @@ export function predictForSequence(sequence, stats, awayTeamKey = 'away') {
   return preds
 }
 
+// ── Multi-factor scoring ─────────────────────────────────────────
+//
+// At each step we score every still-legal map by combining:
+//   • slot frequency      — what the actor banned/picked at this slot before
+//   • overall ban/pick rate — soft perma-bans / comfort picks
+//   • own win rate        — strong → pick, weak → ban (shrunk for sample size)
+//   • opponent win rate   — opp strong → ban; opp weak → pick
+//   • leftover rate       — for the decider, what map historically survives
+// Output: per-map score, then softmax → pick the top. Confidence == its
+// probability under softmax, so it falls naturally between 0 and 1.
+
+// Weights — tuned by hand. Slot dominates for high-data teams; with sparse
+// data the shrunk win rates pull more weight.
+const W_SLOT_FREQ  = 1.4
+const W_TOTAL_RATE = 0.7
+const W_OWN_WEAK   = 0.9   // ban score: ban what we're weak on
+const W_OPP_STRONG = 0.7   // ban score: ban what opp is strong on
+const W_OWN_STRONG = 1.1   // pick score: pick what we're strong on
+const W_OPP_WEAK   = 0.6   // pick score: pick what opp is weak on
+const SOFTMAX_TEMP = 0.35  // lower = more deterministic top-pick
+
+function rateOf(counts, total) {
+  if (!total) return 0
+  return (counts || 0) / total
+}
+
+function scoreMap(map, step, stats, oppStats, slot) {
+  if (!stats || !stats.totalMatches) return 0
+  const slotCounts =
+    step.type === 'ban'  ? (stats.banBySlot[slot]  || new Map())
+    : step.type === 'pick' ? (stats.pickBySlot[slot] || new Map())
+    : new Map()
+  const slotShare = rateOf(slotCounts.get(map), stats.totalMatches)
+  const totalShare = step.type === 'ban'
+    ? rateOf(stats.banByMapTotal.get(map),  stats.totalMatches)
+    : rateOf(stats.pickByMapTotal.get(map), stats.totalMatches)
+  const ownWR = getShrunkWR(stats,    map)
+  const oppWR = getShrunkWR(oppStats, map)
+  let score = W_SLOT_FREQ * slotShare + W_TOTAL_RATE * totalShare
+  if (step.type === 'ban') {
+    score += W_OWN_WEAK   * (1 - ownWR)
+    score += W_OPP_STRONG * oppWR
+  } else {
+    score += W_OWN_STRONG * ownWR
+    score += W_OPP_WEAK   * (1 - oppWR)
+  }
+  return score
+}
+
+function softmax(scores) {
+  const vals = [...scores.values()]
+  if (!vals.length) return new Map()
+  const max = Math.max(...vals)
+  const exps = new Map()
+  for (const [k, v] of scores) exps.set(k, Math.exp((v - max) / SOFTMAX_TEMP))
+  const sum = [...exps.values()].reduce((s, v) => s + v, 0) || 1
+  const probs = new Map()
+  for (const [k, v] of exps) probs.set(k, v / sum)
+  return probs
+}
+
+function pickByScore(legalMaps, step, stats, oppStats, slot) {
+  if (!stats || !stats.totalMatches || !legalMaps.length) {
+    return { map: null, confidence: null, candidates: [] }
+  }
+  const scores = new Map()
+  for (const m of legalMaps) scores.set(m, scoreMap(m, step, stats, oppStats, slot))
+  const probs = softmax(scores)
+  const ranked = [...probs.entries()].sort((a, b) => b[1] - a[1])
+  return {
+    map:        ranked[0][0],
+    confidence: ranked[0][1],
+    candidates: ranked.slice(0, 3).map(([map, p]) => [map, p]),
+  }
+}
+
 // Run a step-by-step simulation in ESL BO1/BO3 order, predicting BOTH
 // sides when stats are available.
-//   awayStats — the picked / opponent team's stats (required)
-//   homeStats — our team's stats (optional; pass null to leave home steps blank
-//               for manual fill)
-// Maps a team has already played in this simulation are excluded for BOTH
-// teams via a global usedAll set — a map only gets banned/picked once per
-// match in real CS, so neither team can recycle it.
+//   awayStats — opponent (required) — should include mapWinRates
+//   homeStats — our team (optional) — should include mapWinRates
+//   format    — 'bo1' | 'bo3'
+// Maps used in earlier steps are excluded for both sides (global usedAll
+// set), and the actor's prior steps inform the slot count.
 export function simulateVeto(awayStats, homeStats, format) {
   const seq = format === 'bo3' ? BO3_SEQUENCE : BO1_SEQUENCE
   const usedAll = new Set()
@@ -177,54 +324,45 @@ export function simulateVeto(awayStats, homeStats, format) {
   let homeBan = 0, homePick = 0
 
   for (const step of seq) {
+    const legal = MAPS.filter(m => !usedAll.has(m))
     if (step.type === 'decider') {
-      const left = MAPS.filter(m => !usedAll.has(m))
+      // Score the remaining maps by combined leftover propensity. If we have
+      // away stats we lean on the opponent's leftover history; else home's.
+      const stats = awayStats?.totalMatches ? awayStats : homeStats
       let pick = null, confidence = null
-      // Try the picked team's historical leftover first — we usually care
-      // about what map the OPPONENT ends up on more than we do our own.
-      const decider = awayStats ?? homeStats
-      if (decider) {
-        const ranked = [...decider.leftoverByMap.entries()]
-          .filter(([m]) => left.includes(m))
-          .sort((a, b) => b[1] - a[1])
-        if (ranked.length) {
-          pick = ranked[0][0]
-          confidence = decider.totalMatches ? ranked[0][1] / decider.totalMatches : null
-        } else if (left.length) {
-          pick = left[0]
+      if (stats?.leftoverByMap?.size && legal.length) {
+        const scores = new Map()
+        for (const m of legal) {
+          scores.set(m, rateOf(stats.leftoverByMap.get(m), stats.totalMatches))
         }
-      } else if (left.length) {
-        pick = left[0]
+        const probs = softmax(scores)
+        const ranked = [...probs.entries()].sort((a, b) => b[1] - a[1])
+        pick = ranked[0]?.[0] ?? null
+        confidence = ranked[0]?.[1] ?? null
+      } else if (legal.length) {
+        pick = legal[0]
       }
       out.push({ ...step, map: pick, confidence })
       continue
     }
 
     const isAway = step.team === 'away'
-    const stats = isAway ? awayStats : homeStats
+    const stats  = isAway ? awayStats : homeStats
+    const opp    = isAway ? homeStats : awayStats
+    const slot   = step.type === 'ban'
+      ? (isAway ? awayBan : homeBan)
+      : (isAway ? awayPick : homePick)
+    if (step.type === 'ban') (isAway ? awayBan++ : homeBan++)
+    else                      (isAway ? awayPick++ : homePick++)
+
     if (!stats || !stats.totalMatches) {
-      // No data for this side — leave blank for the user to fill in.
-      if (step.type === 'ban') { if (isAway) awayBan++; else homeBan++ }
-      else                     { if (isAway) awayPick++; else homePick++ }
       out.push({ ...step, map: null, confidence: null })
       continue
     }
 
-    let counts, slot
-    if (step.type === 'ban') {
-      slot = isAway ? awayBan++ : homeBan++
-      counts = stats.banBySlot[slot] || new Map()
-    } else {
-      slot = isAway ? awayPick++ : homePick++
-      counts = stats.pickBySlot[slot] || new Map()
-    }
-    const ranked = [...counts.entries()]
-      .filter(([m]) => !usedAll.has(m))
-      .sort((a, b) => b[1] - a[1])
-    const pick = ranked.length ? ranked[0][0] : null
-    const confidence = pick && stats.totalMatches ? ranked[0][1] / stats.totalMatches : null
-    out.push({ ...step, map: pick, confidence, candidates: ranked.slice(0, 3) })
-    if (pick) usedAll.add(pick)
+    const { map, confidence, candidates } = pickByScore(legal, step, stats, opp, slot)
+    out.push({ ...step, map, confidence, candidates })
+    if (map) usedAll.add(map)
   }
   return out
 }
@@ -297,6 +435,10 @@ export function renderVetoSimulator(container, opts) {
   // step set (so opening for edit shows what the user actually saved). Else
   // freshly simulate using BOTH the opponent's stats and our team's stats.
   let steps
+  // Attach the opponent's map win rates so scoreMap can incorporate strength
+  // signals. Home stats arrive pre-attached.
+  stats.mapWinRates = opts.awayMapWinRates ?? new Map()
+
   if (editing && editing.format === format && Array.isArray(editing.steps) && editing.steps.length) {
     const fresh = simulateVeto(stats, homeStats, format)
     steps = editing.steps.map((s, i) => {
@@ -464,34 +606,38 @@ function renderBanBreakdown(stats) {
   const total = stats.totalMatches || 1
   const rows = MAPS.map(m => {
     const all = stats.banByMapTotal.get(m) || 0
-    const s1 = stats.banBySlot[0].get(m) || 0
-    const s2 = stats.banBySlot[1].get(m) || 0
-    const s3 = stats.banBySlot[2].get(m) || 0
+    const pickN = stats.pickByMapTotal?.get(m) || 0
     const left = stats.leftoverByMap.get(m) || 0
-    return { map: m, all, s1, s2, s3, left, pct: all / total }
+    const wrRow = stats.mapWinRates?.get(m)
+    const wr = wrRow?.played ? (wrRow.wins / wrRow.played) : null
+    return { map: m, all, pickN, left, pct: all / total, wr, wrPlayed: wrRow?.played ?? 0 }
   }).sort((a, b) => b.all - a.all)
 
   return `
     <table class="vs-ban-table">
       <thead>
-        <tr><th>Map</th><th>Banned</th><th>1st</th><th>2nd</th><th>3rd</th><th>Left over</th></tr>
+        <tr><th>Map</th><th>Ban rate</th><th>Pick rate</th><th>Win rate</th><th>Left over</th></tr>
       </thead>
       <tbody>
-        ${rows.map(r => `
-          <tr>
-            <td class="vs-map-cell">
-              <div class="vs-map-badge"><img src="${mapImg(r.map)}" alt="${esc(r.map)}"/></div>
-              <span>${esc(MAP_LABELS[r.map])}</span>
-            </td>
-            <td>
-              <div class="vs-bar"><div style="width:${Math.round(r.pct * 100)}%"></div></div>
-              <span class="vs-bar-label">${r.all}/${total}</span>
-            </td>
-            <td>${r.s1 || '—'}</td>
-            <td>${r.s2 || '—'}</td>
-            <td>${r.s3 || '—'}</td>
-            <td>${r.left || '—'}</td>
-          </tr>`).join('')}
+        ${rows.map(r => {
+          const wrLabel = r.wr == null
+            ? `<span class="vs-bar-label" style="opacity:0.5">—</span>`
+            : `<span class="vs-bar-label">${Math.round(r.wr * 100)}% <span style="opacity:0.6">(${r.wrPlayed})</span></span>`
+          return `
+            <tr>
+              <td class="vs-map-cell">
+                <div class="vs-map-badge"><img src="${mapImg(r.map)}" alt="${esc(r.map)}"/></div>
+                <span>${esc(MAP_LABELS[r.map])}</span>
+              </td>
+              <td>
+                <div class="vs-bar"><div style="width:${Math.round(r.pct * 100)}%"></div></div>
+                <span class="vs-bar-label">${Math.round(r.pct * 100)}%</span>
+              </td>
+              <td><span class="vs-bar-label">${r.pickN ? Math.round(r.pickN / total * 100) + '%' : '—'}</span></td>
+              <td>${wrLabel}</td>
+              <td>${r.left ? Math.round(r.left / total * 100) + '%' : '—'}</td>
+            </tr>`
+        }).join('')}
       </tbody>
     </table>`
 }

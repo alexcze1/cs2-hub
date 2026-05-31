@@ -3,7 +3,7 @@ import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
 import { attachTeamAutocomplete, getTeamLogo, teamLogoEl } from './team-autocomplete.js'
-import { fetchTeamVetoHistory, renderVetoSimulator, computeStats, savedVetoToHltvShape } from './veto-simulator.js'
+import { fetchTeamVetoHistory, renderVetoSimulator, computeStats, savedVetoToHltvShape, fetchTeamMapWinrates } from './veto-simulator.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -76,6 +76,7 @@ renderSidebar('veto')
 // teams row is missing.
 let ourTeamName = 'Us'
 let ourHltvVetos = []
+let ourMapWinRates = new Map()
 let ourStats     = null  // computeStats output for our team (HLTV + saved)
 
 try {
@@ -112,10 +113,14 @@ function recomputeOurStats() {
   ]
   if (!combined.length) { ourStats = null; return }
   ourStats = computeStats(combined, ourTeamName)
-  if (ourStats && !ourStats.totalMatches) ourStats = null
+  if (ourStats && !ourStats.totalMatches) { ourStats = null; return }
+  // Attach the demos-derived per-map win rates — scoreMap reads these for
+  // strength/weakness signals.
+  ourStats.mapWinRates = ourMapWinRates
 }
 
 await loadOurHltvVetos()
+ourMapWinRates = await fetchTeamMapWinrates(ourTeamName)
 
 // ── Veto simulator wiring ──────────────────────────────────────
 // The Simulate-veto-for panel doubles as the create/edit form. Loading an
@@ -176,12 +181,16 @@ async function runSimulation(teamName, { editing = null, format = 'bo1' } = {}) 
   }
   vsStatus.textContent = 'Loading…'
   try {
-    const data = await fetchTeamVetoHistory(name, { months: 3 })
+    const [data, awayMapWinRates] = await Promise.all([
+      fetchTeamVetoHistory(name, { months: 3 }),
+      fetchTeamMapWinrates(name),
+    ])
     if (myToken !== vsToken) return
     renderVetoSimulator(vsResult, {
       data,
       format: editing?.format ?? format,
       editing,
+      awayMapWinRates,
       homeStats: ourStats,
       ourName:   ourTeamName,
       onSave:   saveFromSimulator,
