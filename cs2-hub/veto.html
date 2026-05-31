@@ -175,51 +175,64 @@
     <section class="vs-section">
       <div class="vs-toolbar">
         <span class="vs-toolbar-label">Simulate veto for</span>
-        <div class="vs-team-input-wrap" style="display:flex;align-items:center;gap:10px">
-          <div id="veto-opp-logo"></div>
-          <input id="f-opponent" class="vs-team-input" placeholder="Pick a team (e.g. FaZe)" autocomplete="off" style="flex:1"/>
-        </div>
-        <div class="vs-format-toggle" id="f-format-seg">
-          <button type="button" class="vs-fmt-btn is-active" data-fmt="bo1">BO1</button>
-          <button type="button" class="vs-fmt-btn" data-fmt="bo3">BO3</button>
+        <div class="vs-team-input-wrap">
+          <input id="vs-team-input" class="vs-team-input" placeholder="Pick a team (e.g. FaZe)" autocomplete="off"/>
         </div>
         <span class="vs-status" id="vs-status"></span>
       </div>
-
-      <div id="veto-sim-summary"></div>
-      <div id="veto-builder" style="margin-top:14px"></div>
-
-      <div id="veto-save-row" style="display:none;margin-top:18px;padding:14px 16px;background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--r-lg);box-shadow:var(--shadow-card)">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">
-          <div>
-            <label class="form-label" style="font-size:10px">Title</label>
-            <input class="form-input" id="f-title" placeholder="e.g. vs TEAM NAME" style="padding:6px 10px;font-size:13px"/>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div>
-              <label class="form-label" style="font-size:10px">Home</label>
-              <input class="form-input" id="f-home" placeholder="Us" value="Us" style="padding:6px 10px;font-size:13px"/>
-            </div>
-            <div>
-              <label class="form-label" style="font-size:10px">Away</label>
-              <input class="form-input" id="f-away" placeholder="Them" value="Them" style="padding:6px 10px;font-size:13px"/>
-            </div>
-          </div>
-        </div>
-        <div>
-          <label class="form-label" style="font-size:10px">Notes</label>
-          <textarea class="form-textarea" id="f-notes" placeholder="Reasoning, tendencies…" style="min-height:50px;padding:8px 10px;font-size:13px"></textarea>
-        </div>
-        <div class="error-msg" id="save-error" style="display:none;margin-top:10px"></div>
-        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
-          <button class="btn btn-danger btn-sm" id="delete-btn" style="display:none;margin-right:auto">Delete</button>
-          <button class="btn btn-ghost" id="cancel-btn" style="display:none">Cancel edit</button>
-          <button class="btn btn-primary" id="save-btn">Save veto</button>
-        </div>
-      </div>
+      <div id="vs-result"></div>
     </section>
 
     <section id="veto-filters" class="dx-filters"></section>
+
+    <div class="modal-backdrop" id="modal" style="display:none">
+      <div class="modal" style="max-width:560px;width:100%">
+        <div class="modal-header">
+          <div class="modal-title" id="modal-title">New Veto</div>
+          <button class="modal-close" id="modal-close">×</button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Title</label>
+          <input class="form-input" id="f-title" placeholder="e.g. vs TEAM NAME"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Opponent</label>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div id="veto-opp-logo"></div>
+            <input class="form-input" id="f-opponent" placeholder="Opponent team name" style="flex:1"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Format</label>
+          <select class="form-select" id="f-format">
+            <option value="bo1">BO1</option>
+            <option value="bo3">BO3</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Home Team Label</label>
+            <input class="form-input" id="f-home" placeholder="Us" value="Us"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Away Team Label</label>
+            <input class="form-input" id="f-away" placeholder="Them" value="Them"/>
+          </div>
+        </div>
+        <div id="veto-sim-summary" style="margin-top:8px"></div>
+        <div id="veto-builder" style="margin-top:8px"></div>
+        <div class="form-group" style="margin-top:16px">
+          <label class="form-label">Notes</label>
+          <textarea class="form-textarea" id="f-notes" placeholder="Reasoning, tendencies…" style="min-height:60px"></textarea>
+        </div>
+        <div class="error-msg" id="modal-error" style="display:none"></div>
+        <div class="modal-actions">
+          <button class="btn btn-danger btn-sm" id="delete-btn" style="display:none;margin-right:auto">Delete</button>
+          <button class="btn btn-ghost" id="cancel-btn">Cancel</button>
+          <button class="btn btn-primary" id="save-btn">Save</button>
+        </div>
+      </div>
+    </div>
 
     <div id="veto-list"></div>
   </main>
