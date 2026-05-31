@@ -204,23 +204,20 @@ async function runSimulation(teamName, { editing = null, format = 'bo1' } = {}) 
     vsStatus.textContent = ''
     return
   }
-  // Kick off background HLTV syncs for BOTH the picked team and our own
-  // team. Server queues the work and returns immediately; each HLTV page
-  // is ~15-30s with CF, so a full team-sync takes 5-10 minutes. We DON'T
-  // await — the simulator reads whatever's currently in the DB and the
-  // user re-searches later to pick up any new rows. Server-side throttle
-  // (10 min per team) keeps dupe calls cheap.
-  const syncStatus = { queued: 0, throttled: 0 }
-  Promise.all([
-    syncTeamVetosFromHltv(name).then(r => r?.queued && syncStatus.queued++),
-    syncTeamVetosFromHltv(ourTeamName).then(r => r?.queued && syncStatus.queued++),
-  ])
-    .then(() => {
-      if (syncStatus.queued > 0) {
-        vsStatus.textContent = `Syncing ${syncStatus.queued} team${syncStatus.queued === 1 ? '' : 's'} from HLTV in background — refresh in a few min for the full window`
-      }
-    })
-    .catch(() => {}) // fire and forget
+  // Wait for the queue ACK from both syncs in parallel. The server returns
+  // immediately with {queued: true} or {queued: false, reason: 'throttled' |
+  // 'in_progress'} — the actual scraping happens in the background and
+  // takes 5-10 min per team (each HLTV match page is 15-30s with CF). We
+  // wait for the ACK so we KNOW whether a sync was queued and can surface
+  // that in the final status text.
+  vsStatus.textContent = 'Loading…'
+  const [syncForName, syncForOur] = await Promise.all([
+    syncTeamVetosFromHltv(name),
+    syncTeamVetosFromHltv(ourTeamName),
+  ]).catch(() => [null, null])
+  const queuedCount = (syncForName?.queued ? 1 : 0) + (syncForOur?.queued ? 1 : 0)
+  const inProgress  = (syncForName?.reason === 'in_progress' ? 1 : 0) +
+                      (syncForOur?.reason === 'in_progress' ? 1 : 0)
 
   // Always refresh home stats in case background syncs from earlier
   // searches finished.
@@ -228,7 +225,6 @@ async function runSimulation(teamName, { editing = null, format = 'bo1' } = {}) 
   ourMapWinRates = await fetchTeamMapWinrates(ourTeamName)
   recomputeOurStats()
 
-  vsStatus.textContent = 'Loading…'
   try {
     const [data, awayMapWinRates] = await Promise.all([
       fetchTeamVetoHistory(name, { months: 3 }),
@@ -246,9 +242,17 @@ async function runSimulation(teamName, { editing = null, format = 'bo1' } = {}) 
       onDelete: deleteFromSimulator,
       onCancel: cancelEditInSimulator,
     })
-    vsStatus.textContent = data.vetos.length
-      ? `${data.vetos.length} veto${data.vetos.length === 1 ? '' : 's'} found`
-      : 'no vetos'
+    // Final status: combine the count with persistent feedback about any
+    // background sync, so the user knows new rows are coming.
+    const base = data.vetos.length
+      ? `${data.vetos.length} veto${data.vetos.length === 1 ? '' : 's'}`
+      : 'no vetos yet'
+    const tail = queuedCount > 0
+      ? ` · syncing ${queuedCount} team${queuedCount === 1 ? '' : 's'} from HLTV — re-search in a few min for more`
+      : inProgress > 0
+        ? ` · HLTV sync still running in background`
+        : ''
+    vsStatus.textContent = base + tail
   } catch (e) {
     if (myToken !== vsToken) return
     console.error('[veto-sim] failed', e)
