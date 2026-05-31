@@ -219,7 +219,14 @@ async function preloadTeamNames() {
   // resolveTeamNames also handles public demos (no ct_team_name) by projecting
   // from team_a_name / team_b_name + score correlation, so we get real HLTV
   // names instead of "Team A / Team B".
-  const resolved = await fetchAndResolveTeamNames(demo)
+  let resolved
+  try {
+    resolved = await fetchAndResolveTeamNames(demo)
+  } catch (e) {
+    console.warn('[viewer] team-name resolve failed', e)
+    return
+  }
+  console.log('[viewer] resolved team names:', resolved)
   // Map back to roster A / roster B so the existing per-round side-swap
   // machinery keeps working unchanged.
   const aFirstSide = demo.team_a_first_side
@@ -230,14 +237,32 @@ async function preloadTeamNames() {
     _rosterAName = resolved.ctName || null
     _rosterBName = resolved.tName  || null
   }
-  if (!_rosterAName && !_rosterBName) return
+  if (!_rosterAName && !_rosterBName) {
+    console.warn('[viewer] no team names available for this demo', { id: demo.id, ct: demo.ct_team_name, t: demo.t_team_name, ta: demo.team_a_name, tb: demo.team_b_name })
+    return
+  }
 
-  if (_rosterAName) _rosterALogo = await getTeamLogo(_rosterAName)
-  if (_rosterBName) _rosterBLogo = await getTeamLogo(_rosterBName)
-
-  // Trigger initial header paint now that names/logos are loaded
+  // Paint names IMMEDIATELY — don't wait on the logo fetches. If getTeamLogo
+  // hangs or throws (network glitch, autocomplete-cache stuck), the header
+  // would otherwise stay on "CT / T" forever.
   const round0 = state.match.rounds[state.roundIdx] || state.match.rounds[0]
   applyTeamHeaderForRound(round0)
+
+  // Logos arrive separately and re-paint when ready.
+  try {
+    const [aLogo, bLogo] = await Promise.all([
+      _rosterAName ? getTeamLogo(_rosterAName).catch(() => null) : Promise.resolve(null),
+      _rosterBName ? getTeamLogo(_rosterBName).catch(() => null) : Promise.resolve(null),
+    ])
+    _rosterALogo = aLogo
+    _rosterBLogo = bLogo
+    // Force a re-paint — the dedup key needs to be reset so the second call
+    // doesn't bail early.
+    _lastSideKey = null
+    applyTeamHeaderForRound(state.match.rounds[state.roundIdx] || state.match.rounds[0])
+  } catch (e) {
+    console.warn('[viewer] team-logo load failed', e)
+  }
 }
 
 function applyTeamHeaderForRound(round) {
