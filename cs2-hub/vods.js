@@ -17,7 +17,7 @@ import { renderMatchReports } from './vods-match-reports.js'
 import { splitVodsByWindow } from './vods-trend.js'
 import { mountPlayerPanel } from './vods-player-panel.js'
 import { buildPlayerDrawerBody, buildSubtitle } from './roster-stats-render.js'
-import { linkDemosToVods } from './auto-fill-vod.js'
+import { linkDemosToVods, scoresFromDemo } from './auto-fill-vod.js'
 import { attachTeamAutocomplete } from './team-autocomplete.js'
 import { fetchOpponentOverview, renderOpponentOverview } from './opponent-overview.js'
 
@@ -165,28 +165,38 @@ let state = { filter: null, mapFilter: null, dataset: null, openPlayerId: null }
 let _autoCreatedVodsOnce = false   // run the auto-import once per page load
 
 
-// Auto-create vod rows for public (HLTV) demos that feature our team but
-// aren't linked to any existing vod. Series demos collapse into one vod
-// (one row, maps[] entry per game). Idempotent across reloads thanks to
-// the unique (team_id, external_uid) index — we key external_uid off the
-// demo's series_id (or its own id for stand-alone demos), so re-running
-// just no-ops on rows we already inserted.
-async function autoCreateVodsForPublicDemos(demos, demoToVod) {
+// Auto-create vod rows for ANY demos that feature our team but aren't
+// linked to an existing vod — covers team-uploaded scrims/scout demos
+// AND public HLTV demos. Series demos collapse into one vod (one row,
+// one maps[] entry per game).
+//
+// Idempotent across reloads thanks to the unique (team_id, external_uid)
+// index — external_uid is keyed off series_id (or demo.id for solo demos),
+// so re-running just no-ops on rows we already inserted.
+async function autoCreateVodsFromDemos(demos, demoToVod) {
   const target = (ourTeamName || '').trim().toLowerCase()
   if (!target) return 0
 
   const groups = new Map()   // groupKey → { opponent, date, maps: [...] }
   for (const d of demos || []) {
-    if (!d.is_public) continue
     if (demoToVod.has(d.id)) continue
-    if (d.team_a_score == null || d.team_b_score == null) continue
-    const ta = (d.team_a_name || '').trim()
-    const tb = (d.team_b_name || '').trim()
-    if (!ta || !tb) continue
-    let opp = null, ourScore = null, oppScore = null
-    if (ta.toLowerCase() === target)      { opp = tb; ourScore = d.team_a_score; oppScore = d.team_b_score }
-    else if (tb.toLowerCase() === target) { opp = ta; ourScore = d.team_b_score; oppScore = d.team_a_score }
-    else continue   // IGN-found demos can't be auto-attributed — skip
+
+    // Identify opponent. ct_team_name / t_team_name are the parser's per-
+    // side labels — set by the user via assign-teams-modal on team uploads,
+    // and projected by fetchDemosForVodWindow for name-matched public demos.
+    const ct = (d.ct_team_name || '').trim()
+    const t  = (d.t_team_name  || '').trim()
+    let opp = null
+    if (ct && ct.toLowerCase() === target) opp = t || null
+    else if (t && t.toLowerCase() === target) opp = ct || null
+    else continue
+    if (!opp) continue
+
+    // scoresFromDemo derives score_us / score_them from team_a_score +
+    // team_a_first_side + the ct/t name mapping — exact same path the
+    // existing demo→vod auto-link uses.
+    const scores = scoresFromDemo(d, opp)
+    if (!scores) continue
 
     const groupKey = d.series_id ?? `demo:${d.id}`
     const dateRaw = d.played_at || d.created_at || null
@@ -194,8 +204,8 @@ async function autoCreateVodsForPublicDemos(demos, demoToVod) {
     if (dateRaw && (!e.date || dateRaw < e.date)) e.date = dateRaw
     e.maps.push({
       map:        (d.map || '').replace(/^de_/, ''),
-      score_us:   ourScore,
-      score_them: oppScore,
+      score_us:   scores.score_us,
+      score_them: scores.score_them,
     })
     groups.set(groupKey, e)
   }
@@ -208,7 +218,7 @@ async function autoCreateVodsForPublicDemos(demos, demoToVod) {
     opponent:     g.opponent,
     match_type:   'tournament',
     maps:         g.maps,
-    external_uid: `hltv:${key}`,
+    external_uid: `demo:${key}`,
     dismissed:    false,
   })).filter(r => r.match_date)
 
@@ -641,12 +651,13 @@ async function rebuild(filter) {
   const union = [...currentFiltered, ...priorFiltered]
   const data = await fetchDemosForVodWindow(union, filter, ctx)
 
-  // Once per page load (own-team mode only), turn any public HLTV demos
-  // that don't already link to a vod into vod rows so they show up in the
-  // matches list. Idempotent across reloads via external_uid unique index.
+  // Once per page load (own-team mode only), turn any demos that don't
+  // already link to a vod into vod rows so they show up in the matches
+  // list. Covers team-uploaded scrims AND public HLTV demos. Idempotent
+  // across reloads via the external_uid unique index.
   if (!isScout && !_autoCreatedVodsOnce) {
     _autoCreatedVodsOnce = true
-    const created = await autoCreateVodsForPublicDemos(data.demos, data.demoToVod)
+    const created = await autoCreateVodsFromDemos(data.demos, data.demoToVod)
     if (created > 0) {
       await reloadAllVods()
       // Re-run rebuild with the new vods in scope — guard above prevents a
