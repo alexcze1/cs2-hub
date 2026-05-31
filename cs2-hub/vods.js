@@ -212,26 +212,40 @@ async function autoCreateVodsFromDemos(demos, demoToVod) {
 
   if (!groups.size) return 0
 
-  const rows = [...groups.entries()].map(([key, g]) => ({
-    team_id:      teamId,
-    match_date:   (g.date || '').slice(0, 10),
-    opponent:     g.opponent,
-    match_type:   'tournament',
-    maps:         g.maps,
-    external_uid: `demo:${key}`,
-    dismissed:    false,
-  })).filter(r => r.match_date)
+  // Build rows. Single prefix on external_uid — series:<uuid> for grouped
+  // demos, demo:<uuid> for standalones.
+  const allRows = [...groups.entries()].map(([key, g]) => {
+    const uid = key.startsWith('demo:') ? key : `series:${key}`
+    return {
+      team_id:      teamId,
+      match_date:   (g.date || '').slice(0, 10),
+      opponent:     g.opponent,
+      match_type:   'tournament',
+      maps:         g.maps,
+      external_uid: uid,
+      dismissed:    false,
+    }
+  }).filter(r => r.match_date)
 
+  if (!allRows.length) return 0
+
+  // The unique index on (team_id, external_uid) is partial (WHERE external_uid
+  // IS NOT NULL), which Supabase's PostgREST upsert can't match. Easier to
+  // SELECT what's already there and insert only the new ones.
+  let existing = new Set()
+  try {
+    const uids = allRows.map(r => r.external_uid)
+    const { data } = await supabase
+      .from('vods').select('external_uid').eq('team_id', teamId).in('external_uid', uids)
+    existing = new Set((data ?? []).map(r => r.external_uid))
+  } catch (e) { console.warn('[auto-vod] existing-lookup failed', e) }
+
+  const rows = allRows.filter(r => !existing.has(r.external_uid))
   if (!rows.length) return 0
 
   try {
-    const { error } = await supabase
-      .from('vods')
-      .upsert(rows, { onConflict: 'team_id,external_uid', ignoreDuplicates: true })
-    if (error) {
-      console.warn('[auto-vod] upsert failed', error)
-      return 0
-    }
+    const { error } = await supabase.from('vods').insert(rows)
+    if (error) { console.warn('[auto-vod] insert failed', error); return 0 }
     return rows.length
   } catch (e) {
     console.warn('[auto-vod] failed', e); return 0
