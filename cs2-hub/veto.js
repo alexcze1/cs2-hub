@@ -3,6 +3,7 @@ import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
 import { attachTeamAutocomplete, getTeamLogo, teamLogoEl } from './team-autocomplete.js'
+import { fetchTeamVetoHistory, renderVetoSimulator } from './veto-simulator.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -85,6 +86,48 @@ function mapBg(map)   { return map ? `images/maps/${mapFile(map)}.png` : '' }
 
 await requireAuth()
 renderSidebar('veto')
+
+// ── Veto simulator wiring ──────────────────────────────────────
+const vsInput  = document.getElementById('vs-team-input')
+const vsStatus = document.getElementById('vs-status')
+const vsResult = document.getElementById('vs-result')
+let vsToken = 0
+let vsTypingTimer = null
+
+async function runSimulation(teamName) {
+  const myToken = ++vsToken
+  const name = (teamName || '').trim()
+  if (!name) {
+    vsResult.innerHTML = ''
+    vsStatus.textContent = ''
+    return
+  }
+  vsStatus.textContent = 'Loading…'
+  try {
+    const data = await fetchTeamVetoHistory(name, { months: 3 })
+    if (myToken !== vsToken) return
+    renderVetoSimulator(vsResult, { data, format: 'bo1' })
+    vsStatus.textContent = data.vetos.length
+      ? `${data.vetos.length} veto${data.vetos.length === 1 ? '' : 's'} found`
+      : 'no vetos'
+  } catch (e) {
+    if (myToken !== vsToken) return
+    console.error('[veto-sim] failed', e)
+    vsResult.innerHTML = `<div class="vs-empty"><h3>Couldn't load veto history</h3><p>${esc(e.message || e)}</p></div>`
+    vsStatus.textContent = ''
+  }
+}
+
+if (vsInput) {
+  attachTeamAutocomplete(vsInput, team => {
+    clearTimeout(vsTypingTimer)
+    runSimulation(team.name)
+  })
+  vsInput.addEventListener('input', () => {
+    clearTimeout(vsTypingTimer)
+    vsTypingTimer = setTimeout(() => runSimulation(vsInput.value), 400)
+  })
+}
 
 const FILTER_LS_KEY = 'veto:filter:v1'
 const DEFAULT_FILTER = { format: 'all', opponent: 'all', q: '' }
