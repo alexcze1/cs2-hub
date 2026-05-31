@@ -5,7 +5,6 @@ import { toast } from './toast.js'
 import { attachTeamAutocomplete, getTeamLogo, teamLogoEl } from './team-autocomplete.js'
 import { MAP_POSITIONS } from './map-positions.js'
 import { renderPositionsGrid, renderPlanSheet, ensureMapAntistrat } from './antistrat-editor.js'
-import { fetchOpponentOverview, renderOpponentOverview } from './opponent-overview.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -247,52 +246,15 @@ if (initialName) {
   updateLogoPreview(null, '')
 }
 
-// ── Auto-fetched HLTV overview (matches + roster + map pool) ──
-// Debounce so typing in the name field doesn't fire a query on every keystroke.
-const overviewSlot   = document.getElementById('opp-overview-slot')
-const overviewStatus = document.getElementById('opp-overview-status')
-let overviewToken = 0
-async function refreshOverview(teamName) {
-  const myToken = ++overviewToken
-  const name = (teamName || '').trim()
-  if (!name) {
-    overviewSlot.innerHTML = ''
-    overviewStatus.textContent = ''
-    return
-  }
-  overviewStatus.textContent = 'Loading…'
-  try {
-    const data = await fetchOpponentOverview(name)
-    if (myToken !== overviewToken) return  // stale — newer fetch is in flight
-    renderOpponentOverview(overviewSlot, data)
-    overviewStatus.textContent = data && data.demos.length
-      ? `${data.demos.length} match${data.demos.length === 1 ? '' : 'es'}`
-      : ''
-  } catch (e) {
-    if (myToken !== overviewToken) return
-    console.error('[opponent-overview] fetch failed', e)
-    overviewSlot.innerHTML = `<div class="opp-card-empty">Couldn't load HLTV matches: ${esc(e.message || e)}</div>`
-    overviewStatus.textContent = ''
-  }
-}
-
-if (initialName) refreshOverview(initialName)
-
-let nameTypingTimer = null
-
 attachTeamAutocomplete(nameInput, team => {
   updateLogoPreview(team.logo, team.name)
-  clearTimeout(nameTypingTimer)
-  refreshOverview(team.name)
 })
 
 nameInput.addEventListener('input', async () => {
   const n = nameInput.value.trim()
-  if (!n) { updateLogoPreview(null, ''); refreshOverview(''); return }
+  if (!n) { updateLogoPreview(null, ''); return }
   const logo = await getTeamLogo(n)
   updateLogoPreview(logo, n)
-  clearTimeout(nameTypingTimer)
-  nameTypingTimer = setTimeout(() => refreshOverview(n), 400)
 })
 
 // ── Save ────────────────────────────────────────────────────

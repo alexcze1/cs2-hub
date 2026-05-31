@@ -18,6 +18,8 @@ import { splitVodsByWindow } from './vods-trend.js'
 import { mountPlayerPanel } from './vods-player-panel.js'
 import { buildPlayerDrawerBody, buildSubtitle } from './roster-stats-render.js'
 import { linkDemosToVods } from './auto-fill-vod.js'
+import { attachTeamAutocomplete } from './team-autocomplete.js'
+import { fetchOpponentOverview, renderOpponentOverview } from './opponent-overview.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -64,6 +66,69 @@ if (allVods.length === 0) {
   document.getElementById('rr-map-pool').innerHTML = ''
   document.getElementById('rr-match-reports').innerHTML = ''
 }
+
+// ── Scope toggle (own team ↔ scout another team) ────────────────
+const ownBlocks    = document.getElementById('rr-own-blocks')
+const scoutBlocks  = document.getElementById('rr-scout-blocks')
+const scoutSlot    = document.getElementById('rr-scout-slot')
+const scoutWrap    = document.getElementById('rr-scope-team-wrap')
+const scoutInput   = document.getElementById('rr-scope-team-input')
+const scoutStatus  = document.getElementById('rr-scope-status')
+const scopeSeg     = document.getElementById('rr-scope-seg')
+
+let scopeMode = 'own'   // 'own' | 'other'
+let scoutToken = 0      // request-id to discard stale fetches
+
+function setScopeMode(mode) {
+  scopeMode = mode
+  for (const btn of scopeSeg.querySelectorAll('button')) {
+    btn.classList.toggle('active', btn.dataset.mode === mode)
+  }
+  ownBlocks.style.display   = (mode === 'own')   ? '' : 'none'
+  scoutBlocks.style.display = (mode === 'other') ? '' : 'none'
+  scoutWrap.style.display   = (mode === 'other') ? '' : 'none'
+  if (mode === 'other' && !scoutSlot.innerHTML) {
+    scoutSlot.innerHTML = `<div class="opp-card-empty" style="padding:32px;text-align:center">Pick a team above to load their HLTV matches.</div>`
+  }
+}
+
+async function refreshScout(teamName) {
+  const myToken = ++scoutToken
+  const name = (teamName || '').trim()
+  if (!name) {
+    scoutSlot.innerHTML = `<div class="opp-card-empty" style="padding:32px;text-align:center">Pick a team above to load their HLTV matches.</div>`
+    scoutStatus.textContent = ''
+    return
+  }
+  scoutStatus.textContent = 'Loading…'
+  try {
+    const data = await fetchOpponentOverview(name)
+    if (myToken !== scoutToken) return
+    renderOpponentOverview(scoutSlot, data)
+    scoutStatus.textContent = data && data.demos.length
+      ? `${data.demos.length} match${data.demos.length === 1 ? '' : 'es'}`
+      : ''
+  } catch (e) {
+    if (myToken !== scoutToken) return
+    console.error('[scout] fetch failed', e)
+    scoutSlot.innerHTML = `<div class="opp-card-empty">Couldn't load HLTV matches: ${esc(e.message || e)}</div>`
+    scoutStatus.textContent = ''
+  }
+}
+
+for (const btn of scopeSeg.querySelectorAll('button')) {
+  btn.addEventListener('click', () => setScopeMode(btn.dataset.mode))
+}
+
+let scoutTypingTimer = null
+attachTeamAutocomplete(scoutInput, team => {
+  clearTimeout(scoutTypingTimer)
+  refreshScout(team.name)
+})
+scoutInput.addEventListener('input', () => {
+  clearTimeout(scoutTypingTimer)
+  scoutTypingTimer = setTimeout(() => refreshScout(scoutInput.value), 400)
+})
 
 // ── State ────────────────────────────────────────────────────────
 let state = { filter: null, mapFilter: null, dataset: null, openPlayerId: null }
