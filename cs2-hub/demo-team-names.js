@@ -71,13 +71,21 @@ export function resolveTeamNames(demo, teamStatsRows) {
 // Convenience: fetch + resolve in one call. Caller already has the demo row
 // but no team_stats rows. Returns the same shape as resolveTeamNames.
 export async function fetchAndResolveTeamNames(demo) {
-  if (!demo?.id) return { ctName: null, tName: null, ctLetter: null, tLetter: null }
+  if (!demo) return { ctName: null, tName: null, ctLetter: null, tLetter: null }
   if (demo.ct_team_name && demo.t_team_name) {
     return resolveTeamNames(demo, [])
   }
-  const { data } = await supabase
-    .from('demo_team_stats')
-    .select('team, ct_round_wins, t_round_wins')
-    .eq('demo_id', demo.id)
-  return resolveTeamNames(demo, data ?? [])
+  // Fetch team_stats for score correlation when we have an id. Without an id
+  // (caller forgot to SELECT it), fall back to the resolver's default mapping
+  // — better to show actual team names with a possible side swap than to show
+  // literal "CT / T" forever.
+  let stats = []
+  if (demo.id) {
+    const { data } = await supabase
+      .from('demo_team_stats')
+      .select('team, ct_round_wins, t_round_wins')
+      .eq('demo_id', demo.id)
+    stats = data ?? []
+  }
+  return resolveTeamNames(demo, stats)
 }

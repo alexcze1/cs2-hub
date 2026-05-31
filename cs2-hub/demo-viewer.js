@@ -52,7 +52,7 @@ const loadingEl = document.getElementById('viewer-loading')
 
 const { data: demo, error } = await supabase
   .from('demos')
-  .select('is_public,match_data_url,map,status,ct_team_name,t_team_name,team_a_name,team_b_name,team_a_first_side,team_a_score,team_b_score,series_id')
+  .select('id,is_public,match_data_url,map,status,ct_team_name,t_team_name,team_a_name,team_b_name,team_a_first_side,team_a_score,team_b_score,series_id')
   .eq('id', demoId)
   .single()
 
