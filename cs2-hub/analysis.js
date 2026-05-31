@@ -504,7 +504,35 @@ async function reloadRoundSet() {
 
     let isRosterA = null
 
-    // (a) IGN evidence — for every sid in the slim's player meta, check
+    // (a) Score correlation (public demos). HLTV gives us team_a_score and
+    // team_b_score keyed to HLTV's team_a_name / team_b_name. The slim's
+    // per-round winner + side_team_a let us sum the parser's team-A wins.
+    // If that sum equals HLTV's team_a_score, parser's team A = HLTV's team A
+    // and the user matches HLTV's team_a_name iff the selected name does.
+    // If it equals team_b_score, parser's team A = HLTV's team B and the
+    // mapping is reversed. Works without any HLTV-roster data, so it fixes
+    // lower-tier teams that aren't in hltv_players.
+    if (demo.is_public && demo.team_a_name && demo.team_b_name &&
+        demo.team_a_score != null && demo.team_b_score != null &&
+        Array.isArray(slim.rounds) && slim.rounds.length) {
+      let parserA = 0
+      for (const r of slim.rounds) {
+        if (r.winner && r.side_team_a && r.winner === r.side_team_a) parserA++
+      }
+      const ta = demo.team_a_score, tb = demo.team_b_score
+      if (parserA === ta && ta !== tb) {
+        // parser's team A == HLTV's team A
+        const userIsHltvA = norm(demo.team_a_name) === targetName
+        isRosterA = userIsHltvA
+      } else if (parserA === tb && ta !== tb) {
+        // parser's team A == HLTV's team B (projection was reversed)
+        const userIsHltvB = norm(demo.team_b_name) === targetName
+        isRosterA = userIsHltvB
+      }
+      // ta === tb (tied scores) → ambiguous; fall through to (b)/(c)
+    }
+
+    // (b) IGN evidence — for every sid in the slim's player meta, check
     // whether their name matches the user's HLTV roster. Then count those
     // matched sids per starting side (round 0's first frame, before any
     // halftime swap). Whichever side has more matches is the user's team.
@@ -514,7 +542,7 @@ async function reloadRoundSet() {
     // demos with mid-game stand-ins. We now accept any non-zero plurality —
     // a single distinctive IGN like "ZywOo" or "broky" landing on one side
     // and not the other is conclusive evidence on its own.
-    if (rosterIgns.size > 0) {
+    if (isRosterA === null && rosterIgns.size > 0) {
       const frame0 = (slim.frames || []).find(f => f.round_idx === 0)
       if (frame0) {
         let ctMatches = 0, tMatches = 0
@@ -534,10 +562,18 @@ async function reloadRoundSet() {
       }
     }
 
-    // (b) Name comparison fallback — works for team-uploaded demos (where
-    // ct_team_name / t_team_name were set by the user via assign-teams-modal)
-    // and for any demo where IGN evidence is ambiguous.
+    // (c) Name comparison — only safe for team-uploaded demos, where
+    // ct_team_name / t_team_name were set by the user via assign-teams-modal
+    // and are reliable. For PUBLIC demos with no evidence, the projected
+    // ct_team_name is wrong ~50% of the time (HLTV team_a_name vs parser
+    // team_a label mismatch), and using it pollutes the panel with the
+    // opposing roster. Drop the demo instead — fewer rounds is better than
+    // wrong rounds. Most public demos resolve via (a) or (b); only a handful
+    // (tied scores, missing roster) hit this drop path.
     if (isRosterA === null) {
+      if (demo.is_public) {
+        continue
+      }
       if (aFirstSide === 'ct')      isRosterA = norm(demo.ct_team_name) === targetName
       else if (aFirstSide === 't')  isRosterA = norm(demo.t_team_name) === targetName
       else                          isRosterA = norm(demo.ct_team_name) === targetName
