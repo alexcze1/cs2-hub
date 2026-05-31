@@ -3,7 +3,7 @@ import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
 import { attachTeamAutocomplete, getTeamLogo, teamLogoEl } from './team-autocomplete.js'
-import { fetchTeamVetoHistory, renderVetoSimulator, computeStats, predictForSequence } from './veto-simulator.js'
+import { fetchTeamVetoHistory, computeStats, predictForSequence } from './veto-simulator.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -87,47 +87,10 @@ function mapBg(map)   { return map ? `images/maps/${mapFile(map)}.png` : '' }
 await requireAuth()
 renderSidebar('veto')
 
-// ── Veto simulator wiring ──────────────────────────────────────
-const vsInput  = document.getElementById('vs-team-input')
+// Simulator + save form share the same #f-opponent input. The standalone
+// "Simulate veto for" panel was rolled into the create/edit flow further
+// down, so all the wiring lives there now.
 const vsStatus = document.getElementById('vs-status')
-const vsResult = document.getElementById('vs-result')
-let vsToken = 0
-let vsTypingTimer = null
-
-async function runSimulation(teamName) {
-  const myToken = ++vsToken
-  const name = (teamName || '').trim()
-  if (!name) {
-    vsResult.innerHTML = ''
-    vsStatus.textContent = ''
-    return
-  }
-  vsStatus.textContent = 'Loading…'
-  try {
-    const data = await fetchTeamVetoHistory(name, { months: 3 })
-    if (myToken !== vsToken) return
-    renderVetoSimulator(vsResult, { data, format: 'bo1' })
-    vsStatus.textContent = data.vetos.length
-      ? `${data.vetos.length} veto${data.vetos.length === 1 ? '' : 's'} found`
-      : 'no vetos'
-  } catch (e) {
-    if (myToken !== vsToken) return
-    console.error('[veto-sim] failed', e)
-    vsResult.innerHTML = `<div class="vs-empty"><h3>Couldn't load veto history</h3><p>${esc(e.message || e)}</p></div>`
-    vsStatus.textContent = ''
-  }
-}
-
-if (vsInput) {
-  attachTeamAutocomplete(vsInput, team => {
-    clearTimeout(vsTypingTimer)
-    runSimulation(team.name)
-  })
-  vsInput.addEventListener('input', () => {
-    clearTimeout(vsTypingTimer)
-    vsTypingTimer = setTimeout(() => runSimulation(vsInput.value), 400)
-  })
-}
 
 const FILTER_LS_KEY = 'veto:filter:v1'
 const DEFAULT_FILTER = { format: 'all', opponent: 'all', q: '' }
@@ -149,8 +112,19 @@ const heroEl    = document.getElementById('veto-hero')
 const filtersEl = document.getElementById('veto-filters')
 const listEl    = document.getElementById('veto-list')
 
+// Format is now a segmented pill control. Helpers below read/write the
+// currently-active segment.
+function getFormat() {
+  const active = document.querySelector('#f-format-seg .vs-fmt-btn.is-active')
+  return active?.dataset.fmt === 'bo3' ? 'bo3' : 'bo1'
+}
+function setFormat(fmt) {
+  for (const btn of document.querySelectorAll('#f-format-seg .vs-fmt-btn')) {
+    btn.classList.toggle('is-active', btn.dataset.fmt === fmt)
+  }
+}
 function getSequence() {
-  return document.getElementById('f-format').value === 'bo3' ? BO3_SEQUENCE : BO1_SEQUENCE
+  return getFormat() === 'bo3' ? BO3_SEQUENCE : BO1_SEQUENCE
 }
 
 function renderVetoBuilder() {
@@ -233,15 +207,11 @@ function renderHero() {
           <div class="dx-kv"><div class="dx-kv-k">Top opponent</div><div class="dx-kv-v">${s.topOpponent ? esc(s.topOpponent) : '—'}</div></div>
           <div class="dx-kv"><div class="dx-kv-k">Most banned</div><div class="dx-kv-v">${s.mostBanned ? esc(MAP_LABELS[s.mostBanned] ?? s.mostBanned) : '—'}</div></div>
         </div>
-        <div class="dx-hero-actions">
-          <button type="button" class="dx-upload-cta" id="new-veto-btn">+ New Veto</button>
-        </div>
       </div>
       <div class="dx-hero-right">
         ${wash ? `<div class="dx-hero-mapwash" style="background-image:url('${esc(wash)}')"></div>` : ''}
       </div>
     </div>`
-  document.getElementById('new-veto-btn').addEventListener('click', () => openModal())
 }
 
 // ── Filters ───────────────────────────────────────────────────
@@ -313,7 +283,11 @@ function renderList() {
   const vetoIndex = new Map(state.vetos.map((v, i) => [v.id, i]))
   listEl.innerHTML = `<div class="veto-grid">${filtered.map(v => vetoCard(v, state.logos[vetoIndex.get(v.id)])).join('')}</div>`
   for (const btn of listEl.querySelectorAll('[data-edit]')) {
-    btn.addEventListener('click', e => { e.stopPropagation(); openModal(btn.dataset.edit) })
+    btn.addEventListener('click', e => {
+      e.stopPropagation()
+      const v = state.vetos.find(x => String(x.id) === String(btn.dataset.edit))
+      if (v) loadVetoIntoForm(v)
+    })
   }
 }
 
@@ -353,66 +327,100 @@ function vetoCard(v, logo) {
   </div>`
 }
 
-// ── Modal ─────────────────────────────────────────────────────
-function openModal(id = null) {
-  editingId = id
-  const v = id ? state.vetos.find(x => String(x.id) === String(id)) : null
-  document.getElementById('modal-title').textContent = id ? 'Edit Veto' : 'New Veto'
+// ── Inline create/edit (no more modal) ────────────────────────
+// Loading an existing veto into the inline form: card → Edit jumps here.
+function loadVetoIntoForm(v) {
+  editingId = v?.id ?? null
   document.getElementById('f-title').value    = v?.title    ?? ''
   const opp = v?.opponent ?? ''
   document.getElementById('f-opponent').value = opp
   getTeamLogo(opp).then(logo => updateVetoLogo(logo, opp))
-  document.getElementById('f-format').value   = v?.format   ?? 'bo1'
-  document.getElementById('f-notes').value    = v?.notes    ?? ''
-  document.getElementById('f-home').value     = v?.home     ?? 'Us'
-  document.getElementById('f-away').value     = v?.away     ?? 'Them'
+  setFormat(v?.format ?? 'bo1')
+  document.getElementById('f-notes').value = v?.notes ?? ''
+  document.getElementById('f-home').value  = v?.home  ?? 'Us'
+  document.getElementById('f-away').value  = v?.away  ?? 'Them'
   vetoSteps = v?.steps ? JSON.parse(JSON.stringify(v.steps)) : []
-  document.getElementById('delete-btn').style.display = id ? 'block' : 'none'
-  document.getElementById('modal-error').style.display = 'none'
-  // Clear any stale sim from a previous open, then refire for the new opponent.
+  document.getElementById('delete-btn').style.display = v?.id ? 'block' : 'none'
+  document.getElementById('cancel-btn').style.display = v?.id ? 'inline-flex' : 'none'
+  document.getElementById('save-error').style.display = 'none'
   modalSimStats = null
   document.getElementById('veto-sim-summary').innerHTML = ''
   renderVetoBuilder()
-  document.getElementById('modal').style.display = 'flex'
+  // Always show the save row when editing an existing veto (even if the sim
+  // turns up empty — the user already has data to save).
+  document.getElementById('veto-save-row').style.display = ''
   if (opp) refreshModalSim(opp)
-}
-function closeModal() {
-  document.getElementById('modal').style.display = 'none'
-  editingId = null
-  modalSimStats = null
-  document.getElementById('veto-sim-summary').innerHTML = ''
+  // Scroll the form into view so the user sees what they're editing.
+  document.querySelector('.vs-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
-document.getElementById('modal-close').addEventListener('click', closeModal)
-document.getElementById('cancel-btn').addEventListener('click', closeModal)
-document.getElementById('modal').addEventListener('click', e => { if (e.target === document.getElementById('modal')) closeModal() })
-document.getElementById('f-format').addEventListener('change', () => { vetoSteps = []; renderVetoBuilder() })
+function clearForm() {
+  editingId = null
+  document.getElementById('f-title').value = ''
+  document.getElementById('f-opponent').value = ''
+  updateVetoLogo(null, '')
+  setFormat('bo1')
+  document.getElementById('f-notes').value = ''
+  document.getElementById('f-home').value = 'Us'
+  document.getElementById('f-away').value = 'Them'
+  vetoSteps = []
+  modalSimStats = null
+  document.getElementById('veto-sim-summary').innerHTML = ''
+  document.getElementById('save-error').style.display = 'none'
+  document.getElementById('delete-btn').style.display = 'none'
+  document.getElementById('cancel-btn').style.display = 'none'
+  renderVetoBuilder()
+}
+
+for (const btn of document.querySelectorAll('#f-format-seg .vs-fmt-btn')) {
+  btn.addEventListener('click', () => {
+    setFormat(btn.dataset.fmt)
+    vetoSteps = []
+    if (modalSimStats) autoFillFromSim(); else renderVetoBuilder()
+  })
+}
 document.getElementById('f-home').addEventListener('input', renderVetoBuilder)
 document.getElementById('f-away').addEventListener('input', renderVetoBuilder)
 
 document.getElementById('save-btn').addEventListener('click', async () => {
   const title    = document.getElementById('f-title').value.trim()
   const opponent = document.getElementById('f-opponent').value.trim() || null
-  const format   = document.getElementById('f-format').value
+  const format   = getFormat()
   const notes    = document.getElementById('f-notes').value.trim() || null
-  const errEl    = document.getElementById('modal-error')
-  if (!title) { errEl.textContent = 'Title is required.'; errEl.style.display = 'block'; return }
+  const errEl    = document.getElementById('save-error')
+  if (!opponent && !title) {
+    errEl.textContent = 'Pick an opponent (or set a title) first.'; errEl.style.display = 'block'; return
+  }
   const home = document.getElementById('f-home').value.trim() || 'Us'
   const away = document.getElementById('f-away').value.trim() || 'Them'
-  const payload = { title, opponent, format, steps: vetoSteps, notes, home, away, team_id: getTeamId(), updated_at: new Date().toISOString() }
+  const finalTitle = title || (opponent ? `vs ${opponent}` : 'Veto')
+  // Strip the in-memory _predicted / _confidence flags from saved steps so they
+  // don't pollute the DB row (they're inferred at edit time from the sim).
+  const cleanSteps = vetoSteps.map(s => ({ type: s.type, team: s.team, map: s.map ?? '' }))
+  const payload = { title: finalTitle, opponent, format, steps: cleanSteps, notes, home, away, team_id: getTeamId(), updated_at: new Date().toISOString() }
   let error
   if (editingId) ({ error } = await supabase.from('veto_predictions').update(payload).eq('id', editingId))
   else           ({ error } = await supabase.from('veto_predictions').insert(payload))
   if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return }
   const wasEditing = !!editingId
-  closeModal(); toast(wasEditing ? 'Veto updated' : 'Veto saved'); loadVetos()
+  toast(wasEditing ? 'Veto updated' : 'Veto saved')
+  clearForm()
+  await loadVetos()
 })
 
+document.getElementById('cancel-btn').addEventListener('click', clearForm)
+
 document.getElementById('delete-btn').addEventListener('click', async () => {
-  if (!confirm('Delete this veto prediction?')) return
+  if (!editingId || !confirm('Delete this veto prediction?')) return
   const { error } = await supabase.from('veto_predictions').delete().eq('id', editingId)
-  if (error) { document.getElementById('modal-error').textContent = error.message; document.getElementById('modal-error').style.display = 'block'; return }
-  closeModal(); toast('Veto deleted'); loadVetos()
+  if (error) {
+    document.getElementById('save-error').textContent = error.message
+    document.getElementById('save-error').style.display = 'block'
+    return
+  }
+  toast('Veto deleted')
+  clearForm()
+  await loadVetos()
 })
 
 const vetoOppInput    = document.getElementById('f-opponent')
@@ -433,31 +441,48 @@ let modalSimTypingTimer = null
 
 async function refreshModalSim(oppName) {
   const myToken = ++modalSimToken
-  const sumEl = document.getElementById('veto-sim-summary')
+  const sumEl   = document.getElementById('veto-sim-summary')
+  const saveRow = document.getElementById('veto-save-row')
   if (!sumEl) return
   const name = (oppName || '').trim()
-  if (!name) { sumEl.innerHTML = ''; modalSimStats = null; return }
+  if (!name) {
+    sumEl.innerHTML = ''
+    modalSimStats = null
+    if (vsStatus) vsStatus.textContent = ''
+    if (saveRow) saveRow.style.display = 'none'
+    return
+  }
+  if (vsStatus) vsStatus.textContent = 'Loading…'
   sumEl.innerHTML = `<div class="vs-modal-empty">Loading ${esc(name)}'s veto history…</div>`
   try {
     const data = await fetchTeamVetoHistory(name, { months: 3 })
     if (myToken !== modalSimToken) return
     if (!data.vetos.length) {
-      sumEl.innerHTML = `<div class="vs-modal-empty">No HLTV vetos for ${esc(name)} in the last 3 months.</div>`
+      sumEl.innerHTML = `<div class="vs-modal-empty">No HLTV vetos for ${esc(name)} in the last 3 months — predictions disabled, but you can still build &amp; save manually.</div>`
       modalSimStats = null
+      if (vsStatus) vsStatus.textContent = '0 vetos'
+      if (saveRow) saveRow.style.display = ''
+      // Make sure the builder still renders the empty sequence to edit by hand.
+      if (!vetoSteps.length) renderVetoBuilder()
       return
     }
     modalSimStats = computeStats(data.vetos, name)
     if (!modalSimStats.totalMatches) {
       sumEl.innerHTML = `<div class="vs-modal-empty">${data.vetos.length} matches found but the veto rows don't include ${esc(name)}'s actions.</div>`
       modalSimStats = null
+      if (vsStatus) vsStatus.textContent = `${data.vetos.length} vetos`
+      if (saveRow) saveRow.style.display = ''
       return
     }
+    if (vsStatus) vsStatus.textContent = `${data.vetos.length} vetos`
+    if (saveRow) saveRow.style.display = ''
     renderModalSimSummary(sumEl, name, modalSimStats)
     autoFillFromSim()
   } catch (e) {
     if (myToken !== modalSimToken) return
     console.error('[veto-modal-sim]', e)
     sumEl.innerHTML = `<div class="vs-modal-empty">Couldn't load HLTV history: ${esc(e.message || e)}</div>`
+    if (vsStatus) vsStatus.textContent = ''
   }
 }
 
