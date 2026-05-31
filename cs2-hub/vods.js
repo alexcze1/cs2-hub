@@ -162,6 +162,81 @@ scoutInput.addEventListener('input', () => {
 
 // ── State ────────────────────────────────────────────────────────
 let state = { filter: null, mapFilter: null, dataset: null, openPlayerId: null }
+let _autoCreatedVodsOnce = false   // run the auto-import once per page load
+
+
+// Auto-create vod rows for public (HLTV) demos that feature our team but
+// aren't linked to any existing vod. Series demos collapse into one vod
+// (one row, maps[] entry per game). Idempotent across reloads thanks to
+// the unique (team_id, external_uid) index — we key external_uid off the
+// demo's series_id (or its own id for stand-alone demos), so re-running
+// just no-ops on rows we already inserted.
+async function autoCreateVodsForPublicDemos(demos, demoToVod) {
+  const target = (ourTeamName || '').trim().toLowerCase()
+  if (!target) return 0
+
+  const groups = new Map()   // groupKey → { opponent, date, maps: [...] }
+  for (const d of demos || []) {
+    if (!d.is_public) continue
+    if (demoToVod.has(d.id)) continue
+    if (d.team_a_score == null || d.team_b_score == null) continue
+    const ta = (d.team_a_name || '').trim()
+    const tb = (d.team_b_name || '').trim()
+    if (!ta || !tb) continue
+    let opp = null, ourScore = null, oppScore = null
+    if (ta.toLowerCase() === target)      { opp = tb; ourScore = d.team_a_score; oppScore = d.team_b_score }
+    else if (tb.toLowerCase() === target) { opp = ta; ourScore = d.team_b_score; oppScore = d.team_a_score }
+    else continue   // IGN-found demos can't be auto-attributed — skip
+
+    const groupKey = d.series_id ?? `demo:${d.id}`
+    const dateRaw = d.played_at || d.created_at || null
+    const e = groups.get(groupKey) ?? { opponent: opp, date: dateRaw, maps: [] }
+    if (dateRaw && (!e.date || dateRaw < e.date)) e.date = dateRaw
+    e.maps.push({
+      map:        (d.map || '').replace(/^de_/, ''),
+      score_us:   ourScore,
+      score_them: oppScore,
+    })
+    groups.set(groupKey, e)
+  }
+
+  if (!groups.size) return 0
+
+  const rows = [...groups.entries()].map(([key, g]) => ({
+    team_id:      teamId,
+    match_date:   (g.date || '').slice(0, 10),
+    opponent:     g.opponent,
+    match_type:   'tournament',
+    maps:         g.maps,
+    external_uid: `hltv:${key}`,
+    dismissed:    false,
+  })).filter(r => r.match_date)
+
+  if (!rows.length) return 0
+
+  try {
+    const { error } = await supabase
+      .from('vods')
+      .upsert(rows, { onConflict: 'team_id,external_uid', ignoreDuplicates: true })
+    if (error) {
+      console.warn('[auto-vod] upsert failed', error)
+      return 0
+    }
+    return rows.length
+  } catch (e) {
+    console.warn('[auto-vod] failed', e); return 0
+  }
+}
+
+async function reloadAllVods() {
+  const { data } = await supabase
+    .from('vods').select('*')
+    .eq('team_id', teamId)
+    .eq('dismissed', false)
+    .order('match_date', { ascending: false })
+  allVods.length = 0
+  if (data) for (const v of data) allVods.push(v)
+}
 
 function applyMatchTypeFilter(vods, matchType) {
   if (!matchType || matchType === 'all') return vods
@@ -565,6 +640,20 @@ async function rebuild(filter) {
   // player-impact's trend computation and match-reports' top performers).
   const union = [...currentFiltered, ...priorFiltered]
   const data = await fetchDemosForVodWindow(union, filter, ctx)
+
+  // Once per page load (own-team mode only), turn any public HLTV demos
+  // that don't already link to a vod into vod rows so they show up in the
+  // matches list. Idempotent across reloads via external_uid unique index.
+  if (!isScout && !_autoCreatedVodsOnce) {
+    _autoCreatedVodsOnce = true
+    const created = await autoCreateVodsForPublicDemos(data.demos, data.demoToVod)
+    if (created > 0) {
+      await reloadAllVods()
+      // Re-run rebuild with the new vods in scope — guard above prevents a
+      // second auto-create from looping.
+      return rebuild(filter)
+    }
+  }
 
   const currentVodIds = new Set(currentFiltered.map(v => v.id))
   const priorVodIds   = new Set(priorFiltered.map(v => v.id))
