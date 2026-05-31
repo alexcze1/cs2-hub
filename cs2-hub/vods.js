@@ -57,6 +57,20 @@ const roster  = rosterRes.data ?? []
 const ourTeamName = teamRes.data?.name ?? ''
 const teamSteamIds = new Set(roster.map(p => p.steam_id).filter(Boolean))
 
+// Own-team IGNs from hltv_players (if our team is HLTV-tracked). Used as the
+// last-resort signal for resolving "our" team letter on public demos where a
+// sub played and the score-correlation is also ambiguous.
+let ownRosterIgns = new Set()
+if (ourTeamName) {
+  try {
+    const safe = ourTeamName.replace(/[(),]/g, '').trim()
+    if (safe) {
+      const { data } = await supabase.from('hltv_players').select('ign').ilike('team_name', safe)
+      ownRosterIgns = new Set((data ?? []).map(p => (p.ign || '').trim().toLowerCase()).filter(Boolean))
+    }
+  } catch (e) { console.warn('[rr] own roster IGN load failed', e) }
+}
+
 // Mount the hero shell once so its filter slot exists.
 const HERO_FILTER_SLOT = 'rr-filter-slot'
 renderHero(document.getElementById('rr-hero'), { vods: allVods, filterSlotId: HERO_FILTER_SLOT })
@@ -68,52 +82,68 @@ if (allVods.length === 0) {
 }
 
 // ── Scope toggle (own team ↔ scout another team) ────────────────
-const ownBlocks    = document.getElementById('rr-own-blocks')
-const scoutBlocks  = document.getElementById('rr-scout-blocks')
-const scoutSlot    = document.getElementById('rr-scout-slot')
 const scoutWrap    = document.getElementById('rr-scope-team-wrap')
 const scoutInput   = document.getElementById('rr-scope-team-input')
 const scoutStatus  = document.getElementById('rr-scope-status')
 const scopeSeg     = document.getElementById('rr-scope-seg')
+const scoutOverview = document.getElementById('rr-scout-overview')
 
-let scopeMode = 'own'   // 'own' | 'other'
-let scoutToken = 0      // request-id to discard stale fetches
+let scopeMode = 'own'    // 'own' | 'other'
+let scoutTeamName = ''   // current scout target
+
+function currentTeamCtx() {
+  if (scopeMode === 'own') {
+    return { teamName: ourTeamName, teamId, knownRosterSids: teamSteamIds, rosterIgns: ownRosterIgns }
+  }
+  // Scout mode — pull rosterIgns for the picked team on demand (loaded async,
+  // so the rebuild() that drives the data fetch is responsible for waiting).
+  return { teamName: scoutTeamName, teamId: null, knownRosterSids: new Set(), rosterIgns: scoutRosterIgns }
+}
+
+let scoutRosterIgns = new Set()
+
+async function loadScoutIgns(name) {
+  const safe = (name || '').replace(/[(),]/g, '').trim()
+  if (!safe) { scoutRosterIgns = new Set(); return }
+  try {
+    const { data } = await supabase.from('hltv_players').select('ign').ilike('team_name', safe)
+    scoutRosterIgns = new Set((data ?? []).map(p => (p.ign || '').trim().toLowerCase()).filter(Boolean))
+  } catch (e) { console.warn('[scout] roster IGN load failed', e); scoutRosterIgns = new Set() }
+}
 
 function setScopeMode(mode) {
   scopeMode = mode
   for (const btn of scopeSeg.querySelectorAll('button')) {
     btn.classList.toggle('active', btn.dataset.mode === mode)
   }
-  ownBlocks.style.display   = (mode === 'own')   ? '' : 'none'
-  scoutBlocks.style.display = (mode === 'other') ? '' : 'none'
-  scoutWrap.style.display   = (mode === 'other') ? '' : 'none'
-  if (mode === 'other' && !scoutSlot.innerHTML) {
-    scoutSlot.innerHTML = `<div class="opp-card-empty" style="padding:32px;text-align:center">Pick a team above to load their HLTV matches.</div>`
+  scoutWrap.style.display = (mode === 'other') ? '' : 'none'
+  scoutOverview.innerHTML = ''
+  if (mode === 'other' && !scoutTeamName) {
+    showScoutPlaceholder()
+  } else if (state.filter) {
+    rebuild(state.filter)
   }
 }
 
-async function refreshScout(teamName) {
-  const myToken = ++scoutToken
-  const name = (teamName || '').trim()
-  if (!name) {
-    scoutSlot.innerHTML = `<div class="opp-card-empty" style="padding:32px;text-align:center">Pick a team above to load their HLTV matches.</div>`
-    scoutStatus.textContent = ''
-    return
+function showScoutPlaceholder() {
+  scoutOverview.innerHTML = ''
+  document.getElementById('rr-hero').innerHTML = `<div class="empty-state" style="padding:32px;text-align:center"><h3>Pick a team to scout</h3><p>Type a name in the input above to load their matches and stats.</p></div>`
+  for (const id of ['rr-team-stats','rr-player-impact','rr-map-pool','rr-team-stats-advanced','rr-match-reports']) {
+    document.getElementById(id).innerHTML = ''
   }
-  scoutStatus.textContent = 'Loading…'
+}
+
+async function setScoutTeam(name) {
+  scoutTeamName = (name || '').trim()
+  scoutStatus.textContent = scoutTeamName ? 'Loading…' : ''
+  if (!scoutTeamName) { showScoutPlaceholder(); return }
+  await loadScoutIgns(scoutTeamName)
+  if (state.filter) await rebuild(state.filter)
+  // Also render the 3-card overview at top for the scout context.
   try {
-    const data = await fetchOpponentOverview(name)
-    if (myToken !== scoutToken) return
-    renderOpponentOverview(scoutSlot, data)
-    scoutStatus.textContent = data && data.demos.length
-      ? `${data.demos.length} match${data.demos.length === 1 ? '' : 'es'}`
-      : ''
-  } catch (e) {
-    if (myToken !== scoutToken) return
-    console.error('[scout] fetch failed', e)
-    scoutSlot.innerHTML = `<div class="opp-card-empty">Couldn't load HLTV matches: ${esc(e.message || e)}</div>`
-    scoutStatus.textContent = ''
-  }
+    const ov = await fetchOpponentOverview(scoutTeamName)
+    renderOpponentOverview(scoutOverview, ov)
+  } catch (e) { console.warn('[scout] overview failed', e) }
 }
 
 for (const btn of scopeSeg.querySelectorAll('button')) {
@@ -123,11 +153,11 @@ for (const btn of scopeSeg.querySelectorAll('button')) {
 let scoutTypingTimer = null
 attachTeamAutocomplete(scoutInput, team => {
   clearTimeout(scoutTypingTimer)
-  refreshScout(team.name)
+  setScoutTeam(team.name)
 })
 scoutInput.addEventListener('input', () => {
   clearTimeout(scoutTypingTimer)
-  scoutTypingTimer = setTimeout(() => refreshScout(scoutInput.value), 400)
+  scoutTypingTimer = setTimeout(() => setScoutTeam(scoutInput.value), 400)
 })
 
 // ── State ────────────────────────────────────────────────────────
@@ -222,13 +252,23 @@ function partitionUnlinkedDemos({ demos, demoToVod, filter, now = new Date() }) 
   return { current, prior }
 }
 
-async function fetchDemosForVodWindow(vods, filter) {
+// Fetch the dataset for a given team context. Works for both:
+//   • Own-team mode — teamCtx = { teamName, teamId, knownRosterSids, rosterIgns }
+//     (team-owned + public demos, knownRosterSids speeds up team-letter detection)
+//   • Scout mode    — teamCtx = { teamName, rosterIgns }
+//     (public demos only, team-letter detection via score correlation + IGNs)
+async function fetchDemosForVodWindow(vods, filter, teamCtx) {
+  const ctx = teamCtx ?? { teamName: ourTeamName, teamId, knownRosterSids: teamSteamIds, rosterIgns: ownRosterIgns }
+  const knownRosterSids = ctx.knownRosterSids ?? new Set()
+  const rosterIgns      = ctx.rosterIgns ?? new Set()
   const empty = {
     demos: [], rowsAll: [], rowsCT: [], rowsT: [],
     demoToVod: new Map(), demosById: new Map(),
     teamStatsRows: [], ourTeamByDemoId: new Map(),
+    syntheticRoster: [],
   }
-  if (!teamSteamIds.size) return empty
+  // For own-team mode we still need either a roster or a known name to proceed.
+  if (!ctx.teamName && !knownRosterSids.size) return empty
 
   // Calendar bounds for date-based windows so we pick up demos from un-logged
   // matches (no vod row). Vod-bounded for '10' and 'all'.
@@ -239,12 +279,22 @@ async function fetchDemosForVodWindow(vods, filter) {
     const lo = new Date(now); lo.setDate(lo.getDate() - 2 * days - 1)
     const hi = new Date(now); hi.setDate(hi.getDate() + 1)
     minDate = ymdLocal(lo); maxDate = ymdLocal(hi)
-  } else {
-    if (!vods.length) return empty
+  } else if (vods.length) {
     const dates = vods.map(v => v.match_date).filter(Boolean).sort()
-    if (!dates.length) return empty
-    minDate = widenDate(dates[0], -1)
-    maxDate = widenDate(dates[dates.length - 1], 1)
+    if (dates.length) {
+      minDate = widenDate(dates[0], -1)
+      maxDate = widenDate(dates[dates.length - 1], 1)
+    } else {
+      // No vod dates; fall back to 90-day window
+      const lo = new Date(now); lo.setDate(lo.getDate() - 90)
+      const hi = new Date(now); hi.setDate(hi.getDate() + 1)
+      minDate = ymdLocal(lo); maxDate = ymdLocal(hi)
+    }
+  } else {
+    // Scout mode (no vods) — pull a 180-day window so the page is useful.
+    const lo = new Date(now); lo.setDate(lo.getDate() - 180)
+    const hi = new Date(now); hi.setDate(hi.getDate() + 1)
+    minDate = ymdLocal(lo); maxDate = ymdLocal(hi)
   }
 
   // Team-owned demos plus any public (HLTV) demos whose team_a_name or
@@ -258,7 +308,7 @@ async function fetchDemosForVodWindow(vods, filter) {
   const teamDemosP = supabase
     .from('demos')
     .select(COLS)
-    .eq('team_id', teamId)
+    .eq('team_id', ctx.teamId || '00000000-0000-0000-0000-000000000000')  // unsatisfiable for scout mode
     .eq('status', 'ready')
     .gte('created_at', `${minDate}T00:00:00`)
     .lte('created_at', `${maxDate}T23:59:59`)
@@ -266,7 +316,7 @@ async function fetchDemosForVodWindow(vods, filter) {
   // PostgREST .or() splits on commas, and an ilike value containing one of
   // [(),] would break the parser. Strip those before building the filter —
   // they're not part of any real team name, so the match still works.
-  const safeName = (ourTeamName || '').replace(/[(),]/g, '').trim()
+  const safeName = (ctx.teamName || '').replace(/[(),]/g, '').trim()
   const publicDemosP = safeName
     ? supabase
         .from('demos')
@@ -278,59 +328,176 @@ async function fetchDemosForVodWindow(vods, filter) {
         .lte('created_at', `${maxDate}T23:59:59`)
     : Promise.resolve({ data: [], error: null })
 
-  const [teamRes, publicRes] = await Promise.all([teamDemosP, publicDemosP])
+  // IGN-discovery: for teams in hltv_players, also pull demos whose
+  // demo_players.name set contains ≥3 of the team's IGNs. Catches variant-
+  // named matches (G2 → "G2 Ares") that exact ilike misses.
+  const ignDiscoveryP = rosterIgns.size > 0
+    ? supabase.from('demo_players').select('demo_id, name').in('name', [...rosterIgns])
+    : Promise.resolve({ data: [], error: null })
+
+  const [teamRes, publicRes, ignRes] = await Promise.all([teamDemosP, publicDemosP, ignDiscoveryP])
   if (teamRes.error)   throw teamRes.error
   if (publicRes.error) throw publicRes.error
+  if (ignRes.error)    throw ignRes.error
+
   // Dedup defensively in case a future schema change ever lets a row qualify
   // for both lists (e.g. is_public true on a team-uploaded row).
   const seen = new Set()
-  const demos = [...(teamRes.data ?? []), ...(publicRes.data ?? [])]
+  let demos = [...(teamRes.data ?? []), ...(publicRes.data ?? [])]
     .filter(d => (seen.has(d.id) ? false : (seen.add(d.id), true)))
+
+  // Resolve IGN-discovered demo ids (≥3 distinct IGN matches) and fetch any
+  // that aren't already in the list.
+  if (ignRes.data?.length) {
+    const ignCount = new Map(), nameSeen = new Map()
+    for (const r of ignRes.data) {
+      const s = nameSeen.get(r.demo_id) ?? new Set()
+      if (s.has(r.name)) continue
+      s.add(r.name); nameSeen.set(r.demo_id, s)
+      ignCount.set(r.demo_id, (ignCount.get(r.demo_id) || 0) + 1)
+    }
+    const extraIds = [...ignCount].filter(([, n]) => n >= 3).map(([id]) => id).filter(id => !seen.has(id))
+    if (extraIds.length) {
+      const { data: extraDemos, error: ex } = await supabase
+        .from('demos').select(COLS)
+        .in('id', extraIds)
+        .eq('status', 'ready')
+        .gte('created_at', `${minDate}T00:00:00`)
+        .lte('created_at', `${maxDate}T23:59:59`)
+      if (ex) throw ex
+      for (const d of extraDemos || []) { if (!seen.has(d.id)) { demos.push(d); seen.add(d.id) } }
+    }
+  }
 
   const demoToVod = linkDemosToVods(demos || [], vods)
 
-  if (!(demos || []).length) return {
-    demos: [], rowsAll: [], rowsCT: [], rowsT: [],
-    demoToVod, demosById: new Map(),
-    teamStatsRows: [], ourTeamByDemoId: new Map(),
-  }
+  if (!demos.length) return { ...empty, demoToVod }
 
   const demoIds = demos.map(d => d.id)
+
+  // For own-team mode we already know the roster sids and can scope the
+  // demo_players fetch tightly. For scout mode we don't — pull everyone and
+  // filter post-hoc once we know each demo's "our" team letter.
+  const pPlayersQ = supabase.from('demo_players').select('*').in('demo_id', demoIds)
+  const allPlayersQ = knownRosterSids.size
+    ? pPlayersQ.in('steam_id', [...knownRosterSids])
+    : pPlayersQ
   const [{ data: rows, error: e3 }, { data: teamStatsRows, error: e4 }] = await Promise.all([
-    supabase.from('demo_players')
-      .select('*')
-      .in('demo_id', demoIds)
-      .in('steam_id', [...teamSteamIds]),
-    supabase.from('demo_team_stats')
-      .select('*')
-      .in('demo_id', demoIds),
+    allPlayersQ,
+    supabase.from('demo_team_stats').select('*').in('demo_id', demoIds),
   ])
   if (e3) throw e3
   if (e4) throw e4
 
-  const demosById = new Map((demos || []).map(d => [d.id, d]))
+  const demosById = new Map(demos.map(d => [d.id, d]))
   for (const r of rows || []) {
     const d = demosById.get(r.demo_id)
     r.map = d?.map ?? null
   }
-  const rowsAll = (rows || []).filter(r => r.side === 'all')
-  const rowsCT  = (rows || []).filter(r => r.side === 'ct')
-  const rowsT   = (rows || []).filter(r => r.side === 't')
 
-  // Build ourTeamByDemoId: any of our roster's demo_players rows tells us
-  // which team ('a' or 'b') we are for that demo. side='all' is enough.
+  // Resolve `ourTeamByDemoId` (which parser-letter is "our team" per demo).
+  // Three signals, in order of reliability:
+  //   1. Known-roster sid presence — own-team rows that landed in fetch already
+  //      tell us their letter. Trusted when present.
+  //   2. Score correlation — sum parser-letter wins from demo_team_stats and
+  //      compare to demo.team_a_score / team_b_score (HLTV-stored). Picks the
+  //      letter whose wins match "our" HLTV score. Covers public demos with
+  //      subs whose sids aren't in the roster table.
+  //   3. IGN evidence — count which parser-letter holds the most rosterIgns
+  //      matches in the demo's demo_players. Last resort for demos whose
+  //      HLTV name doesn't equal the picked team's name.
   const ourTeamByDemoId = new Map()
-  for (const r of rowsAll) {
+  const targetN = (ctx.teamName || '').trim().toLowerCase()
+
+  // Signal 1
+  for (const r of (rows || []).filter(r => r.side === 'all')) {
     if (!ourTeamByDemoId.has(r.demo_id) && (r.team === 'a' || r.team === 'b')) {
       ourTeamByDemoId.set(r.demo_id, r.team)
     }
   }
 
+  // Signal 2 — fill the rest from score correlation
+  const winsByDemo = new Map()
+  for (const r of teamStatsRows || []) {
+    if (r.team !== 'a' && r.team !== 'b') continue
+    const e = winsByDemo.get(r.demo_id) ?? { a: 0, b: 0 }
+    e[r.team] = (r.ct_round_wins || 0) + (r.t_round_wins || 0)
+    winsByDemo.set(r.demo_id, e)
+  }
+  for (const d of demos) {
+    if (ourTeamByDemoId.has(d.id)) continue
+    const ta = (d.team_a_name || '').trim().toLowerCase()
+    const tb = (d.team_b_name || '').trim().toLowerCase()
+    const isHltvA = ta && ta === targetN
+    const isHltvB = tb && tb === targetN
+    if (!isHltvA && !isHltvB) continue
+    const tas = d.team_a_score, tbs = d.team_b_score
+    if (tas == null || tbs == null || tas === tbs) continue
+    const w = winsByDemo.get(d.id) ?? { a: 0, b: 0 }
+    const ourHltvScore = isHltvA ? tas : tbs
+    if (w.a === ourHltvScore && w.b !== ourHltvScore) ourTeamByDemoId.set(d.id, 'a')
+    else if (w.b === ourHltvScore && w.a !== ourHltvScore) ourTeamByDemoId.set(d.id, 'b')
+  }
+
+  // Signal 3 — IGN evidence for demos still unresolved (need full demo_players
+  // even in own-team mode for this, so re-fetch unrestricted only if needed).
+  if (rosterIgns.size > 0) {
+    const unresolvedIds = demos.filter(d => !ourTeamByDemoId.has(d.id)).map(d => d.id)
+    if (unresolvedIds.length) {
+      const { data: extraRows } = await supabase
+        .from('demo_players').select('demo_id, team, name').in('demo_id', unresolvedIds).eq('side', 'all')
+      const tally = new Map() // demo_id -> { a:[names], b:[names] }
+      for (const r of extraRows || []) {
+        if (r.team !== 'a' && r.team !== 'b') continue
+        const nm = (r.name || '').trim().toLowerCase()
+        if (!nm || !rosterIgns.has(nm)) continue
+        const e = tally.get(r.demo_id) ?? { a: 0, b: 0 }
+        e[r.team]++
+        tally.set(r.demo_id, e)
+      }
+      for (const [id, t] of tally) {
+        if (t.a > t.b) ourTeamByDemoId.set(id, 'a')
+        else if (t.b > t.a) ourTeamByDemoId.set(id, 'b')
+      }
+    }
+  }
+
+  // For scout mode we need to filter demo_players to JUST our team's letter.
+  // For own-team mode we already filtered by known sids so rows are already ours.
+  let scopedRows = rows || []
+  if (!knownRosterSids.size) {
+    scopedRows = scopedRows.filter(r => {
+      const ours = ourTeamByDemoId.get(r.demo_id)
+      return ours && r.team === ours
+    })
+  }
+
+  const rowsAll = scopedRows.filter(r => r.side === 'all')
+  const rowsCT  = scopedRows.filter(r => r.side === 'ct')
+  const rowsT   = scopedRows.filter(r => r.side === 't')
+
+  // Synthesize a roster shape for renderPlayerImpact when caller doesn't have
+  // one (scout mode). Each entry mirrors the `roster` table columns the
+  // player-impact module reads: id, nickname, steam_id, role.
+  let syntheticRoster = null
+  if (!knownRosterSids.size) {
+    const bySid = new Map()
+    for (const r of rowsAll) {
+      const sid = r.steam_id; if (!sid) continue
+      const e = bySid.get(sid) ?? { id: sid, steam_id: sid, nickname: r.name || sid.slice(-5), role: 'Support', _count: 0 }
+      e._count += 1
+      if (!e.nickname && r.name) e.nickname = r.name
+      bySid.set(sid, e)
+    }
+    syntheticRoster = [...bySid.values()].sort((a, b) => b._count - a._count).slice(0, 8)
+  }
+
   return {
-    demos: demos || [], rowsAll, rowsCT, rowsT,
+    demos, rowsAll, rowsCT, rowsT,
     demoToVod, demosById,
     teamStatsRows: teamStatsRows || [],
     ourTeamByDemoId,
+    syntheticRoster,
   }
 }
 
@@ -346,7 +513,16 @@ function groupByDemoId(rows) {
 
 async function rebuild(filter) {
   state.filter = filter
-  const { current, prior } = splitVodsByWindow(allVods, filter)
+  const ctx = currentTeamCtx()
+  const isScout = scopeMode === 'other'
+
+  // Scout mode skips the vod-window logic (no logged vods for the picked
+  // team). Force date-based windows.
+  if (isScout && filter.window === '10') filter = { ...filter, window: '90d' }
+
+  // Own-team mode uses logged vods to derive currentFiltered. Scout mode
+  // synthesizes from the fetched demos after the fact.
+  const { current, prior } = isScout ? { current: [], prior: [] } : splitVodsByWindow(allVods, filter)
   const currentFiltered = applyMatchTypeFilter(current, filter.matchType)
   const priorFiltered   = applyMatchTypeFilter(prior,   filter.matchType)
 
@@ -362,7 +538,7 @@ async function rebuild(filter) {
   // Single fetch covering BOTH windows for demo_players (used by both
   // player-impact's trend computation and match-reports' top performers).
   const union = [...currentFiltered, ...priorFiltered]
-  const data = await fetchDemosForVodWindow(union, filter)
+  const data = await fetchDemosForVodWindow(union, filter, ctx)
 
   const currentVodIds = new Set(currentFiltered.map(v => v.id))
   const priorVodIds   = new Set(priorFiltered.map(v => v.id))
@@ -409,8 +585,11 @@ async function rebuild(filter) {
     rowsPrior:   teamStatsPrior,
     ourTeamByDemoId: data.ourTeamByDemoId,
   })
+  // Use synthesized roster for scout mode (no `roster` table entries for
+  // an arbitrary team). Falls back to own-team roster.
+  const rosterForRender = isScout ? (data.syntheticRoster || []) : roster
   renderPlayerImpact(document.getElementById('rr-player-impact'), {
-    roster, rowsCurrent, rowsPrior, onPick: openPlayerPanel,
+    roster: rosterForRender, rowsCurrent, rowsPrior, onPick: openPlayerPanel,
   })
   const { current: unlinkedDemosCurrent, prior: unlinkedDemosPrior } = partitionUnlinkedDemos({
     demos: data.demos,
@@ -423,7 +602,7 @@ async function rebuild(filter) {
     activeMap: state.mapFilter,
     unlinkedDemosCurrent,
     unlinkedDemosPrior,
-    ourTeamName,
+    ourTeamName: ctx.teamName,
   })
   renderAdvancedTeamStats(document.getElementById('rr-team-stats-advanced'), {
     teamStatsRows: teamStatsCurrent,
@@ -446,7 +625,7 @@ async function rebuild(filter) {
 
   // Refresh inline panel if open
   if (panel.isOpen() && state.openPlayerId) {
-    const player = roster.find(p => p.id === state.openPlayerId)
+    const player = (rosterForRender || roster).find(p => p.id === state.openPlayerId)
     if (player && player.steam_id) {
       renderPlayerPanel(player)
       markActivePlayerCard(player.id)
