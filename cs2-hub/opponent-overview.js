@@ -26,6 +26,21 @@ function fmtDate(iso) {
 
 // ── Data fetch ─────────────────────────────────────────────────
 
+async function loadRosterIgns(teamName) {
+  if (!teamName) return new Set()
+  try {
+    const { data, error } = await supabase
+      .from('hltv_players')
+      .select('ign')
+      .ilike('team_name', teamName)
+    if (error) { console.warn('[opp] hltv_players load failed', error); return new Set() }
+    return new Set((data ?? []).map(p => norm(p.ign)).filter(Boolean))
+  } catch (e) {
+    console.warn('[opp] hltv_players load threw', e)
+    return new Set()
+  }
+}
+
 export async function fetchOpponentOverview(teamName) {
   const safe = (teamName || '').replace(/[(),]/g, '').trim()
   if (!safe) return null
@@ -33,17 +48,76 @@ export async function fetchOpponentOverview(teamName) {
   // 1. Public demos featuring this team (HLTV-ingested only — those are what
   //    we get for scouting). Team-uploaded demos are scoped to a specific
   //    user-team and not appropriate to surface here.
+  //
+  // Lookup runs in two passes that get UNIONed:
+  //   (a) exact ilike match on team_a_name / team_b_name — catches the
+  //       common case (FaZe → demos labelled "FaZe").
+  //   (b) IGN-based lookup — for teams in hltv_players, fetch their player
+  //       IGNs and find demos where ≥3 of those IGNs land in demo_players.
+  //       This catches teams that play under a variant name on HLTV
+  //       (Aurora → "Aurora Young Blud", G2 → "G2 Ares", etc.) where (a)
+  //       returns nothing.
   const COLS = 'id, map, played_at, created_at, source_url, team_a_name, team_b_name, team_a_score, team_b_score, team_a_first_side, score_ct, score_t, is_public'
-  const { data: demos, error: e1 } = await supabase
-    .from('demos')
-    .select(COLS)
-    .eq('status', 'ready')
-    .eq('is_public', true)
-    .or(`team_a_name.ilike.${safe},team_b_name.ilike.${safe}`)
-    .order('played_at', { ascending: false, nullsFirst: false })
-    .limit(50)
-  if (e1) throw e1
-  if (!demos?.length) return { teamName, demos: [], byPlayer: new Map(), wins: 0, losses: 0, draws: 0, mapPool: new Map() }
+
+  const [exactRes, rosterIgns] = await Promise.all([
+    supabase
+      .from('demos')
+      .select(COLS)
+      .eq('status', 'ready')
+      .eq('is_public', true)
+      .or(`team_a_name.ilike.${safe},team_b_name.ilike.${safe}`)
+      .order('played_at', { ascending: false, nullsFirst: false })
+      .limit(50),
+    loadRosterIgns(safe),
+  ])
+  if (exactRes.error) throw exactRes.error
+
+  let demos = exactRes.data ?? []
+  const seenIds = new Set(demos.map(d => d.id))
+
+  if (rosterIgns.size > 0) {
+    // Fetch demo_ids whose demo_players.name matches any of the roster IGNs.
+    // Group → only keep demo_ids where ≥3 IGNs landed (avoids one-off
+    // stand-ins of an HLTV player in a totally unrelated team's match).
+    const { data: ignHits, error: ignErr } = await supabase
+      .from('demo_players')
+      .select('demo_id, name')
+      .in('name', [...rosterIgns])
+    if (ignErr) throw ignErr
+    const ignCount = new Map() // demo_id -> count
+    const seenNamesByDemo = new Map() // demo_id -> Set(name)
+    for (const r of ignHits || []) {
+      const nameSet = seenNamesByDemo.get(r.demo_id) ?? new Set()
+      if (nameSet.has(r.name)) continue
+      nameSet.add(r.name)
+      seenNamesByDemo.set(r.demo_id, nameSet)
+      ignCount.set(r.demo_id, (ignCount.get(r.demo_id) || 0) + 1)
+    }
+    const ignDemoIds = [...ignCount.entries()]
+      .filter(([, n]) => n >= 3)
+      .map(([id]) => id)
+      .filter(id => !seenIds.has(id))
+
+    if (ignDemoIds.length) {
+      const { data: extraDemos, error: extraErr } = await supabase
+        .from('demos')
+        .select(COLS)
+        .in('id', ignDemoIds)
+        .eq('status', 'ready')
+        .eq('is_public', true)
+        .order('played_at', { ascending: false, nullsFirst: false })
+        .limit(50)
+      if (extraErr) throw extraErr
+      for (const d of extraDemos || []) {
+        if (!seenIds.has(d.id)) { demos.push(d); seenIds.add(d.id) }
+      }
+    }
+  }
+
+  if (!demos.length) return { teamName, demos: [], byPlayer: new Map(), wins: 0, losses: 0, draws: 0, mapPool: new Map() }
+  // Re-sort merged result.
+  demos.sort((a, b) => new Date(b.played_at || 0) - new Date(a.played_at || 0))
+  demos = demos.slice(0, 50)
 
   const demoIds = demos.map(d => d.id)
 
@@ -72,41 +146,86 @@ export async function fetchOpponentOverview(teamName) {
   }
 
   // Per-demo: decide which parser-letter is the opponent (the team we're
-  // viewing). The user's name might be HLTV's team_a_name or team_b_name —
-  // figure out which, then map HLTV's a/b to parser's a/b via score match.
+  // viewing). Two strategies depending on how the demo was found:
+  //   (a) name match — d.team_a_name or d.team_b_name equals targetN.
+  //       Then we know which HLTV side is the user, and score correlation
+  //       maps that to parser's letter.
+  //   (b) IGN-found demo where the HLTV name doesn't match the picked team
+  //       (variant name). Use IGN evidence: count how many of the team's
+  //       IGNs land on parser-letter 'a' vs 'b' in this demo, and the
+  //       majority wins.
   const targetN = norm(teamName)
   const opponentLetterByDemo = new Map()
   const enrichedDemos = []
+  let dropped = 0
+
+  // For IGN-side counting we need per-demo (sid, parser-letter, name).
+  const playerLetterByDemo = new Map() // demo_id -> Map(name_lower -> letter)
+  if (rosterIgns.size > 0) {
+    for (const r of pStats || []) {
+      if (!(r.team === 'a' || r.team === 'b')) continue
+      const nm = norm(r.name)
+      if (!nm) continue
+      const m = playerLetterByDemo.get(r.demo_id) ?? new Map()
+      if (!m.has(nm)) m.set(nm, r.team)
+      playerLetterByDemo.set(r.demo_id, m)
+    }
+  }
+
   for (const d of demos) {
     const ta = norm(d.team_a_name)
     const tb = norm(d.team_b_name)
     const isHltvA = ta === targetN
     const isHltvB = tb === targetN
-    if (!isHltvA && !isHltvB) continue // shouldn't happen given the query, but safe
-
-    // Compare parser wins to HLTV scores to find the parser ↔ HLTV mapping.
-    const w = teamWins.get(d.id) ?? { a: 0, b: 0 }
     const tas = d.team_a_score, tbs = d.team_b_score
+    const w = teamWins.get(d.id) ?? { a: 0, b: 0 }
     let parserOurLetter = null
-    if (tas != null && tbs != null && tas !== tbs) {
-      const ourHltvScore = isHltvA ? tas : tbs
-      if (w.a === ourHltvScore && w.b !== ourHltvScore) parserOurLetter = 'a'
-      else if (w.b === ourHltvScore && w.a !== ourHltvScore) parserOurLetter = 'b'
+    let ourName = null, oppName = null, ourScore = null, oppScore = null
+
+    if (isHltvA || isHltvB) {
+      // (a) Name-match path: use score correlation.
+      if (tas != null && tbs != null && tas !== tbs) {
+        const ourHltvScore = isHltvA ? tas : tbs
+        if (w.a === ourHltvScore && w.b !== ourHltvScore) parserOurLetter = 'a'
+        else if (w.b === ourHltvScore && w.a !== ourHltvScore) parserOurLetter = 'b'
+      }
+      if (!parserOurLetter) { dropped++; continue }
+      ourName  = isHltvA ? d.team_a_name : d.team_b_name
+      oppName  = isHltvA ? d.team_b_name : d.team_a_name
+      ourScore = isHltvA ? tas : tbs
+      oppScore = isHltvA ? tbs : tas
+    } else {
+      // (b) IGN-found path: name doesn't match either HLTV team. Look at
+      //     demo_players for this demo and count which parser letter has
+      //     more of the team's IGNs.
+      const m = playerLetterByDemo.get(d.id)
+      if (!m) { dropped++; continue }
+      let aHits = 0, bHits = 0
+      for (const ign of rosterIgns) {
+        const letter = m.get(ign)
+        if (letter === 'a') aHits++
+        else if (letter === 'b') bHits++
+      }
+      if (aHits >= 3 && aHits > bHits) parserOurLetter = 'a'
+      else if (bHits >= 3 && bHits > aHits) parserOurLetter = 'b'
+      if (!parserOurLetter) { dropped++; continue }
+      // Derive a friendly "us / opponent" name from HLTV's team_a_name / b_name.
+      ourName = parserOurLetter === 'a' ? d.team_a_name : d.team_b_name
+      oppName = parserOurLetter === 'a' ? d.team_b_name : d.team_a_name
+      if (tas != null && tbs != null) {
+        ourScore = parserOurLetter === 'a' ? tas : tbs
+        oppScore = parserOurLetter === 'a' ? tbs : tas
+      }
     }
-    if (!parserOurLetter) continue // ambiguous — drop rather than mis-attribute
 
     opponentLetterByDemo.set(d.id, parserOurLetter)
-
-    // Outcome + per-map score for the matches list.
-    const ourScore = isHltvA ? tas : tbs
-    const oppScore = isHltvA ? tbs : tas
     const outcome = (ourScore == null || oppScore == null) ? null
                   : ourScore > oppScore ? 'W'
                   : oppScore > ourScore ? 'L' : 'D'
     enrichedDemos.push({
       ...d,
-      _ourName:  isHltvA ? d.team_a_name : d.team_b_name,
-      _oppName:  isHltvA ? d.team_b_name : d.team_a_name,
+      _ourName:  ourName,
+      _oppName:  oppName,
       _ourScore: ourScore,
       _oppScore: oppScore,
       _outcome:  outcome,
@@ -159,7 +278,7 @@ export async function fetchOpponentOverview(teamName) {
     }
   }
 
-  return { teamName, demos: enrichedDemos, byPlayer, wins, losses, draws, mapPool }
+  return { teamName, demos: enrichedDemos, byPlayer, wins, losses, draws, mapPool, dropped }
 }
 
 // ── Rendering ─────────────────────────────────────────────────
@@ -168,14 +287,28 @@ export function renderOpponentOverview(container, data) {
   if (!data) { container.innerHTML = ''; return }
   if (!data.demos.length) {
     container.innerHTML = `
-      <div class="empty-state" style="padding:24px;text-align:center;color:var(--muted)">
-        <div style="font-size:14px;font-weight:600;margin-bottom:4px">No public HLTV demos yet for ${esc(data.teamName)}</div>
-        <div style="font-size:12px">Matches appear here automatically as our parser ingests them.</div>
+      <div class="empty-state" style="padding:32px;text-align:center;color:var(--muted)">
+        <div style="font-size:14px;font-weight:600;margin-bottom:6px;color:var(--text)">No demos for ${esc(data.teamName)} yet</div>
+        <div style="font-size:12px;max-width:420px;margin:0 auto;line-height:1.5">
+          The HLTV-ingest pipeline only covers a slice of matches each day. If this team plays regularly
+          they'll appear here within a day or two once their next match is parsed.
+        </div>
       </div>`
     return
   }
+  if (data.dropped && data.dropped > 0) {
+    // Drop notice goes above the grid so the user knows why the match count
+    // might be lower than they expected.
+    container.innerHTML = `
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px;letter-spacing:0.04em">
+        Showing ${data.demos.length} of ${data.demos.length + data.dropped} demos
+        (${data.dropped} dropped — ambiguous score data, can't safely identify which side is ${esc(data.teamName)})
+      </div>`
+  } else {
+    container.innerHTML = ''
+  }
 
-  container.innerHTML = `
+  container.insertAdjacentHTML('beforeend', `
     <div class="opp-overview-grid">
       <div class="opp-overview-card opp-summary-card">
         ${renderSummary(data)}
@@ -188,7 +321,7 @@ export function renderOpponentOverview(container, data) {
         <div class="opp-card-title">Recent Matches</div>
         ${renderMatches(data)}
       </div>
-    </div>`
+    </div>`)
 }
 
 function renderSummary(data) {
