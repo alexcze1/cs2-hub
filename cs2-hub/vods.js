@@ -651,14 +651,20 @@ async function rebuild(filter) {
   const currentFiltered = applyMatchTypeFilter(current, filter.matchType)
   const priorFiltered   = applyMatchTypeFilter(prior,   filter.matchType)
 
-  // First render of hero (before team-stats fetch) so the filter slot exists.
-  renderHero(document.getElementById('rr-hero'), { vods: currentFiltered, filterSlotId: HERO_FILTER_SLOT })
-  // Re-mount filter into the new slot (renderHero blew it away)
-  mountFilter(document.getElementById(HERO_FILTER_SLOT), (f) => {
-    // Avoid reentry: only rebuild if state actually changed
-    if (JSON.stringify(f) === JSON.stringify(state.filter)) return
-    rebuild(f)
-  })
+  // Hero is the "Results & Review" banner with the W-L record, trend
+  // sparkline, and "+ Add Match" CTA — none of that is meaningful when
+  // scouting a team we don't own logged vods for. Clear it in scout mode
+  // and skip mountFilter (no filter UI; we hard-default the window above).
+  if (isScout) {
+    document.getElementById('rr-hero').innerHTML = ''
+  } else {
+    renderHero(document.getElementById('rr-hero'), { vods: currentFiltered, filterSlotId: HERO_FILTER_SLOT })
+    mountFilter(document.getElementById(HERO_FILTER_SLOT), (f) => {
+      // Avoid reentry: only rebuild if state actually changed
+      if (JSON.stringify(f) === JSON.stringify(state.filter)) return
+      rebuild(f)
+    })
+  }
 
   // Single fetch covering BOTH windows for demo_players (used by both
   // player-impact's trend computation and match-reports' top performers).
@@ -700,15 +706,17 @@ async function rebuild(filter) {
     const ours = data.ourTeamByDemoId?.get(r.demo_id)
     return ours && ours === r.team
   })
-  renderHero(document.getElementById('rr-hero'), {
-    vods: currentFiltered,
-    filterSlotId: HERO_FILTER_SLOT,
-    teamStatsRows: teamStatsForHero,
-  })
-  mountFilter(document.getElementById(HERO_FILTER_SLOT), (f) => {
-    if (JSON.stringify(f) === JSON.stringify(state.filter)) return
-    rebuild(f)
-  })
+  if (!isScout) {
+    renderHero(document.getElementById('rr-hero'), {
+      vods: currentFiltered,
+      filterSlotId: HERO_FILTER_SLOT,
+      teamStatsRows: teamStatsForHero,
+    })
+    mountFilter(document.getElementById(HERO_FILTER_SLOT), (f) => {
+      if (JSON.stringify(f) === JSON.stringify(state.filter)) return
+      rebuild(f)
+    })
+  }
 
   state.dataset = {
     filter,
