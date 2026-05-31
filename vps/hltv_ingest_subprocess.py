@@ -38,6 +38,32 @@ def main() -> int:
 
     DEMOS_DIR.mkdir(parents=True, exist_ok=True)
 
+    # Drop any team-uploaded .dem files older than 14 days before the cycle
+    # starts. Public demos already self-clean after parse (see _process_one's
+    # cleanup branch); team uploads stay forever because the parser keeps
+    # them around for potential re-parses. Over weeks they fill the disk and
+    # trip the SOFT_CAP_BYTES check, which silently stalls the ingest at 2-3
+    # matches per cycle. match_data + slim are already in Supabase Storage
+    # for every parsed demo, so deleting a 6 week old .dem just means a
+    # re-parse would have to re-download from Storage first.
+    import time as _time
+    cutoff_ts = _time.time() - 14 * 86400
+    freed_bytes = 0
+    freed_count = 0
+    for p in DEMOS_DIR.glob("*.dem"):
+        try:
+            st = p.stat()
+            if st.st_mtime < cutoff_ts:
+                freed_bytes += st.st_size
+                p.unlink()
+                freed_count += 1
+        except FileNotFoundError:
+            pass
+        except Exception as e:
+            print(f"[hltv] prune skip {p.name}: {e}", flush=True)
+    if freed_count:
+        print(f"[hltv] pruned {freed_count} stale .dem files ({freed_bytes / 1024**3:.1f} GB freed)", flush=True)
+
     try:
         matches = list_recent_matches(days=DAYS)
         print(f"[hltv] discovered {len(matches)} matches in last {DAYS}d", flush=True)
