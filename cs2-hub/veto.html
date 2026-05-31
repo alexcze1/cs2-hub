@@ -128,6 +128,52 @@
       background-color: var(--surface);
     }
     .vs-step-conf { text-align: right; font-size: 11px; color: var(--text-variant); font-variant-numeric: tabular-nums; }
+    .vs-step-home { background: rgba(255,255,255,0.025); }
+    .vs-step-decider { background: rgba(58,160,255,0.06); border-color: rgba(58,160,255,0.18); }
+    .vs-step-map-edit { display: flex; align-items: center; gap: 8px; }
+    .vs-step-select {
+      background: var(--surface-low); border: 1px solid var(--border);
+      color: var(--text); border-radius: var(--r-sm);
+      padding: 3px 6px; font-size: 12px; min-width: 120px;
+    }
+    .vs-step-select:focus { outline: none; border-color: var(--accent); }
+
+    /* Save row inside the sim card */
+    .vs-save-row {
+      margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--hairline);
+      display: grid; gap: 12px;
+    }
+    .vs-save-inputs {
+      display: grid; gap: 10px; grid-template-columns: 1fr 1.4fr;
+    }
+    @media (max-width: 720px) { .vs-save-inputs { grid-template-columns: 1fr; } }
+    .vs-save-row label { display: block; }
+    .vs-save-label {
+      display: block; font-size: 10px; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--muted); font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .vs-save-input {
+      width: 100%;
+      background: var(--surface-low); border: 1px solid var(--border);
+      color: var(--text); border-radius: var(--r-md);
+      padding: 7px 10px; font-size: 13px;
+    }
+    .vs-save-input:focus { outline: none; border-color: var(--accent); }
+    .vs-save-textarea { min-height: 50px; resize: vertical; font-family: inherit; }
+    .vs-save-actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
+    .vs-btn {
+      border: 0; cursor: pointer; padding: 7px 14px; border-radius: var(--r-md);
+      font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+    }
+    .vs-btn-primary { background: var(--accent); color: var(--accent-on); }
+    .vs-btn-primary:hover { filter: brightness(1.1); }
+    .vs-btn-ghost   { background: transparent; color: var(--text-variant); border: 1px solid var(--border); }
+    .vs-btn-ghost:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+    .vs-btn-danger  { background: var(--danger-bg); color: var(--danger); margin-right: auto; }
+    .vs-btn-danger:hover { filter: brightness(1.15); }
+    .vs-save-error { color: var(--danger); font-size: 12px; padding: 6px 10px;
+                     background: rgba(255,77,77,0.08); border-radius: var(--r-sm); }
 
     /* ── Modal sim summary ────────────────────────────────── */
     .vs-modal-summary {
@@ -184,55 +230,6 @@
     </section>
 
     <section id="veto-filters" class="dx-filters"></section>
-
-    <div class="modal-backdrop" id="modal" style="display:none">
-      <div class="modal" style="max-width:560px;width:100%">
-        <div class="modal-header">
-          <div class="modal-title" id="modal-title">New Veto</div>
-          <button class="modal-close" id="modal-close">×</button>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Title</label>
-          <input class="form-input" id="f-title" placeholder="e.g. vs TEAM NAME"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Opponent</label>
-          <div style="display:flex;align-items:center;gap:10px">
-            <div id="veto-opp-logo"></div>
-            <input class="form-input" id="f-opponent" placeholder="Opponent team name" style="flex:1"/>
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Format</label>
-          <select class="form-select" id="f-format">
-            <option value="bo1">BO1</option>
-            <option value="bo3">BO3</option>
-          </select>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Home Team Label</label>
-            <input class="form-input" id="f-home" placeholder="Us" value="Us"/>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Away Team Label</label>
-            <input class="form-input" id="f-away" placeholder="Them" value="Them"/>
-          </div>
-        </div>
-        <div id="veto-sim-summary" style="margin-top:8px"></div>
-        <div id="veto-builder" style="margin-top:8px"></div>
-        <div class="form-group" style="margin-top:16px">
-          <label class="form-label">Notes</label>
-          <textarea class="form-textarea" id="f-notes" placeholder="Reasoning, tendencies…" style="min-height:60px"></textarea>
-        </div>
-        <div class="error-msg" id="modal-error" style="display:none"></div>
-        <div class="modal-actions">
-          <button class="btn btn-danger btn-sm" id="delete-btn" style="display:none;margin-right:auto">Delete</button>
-          <button class="btn btn-ghost" id="cancel-btn">Cancel</button>
-          <button class="btn btn-primary" id="save-btn">Save</button>
-        </div>
-      </div>
-    </div>
 
     <div id="veto-list"></div>
   </main>

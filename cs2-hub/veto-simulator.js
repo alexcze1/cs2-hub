@@ -92,22 +92,25 @@ export function computeStats(vetos, teamName) {
 
 // ── Simulation ────────────────────────────────────────────────────
 
+// "away" = the picked / opponent team we simulate; "home" = the user.
+// Same shape as veto.js's BO1_SEQUENCE / BO3_SEQUENCE so steps saved from
+// here drop straight into veto_predictions without translation.
 const BO1_SEQUENCE = [
-  { type: 'ban',     team: 'them' },
-  { type: 'ban',     team: 'opp'  },
-  { type: 'ban',     team: 'them' },
-  { type: 'ban',     team: 'opp'  },
-  { type: 'ban',     team: 'them' },
-  { type: 'ban',     team: 'opp'  },
+  { type: 'ban',     team: 'away' },
+  { type: 'ban',     team: 'home' },
+  { type: 'ban',     team: 'home' },
+  { type: 'ban',     team: 'away' },
+  { type: 'ban',     team: 'away' },
+  { type: 'ban',     team: 'home' },
   { type: 'decider', team: null   },
 ]
 const BO3_SEQUENCE = [
-  { type: 'ban',     team: 'them' },
-  { type: 'ban',     team: 'opp'  },
-  { type: 'pick',    team: 'them' },
-  { type: 'pick',    team: 'opp'  },
-  { type: 'ban',     team: 'them' },
-  { type: 'ban',     team: 'opp'  },
+  { type: 'ban',     team: 'away' },
+  { type: 'ban',     team: 'home' },
+  { type: 'pick',    team: 'away' },
+  { type: 'pick',    team: 'home' },
+  { type: 'ban',     team: 'away' },
+  { type: 'ban',     team: 'home' },
   { type: 'decider', team: null   },
 ]
 
@@ -158,20 +161,21 @@ export function predictForSequence(sequence, stats, awayTeamKey = 'away') {
   return preds
 }
 
-// Run a step-by-step simulation. For 'them' (the picked team) we predict
-// using their per-slot frequencies; for 'opp' we placeholder. For decider
-// we pick the map most often left over for the team historically (or the
-// last remaining map).
+// Run a step-by-step simulation in ESL BO1/BO3 order. For 'away' (the
+// picked / opponent team) we predict using their per-slot frequencies.
+// For 'home' (the user) we don't predict — those steps come back with a
+// null map so the user fills them in via the editable dropdown. For the
+// decider we pick the map most often left over for the team historically
+// (or the last remaining map).
 export function simulateVeto(stats, format) {
   const seq = format === 'bo3' ? BO3_SEQUENCE : BO1_SEQUENCE
-  const used = new Set()
+  const awayUsed = new Set()
   const out = []
   let bIdx = 0, pIdx = 0
   for (const step of seq) {
     if (step.type === 'decider') {
-      const left = MAPS.filter(m => !used.has(m))
+      const left = MAPS.filter(m => !awayUsed.has(m))
       let pick = null, confidence = null
-      // Prefer the map most often left over for this team
       const ranked = [...stats.leftoverByMap.entries()]
         .filter(([m]) => left.includes(m))
         .sort((a, b) => b[1] - a[1])
@@ -182,10 +186,9 @@ export function simulateVeto(stats, format) {
         pick = left[0]
       }
       out.push({ ...step, map: pick, confidence })
-      if (pick) used.add(pick)
       continue
     }
-    if (step.team === 'them') {
+    if (step.team === 'away') {
       let counts
       if (step.type === 'ban') {
         counts = stats.banBySlot[bIdx] || new Map(); bIdx++
@@ -193,20 +196,17 @@ export function simulateVeto(stats, format) {
         counts = stats.pickBySlot[pIdx] || new Map(); pIdx++
       }
       const ranked = [...counts.entries()]
-        .filter(([m]) => !used.has(m))
+        .filter(([m]) => !awayUsed.has(m))
         .sort((a, b) => b[1] - a[1])
       const pick = ranked.length ? ranked[0][0] : null
       const confidence = pick && stats.totalMatches
         ? ranked[0][1] / stats.totalMatches
         : null
       out.push({ ...step, map: pick, confidence, candidates: ranked.slice(0, 3) })
-      if (pick) used.add(pick)
+      if (pick) awayUsed.add(pick)
     } else {
-      // Opponent — placeholder (no data). Pick any unused map as filler so
-      // the visual sequence is complete; mark as low-info.
-      const left = MAPS.filter(m => !used.has(m))
-      out.push({ ...step, map: left[0] ?? null, confidence: null, unknown: true })
-      if (left[0]) used.add(left[0])
+      // Home (the user) — no prediction. Leave map blank for them to fill.
+      out.push({ ...step, map: null, confidence: null })
     }
   }
   return out
@@ -214,8 +214,17 @@ export function simulateVeto(stats, format) {
 
 // ── Rendering ────────────────────────────────────────────────────
 
-export function renderVetoSimulator(container, { data, format = 'bo1' }) {
-  if (!data) { container.innerHTML = ''; return }
+// Render the simulator into `container`. Now also responsible for the
+// editable sequence + save controls. Caller passes:
+//   data      — output of fetchTeamVetoHistory
+//   format    — 'bo1' | 'bo3' (persists across re-renders inside the panel)
+//   editing   — optional existing veto row when re-opening from the saved list
+//   onSave    — async ({ format, steps, title, notes, opponent, editingId }) → void
+//   onDelete  — async (editingId) → void (only shown when editing)
+//   onCancel  — () → void (only shown when editing)
+export function renderVetoSimulator(container, opts) {
+  if (!opts || !opts.data) { container.innerHTML = ''; return }
+  const { data, format = 'bo1', editing = null, onSave, onDelete, onCancel } = opts
   const { teamName, vetos, windowMonths } = data
 
   if (!vetos.length) {
@@ -237,7 +246,24 @@ export function renderVetoSimulator(container, { data, format = 'bo1' }) {
     return
   }
 
-  const sim = simulateVeto(stats, format)
+  // If we have an existing veto in `editing` with matching format, prefer its
+  // step set (so opening for edit shows what the user actually saved). Else
+  // freshly simulate.
+  let steps
+  if (editing && editing.format === format && Array.isArray(editing.steps) && editing.steps.length) {
+    // Clone + tag any step that still matches our prediction as predicted.
+    const fresh = simulateVeto(stats, format)
+    steps = editing.steps.map((s, i) => {
+      const f = fresh[i]
+      const predicted = f && f.map && s.map === f.map
+      return { ...s, _confidence: predicted ? f.confidence : null, _predicted: predicted }
+    })
+  } else {
+    steps = simulateVeto(stats, format).map(s => ({ ...s, _predicted: s.map != null && s.team === 'away', _confidence: s.confidence }))
+  }
+
+  const titleInit = editing?.title ?? `vs ${teamName}`
+  const notesInit = editing?.notes ?? ''
 
   container.innerHTML = `
     <div class="vs-grid">
@@ -247,19 +273,135 @@ export function renderVetoSimulator(container, { data, format = 'bo1' }) {
       </div>
       <div class="vs-card vs-sim">
         <div class="vs-card-title-row">
-          <div class="vs-card-title">Simulated ${format.toUpperCase()} veto</div>
+          <div class="vs-card-title">${editing ? 'Editing veto' : 'Simulated'} ${format.toUpperCase()}</div>
           <div class="vs-format-toggle">
             <button class="vs-fmt-btn ${format === 'bo1' ? 'is-active' : ''}" data-fmt="bo1">BO1</button>
             <button class="vs-fmt-btn ${format === 'bo3' ? 'is-active' : ''}" data-fmt="bo3">BO3</button>
           </div>
         </div>
-        ${renderSimSequence(sim, teamName)}
+        <div id="vs-seq-host">${renderEditableSequence(steps, teamName)}</div>
+        ${renderSaveRow({ titleInit, notesInit, editing })}
       </div>
     </div>`
 
+  wireEditableSequence(container, steps, teamName)
+  wireSaveRow(container, {
+    steps, format, teamName,
+    editing, onSave, onDelete, onCancel,
+  })
+
   for (const btn of container.querySelectorAll('.vs-fmt-btn')) {
-    btn.addEventListener('click', () => renderVetoSimulator(container, { data, format: btn.dataset.fmt }))
+    btn.addEventListener('click', () => renderVetoSimulator(container, { ...opts, format: btn.dataset.fmt, editing: null }))
   }
+}
+
+function renderEditableSequence(steps, teamName) {
+  const usedMaps = new Set(steps.filter(s => s.map).map(s => s.map))
+  return `
+    <div class="vs-seq">
+      ${steps.map((s, i) => {
+        const who = s.type === 'decider' ? 'Decider' : (s.team === 'away' ? esc(teamName) : 'Us')
+        const action = s.type === 'ban' ? 'BAN' : s.type === 'pick' ? 'PICK' : 'PLAYS'
+        const actionCls = s.type === 'ban' ? 'vs-act-ban' : s.type === 'pick' ? 'vs-act-pick' : 'vs-act-decider'
+        const conf = s._confidence != null ? `${Math.round(s._confidence * 100)}%` : ''
+        // Decider auto-computes from remaining maps every render — read only.
+        if (s.type === 'decider') {
+          const left = MAPS.filter(m => !usedMaps.has(m) || m === s.map)
+          const pick = s.map || left[0] || null
+          return `
+            <div class="vs-step vs-step-decider">
+              <div class="vs-step-num">${i + 1}</div>
+              <div class="vs-step-team">${who}</div>
+              <div class="vs-step-action ${actionCls}">${action}</div>
+              <div class="vs-step-map">
+                <div class="vs-step-map-badge" style="background-image:url('${pick ? mapImg(pick) : ''}')"></div>
+                <span>${pick ? esc(MAP_LABELS[pick] ?? pick) : '?'}</span>
+              </div>
+              <div class="vs-step-conf">${conf}</div>
+            </div>`
+        }
+        const available = MAPS.filter(m => !usedMaps.has(m) || m === s.map)
+        return `
+          <div class="vs-step ${s.team === 'home' ? 'vs-step-home' : ''}">
+            <div class="vs-step-num">${i + 1}</div>
+            <div class="vs-step-team">${who}</div>
+            <div class="vs-step-action ${actionCls}">${action}</div>
+            <div class="vs-step-map vs-step-map-edit">
+              <div class="vs-step-map-badge" style="background-image:url('${s.map ? mapImg(s.map) : ''}')"></div>
+              <select class="vs-step-select" data-i="${i}">
+                <option value="">Pick map…</option>
+                ${available.map(m => `<option value="${m}" ${s.map === m ? 'selected' : ''}>${MAP_LABELS[m] ?? m}</option>`).join('')}
+              </select>
+            </div>
+            <div class="vs-step-conf" title="HLTV-prediction confidence">${s._predicted ? `SIM ${conf}` : ''}</div>
+          </div>`
+      }).join('')}
+    </div>`
+}
+
+function wireEditableSequence(container, steps, teamName) {
+  const host = container.querySelector('#vs-seq-host')
+  if (!host) return
+  for (const sel of host.querySelectorAll('.vs-step-select')) {
+    sel.addEventListener('change', e => {
+      const i = +e.target.dataset.i
+      steps[i].map = e.target.value || null
+      steps[i]._predicted = false
+      steps[i]._confidence = null
+      host.innerHTML = renderEditableSequence(steps, teamName)
+      wireEditableSequence(container, steps, teamName)
+    })
+  }
+}
+
+function renderSaveRow({ titleInit, notesInit, editing }) {
+  return `
+    <div class="vs-save-row">
+      <div class="vs-save-inputs">
+        <label>
+          <span class="vs-save-label">Title</span>
+          <input class="vs-save-input" id="vs-save-title" value="${esc(titleInit)}" placeholder="e.g. vs TEAM"/>
+        </label>
+        <label>
+          <span class="vs-save-label">Notes</span>
+          <textarea class="vs-save-input vs-save-textarea" id="vs-save-notes" placeholder="Reasoning, tendencies…">${esc(notesInit)}</textarea>
+        </label>
+      </div>
+      <div class="vs-save-actions">
+        ${editing ? `<button type="button" class="vs-btn vs-btn-danger" id="vs-delete">Delete</button>` : ''}
+        ${editing ? `<button type="button" class="vs-btn vs-btn-ghost" id="vs-cancel">Cancel edit</button>` : ''}
+        <button type="button" class="vs-btn vs-btn-primary" id="vs-save">${editing ? 'Update veto' : 'Save veto'}</button>
+      </div>
+      <div class="vs-save-error" id="vs-save-error" style="display:none"></div>
+    </div>`
+}
+
+function wireSaveRow(container, { steps, format, teamName, editing, onSave, onDelete, onCancel }) {
+  const errEl = container.querySelector('#vs-save-error')
+  const saveBtn = container.querySelector('#vs-save')
+  saveBtn?.addEventListener('click', async () => {
+    errEl.style.display = 'none'
+    const title = (container.querySelector('#vs-save-title')?.value ?? '').trim() || `vs ${teamName}`
+    const notes = (container.querySelector('#vs-save-notes')?.value ?? '').trim() || null
+    const cleanSteps = steps.map(s => ({ type: s.type, team: s.team, map: s.map ?? '' }))
+    try {
+      await onSave?.({
+        format, steps: cleanSteps, title, notes,
+        opponent: teamName, editingId: editing?.id ?? null,
+      })
+    } catch (e) {
+      errEl.textContent = e?.message ?? String(e)
+      errEl.style.display = 'block'
+    }
+  })
+  container.querySelector('#vs-delete')?.addEventListener('click', async () => {
+    if (!editing || !confirm('Delete this veto prediction?')) return
+    try { await onDelete?.(editing.id) } catch (e) {
+      errEl.textContent = e?.message ?? String(e)
+      errEl.style.display = 'block'
+    }
+  })
+  container.querySelector('#vs-cancel')?.addEventListener('click', () => onCancel?.())
 }
 
 function renderBanBreakdown(stats) {
@@ -298,27 +440,3 @@ function renderBanBreakdown(stats) {
     </table>`
 }
 
-function renderSimSequence(sim, teamName) {
-  return `
-    <div class="vs-seq">
-      ${sim.map((s, i) => {
-        const isThem = s.team === 'them'
-        const action = s.type === 'ban' ? 'BAN' : s.type === 'pick' ? 'PICK' : 'PLAYS'
-        const actionCls = s.type === 'ban' ? 'vs-act-ban' : s.type === 'pick' ? 'vs-act-pick' : 'vs-act-decider'
-        const conf = s.confidence != null ? `${Math.round(s.confidence * 100)}%` : ''
-        const who = s.type === 'decider' ? '—' : (isThem ? esc(teamName) : 'Opponent')
-        const map = s.map ? esc(MAP_LABELS[s.map] ?? s.map) : '?'
-        return `
-          <div class="vs-step ${s.unknown ? 'vs-step-unknown' : ''}">
-            <div class="vs-step-num">${i + 1}</div>
-            <div class="vs-step-team">${who}</div>
-            <div class="vs-step-action ${actionCls}">${action}</div>
-            <div class="vs-step-map">
-              <div class="vs-step-map-badge" style="background-image:url('${s.map ? mapImg(s.map) : ''}')"></div>
-              <span>${map}</span>
-            </div>
-            <div class="vs-step-conf" title="Confidence — how often this team did this at this step">${conf}</div>
-          </div>`
-      }).join('')}
-    </div>`
-}
