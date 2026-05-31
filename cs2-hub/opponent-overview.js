@@ -395,7 +395,7 @@ function renderRoster(data) {
 }
 
 function renderMatches(data) {
-  const rows = data.demos.slice(0, 15)
+  const rows = data.demos // show all fetched (capped at 50 by the query)
   return `
     <div class="opp-match-list">
       ${rows.map(d => {

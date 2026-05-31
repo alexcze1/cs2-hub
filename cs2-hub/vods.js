@@ -462,6 +462,32 @@ async function fetchDemosForVodWindow(vods, filter, teamCtx) {
     }
   }
 
+  // Project ct_team_name / t_team_name on public demos that don't have them
+  // set by the parser. Without this, renderMapPool (and anything else that
+  // compares ourTeamName to ct/t_team_name) silently skips public demos.
+  // We use ourLetter + team_a_first_side + HLTV's team_a_name/team_b_name
+  // to figure out which name belongs on each side.
+  for (const d of demos) {
+    if (d.ct_team_name && d.t_team_name) continue
+    const ourLetter = ourTeamByDemoId.get(d.id)
+    if (!ourLetter) continue
+    const ta = (d.team_a_name || '').trim()
+    const tb = (d.team_b_name || '').trim()
+    if (!ta || !tb) continue
+    const taLow = ta.toLowerCase(), tbLow = tb.toLowerCase()
+    let usName, oppName
+    if (taLow === targetN)      { usName = ta; oppName = tb }
+    else if (tbLow === targetN) { usName = tb; oppName = ta }
+    else continue   // IGN-found demo where neither HLTV name matches us
+    const aFirstSide = d.team_a_first_side
+    let usStartedCt
+    if (aFirstSide === 'ct')      usStartedCt = (ourLetter === 'a')   // parser A started CT
+    else if (aFirstSide === 't')  usStartedCt = (ourLetter !== 'a')   // parser A started T
+    else continue
+    d.ct_team_name = usStartedCt ? usName : oppName
+    d.t_team_name  = usStartedCt ? oppName : usName
+  }
+
   // For scout mode we need to filter demo_players to JUST our team's letter.
   // For own-team mode we already filtered by known sids so rows are already ours.
   let scopedRows = rows || []
