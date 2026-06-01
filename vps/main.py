@@ -81,9 +81,10 @@ def _replace_pool_if_unchanged(broken_pool: ProcessPoolExecutor) -> None:
     print(f"[pool] recreated ProcessPoolExecutor (workers={PARSE_WORKERS}) after BrokenProcessPool")
 
 # HLTV ingest loop: how often to scan + how far back to scan each cycle.
-# 24h interval with a 2-day window gives 1-day overlap to catch matches posted
-# late after the previous cycle.
-HLTV_INGEST_INTERVAL = int(os.getenv("HLTV_INGEST_INTERVAL", str(24 * 3600)))
+# 15 min interval keeps newly published demos showing up near-real-time on
+# the public demos page; the 2-day window still gives plenty of overlap to
+# catch matches HLTV publishes late.
+HLTV_INGEST_INTERVAL = int(os.getenv("HLTV_INGEST_INTERVAL", str(15 * 60)))
 HLTV_INGEST_DAYS     = int(os.getenv("HLTV_INGEST_DAYS", "2"))
 
 # HLTV team / player refresh: every 24 h. Cheaper than ingest (no demo
@@ -291,7 +292,11 @@ async def _hltv_ingest_loop():
         except BaseException as e:
             print(f"HLTV ingest error ({type(e).__name__}): {e}")
             _last_ingest_ok = False
-        delay = HLTV_INGEST_INTERVAL if _last_ingest_ok else 900   # 15 min on failure
+        # On failure (CF block, Chromium crash, etc.) back off at least 30 min
+        # so we don't hammer HLTV at the new 15-min cadence right after a block.
+        # If someone overrides HLTV_INGEST_INTERVAL to a longer value, honor that
+        # as the floor instead.
+        delay = HLTV_INGEST_INTERVAL if _last_ingest_ok else max(HLTV_INGEST_INTERVAL, 1800)
         await asyncio.sleep(delay)
 
 
