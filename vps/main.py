@@ -82,10 +82,16 @@ def _replace_pool_if_unchanged(broken_pool: ProcessPoolExecutor) -> None:
 
 # HLTV ingest loop: how often to scan + how far back to scan each cycle.
 # 15 min interval keeps newly published demos showing up near-real-time on
-# the public demos page; the 2-day window still gives plenty of overlap to
-# catch matches HLTV publishes late.
-HLTV_INGEST_INTERVAL = int(os.getenv("HLTV_INGEST_INTERVAL", str(15 * 60)))
-HLTV_INGEST_DAYS     = int(os.getenv("HLTV_INGEST_DAYS", "2"))
+# the public demos page; the 30-day window catches matches HLTV publishes
+# late AND backfills any gaps from previous downtime / narrower windows.
+# Ingest is idempotent (unique index + _already_ingested short-circuit), so
+# walking 30 days every cycle is cheap once the gap is filled — the cost is
+# ~20 /results page fetches and ~1500 fast DB checks per cycle. The
+# MAX_PER_CYCLE cap below bounds how many *new* demos a single cycle will
+# download so a fresh catchup can't blow the 2-hour subprocess deadline.
+HLTV_INGEST_INTERVAL      = int(os.getenv("HLTV_INGEST_INTERVAL", str(15 * 60)))
+HLTV_INGEST_DAYS          = int(os.getenv("HLTV_INGEST_DAYS", "30"))
+HLTV_INGEST_MAX_PER_CYCLE = int(os.getenv("HLTV_INGEST_MAX_PER_CYCLE", "50"))
 
 # HLTV team / player refresh: every 24 h. Cheaper than ingest (no demo
 # downloads), so the loop is shorter — usually 5-10 min wall time.
@@ -377,13 +383,15 @@ def _hltv_ingest_once():
     leaked across the worker thread. A fresh interpreter avoids that entirely.
 
     Env propagated via os.environ inheritance (DATABASE_URL, SUPABASE_*,
-    HLTV_INGEST_DAYS, HLTV_FORCE_PLAYWRIGHT, HLTV_DEMOS_DIR_SOFT_CAP_BYTES).
-    DEMOS_DIR is passed explicitly so the subprocess writes .dem files where
-    _process_pending() will find them.
+    HLTV_FORCE_PLAYWRIGHT, HLTV_DEMOS_DIR_SOFT_CAP_BYTES). DEMOS_DIR,
+    HLTV_INGEST_DAYS and HLTV_INGEST_MAX_PER_CYCLE are passed explicitly so
+    the subprocess writes .dem files where _process_pending() finds them and
+    honors the wide-window + per-cycle cap configured at the loop level.
     """
     env = os.environ.copy()
     env["DEMOS_DIR"] = str(DEMOS_DIR)
     env["HLTV_INGEST_DAYS"] = str(HLTV_INGEST_DAYS)
+    env["HLTV_INGEST_MAX_PER_CYCLE"] = str(HLTV_INGEST_MAX_PER_CYCLE)
     env["PYTHONUNBUFFERED"] = "1"
 
     # Stream stdout line-by-line so each "discovered N matches" / "ingested N
