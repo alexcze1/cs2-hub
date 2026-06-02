@@ -1172,7 +1172,7 @@ async function runPublicScope() {
         .select('id, map, played_at, score_ct, score_t, team_a_score, team_b_score, team_a_first_side, team_a_name, team_b_name, ct_team_name, t_team_name, event_name, source_url, source_match_id, source_map_index, status, created_at')
         .eq('is_public', true)
         .order('played_at', { ascending: false, nullsFirst: false })
-        .limit(300),
+        .limit(3000),
       supabase.from('demos').select('id', { count: 'exact', head: true }).eq('is_public', true),
     ])
 
