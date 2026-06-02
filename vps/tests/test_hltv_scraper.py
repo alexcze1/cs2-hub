@@ -47,6 +47,119 @@ def test_parse_headline_date_returns_none_on_garbage():
     assert _parse_headline_date("nothing date-shaped here") is None
 
 
+# --- per-row date attribute (no fixture needed) -----------------------------
+#
+# HLTV emits `data-zonedgrouping-entry-unix="<ms>"` on every `result-con`. The
+# parser must prefer it over the legacy sublist headline so layouts that omit
+# per-day headers (team-filtered /results, Featured block) still produce
+# dated rows. The first three tests cover the per-row path; the last two
+# verify the headline fallback still works for legacy / mixed layouts.
+
+
+def _parse_one(html: str):
+    """Run _parse_results_page and return the first MatchRef (or None)."""
+    matches = _parse_results_page(html)
+    return matches[0] if matches else None
+
+
+def test_parse_results_page_uses_per_row_unix_attribute():
+    """A result row with data-zonedgrouping-entry-unix and NO sublist
+    headline must still produce a dated MatchRef. This is the team-filtered
+    /results layout — previously every row got dropped."""
+    html = """
+    <div class="results-sublist">
+      <div class="result-con" data-zonedgrouping-entry-unix="1779408745000">
+        <a href="/matches/2394359/foo-vs-bar-event" class="a-reset">
+          <div class="team">Foo</div>
+          <div class="team team-won">Bar</div>
+          <span class="event-name">Event Name</span>
+        </a>
+      </div>
+    </div>
+    """
+    m = _parse_one(html)
+    assert m is not None, "row was dropped despite valid per-row timestamp"
+    # 1779408745000 ms = 2026-05-22 00:12:25 UTC
+    assert m.date == datetime(2026, 5, 22, 0, 12, 25)
+    assert m.team_a == "Foo"
+    assert m.team_b == "Bar"
+    assert m.hltv_id == "2394359"
+
+
+def test_parse_results_page_per_row_unix_wins_over_headline():
+    """When both sources exist, the per-row attribute is more precise (gives
+    HH:MM:SS, not midnight) so it takes precedence."""
+    html = """
+    <div class="results-sublist">
+      <div class="standard-headline">Results for May 22nd 2026</div>
+      <div class="result-con" data-zonedgrouping-entry-unix="1779408745000">
+        <a href="/matches/111/a-vs-b" class="a-reset">
+          <div class="team">A</div>
+          <div class="team">B</div>
+        </a>
+      </div>
+    </div>
+    """
+    m = _parse_one(html)
+    assert m is not None
+    assert m.date == datetime(2026, 5, 22, 0, 12, 25), \
+        "per-row unix attribute should win over the midnight headline date"
+
+
+def test_parse_results_page_ignores_bad_unix_value():
+    """A malformed data-zonedgrouping-entry-unix must fall back to the
+    headline, not skip the row outright."""
+    html = """
+    <div class="results-sublist">
+      <div class="standard-headline">Results for May 22nd 2026</div>
+      <div class="result-con" data-zonedgrouping-entry-unix="notanumber">
+        <a href="/matches/222/c-vs-d" class="a-reset">
+          <div class="team">C</div>
+          <div class="team">D</div>
+        </a>
+      </div>
+    </div>
+    """
+    m = _parse_one(html)
+    assert m is not None
+    assert m.date == datetime(2026, 5, 22), "should fall back to headline"
+
+
+def test_parse_results_page_headline_only_still_works():
+    """Legacy layout — no per-row attribute, just the sublist headline."""
+    html = """
+    <div class="results-sublist">
+      <div class="standard-headline">Results for May 17th 2026</div>
+      <div class="result-con">
+        <a href="/matches/333/e-vs-f" class="a-reset">
+          <div class="team">E</div>
+          <div class="team">F</div>
+        </a>
+      </div>
+    </div>
+    """
+    m = _parse_one(html)
+    assert m is not None
+    assert m.date == datetime(2026, 5, 17)
+
+
+def test_parse_results_page_drops_row_with_no_date_source():
+    """Rows with no per-row unix AND no headline (e.g. Featured section)
+    are still skipped — we don't want undateable matches in the output."""
+    html = """
+    <h1 class="standard-headline inline">Featured results</h1>
+    <div class="results-sublist">
+      <div class="result-con">
+        <a href="/matches/444/g-vs-h" class="a-reset">
+          <div class="team">G</div>
+          <div class="team">H</div>
+        </a>
+      </div>
+    </div>
+    """
+    assert _parse_results_page(html) == []
+
+
 # --- fixture-driven (skipped until hltv_results.html is captured) -----------
 
 

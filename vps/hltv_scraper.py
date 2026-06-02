@@ -467,13 +467,34 @@ def _parse_results_page(html: str) -> list[MatchRef]:
 def _extract_row_date(row) -> datetime | None:
     """Find the date that applies to a result row.
 
-    /results page structure (historically):
-      <div class="results-sublist">
-        <span class="standard-headline">Results for 17th of May 2026</span>
-        <div class="result-con">...</div>
-        <div class="result-con">...</div>
-      </div>
+    Tries two sources, most-specific first:
+
+      1. ``data-zonedgrouping-entry-unix`` on the row's ``<div class="result-con">``
+         parent — HLTV emits this on every grouped result (UTC milliseconds
+         since epoch). This is the only date source on layouts that don't
+         render per-day headlines (e.g. ``/results?team=<id>`` and the
+         "Featured results" block at the top of ``/results``). Skipping it
+         was the cause of the veto-sync seeing only the handful of matches
+         that happened to fall in a sublist with a date headline.
+
+      2. Sublist headline ("Results for May 22nd 2026") on the legacy
+         ``.results-sublist`` group, for fixtures captured before HLTV
+         attached the per-row attribute.
+
+    Returns None only when *both* sources are missing, in which case the
+    caller skips the row.
     """
+    result_con = row.find_parent("div", class_="result-con")
+    if result_con is not None:
+        raw = result_con.get("data-zonedgrouping-entry-unix")
+        if raw:
+            try:
+                ms = int(raw)
+            except ValueError:
+                ms = None
+            if ms is not None:
+                return datetime.utcfromtimestamp(ms / 1000.0)
+
     sublist = row.find_parent("div", class_="results-sublist")
     if not sublist:
         return None

@@ -164,15 +164,42 @@ async def _run_sync_in_bg(name: str, months: int) -> None:
     """Run sync_team_vetos under the global HLTV-fetch lock and record
     timestamps so the endpoint can throttle correctly without blocking the
     caller. Each HLTV page is ~15-30s with CF, so 30 new matches takes
-    several minutes — frontend doesn't wait for this."""
+    several minutes — frontend doesn't wait for this.
+
+    Logs the sync_team_vetos result dict to the journal so we can see why a
+    sync produced fewer vetos than expected (low listed → team_id lookup
+    failed or /results layout shifted; high listed + high no_veto → veto
+    box selectors stale; high failed → CF block mid-sync; etc.)."""
     key = name.lower()
     _veto_sync_started[key] = time.time()
+    started = time.time()
     try:
         async with _veto_sync_lock:
             try:
-                await asyncio.get_event_loop().run_in_executor(
+                result = await asyncio.get_event_loop().run_in_executor(
                     None, lambda: sync_team_vetos(name, months=months, sleep=1.5),
                 )
+                dur = time.time() - started
+                if isinstance(result, dict):
+                    print(
+                        f"[veto-sync] {name} done in {dur:.0f}s — "
+                        f"team_id={result.get('team_id')} "
+                        f"listed={result.get('listed')} "
+                        f"already_had={result.get('already_had')} "
+                        f"parsed={result.get('parsed')} "
+                        f"no_veto={result.get('no_veto')} "
+                        f"failed={result.get('failed')} "
+                        f"blocked={result.get('blocked')}"
+                    )
+                    if result.get("team_id") is None:
+                        print(
+                            f"[veto-sync] {name}: hltv_teams lookup miss — "
+                            f"team isn't in our HLTV teams table so no /results "
+                            f"filter can run. Try the canonical HLTV name "
+                            f"(autocomplete) or wait for the daily refresh."
+                        )
+                else:
+                    print(f"[veto-sync] {name} done in {dur:.0f}s — no result")
             except Exception as e:
                 print(f"[veto-sync] {name}: {type(e).__name__}: {e}")
     finally:
