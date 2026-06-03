@@ -148,23 +148,36 @@ body {
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  /* Gradient stripes: each band fades from a lavender peak to a dark valley
-     and back. Three lavender tones (1 / 2 / 3) cycle through the peaks so
-     the rhythm reads as editorial layered fabric rather than a barcode.
-     Period: 480px. Stops only specify tone changes; CSS interpolates the
-     gradient between them — no hard edges. */
-  background-image: repeating-linear-gradient(
-    90deg,
-    rgba(var(--lavender-1-rgb), 0.12) 0,
-    rgba(9, 11, 20, 0.22) 80px,
-    rgba(var(--lavender-2-rgb), 0.14) 160px,
-    rgba(9, 11, 20, 0.24) 240px,
-    rgba(var(--lavender-3-rgb), 0.12) 320px,
-    rgba(9, 11, 20, 0.22) 400px,
-    rgba(var(--lavender-1-rgb), 0.12) 480px
-  );
-  mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,0.85) 60%, rgba(0,0,0,0.4) 100%);
-  -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,0.85) 60%, rgba(0,0,0,0.4) 100%);
+  /* Solid hard-edged vertical tiles, each carrying a vertical gradient.
+     Layering technique:
+       1. The lower (drawn last) repeating-linear-gradient at 90° creates
+          the hard stripe edges — wide lavender bands alternating with
+          dark navy bands.
+       2. The upper linear-gradient at 180° is a global top-to-bottom
+          fade that gives every tile its internal "lighter-to-darker"
+          gradient. Because the dark tiles already sit at low luminance,
+          the fade reads strongest on the lavender bands — the editorial
+          look from the reference poster.
+     Three lavender tones cycle (lavender-1 → lavender-2 → lavender-3)
+     between dark valleys so the rhythm has tonal variety. */
+  background-image:
+    linear-gradient(180deg,
+      rgba(255, 255, 255, 0.05) 0%,
+      rgba(255, 255, 255, 0.00) 35%,
+      rgba(9, 11, 20, 0.18) 100%),
+    repeating-linear-gradient(90deg,
+      rgba(var(--lavender-1-rgb), 0.16) 0,
+      rgba(var(--lavender-1-rgb), 0.16) 64px,
+      rgba(9, 11, 20, 0.55) 64px,
+      rgba(9, 11, 20, 0.55) 128px,
+      rgba(var(--lavender-2-rgb), 0.18) 128px,
+      rgba(var(--lavender-2-rgb), 0.18) 200px,
+      rgba(9, 11, 20, 0.55) 200px,
+      rgba(9, 11, 20, 0.55) 264px,
+      rgba(var(--lavender-3-rgb), 0.16) 264px,
+      rgba(var(--lavender-3-rgb), 0.16) 336px,
+      rgba(9, 11, 20, 0.55) 336px,
+      rgba(9, 11, 20, 0.55) 400px);
 }
 .lavender-stripes > * { position: relative; z-index: 1; }
 
@@ -559,29 +572,36 @@ body {
     0 0 60px rgba(var(--lavender-3-rgb), 0.22),
     0 28px 70px rgba(0,0,0,0.55);
 }
-/* The lavender stripe motif — gradient tiles, not solid bands.
-   Each ~80 px tile fades between a lavender peak and a dark valley so
-   adjacent tiles meet at the same tone and the rhythm reads as flowing
-   editorial fabric rather than a barcode. The horizontal mask fades the
-   pattern out before it reaches the countdown numerics on the right. */
+/* Hard-edged solid vertical tiles with an internal top-to-bottom gradient,
+   matching the editorial poster reference. See .lavender-stripes for the
+   layering rationale. The horizontal mask fades the pattern out before it
+   reaches the countdown numerics on the right of the hero. */
 .hero-card::before {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  background-image: repeating-linear-gradient(
-    90deg,
-    rgba(var(--lavender-1-rgb), 0.14) 0,
-    rgba(9, 11, 20, 0.26) 80px,
-    rgba(var(--lavender-2-rgb), 0.16) 160px,
-    rgba(9, 11, 20, 0.28) 240px,
-    rgba(var(--lavender-3-rgb), 0.14) 320px,
-    rgba(9, 11, 20, 0.26) 400px,
-    rgba(var(--lavender-1-rgb), 0.14) 480px
-  );
-  mask-image: linear-gradient(90deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 65%, rgba(0,0,0,0) 100%);
-  -webkit-mask-image: linear-gradient(90deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 65%, rgba(0,0,0,0) 100%);
+  background-image:
+    linear-gradient(180deg,
+      rgba(255, 255, 255, 0.06) 0%,
+      rgba(255, 255, 255, 0.00) 35%,
+      rgba(9, 11, 20, 0.20) 100%),
+    repeating-linear-gradient(90deg,
+      rgba(var(--lavender-1-rgb), 0.18) 0,
+      rgba(var(--lavender-1-rgb), 0.18) 64px,
+      rgba(9, 11, 20, 0.55) 64px,
+      rgba(9, 11, 20, 0.55) 128px,
+      rgba(var(--lavender-2-rgb), 0.20) 128px,
+      rgba(var(--lavender-2-rgb), 0.20) 200px,
+      rgba(9, 11, 20, 0.55) 200px,
+      rgba(9, 11, 20, 0.55) 264px,
+      rgba(var(--lavender-3-rgb), 0.18) 264px,
+      rgba(var(--lavender-3-rgb), 0.18) 336px,
+      rgba(9, 11, 20, 0.55) 336px,
+      rgba(9, 11, 20, 0.55) 400px);
+  mask-image: linear-gradient(90deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.45) 65%, rgba(0,0,0,0) 100%);
+  -webkit-mask-image: linear-gradient(90deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.45) 65%, rgba(0,0,0,0) 100%);
 }
 .hero-card > * { position: relative; z-index: 1; }
 
@@ -673,14 +693,20 @@ body {
 }
 .hero-empty::before {
   content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
-  background-image: repeating-linear-gradient(
-    90deg,
-    rgba(var(--lavender-1-rgb), 0.10) 0,
-    rgba(9, 11, 20, 0.20) 90px,
-    rgba(var(--lavender-2-rgb), 0.10) 180px,
-    rgba(9, 11, 20, 0.20) 270px,
-    rgba(var(--lavender-1-rgb), 0.10) 360px
-  );
+  background-image:
+    linear-gradient(180deg,
+      rgba(255, 255, 255, 0.05) 0%,
+      rgba(255, 255, 255, 0.00) 35%,
+      rgba(9, 11, 20, 0.18) 100%),
+    repeating-linear-gradient(90deg,
+      rgba(var(--lavender-1-rgb), 0.14) 0,
+      rgba(var(--lavender-1-rgb), 0.14) 64px,
+      rgba(9, 11, 20, 0.50) 64px,
+      rgba(9, 11, 20, 0.50) 128px,
+      rgba(var(--lavender-2-rgb), 0.16) 128px,
+      rgba(var(--lavender-2-rgb), 0.16) 200px,
+      rgba(9, 11, 20, 0.50) 200px,
+      rgba(9, 11, 20, 0.50) 264px);
   mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
   -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
 }
