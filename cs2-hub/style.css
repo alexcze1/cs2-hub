@@ -142,42 +142,56 @@ body {
   isolation: isolate;
   overflow: hidden;
 }
-.lavender-stripes::before {
+/* Stripe motif technique:
+   Two stacked pseudo-elements paint the same vertical stripe rhythm but
+   with DIFFERENT colors, then opposite vertical masks make the upper
+   layer fade out toward the bottom and the lower layer fade in toward
+   the bottom. The result: every tile has its own vertical gradient from
+   the upper-layer color at top to the lower-layer color at bottom, with
+   hard edges between tiles — matching the editorial-poster reference.
+
+   Period (320 px): lavender-3 → dark → lavender-2 → dark → lavender-1 → dark.
+   Top colors are more saturated lavender; bottom colors are lighter, so
+   each lavender tile reads as a saturated-purple → soft-lavender column. */
+.lavender-stripes::before,
+.lavender-stripes::after {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  /* Solid hard-edged vertical tiles, each carrying a vertical gradient.
-     Layering technique:
-       1. The lower (drawn last) repeating-linear-gradient at 90° creates
-          the hard stripe edges — wide lavender bands alternating with
-          dark navy bands.
-       2. The upper linear-gradient at 180° is a global top-to-bottom
-          fade that gives every tile its internal "lighter-to-darker"
-          gradient. Because the dark tiles already sit at low luminance,
-          the fade reads strongest on the lavender bands — the editorial
-          look from the reference poster.
-     Three lavender tones cycle (lavender-1 → lavender-2 → lavender-3)
-     between dark valleys so the rhythm has tonal variety. */
-  background-image:
-    linear-gradient(180deg,
-      rgba(255, 255, 255, 0.05) 0%,
-      rgba(255, 255, 255, 0.00) 35%,
-      rgba(9, 11, 20, 0.18) 100%),
-    repeating-linear-gradient(90deg,
-      rgba(var(--lavender-1-rgb), 0.16) 0,
-      rgba(var(--lavender-1-rgb), 0.16) 64px,
-      rgba(9, 11, 20, 0.55) 64px,
-      rgba(9, 11, 20, 0.55) 128px,
-      rgba(var(--lavender-2-rgb), 0.18) 128px,
-      rgba(var(--lavender-2-rgb), 0.18) 200px,
-      rgba(9, 11, 20, 0.55) 200px,
-      rgba(9, 11, 20, 0.55) 264px,
-      rgba(var(--lavender-3-rgb), 0.16) 264px,
-      rgba(var(--lavender-3-rgb), 0.16) 336px,
-      rgba(9, 11, 20, 0.55) 336px,
-      rgba(9, 11, 20, 0.55) 400px);
+}
+.lavender-stripes::before {
+  /* TOP-of-tile colors. Visible toward the top of the surface. */
+  background-image: repeating-linear-gradient(90deg,
+    rgba(var(--lavender-3-rgb), 0.55) 0,
+    rgba(var(--lavender-3-rgb), 0.55) 64px,
+    rgba(9, 11, 20, 0.70) 64px,
+    rgba(9, 11, 20, 0.70) 128px,
+    rgba(var(--lavender-2-rgb), 0.45) 128px,
+    rgba(var(--lavender-2-rgb), 0.45) 192px,
+    rgba(9, 11, 20, 0.70) 192px,
+    rgba(9, 11, 20, 0.70) 256px,
+    rgba(var(--lavender-1-rgb), 0.35) 256px,
+    rgba(var(--lavender-1-rgb), 0.35) 320px);
+  mask-image: linear-gradient(180deg, #000 0%, #000 25%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 25%, transparent 100%);
+}
+.lavender-stripes::after {
+  /* BOTTOM-of-tile colors. Visible toward the bottom of the surface. */
+  background-image: repeating-linear-gradient(90deg,
+    rgba(var(--lavender-1-rgb), 0.45) 0,
+    rgba(var(--lavender-1-rgb), 0.45) 64px,
+    rgba(20, 25, 50, 0.50) 64px,
+    rgba(20, 25, 50, 0.50) 128px,
+    rgba(var(--lavender-1-rgb), 0.55) 128px,
+    rgba(var(--lavender-1-rgb), 0.55) 192px,
+    rgba(20, 25, 50, 0.50) 192px,
+    rgba(20, 25, 50, 0.50) 256px,
+    rgba(var(--lavender-2-rgb), 0.50) 256px,
+    rgba(var(--lavender-2-rgb), 0.50) 320px);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 75%, #000 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 75%, #000 100%);
 }
 .lavender-stripes > * { position: relative; z-index: 1; }
 
@@ -572,36 +586,48 @@ body {
     0 0 60px rgba(var(--lavender-3-rgb), 0.22),
     0 28px 70px rgba(0,0,0,0.55);
 }
-/* Hard-edged solid vertical tiles with an internal top-to-bottom gradient,
-   matching the editorial poster reference. See .lavender-stripes for the
-   layering rationale. The horizontal mask fades the pattern out before it
-   reaches the countdown numerics on the right of the hero. */
-.hero-card::before {
+/* Hard-edged solid vertical tiles with an internal vertical gradient,
+   matching the editorial-poster reference. See .lavender-stripes above
+   for the two-pseudo-element technique. */
+.hero-card::before,
+.hero-card::after {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  background-image:
-    linear-gradient(180deg,
-      rgba(255, 255, 255, 0.06) 0%,
-      rgba(255, 255, 255, 0.00) 35%,
-      rgba(9, 11, 20, 0.20) 100%),
-    repeating-linear-gradient(90deg,
-      rgba(var(--lavender-1-rgb), 0.18) 0,
-      rgba(var(--lavender-1-rgb), 0.18) 64px,
-      rgba(9, 11, 20, 0.55) 64px,
-      rgba(9, 11, 20, 0.55) 128px,
-      rgba(var(--lavender-2-rgb), 0.20) 128px,
-      rgba(var(--lavender-2-rgb), 0.20) 200px,
-      rgba(9, 11, 20, 0.55) 200px,
-      rgba(9, 11, 20, 0.55) 264px,
-      rgba(var(--lavender-3-rgb), 0.18) 264px,
-      rgba(var(--lavender-3-rgb), 0.18) 336px,
-      rgba(9, 11, 20, 0.55) 336px,
-      rgba(9, 11, 20, 0.55) 400px);
-  mask-image: linear-gradient(90deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.45) 65%, rgba(0,0,0,0) 100%);
-  -webkit-mask-image: linear-gradient(90deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.45) 65%, rgba(0,0,0,0) 100%);
+}
+.hero-card::before {
+  /* TOP-of-tile colors. */
+  background-image: repeating-linear-gradient(90deg,
+    rgba(var(--lavender-3-rgb), 0.60) 0,
+    rgba(var(--lavender-3-rgb), 0.60) 64px,
+    rgba(9, 11, 20, 0.75) 64px,
+    rgba(9, 11, 20, 0.75) 128px,
+    rgba(var(--lavender-2-rgb), 0.50) 128px,
+    rgba(var(--lavender-2-rgb), 0.50) 192px,
+    rgba(9, 11, 20, 0.75) 192px,
+    rgba(9, 11, 20, 0.75) 256px,
+    rgba(var(--lavender-1-rgb), 0.40) 256px,
+    rgba(var(--lavender-1-rgb), 0.40) 320px);
+  mask-image: linear-gradient(180deg, #000 0%, #000 22%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 22%, transparent 100%);
+}
+.hero-card::after {
+  /* BOTTOM-of-tile colors. */
+  background-image: repeating-linear-gradient(90deg,
+    rgba(var(--lavender-1-rgb), 0.50) 0,
+    rgba(var(--lavender-1-rgb), 0.50) 64px,
+    rgba(20, 25, 50, 0.55) 64px,
+    rgba(20, 25, 50, 0.55) 128px,
+    rgba(var(--lavender-1-rgb), 0.60) 128px,
+    rgba(var(--lavender-1-rgb), 0.60) 192px,
+    rgba(20, 25, 50, 0.55) 192px,
+    rgba(20, 25, 50, 0.55) 256px,
+    rgba(var(--lavender-2-rgb), 0.55) 256px,
+    rgba(var(--lavender-2-rgb), 0.55) 320px);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 78%, #000 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 78%, #000 100%);
 }
 .hero-card > * { position: relative; z-index: 1; }
 
@@ -691,24 +717,35 @@ body {
   box-shadow: var(--shadow-card);
   overflow: hidden;
 }
-.hero-empty::before {
+.hero-empty::before,
+.hero-empty::after {
   content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
-  background-image:
-    linear-gradient(180deg,
-      rgba(255, 255, 255, 0.05) 0%,
-      rgba(255, 255, 255, 0.00) 35%,
-      rgba(9, 11, 20, 0.18) 100%),
-    repeating-linear-gradient(90deg,
-      rgba(var(--lavender-1-rgb), 0.14) 0,
-      rgba(var(--lavender-1-rgb), 0.14) 64px,
-      rgba(9, 11, 20, 0.50) 64px,
-      rgba(9, 11, 20, 0.50) 128px,
-      rgba(var(--lavender-2-rgb), 0.16) 128px,
-      rgba(var(--lavender-2-rgb), 0.16) 200px,
-      rgba(9, 11, 20, 0.50) 200px,
-      rgba(9, 11, 20, 0.50) 264px);
-  mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
-  -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
+}
+.hero-empty::before {
+  background-image: repeating-linear-gradient(90deg,
+    rgba(var(--lavender-3-rgb), 0.50) 0,
+    rgba(var(--lavender-3-rgb), 0.50) 64px,
+    rgba(9, 11, 20, 0.65) 64px,
+    rgba(9, 11, 20, 0.65) 128px,
+    rgba(var(--lavender-2-rgb), 0.40) 128px,
+    rgba(var(--lavender-2-rgb), 0.40) 192px,
+    rgba(9, 11, 20, 0.65) 192px,
+    rgba(9, 11, 20, 0.65) 256px);
+  mask-image: linear-gradient(180deg, #000 0%, #000 25%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 25%, transparent 100%);
+}
+.hero-empty::after {
+  background-image: repeating-linear-gradient(90deg,
+    rgba(var(--lavender-1-rgb), 0.40) 0,
+    rgba(var(--lavender-1-rgb), 0.40) 64px,
+    rgba(20, 25, 50, 0.45) 64px,
+    rgba(20, 25, 50, 0.45) 128px,
+    rgba(var(--lavender-1-rgb), 0.50) 128px,
+    rgba(var(--lavender-1-rgb), 0.50) 192px,
+    rgba(20, 25, 50, 0.45) 192px,
+    rgba(20, 25, 50, 0.45) 256px);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 75%, #000 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 75%, #000 100%);
 }
 .hero-empty > * { position: relative; z-index: 1; }
 .hero-empty-title {
