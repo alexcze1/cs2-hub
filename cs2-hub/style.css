@@ -142,11 +142,12 @@ body {
   isolation: isolate;
   overflow: hidden;
 }
-/* Stripe motif: hard-edged vertical tiles, each fading violet → dark
-   (no light / white tones). Single pseudo-element holds the stripe
-   rhythm at full opacity at the top; a vertical mask fades the whole
-   layer toward the bottom so the surface's own dark background takes
-   over — giving every lavender tile a saturated-violet → navy column. */
+/* Stripe motif: one tile is a horizontal gradient violet → dark, the next
+   tile is the same gradient in reverse (dark → violet), so adjacent
+   tiles meet at the SAME tone (dark next to dark, violet next to violet).
+   That alignment is what produces the visible rhythm of vertical stripes
+   when the pattern repeats. Implementation: a single repeating-linear-
+   gradient at 90° with violet → dark → violet stops, no hard edges. */
 .lavender-stripes::before {
   content: '';
   position: absolute;
@@ -154,18 +155,9 @@ body {
   pointer-events: none;
   z-index: 0;
   background-image: repeating-linear-gradient(90deg,
-    rgba(var(--lavender-3-rgb), 0.65) 0,
-    rgba(var(--lavender-3-rgb), 0.65) 64px,
-    rgba(9, 11, 20, 0.80) 64px,
-    rgba(9, 11, 20, 0.80) 128px,
-    rgba(var(--lavender-2-rgb), 0.55) 128px,
-    rgba(var(--lavender-2-rgb), 0.55) 192px,
-    rgba(9, 11, 20, 0.80) 192px,
-    rgba(9, 11, 20, 0.80) 256px,
-    rgba(var(--lavender-3-rgb), 0.60) 256px,
-    rgba(var(--lavender-3-rgb), 0.60) 320px);
-  mask-image: linear-gradient(180deg, #000 0%, #000 25%, transparent 100%);
-  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 25%, transparent 100%);
+    rgba(var(--lavender-3-rgb), 0.85) 0px,
+    rgba(9, 11, 20, 0.90) 110px,
+    rgba(var(--lavender-3-rgb), 0.85) 220px);
 }
 .lavender-stripes > * { position: relative; z-index: 1; }
 
@@ -560,13 +552,9 @@ body {
     0 0 60px rgba(var(--lavender-3-rgb), 0.22),
     0 28px 70px rgba(0,0,0,0.55);
 }
-/* Hard-edged vertical tiles, each fading violet → dark (no light/white).
-   Single pseudo-element: the stripes hold saturated lavender + dark navy
-   tones at full opacity at the top, then a vertical mask fades the whole
-   layer out toward the bottom so the hero card's own dark background
-   shows through. Effect: every lavender tile reads as violet at the top
-   that gradates down into the card's navy; dark tiles dissolve into the
-   navy at the same point so the rhythm reads cleanly. */
+/* See .lavender-stripes above for technique. Per-tile horizontal gradient
+   violet → dark; next tile reversed dark → violet; tile boundaries share
+   a tone so the alternating direction produces the stripe rhythm. */
 .hero-card::before {
   content: '';
   position: absolute;
@@ -574,18 +562,9 @@ body {
   pointer-events: none;
   z-index: 0;
   background-image: repeating-linear-gradient(90deg,
-    rgba(var(--lavender-3-rgb), 0.78) 0,
-    rgba(var(--lavender-3-rgb), 0.78) 64px,
-    rgba(9, 11, 20, 0.85) 64px,
-    rgba(9, 11, 20, 0.85) 128px,
-    rgba(var(--lavender-2-rgb), 0.62) 128px,
-    rgba(var(--lavender-2-rgb), 0.62) 192px,
-    rgba(9, 11, 20, 0.85) 192px,
-    rgba(9, 11, 20, 0.85) 256px,
-    rgba(var(--lavender-3-rgb), 0.70) 256px,
-    rgba(var(--lavender-3-rgb), 0.70) 320px);
-  mask-image: linear-gradient(180deg, #000 0%, #000 22%, transparent 100%);
-  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 22%, transparent 100%);
+    rgba(var(--lavender-3-rgb), 0.88) 0px,
+    rgba(9, 11, 20, 0.92) 110px,
+    rgba(var(--lavender-3-rgb), 0.88) 220px);
 }
 .hero-card > * { position: relative; z-index: 1; }
 
@@ -678,16 +657,9 @@ body {
 .hero-empty::before {
   content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
   background-image: repeating-linear-gradient(90deg,
-    rgba(var(--lavender-3-rgb), 0.55) 0,
-    rgba(var(--lavender-3-rgb), 0.55) 64px,
-    rgba(9, 11, 20, 0.75) 64px,
-    rgba(9, 11, 20, 0.75) 128px,
-    rgba(var(--lavender-2-rgb), 0.45) 128px,
-    rgba(var(--lavender-2-rgb), 0.45) 192px,
-    rgba(9, 11, 20, 0.75) 192px,
-    rgba(9, 11, 20, 0.75) 256px);
-  mask-image: linear-gradient(180deg, #000 0%, #000 25%, transparent 100%);
-  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 25%, transparent 100%);
+    rgba(var(--lavender-3-rgb), 0.80) 0px,
+    rgba(9, 11, 20, 0.88) 110px,
+    rgba(var(--lavender-3-rgb), 0.80) 220px);
 }
 .hero-empty > * { position: relative; z-index: 1; }
 .hero-empty-title {
