@@ -142,22 +142,49 @@ body {
   isolation: isolate;
   overflow: hidden;
 }
-/* Stripe motif: one tile is a horizontal gradient violet → dark, the next
-   tile is the same gradient in reverse (dark → violet), so adjacent
-   tiles meet at the SAME tone (dark next to dark, violet next to violet).
-   That alignment is what produces the visible rhythm of vertical stripes
-   when the pattern repeats. Implementation: a single repeating-linear-
-   gradient at 90° with violet → dark → violet stops, no hard edges. */
-.lavender-stripes::before {
+/* Stripe motif: hard-edged vertical tiles, each carrying a vertical
+   gradient. Adjacent tiles run in OPPOSITE directions — tile A goes
+   violet (top) → dark (bottom); tile B goes dark (top) → violet (bottom);
+   tile C is tile A again, and so on. The dark color is supplied by the
+   surface's own background showing through wherever the stripe layer is
+   transparent or masked out.
+
+   Two pseudo-elements implement this:
+     ::before — opaque violet stripes at the EVEN positions, masked to
+                fade from solid (top) to transparent (bottom). So at the
+                top of even tiles you see violet; at the bottom the
+                card's dark navy shows through.
+     ::after  — opaque violet stripes at the ODD positions (offset by
+                one tile width), masked the OPPOSITE way: transparent
+                at top, solid at bottom. So odd tiles show dark navy at
+                the top and violet at the bottom.
+
+   Period = 160 px (one even tile + one odd tile, 80 px each). */
+.lavender-stripes::before,
+.lavender-stripes::after {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 0;
+}
+.lavender-stripes::before {
   background-image: repeating-linear-gradient(90deg,
-    rgba(var(--lavender-3-rgb), 0.85) 0px,
-    rgba(9, 11, 20, 0.90) 110px,
-    rgba(var(--lavender-3-rgb), 0.85) 220px);
+    rgba(var(--lavender-3-rgb), 0.88) 0px,
+    rgba(var(--lavender-3-rgb), 0.88) 80px,
+    transparent 80px,
+    transparent 160px);
+  mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
+}
+.lavender-stripes::after {
+  background-image: repeating-linear-gradient(90deg,
+    transparent 0px,
+    transparent 80px,
+    rgba(var(--lavender-3-rgb), 0.88) 80px,
+    rgba(var(--lavender-3-rgb), 0.88) 160px);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 100%);
 }
 .lavender-stripes > * { position: relative; z-index: 1; }
 
@@ -552,19 +579,36 @@ body {
     0 0 60px rgba(var(--lavender-3-rgb), 0.22),
     0 28px 70px rgba(0,0,0,0.55);
 }
-/* See .lavender-stripes above for technique. Per-tile horizontal gradient
-   violet → dark; next tile reversed dark → violet; tile boundaries share
-   a tone so the alternating direction produces the stripe rhythm. */
-.hero-card::before {
+/* See .lavender-stripes above for the technique. Two layers: ::before
+   paints violet stripes at even positions fading top→bottom; ::after
+   paints violet stripes at odd positions fading bottom→top. The card's
+   own dark navy fills the gaps so every tile reads as a vertical
+   gradient with alternating direction. */
+.hero-card::before,
+.hero-card::after {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 0;
+}
+.hero-card::before {
   background-image: repeating-linear-gradient(90deg,
-    rgba(var(--lavender-3-rgb), 0.88) 0px,
-    rgba(9, 11, 20, 0.92) 110px,
-    rgba(var(--lavender-3-rgb), 0.88) 220px);
+    rgba(var(--lavender-3-rgb), 0.92) 0px,
+    rgba(var(--lavender-3-rgb), 0.92) 80px,
+    transparent 80px,
+    transparent 160px);
+  mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
+}
+.hero-card::after {
+  background-image: repeating-linear-gradient(90deg,
+    transparent 0px,
+    transparent 80px,
+    rgba(var(--lavender-3-rgb), 0.92) 80px,
+    rgba(var(--lavender-3-rgb), 0.92) 160px);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 100%);
 }
 .hero-card > * { position: relative; z-index: 1; }
 
@@ -654,12 +698,27 @@ body {
   box-shadow: var(--shadow-card);
   overflow: hidden;
 }
-.hero-empty::before {
+.hero-empty::before,
+.hero-empty::after {
   content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+}
+.hero-empty::before {
   background-image: repeating-linear-gradient(90deg,
-    rgba(var(--lavender-3-rgb), 0.80) 0px,
-    rgba(9, 11, 20, 0.88) 110px,
-    rgba(var(--lavender-3-rgb), 0.80) 220px);
+    rgba(var(--lavender-3-rgb), 0.85) 0px,
+    rgba(var(--lavender-3-rgb), 0.85) 80px,
+    transparent 80px,
+    transparent 160px);
+  mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
+}
+.hero-empty::after {
+  background-image: repeating-linear-gradient(90deg,
+    transparent 0px,
+    transparent 80px,
+    rgba(var(--lavender-3-rgb), 0.85) 80px,
+    rgba(var(--lavender-3-rgb), 0.85) 160px);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 100%);
 }
 .hero-empty > * { position: relative; z-index: 1; }
 .hero-empty-title {
