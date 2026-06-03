@@ -148,18 +148,20 @@ body {
   inset: 0;
   pointer-events: none;
   z-index: 0;
+  /* Gradient stripes: each band fades from a lavender peak to a dark valley
+     and back. Three lavender tones (1 / 2 / 3) cycle through the peaks so
+     the rhythm reads as editorial layered fabric rather than a barcode.
+     Period: 480px. Stops only specify tone changes; CSS interpolates the
+     gradient between them — no hard edges. */
   background-image: repeating-linear-gradient(
     90deg,
-    rgba(var(--lavender-1-rgb), 0.10) 0,
-    rgba(var(--lavender-1-rgb), 0.10) 38px,
-    rgba(var(--lavender-3-rgb), 0.06) 38px,
-    rgba(var(--lavender-3-rgb), 0.06) 92px,
-    rgba(var(--lavender-2-rgb), 0.09) 92px,
-    rgba(var(--lavender-2-rgb), 0.09) 150px,
-    rgba(9, 11, 20, 0.18) 150px,
-    rgba(9, 11, 20, 0.18) 196px,
-    rgba(var(--lavender-2-rgb), 0.07) 196px,
-    rgba(var(--lavender-2-rgb), 0.07) 268px
+    rgba(var(--lavender-1-rgb), 0.12) 0,
+    rgba(9, 11, 20, 0.22) 80px,
+    rgba(var(--lavender-2-rgb), 0.14) 160px,
+    rgba(9, 11, 20, 0.24) 240px,
+    rgba(var(--lavender-3-rgb), 0.12) 320px,
+    rgba(9, 11, 20, 0.22) 400px,
+    rgba(var(--lavender-1-rgb), 0.12) 480px
   );
   mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,0.85) 60%, rgba(0,0,0,0.4) 100%);
   -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,0.85) 60%, rgba(0,0,0,0.4) 100%);
@@ -557,9 +559,11 @@ body {
     0 0 60px rgba(var(--lavender-3-rgb), 0.22),
     0 28px 70px rgba(0,0,0,0.55);
 }
-/* The lavender stripe motif — same rhythm as .lavender-stripes but tuned
-   to the hero composition (vertical bands fade to the right so they don't
-   compete with the countdown numerics). */
+/* The lavender stripe motif — gradient tiles, not solid bands.
+   Each ~80 px tile fades between a lavender peak and a dark valley so
+   adjacent tiles meet at the same tone and the rhythm reads as flowing
+   editorial fabric rather than a barcode. The horizontal mask fades the
+   pattern out before it reaches the countdown numerics on the right. */
 .hero-card::before {
   content: '';
   position: absolute;
@@ -568,19 +572,16 @@ body {
   z-index: 0;
   background-image: repeating-linear-gradient(
     90deg,
-    rgba(var(--lavender-1-rgb), 0.09) 0,
-    rgba(var(--lavender-1-rgb), 0.09) 44px,
-    rgba(var(--lavender-3-rgb), 0.06) 44px,
-    rgba(var(--lavender-3-rgb), 0.06) 102px,
-    rgba(var(--lavender-2-rgb), 0.08) 102px,
-    rgba(var(--lavender-2-rgb), 0.08) 168px,
-    rgba(9, 11, 20, 0.22) 168px,
-    rgba(9, 11, 20, 0.22) 220px,
-    rgba(var(--lavender-2-rgb), 0.06) 220px,
-    rgba(var(--lavender-2-rgb), 0.06) 294px
+    rgba(var(--lavender-1-rgb), 0.14) 0,
+    rgba(9, 11, 20, 0.26) 80px,
+    rgba(var(--lavender-2-rgb), 0.16) 160px,
+    rgba(9, 11, 20, 0.28) 240px,
+    rgba(var(--lavender-3-rgb), 0.14) 320px,
+    rgba(9, 11, 20, 0.26) 400px,
+    rgba(var(--lavender-1-rgb), 0.14) 480px
   );
-  mask-image: linear-gradient(90deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.35) 65%, rgba(0,0,0,0) 100%);
-  -webkit-mask-image: linear-gradient(90deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.35) 65%, rgba(0,0,0,0) 100%);
+  mask-image: linear-gradient(90deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 65%, rgba(0,0,0,0) 100%);
+  -webkit-mask-image: linear-gradient(90deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 65%, rgba(0,0,0,0) 100%);
 }
 .hero-card > * { position: relative; z-index: 1; }
 
@@ -674,12 +675,11 @@ body {
   content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
   background-image: repeating-linear-gradient(
     90deg,
-    rgba(var(--lavender-1-rgb), 0.06) 0,
-    rgba(var(--lavender-1-rgb), 0.06) 44px,
-    rgba(var(--lavender-3-rgb), 0.04) 44px,
-    rgba(var(--lavender-3-rgb), 0.04) 110px,
-    transparent 110px,
-    transparent 180px
+    rgba(var(--lavender-1-rgb), 0.10) 0,
+    rgba(9, 11, 20, 0.20) 90px,
+    rgba(var(--lavender-2-rgb), 0.10) 180px,
+    rgba(9, 11, 20, 0.20) 270px,
+    rgba(var(--lavender-1-rgb), 0.10) 360px
   );
   mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
   -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
