@@ -295,7 +295,6 @@ body {
   flex: 1;
   min-width: 0;
   padding: 48px 56px;
-  max-width: 1480px;
 }
 
 /* ── Page Header ── editorial title scale per spec (~48–64px depending on
