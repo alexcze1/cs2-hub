@@ -142,56 +142,30 @@ body {
   isolation: isolate;
   overflow: hidden;
 }
-/* Stripe motif technique:
-   Two stacked pseudo-elements paint the same vertical stripe rhythm but
-   with DIFFERENT colors, then opposite vertical masks make the upper
-   layer fade out toward the bottom and the lower layer fade in toward
-   the bottom. The result: every tile has its own vertical gradient from
-   the upper-layer color at top to the lower-layer color at bottom, with
-   hard edges between tiles — matching the editorial-poster reference.
-
-   Period (320 px): lavender-3 → dark → lavender-2 → dark → lavender-1 → dark.
-   Top colors are more saturated lavender; bottom colors are lighter, so
-   each lavender tile reads as a saturated-purple → soft-lavender column. */
-.lavender-stripes::before,
-.lavender-stripes::after {
+/* Stripe motif: hard-edged vertical tiles, each fading violet → dark
+   (no light / white tones). Single pseudo-element holds the stripe
+   rhythm at full opacity at the top; a vertical mask fades the whole
+   layer toward the bottom so the surface's own dark background takes
+   over — giving every lavender tile a saturated-violet → navy column. */
+.lavender-stripes::before {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 0;
-}
-.lavender-stripes::before {
-  /* TOP-of-tile colors. Visible toward the top of the surface. */
   background-image: repeating-linear-gradient(90deg,
-    rgba(var(--lavender-3-rgb), 0.55) 0,
-    rgba(var(--lavender-3-rgb), 0.55) 64px,
-    rgba(9, 11, 20, 0.70) 64px,
-    rgba(9, 11, 20, 0.70) 128px,
-    rgba(var(--lavender-2-rgb), 0.45) 128px,
-    rgba(var(--lavender-2-rgb), 0.45) 192px,
-    rgba(9, 11, 20, 0.70) 192px,
-    rgba(9, 11, 20, 0.70) 256px,
-    rgba(var(--lavender-1-rgb), 0.35) 256px,
-    rgba(var(--lavender-1-rgb), 0.35) 320px);
+    rgba(var(--lavender-3-rgb), 0.65) 0,
+    rgba(var(--lavender-3-rgb), 0.65) 64px,
+    rgba(9, 11, 20, 0.80) 64px,
+    rgba(9, 11, 20, 0.80) 128px,
+    rgba(var(--lavender-2-rgb), 0.55) 128px,
+    rgba(var(--lavender-2-rgb), 0.55) 192px,
+    rgba(9, 11, 20, 0.80) 192px,
+    rgba(9, 11, 20, 0.80) 256px,
+    rgba(var(--lavender-3-rgb), 0.60) 256px,
+    rgba(var(--lavender-3-rgb), 0.60) 320px);
   mask-image: linear-gradient(180deg, #000 0%, #000 25%, transparent 100%);
   -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 25%, transparent 100%);
-}
-.lavender-stripes::after {
-  /* BOTTOM-of-tile colors. Visible toward the bottom of the surface. */
-  background-image: repeating-linear-gradient(90deg,
-    rgba(var(--lavender-1-rgb), 0.45) 0,
-    rgba(var(--lavender-1-rgb), 0.45) 64px,
-    rgba(20, 25, 50, 0.50) 64px,
-    rgba(20, 25, 50, 0.50) 128px,
-    rgba(var(--lavender-1-rgb), 0.55) 128px,
-    rgba(var(--lavender-1-rgb), 0.55) 192px,
-    rgba(20, 25, 50, 0.50) 192px,
-    rgba(20, 25, 50, 0.50) 256px,
-    rgba(var(--lavender-2-rgb), 0.50) 256px,
-    rgba(var(--lavender-2-rgb), 0.50) 320px);
-  mask-image: linear-gradient(180deg, transparent 0%, #000 75%, #000 100%);
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 75%, #000 100%);
 }
 .lavender-stripes > * { position: relative; z-index: 1; }
 
@@ -586,48 +560,32 @@ body {
     0 0 60px rgba(var(--lavender-3-rgb), 0.22),
     0 28px 70px rgba(0,0,0,0.55);
 }
-/* Hard-edged solid vertical tiles with an internal vertical gradient,
-   matching the editorial-poster reference. See .lavender-stripes above
-   for the two-pseudo-element technique. */
-.hero-card::before,
-.hero-card::after {
+/* Hard-edged vertical tiles, each fading violet → dark (no light/white).
+   Single pseudo-element: the stripes hold saturated lavender + dark navy
+   tones at full opacity at the top, then a vertical mask fades the whole
+   layer out toward the bottom so the hero card's own dark background
+   shows through. Effect: every lavender tile reads as violet at the top
+   that gradates down into the card's navy; dark tiles dissolve into the
+   navy at the same point so the rhythm reads cleanly. */
+.hero-card::before {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 0;
-}
-.hero-card::before {
-  /* TOP-of-tile colors. */
   background-image: repeating-linear-gradient(90deg,
-    rgba(var(--lavender-3-rgb), 0.60) 0,
-    rgba(var(--lavender-3-rgb), 0.60) 64px,
-    rgba(9, 11, 20, 0.75) 64px,
-    rgba(9, 11, 20, 0.75) 128px,
-    rgba(var(--lavender-2-rgb), 0.50) 128px,
-    rgba(var(--lavender-2-rgb), 0.50) 192px,
-    rgba(9, 11, 20, 0.75) 192px,
-    rgba(9, 11, 20, 0.75) 256px,
-    rgba(var(--lavender-1-rgb), 0.40) 256px,
-    rgba(var(--lavender-1-rgb), 0.40) 320px);
+    rgba(var(--lavender-3-rgb), 0.78) 0,
+    rgba(var(--lavender-3-rgb), 0.78) 64px,
+    rgba(9, 11, 20, 0.85) 64px,
+    rgba(9, 11, 20, 0.85) 128px,
+    rgba(var(--lavender-2-rgb), 0.62) 128px,
+    rgba(var(--lavender-2-rgb), 0.62) 192px,
+    rgba(9, 11, 20, 0.85) 192px,
+    rgba(9, 11, 20, 0.85) 256px,
+    rgba(var(--lavender-3-rgb), 0.70) 256px,
+    rgba(var(--lavender-3-rgb), 0.70) 320px);
   mask-image: linear-gradient(180deg, #000 0%, #000 22%, transparent 100%);
   -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 22%, transparent 100%);
-}
-.hero-card::after {
-  /* BOTTOM-of-tile colors. */
-  background-image: repeating-linear-gradient(90deg,
-    rgba(var(--lavender-1-rgb), 0.50) 0,
-    rgba(var(--lavender-1-rgb), 0.50) 64px,
-    rgba(20, 25, 50, 0.55) 64px,
-    rgba(20, 25, 50, 0.55) 128px,
-    rgba(var(--lavender-1-rgb), 0.60) 128px,
-    rgba(var(--lavender-1-rgb), 0.60) 192px,
-    rgba(20, 25, 50, 0.55) 192px,
-    rgba(20, 25, 50, 0.55) 256px,
-    rgba(var(--lavender-2-rgb), 0.55) 256px,
-    rgba(var(--lavender-2-rgb), 0.55) 320px);
-  mask-image: linear-gradient(180deg, transparent 0%, #000 78%, #000 100%);
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 78%, #000 100%);
 }
 .hero-card > * { position: relative; z-index: 1; }
 
@@ -717,35 +675,19 @@ body {
   box-shadow: var(--shadow-card);
   overflow: hidden;
 }
-.hero-empty::before,
-.hero-empty::after {
-  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
-}
 .hero-empty::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
   background-image: repeating-linear-gradient(90deg,
-    rgba(var(--lavender-3-rgb), 0.50) 0,
-    rgba(var(--lavender-3-rgb), 0.50) 64px,
-    rgba(9, 11, 20, 0.65) 64px,
-    rgba(9, 11, 20, 0.65) 128px,
-    rgba(var(--lavender-2-rgb), 0.40) 128px,
-    rgba(var(--lavender-2-rgb), 0.40) 192px,
-    rgba(9, 11, 20, 0.65) 192px,
-    rgba(9, 11, 20, 0.65) 256px);
+    rgba(var(--lavender-3-rgb), 0.55) 0,
+    rgba(var(--lavender-3-rgb), 0.55) 64px,
+    rgba(9, 11, 20, 0.75) 64px,
+    rgba(9, 11, 20, 0.75) 128px,
+    rgba(var(--lavender-2-rgb), 0.45) 128px,
+    rgba(var(--lavender-2-rgb), 0.45) 192px,
+    rgba(9, 11, 20, 0.75) 192px,
+    rgba(9, 11, 20, 0.75) 256px);
   mask-image: linear-gradient(180deg, #000 0%, #000 25%, transparent 100%);
   -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 25%, transparent 100%);
-}
-.hero-empty::after {
-  background-image: repeating-linear-gradient(90deg,
-    rgba(var(--lavender-1-rgb), 0.40) 0,
-    rgba(var(--lavender-1-rgb), 0.40) 64px,
-    rgba(20, 25, 50, 0.45) 64px,
-    rgba(20, 25, 50, 0.45) 128px,
-    rgba(var(--lavender-1-rgb), 0.50) 128px,
-    rgba(var(--lavender-1-rgb), 0.50) 192px,
-    rgba(20, 25, 50, 0.45) 192px,
-    rgba(20, 25, 50, 0.45) 256px);
-  mask-image: linear-gradient(180deg, transparent 0%, #000 75%, #000 100%);
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 75%, #000 100%);
 }
 .hero-empty > * { position: relative; z-index: 1; }
 .hero-empty-title {
