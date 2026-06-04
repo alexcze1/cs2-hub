@@ -168,21 +168,52 @@ body {
   pointer-events: none;
   z-index: 0;
 }
+/* Per-tile opacity variation — same tile geometry, but each tile in the
+   8-tile repeat (640 px period) gets its own intensity so the rhythm
+   doesn't read mechanical. Lower-opacity tiles blend into the dark navy
+   sooner, so the point where each gradient "ends" varies tile-to-tile
+   even though the overall mask is uniform. ::before holds the even-index
+   tiles (0,2,4,6) at varied opacities; ::after holds the odd-index tiles
+   (1,3,5,7), also varied. */
 .lavender-stripes::before {
   background-image: repeating-linear-gradient(90deg,
-    rgba(var(--lavender-3-rgb), 0.88) 0px,
-    rgba(var(--lavender-3-rgb), 0.88) 80px,
-    transparent 80px,
-    transparent 160px);
+    rgba(var(--lavender-3-rgb), 0.95) 0px,
+    rgba(var(--lavender-3-rgb), 0.95) 80px,
+    transparent                       80px,
+    transparent                       160px,
+    rgba(var(--lavender-3-rgb), 0.68) 160px,
+    rgba(var(--lavender-3-rgb), 0.68) 240px,
+    transparent                       240px,
+    transparent                       320px,
+    rgba(var(--lavender-3-rgb), 0.50) 320px,
+    rgba(var(--lavender-3-rgb), 0.50) 400px,
+    transparent                       400px,
+    transparent                       480px,
+    rgba(var(--lavender-3-rgb), 0.82) 480px,
+    rgba(var(--lavender-3-rgb), 0.82) 560px,
+    transparent                       560px,
+    transparent                       640px);
   mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
   -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
 }
 .lavender-stripes::after {
   background-image: repeating-linear-gradient(90deg,
-    transparent 0px,
-    transparent 80px,
-    rgba(var(--lavender-3-rgb), 0.88) 80px,
-    rgba(var(--lavender-3-rgb), 0.88) 160px);
+    transparent                       0px,
+    transparent                       80px,
+    rgba(var(--lavender-3-rgb), 0.62) 80px,
+    rgba(var(--lavender-3-rgb), 0.62) 160px,
+    transparent                       160px,
+    transparent                       240px,
+    rgba(var(--lavender-3-rgb), 0.90) 240px,
+    rgba(var(--lavender-3-rgb), 0.90) 320px,
+    transparent                       320px,
+    transparent                       400px,
+    rgba(var(--lavender-3-rgb), 0.46) 400px,
+    rgba(var(--lavender-3-rgb), 0.46) 480px,
+    transparent                       480px,
+    transparent                       560px,
+    rgba(var(--lavender-3-rgb), 0.76) 560px,
+    rgba(var(--lavender-3-rgb), 0.76) 640px);
   mask-image: linear-gradient(180deg, transparent 0%, #000 100%);
   -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 100%);
 }
@@ -594,19 +625,43 @@ body {
 }
 .hero-card::before {
   background-image: repeating-linear-gradient(90deg,
-    rgba(var(--lavender-3-rgb), 0.92) 0px,
-    rgba(var(--lavender-3-rgb), 0.92) 80px,
-    transparent 80px,
-    transparent 160px);
+    rgba(var(--lavender-3-rgb), 0.98) 0px,
+    rgba(var(--lavender-3-rgb), 0.98) 80px,
+    transparent                       80px,
+    transparent                       160px,
+    rgba(var(--lavender-3-rgb), 0.72) 160px,
+    rgba(var(--lavender-3-rgb), 0.72) 240px,
+    transparent                       240px,
+    transparent                       320px,
+    rgba(var(--lavender-3-rgb), 0.54) 320px,
+    rgba(var(--lavender-3-rgb), 0.54) 400px,
+    transparent                       400px,
+    transparent                       480px,
+    rgba(var(--lavender-3-rgb), 0.86) 480px,
+    rgba(var(--lavender-3-rgb), 0.86) 560px,
+    transparent                       560px,
+    transparent                       640px);
   mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
   -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
 }
 .hero-card::after {
   background-image: repeating-linear-gradient(90deg,
-    transparent 0px,
-    transparent 80px,
-    rgba(var(--lavender-3-rgb), 0.92) 80px,
-    rgba(var(--lavender-3-rgb), 0.92) 160px);
+    transparent                       0px,
+    transparent                       80px,
+    rgba(var(--lavender-3-rgb), 0.64) 80px,
+    rgba(var(--lavender-3-rgb), 0.64) 160px,
+    transparent                       160px,
+    transparent                       240px,
+    rgba(var(--lavender-3-rgb), 0.94) 240px,
+    rgba(var(--lavender-3-rgb), 0.94) 320px,
+    transparent                       320px,
+    transparent                       400px,
+    rgba(var(--lavender-3-rgb), 0.48) 400px,
+    rgba(var(--lavender-3-rgb), 0.48) 480px,
+    transparent                       480px,
+    transparent                       560px,
+    rgba(var(--lavender-3-rgb), 0.78) 560px,
+    rgba(var(--lavender-3-rgb), 0.78) 640px);
   mask-image: linear-gradient(180deg, transparent 0%, #000 100%);
   -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 100%);
 }
@@ -704,19 +759,43 @@ body {
 }
 .hero-empty::before {
   background-image: repeating-linear-gradient(90deg,
-    rgba(var(--lavender-3-rgb), 0.85) 0px,
-    rgba(var(--lavender-3-rgb), 0.85) 80px,
-    transparent 80px,
-    transparent 160px);
+    rgba(var(--lavender-3-rgb), 0.92) 0px,
+    rgba(var(--lavender-3-rgb), 0.92) 80px,
+    transparent                       80px,
+    transparent                       160px,
+    rgba(var(--lavender-3-rgb), 0.68) 160px,
+    rgba(var(--lavender-3-rgb), 0.68) 240px,
+    transparent                       240px,
+    transparent                       320px,
+    rgba(var(--lavender-3-rgb), 0.50) 320px,
+    rgba(var(--lavender-3-rgb), 0.50) 400px,
+    transparent                       400px,
+    transparent                       480px,
+    rgba(var(--lavender-3-rgb), 0.80) 480px,
+    rgba(var(--lavender-3-rgb), 0.80) 560px,
+    transparent                       560px,
+    transparent                       640px);
   mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
   -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
 }
 .hero-empty::after {
   background-image: repeating-linear-gradient(90deg,
-    transparent 0px,
-    transparent 80px,
-    rgba(var(--lavender-3-rgb), 0.85) 80px,
-    rgba(var(--lavender-3-rgb), 0.85) 160px);
+    transparent                       0px,
+    transparent                       80px,
+    rgba(var(--lavender-3-rgb), 0.60) 80px,
+    rgba(var(--lavender-3-rgb), 0.60) 160px,
+    transparent                       160px,
+    transparent                       240px,
+    rgba(var(--lavender-3-rgb), 0.88) 240px,
+    rgba(var(--lavender-3-rgb), 0.88) 320px,
+    transparent                       320px,
+    transparent                       400px,
+    rgba(var(--lavender-3-rgb), 0.46) 400px,
+    rgba(var(--lavender-3-rgb), 0.46) 480px,
+    transparent                       480px,
+    transparent                       560px,
+    rgba(var(--lavender-3-rgb), 0.74) 560px,
+    rgba(var(--lavender-3-rgb), 0.74) 640px);
   mask-image: linear-gradient(180deg, transparent 0%, #000 100%);
   -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 100%);
 }
