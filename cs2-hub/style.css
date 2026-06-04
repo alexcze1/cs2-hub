@@ -84,17 +84,21 @@
 
   /* ── Stripe-motif gradient stretches ───────────────────────────────
      Each variant defines how far the violet column reaches before
-     fading into transparency. Used by .hero-card / .hero-empty /
-     .lavender-stripes via background-size + background-position so
-     adjacent tiles in the repeat each pick a different stretch. */
-  --stripe-down-xs: linear-gradient(180deg, rgba(var(--lavender-3-rgb), 0.95) 0%, rgba(var(--lavender-3-rgb), 0.95) 28%, transparent 100%);
-  --stripe-down-sm: linear-gradient(180deg, rgba(var(--lavender-3-rgb), 0.95) 0%, rgba(var(--lavender-3-rgb), 0.95) 48%, transparent 100%);
-  --stripe-down-md: linear-gradient(180deg, rgba(var(--lavender-3-rgb), 0.95) 0%, rgba(var(--lavender-3-rgb), 0.95) 68%, transparent 100%);
-  --stripe-down-lg: linear-gradient(180deg, rgba(var(--lavender-3-rgb), 0.95) 0%, rgba(var(--lavender-3-rgb), 0.95) 86%, transparent 100%);
-  --stripe-up-xs:   linear-gradient(180deg, transparent 0%, rgba(var(--lavender-3-rgb), 0.95) 72%, rgba(var(--lavender-3-rgb), 0.95) 100%);
-  --stripe-up-sm:   linear-gradient(180deg, transparent 0%, rgba(var(--lavender-3-rgb), 0.95) 52%, rgba(var(--lavender-3-rgb), 0.95) 100%);
-  --stripe-up-md:   linear-gradient(180deg, transparent 0%, rgba(var(--lavender-3-rgb), 0.95) 32%, rgba(var(--lavender-3-rgb), 0.95) 100%);
-  --stripe-up-lg:   linear-gradient(180deg, transparent 0%, rgba(var(--lavender-3-rgb), 0.95) 14%, rgba(var(--lavender-3-rgb), 0.95) 100%);
+     fading into transparency. The range is biased shorter overall —
+     even the "long" variant only covers ~55 % — so the dark navy of
+     the surface is dominant; violet reads as an editorial accent rather
+     than a wash. The faintest variant also drops opacity so a small
+     column of light violet isn't competing with a tall column of
+     saturated violet. Used by .hero-card / .hero-empty /
+     .lavender-stripes via background-size + background-position. */
+  --stripe-down-xs: linear-gradient(180deg, rgba(var(--lavender-3-rgb), 0.78) 0%, rgba(var(--lavender-3-rgb), 0.78)  8%, transparent 100%);
+  --stripe-down-sm: linear-gradient(180deg, rgba(var(--lavender-3-rgb), 0.88) 0%, rgba(var(--lavender-3-rgb), 0.88) 20%, transparent 100%);
+  --stripe-down-md: linear-gradient(180deg, rgba(var(--lavender-3-rgb), 0.92) 0%, rgba(var(--lavender-3-rgb), 0.92) 36%, transparent 100%);
+  --stripe-down-lg: linear-gradient(180deg, rgba(var(--lavender-3-rgb), 0.92) 0%, rgba(var(--lavender-3-rgb), 0.92) 55%, transparent 100%);
+  --stripe-up-xs:   linear-gradient(180deg, transparent 0%, rgba(var(--lavender-3-rgb), 0.78) 92%, rgba(var(--lavender-3-rgb), 0.78) 100%);
+  --stripe-up-sm:   linear-gradient(180deg, transparent 0%, rgba(var(--lavender-3-rgb), 0.88) 80%, rgba(var(--lavender-3-rgb), 0.88) 100%);
+  --stripe-up-md:   linear-gradient(180deg, transparent 0%, rgba(var(--lavender-3-rgb), 0.92) 64%, rgba(var(--lavender-3-rgb), 0.92) 100%);
+  --stripe-up-lg:   linear-gradient(180deg, transparent 0%, rgba(var(--lavender-3-rgb), 0.92) 45%, rgba(var(--lavender-3-rgb), 0.92) 100%);
 
   /* Motion — slightly snappier per spec (150–250ms band) */
   --dur-1: 120ms;
@@ -191,12 +195,12 @@ body {
    wide screens stay covered. */
 .lavender-stripes::before {
   background-image:
-    var(--stripe-down-xs), var(--stripe-down-md),
+    var(--stripe-down-xs), var(--stripe-down-sm),
+    var(--stripe-down-md), var(--stripe-down-xs),
     var(--stripe-down-sm), var(--stripe-down-lg),
-    var(--stripe-down-xs), var(--stripe-down-md),
-    var(--stripe-down-sm), var(--stripe-down-lg),
-    var(--stripe-down-xs), var(--stripe-down-md),
-    var(--stripe-down-sm), var(--stripe-down-lg);
+    var(--stripe-down-xs), var(--stripe-down-sm),
+    var(--stripe-down-md), var(--stripe-down-xs),
+    var(--stripe-down-sm), var(--stripe-down-xs);
   background-size: 80px 100%;
   background-position:
     0    0,  160px 0,  320px 0,  480px 0,
@@ -206,12 +210,12 @@ body {
 }
 .lavender-stripes::after {
   background-image:
-    var(--stripe-up-sm), var(--stripe-up-lg),
-    var(--stripe-up-xs), var(--stripe-up-md),
-    var(--stripe-up-sm), var(--stripe-up-lg),
-    var(--stripe-up-xs), var(--stripe-up-md),
-    var(--stripe-up-sm), var(--stripe-up-lg),
-    var(--stripe-up-xs), var(--stripe-up-md);
+    var(--stripe-up-sm), var(--stripe-up-xs),
+    var(--stripe-up-md), var(--stripe-up-xs),
+    var(--stripe-up-sm), var(--stripe-up-md),
+    var(--stripe-up-xs), var(--stripe-up-lg),
+    var(--stripe-up-sm), var(--stripe-up-xs),
+    var(--stripe-up-md), var(--stripe-up-sm);
   background-size: 80px 100%;
   background-position:
     80px  0, 240px 0, 400px 0, 560px 0,
@@ -627,11 +631,11 @@ body {
 }
 .hero-card::before {
   background-image:
-    var(--stripe-down-sm), var(--stripe-down-lg),
-    var(--stripe-down-xs), var(--stripe-down-md),
-    var(--stripe-down-sm), var(--stripe-down-lg),
-    var(--stripe-down-xs), var(--stripe-down-md),
-    var(--stripe-down-sm), var(--stripe-down-lg),
+    var(--stripe-down-sm), var(--stripe-down-xs),
+    var(--stripe-down-md), var(--stripe-down-sm),
+    var(--stripe-down-xs), var(--stripe-down-lg),
+    var(--stripe-down-sm), var(--stripe-down-xs),
+    var(--stripe-down-md), var(--stripe-down-sm),
     var(--stripe-down-xs), var(--stripe-down-md);
   background-size: 80px 100%;
   background-position:
@@ -642,12 +646,12 @@ body {
 }
 .hero-card::after {
   background-image:
-    var(--stripe-up-md), var(--stripe-up-xs),
+    var(--stripe-up-xs), var(--stripe-up-md),
+    var(--stripe-up-sm), var(--stripe-up-xs),
     var(--stripe-up-lg), var(--stripe-up-sm),
-    var(--stripe-up-md), var(--stripe-up-xs),
-    var(--stripe-up-lg), var(--stripe-up-sm),
-    var(--stripe-up-md), var(--stripe-up-xs),
-    var(--stripe-up-lg), var(--stripe-up-sm);
+    var(--stripe-up-xs), var(--stripe-up-md),
+    var(--stripe-up-sm), var(--stripe-up-xs),
+    var(--stripe-up-md), var(--stripe-up-sm);
   background-size: 80px 100%;
   background-position:
     80px  0, 240px 0, 400px 0, 560px 0,
@@ -749,12 +753,12 @@ body {
 }
 .hero-empty::before {
   background-image:
+    var(--stripe-down-sm), var(--stripe-down-xs),
+    var(--stripe-down-md), var(--stripe-down-sm),
+    var(--stripe-down-xs), var(--stripe-down-lg),
+    var(--stripe-down-xs), var(--stripe-down-sm),
     var(--stripe-down-md), var(--stripe-down-xs),
-    var(--stripe-down-lg), var(--stripe-down-sm),
-    var(--stripe-down-md), var(--stripe-down-xs),
-    var(--stripe-down-lg), var(--stripe-down-sm),
-    var(--stripe-down-md), var(--stripe-down-xs),
-    var(--stripe-down-lg), var(--stripe-down-sm);
+    var(--stripe-down-sm), var(--stripe-down-xs);
   background-size: 80px 100%;
   background-position:
     0    0,  160px 0,  320px 0,  480px 0,
@@ -764,12 +768,12 @@ body {
 }
 .hero-empty::after {
   background-image:
-    var(--stripe-up-lg), var(--stripe-up-sm),
     var(--stripe-up-xs), var(--stripe-up-md),
-    var(--stripe-up-lg), var(--stripe-up-sm),
-    var(--stripe-up-xs), var(--stripe-up-md),
-    var(--stripe-up-lg), var(--stripe-up-sm),
-    var(--stripe-up-xs), var(--stripe-up-md);
+    var(--stripe-up-sm), var(--stripe-up-xs),
+    var(--stripe-up-md), var(--stripe-up-sm),
+    var(--stripe-up-xs), var(--stripe-up-lg),
+    var(--stripe-up-sm), var(--stripe-up-xs),
+    var(--stripe-up-md), var(--stripe-up-xs);
   background-size: 80px 100%;
   background-position:
     80px  0, 240px 0, 400px 0, 560px 0,
