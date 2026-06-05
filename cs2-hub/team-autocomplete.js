@@ -110,7 +110,7 @@ export async function attachTeamAutocomplete(input, onSelect) {
   function setActive(i) {
     activeIdx = i
     drop.querySelectorAll('.ac-item').forEach((el, idx) => {
-      el.style.background = idx === i ? 'rgba(0,255,156,0.12)' : ''
+      el.style.background = idx === i ? 'rgba(139,109,255,0.12)' : ''
     })
   }
 

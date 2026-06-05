@@ -7,20 +7,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 :root {
-  /* ── New tokens (master design prompt) ─────────────────────────── */
-  --bg-primary:   #090B14;
-  --bg-secondary: #101522;
-  --bg-card:      #141A2A;
+  /* ── Design tokens (Teoroa × Paytech fusion, MD spec) ──────────── */
+  --bg-primary:   #05060D;
+  --bg-secondary: #0B0D18;
+  --bg-card:      #111423;
+  --bg-card-soft: #171A2A;
 
-  --lavender-1: #D9D1FF;
-  --lavender-2: #B9A8FF;
-  --lavender-3: #8E7DFF;
-  --lavender-3-rgb: 142, 125, 255;   /* for rgba() composition */
-  --lavender-2-rgb: 185, 168, 255;
-  --lavender-1-rgb: 217, 209, 255;
+  --lavender-1: #C9BCFF;
+  --lavender-2: #A995FF;
+  --lavender-3: #8B6DFF;
+  --lavender-3-rgb: 139, 109, 255;   /* for rgba() composition */
+  --lavender-2-rgb: 169, 149, 255;
+  --lavender-1-rgb: 201, 188, 255;
 
   --text-primary:   #FFFFFF;
-  --text-secondary: #A8B0C0;
+  --text-secondary: #B7B4C8;
 
   /* ── Surface aliases — keep historical names mapped to new system ─ */
   --bg: var(--bg-primary);
@@ -34,7 +35,8 @@
   /* Text aliases */
   --text: var(--text-primary);
   --text-variant: var(--text-secondary);
-  --muted: #6E768A;
+  --muted: #6F6B82;
+  --text-faint: #45425A;
 
   /* Borders — soft lavender-tinted hairlines */
   --border: rgba(var(--lavender-2-rgb), 0.10);
@@ -48,38 +50,38 @@
   /* Brand — accent is lavender-3, light is lavender-2, deep is darker */
   --accent: var(--lavender-3);
   --accent-light: var(--lavender-2);
-  --accent-deep: #6F5BFF;
+  --accent-deep: #5B3FD4;
   --accent-on: #0A0814;
   --accent-rgb: var(--lavender-3-rgb);
   --accent-dim: rgba(var(--lavender-3-rgb), 0.15);
   --accent-glow: 0 0 24px rgba(var(--lavender-3-rgb), 0.45);
   --accent-grad: linear-gradient(135deg, var(--lavender-1) 0%, var(--lavender-2) 45%, var(--lavender-3) 100%);
 
-  /* Semantic — success becomes the cyan accent, not green */
-  --success: #16FFD5;
-  --success-pos: #16FFD5;
-  --success-rgb: 22, 255, 213;
-  --warning: #FFC857;
-  --danger: #FF5A7A;
+  /* Semantic — MD spec green/amber/red */
+  --success: #37D67A;
+  --success-pos: #37D67A;
+  --success-rgb: 55, 214, 122;
+  --warning: #FFB020;
+  --danger: #FF4D6D;
   --danger-bg: #3A0F1E;
-  --danger-glow: 0 0 18px rgba(255, 90, 122, 0.4);
+  --danger-glow: 0 0 18px rgba(255, 77, 109, 0.4);
   --special: #6FA8FF;
 
   /* CS2 sides — kept as-is so map/side coding is unaffected */
   --side-t:  #FFA94D;
   --side-ct: #6FA8FF;
-  --role-lurker: #B9A8FF;
+  --role-lurker: #A995FF;
 
   /* Layout */
   --sidebar-w: 232px;
   --display-font: 'Inter', 'Space Grotesk', system-ui, sans-serif;
 
-  /* Radii — bumped per spec: cards land at 24px */
-  --r-sm: 6px;
-  --r-md: 10px;
-  --r-lg: 16px;
-  --r-xl: 24px;
-  --r-2xl: 28px;
+  /* Radii — MD spec: sm 10, md 16, lg 24, xl 36 */
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --r-xl: 36px;
+  --r-2xl: 36px;
   --r-pill: 999px;
 
   /* ── Stripe-motif gradient stretches ───────────────────────────────
@@ -703,7 +705,7 @@ body {
   letter-spacing: -0.028em; line-height: 0.95;
   margin: 6px 0 18px;
   color: var(--text-primary);
-  background: linear-gradient(180deg, #FFFFFF 0%, #D9D1FF 100%);
+  background: linear-gradient(180deg, #FFFFFF 0%, #C9BCFF 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -3898,7 +3900,7 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
 .dx-upload-cta {
   display: inline-block;
   margin-top: 20px;
-  background: linear-gradient(90deg, #8E7DFF, #6F5BFF);
+  background: linear-gradient(90deg, #A995FF, #5B3FD4);
   color: #06181a;
   font-weight: 700;
   font-size: 13px;
@@ -4153,7 +4155,7 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(90deg, #8E7DFF, #6F5BFF);
+  background: linear-gradient(90deg, #A995FF, #5B3FD4);
   color: #06181a;
   font-weight: 700;
   font-size: 12px;
