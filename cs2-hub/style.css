@@ -67,9 +67,14 @@
   --danger-glow: 0 0 18px rgba(255, 77, 109, 0.4);
   --special: #6FA8FF;
 
-  /* CS2 sides — kept as-is so map/side coding is unaffected */
+  /* CS2 sides — kept as-is so map/side coding is unaffected. The -rgb pairs
+     exist so pages that need rgba() shading (demo-viewer, analysis) can
+     reference the token instead of pasting raw 79,195,247 / 255,149,0 values
+     that drifted away from the canonical hex. */
   --side-t:  #FFA94D;
+  --side-t-rgb:  255, 169, 77;
   --side-ct: #6FA8FF;
+  --side-ct-rgb: 111, 168, 255;
   --role-lurker: #A995FF;
 
   /* Layout */
@@ -5804,15 +5809,9 @@ body { overflow-x: hidden; }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Hero card: subtle scan-line on hover ── */
-.hero-card { transition: transform var(--dur-3) var(--ease), box-shadow var(--dur-3) var(--ease); }
-.hero-card:hover {
-  transform: translateY(-1px);
-  box-shadow:
-    inset 1px 1px 0 rgba(255,255,255,0.06),
-    0 0 32px rgba(var(--lavender-3-rgb),0.14),
-    0 16px 48px rgba(0,0,0,0.5);
-}
+/* (The canonical .hero-card + :hover live near line 590. A duplicate block
+   that drifted from the canonical translate/shadow values used to live here
+   and was silently winning the cascade.) */
 
 /* ── Toast: success uses brighter accent ── */
 .toast.toast-success { color: var(--accent-light); }
