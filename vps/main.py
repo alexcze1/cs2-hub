@@ -229,6 +229,12 @@ async def sync_team_vetos_endpoint(
     if not name:
         return {"team_name": name, "queued": False, "reason": "empty"}
 
+    # Kill-switch parity with HLTV_INGEST_ENABLED / HLTV_REFRESH_ENABLED:
+    # gives us a way to disable all HLTV egress in one place when CF starts
+    # 403'ing or we need to back off.
+    if not int(os.getenv("HLTV_VETO_SYNC_ENABLED", "1")):
+        return {"team_name": name, "queued": False, "reason": "disabled"}
+
     key = name.lower()
     now = time.time()
     last_ok    = _veto_sync_last.get(key, 0)

@@ -5,9 +5,35 @@
 # exactly one place.
 
 import os
+import sys
 from contextlib import contextmanager
+from urllib.parse import urlparse
 
 import psycopg2
+
+
+def _check_database_url_port(url: str) -> None:
+    # The Supabase *transaction* pooler runs on 6543 and silently breaks our
+    # long-lived transactions ⇒ demos hang in "Processing". We MUST use the
+    # session pooler on 5432. Warn loudly at import time so a future env
+    # regression is obvious in logs instead of materialising as stuck demos.
+    try:
+        port = urlparse(url).port
+    except Exception:
+        return
+    if port == 6543:
+        print(
+            "[db] WARNING: DATABASE_URL points at the Supabase transaction pooler "
+            "(port 6543). Demos will stall in 'Processing'. Use the session "
+            "pooler on port 5432.",
+            file=sys.stderr,
+            flush=True,
+        )
+
+
+_DB_URL = os.environ.get("DATABASE_URL", "")
+if _DB_URL:
+    _check_database_url_port(_DB_URL)
 
 
 @contextmanager
