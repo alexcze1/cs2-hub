@@ -1,5 +1,8 @@
-const SUPABASE_URL     = process.env.SUPABASE_URL || 'https://yujlmvqxffkojsokcdiu.supabase.co'
+const SUPABASE_URL     = process.env.SUPABASE_URL
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+const UUID_RX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const isUuid = s => typeof s === 'string' && UUID_RX.test(s)
 
 function srHeaders(extra = {}) {
   return {
@@ -19,11 +22,15 @@ async function getAdminUser(req) {
   })
   if (!res.ok) return null
   const user = await res.json()
-  return user?.user_metadata?.is_admin ? user : null
+  // Prefer server-controlled app_metadata; fall back to user_metadata only if
+  // the project hasn't migrated yet. Client-controlled user_metadata is unsafe
+  // as a sole source for admin role.
+  const isAdmin = user?.app_metadata?.is_admin || user?.user_metadata?.is_admin
+  return isAdmin ? user : null
 }
 
 export default async function handler(req, res) {
-  if (!SERVICE_ROLE_KEY) return res.status(500).json({ error: 'Not configured' })
+  if (!SERVICE_ROLE_KEY || !SUPABASE_URL) return res.status(500).json({ error: 'Not configured' })
 
   const admin = await getAdminUser(req)
   if (!admin) return res.status(403).json({ error: 'Forbidden' })
@@ -62,7 +69,7 @@ export default async function handler(req, res) {
   // ── POST: delete team ──────────────────────────────────────
   if (body.action === 'delete_team') {
     const { team_id } = body
-    if (!team_id) return res.status(400).json({ error: 'team_id required' })
+    if (!isUuid(team_id)) return res.status(400).json({ error: 'team_id must be a UUID' })
     await fetch(`${SUPABASE_URL}/rest/v1/team_members?team_id=eq.${team_id}`, { method: 'DELETE', headers: srHeaders() })
     await fetch(`${SUPABASE_URL}/rest/v1/roster?team_id=eq.${team_id}`, { method: 'DELETE', headers: srHeaders() })
     await fetch(`${SUPABASE_URL}/rest/v1/teams?id=eq.${team_id}`, { method: 'DELETE', headers: srHeaders() })
@@ -72,7 +79,9 @@ export default async function handler(req, res) {
   // ── POST: remove member ────────────────────────────────────
   if (body.action === 'remove_member') {
     const { team_id, user_id } = body
-    if (!team_id || !user_id) return res.status(400).json({ error: 'team_id and user_id required' })
+    if (!isUuid(team_id) || !isUuid(user_id)) {
+      return res.status(400).json({ error: 'team_id and user_id must be UUIDs' })
+    }
     await fetch(`${SUPABASE_URL}/rest/v1/team_members?team_id=eq.${team_id}&user_id=eq.${user_id}`, { method: 'DELETE', headers: srHeaders() })
     await fetch(`${SUPABASE_URL}/rest/v1/roster?team_id=eq.${team_id}&user_id=eq.${user_id}`, { method: 'DELETE', headers: srHeaders() })
     return res.json({ ok: true })
@@ -81,12 +90,14 @@ export default async function handler(req, res) {
   // ── POST: create team ──────────────────────────────────────
   if (body.action === 'create_team') {
     const { name } = body
-    if (!name) return res.status(400).json({ error: 'name required' })
+    if (!name || typeof name !== 'string') return res.status(400).json({ error: 'name required' })
+    const trimmed = name.trim()
+    if (!trimmed || trimmed.length > 80) return res.status(400).json({ error: 'invalid name' })
     const joinCode = Math.random().toString(36).slice(2, 8).toUpperCase()
     const r = await fetch(`${SUPABASE_URL}/rest/v1/teams`, {
       method: 'POST',
       headers: srHeaders(),
-      body: JSON.stringify({ name, join_code: joinCode }),
+      body: JSON.stringify({ name: trimmed, join_code: joinCode }),
     })
     return res.json(await r.json())
   }

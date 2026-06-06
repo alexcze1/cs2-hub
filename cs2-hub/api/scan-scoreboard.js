@@ -1,10 +1,30 @@
 export const config = { api: { bodyParser: { sizeLimit: '6mb' } } }
 
+const SUPABASE_URL = process.env.SUPABASE_URL
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
+
+async function isAuthed(req) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return false
+  const token = req.headers.authorization?.replace('Bearer ', '')
+  if (!token) return false
+  const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
+  })
+  return r.ok
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
 
+  if (!(await isAuthed(req))) return res.status(401).json({ error: 'Auth required' })
+
   const { image, mediaType } = req.body
   if (!image) return res.status(400).json({ error: 'No image provided' })
+  if (typeof image !== 'string' || image.length > 8_000_000) {
+    return res.status(400).json({ error: 'Invalid image payload' })
+  }
+  const allowedMedia = new Set(['image/png', 'image/jpeg', 'image/webp'])
+  const media = allowedMedia.has(mediaType) ? mediaType : 'image/png'
 
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' })
@@ -24,7 +44,7 @@ export default async function handler(req, res) {
         content: [
           {
             type: 'image',
-            source: { type: 'base64', media_type: mediaType || 'image/png', data: image },
+            source: { type: 'base64', media_type: media, data: image },
           },
           {
             type: 'text',

@@ -26,7 +26,9 @@ function mapDisplay(map) {
 function mapImg(map, cls) {
   const file = mapFileFor(map)
   if (!file) return `<div class="${cls} demo-map-empty">?</div>`
-  const fallback = file.slice(0, 3).toUpperCase()
+  // Strip non-alphanumeric so a malicious map name can't escape the inline
+  // onerror string context. mapFileFor preserves the raw map column verbatim.
+  const fallback = file.slice(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '')
   return `<div class="${cls}"><img src="images/maps/${file}.png" alt="${esc(map)}" onerror="this.parentElement.innerHTML='<span>${fallback}</span>'"/></div>`
 }
 function mapBg(map) {
@@ -617,9 +619,20 @@ fileInput.addEventListener('change', async () => {
               : `Uploading… ${pct}%`
           }
         }
-        xhr.onload = () => xhr.status === 200
-          ? resolve(JSON.parse(xhr.responseText))
-          : reject(new Error(JSON.parse(xhr.responseText)?.detail || 'Upload failed'))
+        xhr.onload = () => {
+          // Server may return non-JSON on 5xx (HTML error pages from a CDN or
+          // proxy). Parse defensively so the user sees a real error message
+          // instead of "Unexpected token <".
+          let body = null
+          try { body = JSON.parse(xhr.responseText) } catch { /* non-JSON */ }
+          if (xhr.status === 200) {
+            return body
+              ? resolve(body)
+              : reject(new Error('Upload server returned invalid response'))
+          }
+          const detail = body?.detail || `Upload failed (${xhr.status})`
+          reject(new Error(detail))
+        }
         xhr.onerror = () => reject(new Error('Could not reach upload server'))
         xhr.send(formData)
       })
@@ -906,8 +919,13 @@ function renderTabs(activeScope) {
 // alongside the team flow helpers — both scopes use them.
 
 function pubScoreFor(d) {
+  // Only the HLTV-authoritative team_a/team_b scores align to the chip order
+  // we render. score_ct/score_t are per-half-side totals from the parser, so
+  // using them as a fallback shows team B's score under team A's chip whenever
+  // team A played the T side that map. Better to render "—" until HLTV
+  // backfills than to render a misleading number.
   if (d.team_a_score != null && d.team_b_score != null) return [d.team_a_score, d.team_b_score]
-  return [d.score_ct, d.score_t]
+  return [null, null]
 }
 
 function renderPublicSeriesCard(demos) {

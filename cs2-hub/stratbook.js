@@ -10,7 +10,8 @@ function mapFile(map) { return MAP_IMG[map] ?? map }
 function mapIcon(map) {
   const file = mapFile(map)
   const url = `images/maps/${file}.png`
-  return `<div class="map-badge"><img src="${url}" alt="${esc(map)}" onerror="this.parentElement.innerHTML='<span>${map.slice(0,3).toUpperCase()}</span>'"/></div>`
+  const abbr = String(map ?? '').slice(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '')
+  return `<div class="map-badge"><img src="${url}" alt="${esc(map)}" onerror="this.parentElement.innerHTML='<span>${abbr}</span>'"/></div>`
 }
 function mapBg(map) { return map ? `images/maps/${mapFile(map)}.png` : '' }
 

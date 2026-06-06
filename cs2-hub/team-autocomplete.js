@@ -11,6 +11,8 @@
 
 import { supabase } from './supabase.js'
 
+function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
+
 let _teams = null
 
 async function loadTeams() {
@@ -56,9 +58,16 @@ export async function getTeamLogo(name) {
 
 export function teamLogoEl(logo, name, size = 40) {
   if (logo) {
-    return `<img src="${logo}" alt="${name}" style="width:${size}px;height:${size}px;object-fit:contain;border-radius:6px;background:var(--surface);padding:3px;flex-shrink:0">`
+    // Only same-origin or HTTPS image URLs are safe to render. HLTV logos are
+    // sourced from img-cdn.hltv.org; reject anything else (e.g. a poisoned
+    // hltv_teams row that points at `javascript:` or `data:`) to keep this from
+    // becoming an XSS sink via crafted team names/logos.
+    const safeLogo = /^https:\/\//i.test(logo) ? logo : ''
+    if (safeLogo) {
+      return `<img src="${esc(safeLogo)}" alt="${esc(name)}" style="width:${size}px;height:${size}px;object-fit:contain;border-radius:6px;background:var(--surface);padding:3px;flex-shrink:0">`
+    }
   }
-  const abbr = (name ?? '???').slice(0, 3).toUpperCase()
+  const abbr = String(name ?? '???').slice(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '') || '???'
   return `<div style="width:${size}px;height:${size}px;background:var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:${Math.round(size * 0.28)}px;font-weight:700;flex-shrink:0">${abbr}</div>`
 }
 
@@ -89,8 +98,8 @@ export async function attachTeamAutocomplete(input, onSelect) {
       <div class="ac-item" data-idx="${i}" style="display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;transition:background 0.1s;border-radius:${i===0?'8px 8px':i===filtered.length-1?'0 0 8px 8px':'0'} 0">
         ${teamLogoEl(t.logo, t.name, 28)}
         <div>
-          <div style="font-size:13px;font-weight:600;color:var(--text)">${t.name}</div>
-          <div style="font-size:11px;color:var(--muted)">#${t.rank} HLTV</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${esc(t.name)}</div>
+          <div style="font-size:11px;color:var(--muted)">#${esc(t.rank)} HLTV</div>
         </div>
       </div>
     `).join('')

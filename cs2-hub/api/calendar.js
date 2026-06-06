@@ -49,12 +49,34 @@ function parseICS(text) {
   return events
 }
 
+// Hosts allowed for ICS proxy fetches. Keeps this endpoint from being turned
+// into an SSRF probe of internal services or cloud metadata IPs.
+const ALLOWED_HOSTS = new Set([
+  'pracc.com',
+  'www.pracc.com',
+  'api.pracc.com',
+  'calendar.google.com',
+  'www.google.com',
+])
+
+function isAllowedCalendarUrl(raw) {
+  let u
+  try { u = new URL(raw) } catch { return false }
+  if (u.protocol !== 'https:') return false
+  if (!ALLOWED_HOSTS.has(u.hostname)) return false
+  return true
+}
+
 export default async function handler(req, res) {
   const calUrl = req.query?.url
   if (!calUrl) { res.json([]); return }
+  if (!isAllowedCalendarUrl(calUrl)) {
+    res.status(400).json({ error: 'Calendar host not allowed' })
+    return
+  }
 
   try {
-    const response = await fetch(calUrl)
+    const response = await fetch(calUrl, { redirect: 'error' })
     if (!response.ok) throw new Error(`ICS fetch failed: ${response.status}`)
     const text = await response.text()
     const events = parseICS(text)

@@ -1,4 +1,4 @@
-const SUPABASE_URL        = process.env.SUPABASE_URL        || 'https://yujlmvqxffkojsokcdiu.supabase.co'
+const SUPABASE_URL        = process.env.SUPABASE_URL
 const SERVICE_ROLE_KEY    = process.env.SUPABASE_SERVICE_ROLE_KEY
 const APP_URL             = process.env.APP_URL
 
@@ -69,6 +69,7 @@ async function generateMagicLink(email) {
 
 export default async function handler(req, res) {
   if (!SERVICE_ROLE_KEY) return res.status(500).send('SUPABASE_SERVICE_ROLE_KEY not set')
+  if (!SUPABASE_URL)     return res.status(500).send('SUPABASE_URL not set')
   if (!APP_URL)          return res.status(500).send('APP_URL not set')
 
   try {
@@ -80,6 +81,17 @@ export default async function handler(req, res) {
 
     const link = await generateMagicLink(user.email)
     if (!link) return res.redirect(`${APP_URL}/login.html?error=link_failed`)
+
+    // Magic links from Supabase point at the project URL we just configured.
+    // Validate the redirect target matches that host so a misconfigured
+    // SUPABASE_URL or a poisoned generate_link response cannot become an
+    // open-redirect into an attacker's domain.
+    let target
+    try { target = new URL(link) } catch { target = null }
+    const expected = new URL(SUPABASE_URL)
+    if (!target || target.host !== expected.host) {
+      return res.redirect(`${APP_URL}/login.html?error=link_failed`)
+    }
 
     res.redirect(link)
   } catch (e) {
