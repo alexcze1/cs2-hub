@@ -262,6 +262,68 @@ document.querySelectorAll('.review-textarea').forEach(ta => {
   ta.addEventListener('input', () => { autoResize(ta); if (isEdit) scheduleAutosave() })
 })
 
+// Scrim review template. Pre-fills the three review sections with a
+// structured prompt so coaches don't stare at a blank textarea. Only
+// fills sections that are currently empty — pressing the button a
+// second time on a partially-filled review never overwrites the work
+// already done.
+const REVIEW_TEMPLATE = {
+  overview: `## What worked
+-
+
+## What didn't
+-
+
+## 3 priority replays
+1.
+2.
+3. `,
+  t_side: `## Defaults / opening tempo
+-
+
+## Executes (which sites, which utility)
+-
+
+## Mid-round adjustments
+-
+
+## Per-player feedback
+- `,
+  ct_side: `## Setups & default holds
+-
+
+## Rotations & info plays
+-
+
+## AWP positioning
+-
+
+## Retake / post-plant
+- `,
+}
+document.getElementById('review-template-btn')?.addEventListener('click', () => {
+  const m = maps[activeMapTab]
+  if (!m) { toast('Add a map first to use the review template.', 'error'); return }
+  const targets = [
+    ['n-overview', 'overview'],
+    ['n-t-side',   't_side'],
+    ['n-ct-side',  'ct_side'],
+  ]
+  let filled = 0
+  for (const [elId, key] of targets) {
+    const el = document.getElementById(elId)
+    if (el && !el.value.trim()) {
+      el.value = REVIEW_TEMPLATE[key]
+      autoResize(el)
+      filled++
+    }
+  }
+  if (!filled) { toast('All sections already have notes — nothing to fill.'); return }
+  saveActiveNotes()
+  if (isEdit) scheduleAutosave()
+  toast(`Inserted template into ${filled} section${filled === 1 ? '' : 's'}.`)
+})
+
 // ── Save ───────────────────────────────────────────────────
 document.getElementById('save-btn').addEventListener('click', async () => {
   const opponent   = document.getElementById('f-opponent').value.trim() || null

@@ -597,13 +597,50 @@ window.retryDemo = async id => {
 
 // ── Upload ────────────────────────────────────────────────────
 fileInput.addEventListener('change', async () => {
-  const files = [...fileInput.files]
+  let files = [...fileInput.files]
   fileInput.value = ''
   if (!files.length) return
 
   for (const f of files) {
     if (!f.name.endsWith('.dem')) { alert('Please select .dem files only.'); return }
     if (f.size > 1024 * 1024 * 1024) { alert(`${f.name} is too large (max 1 GB).`); return }
+  }
+
+  // Duplicate detection. CS2 `.dem` filenames embed the match id, so a
+  // filename match within the team's history is a very strong signal
+  // that the user is re-uploading something already parsed. We query the
+  // last 90 days of demos for this team and look for storage_path that
+  // ends with one of the incoming filenames.
+  try {
+    const horizonISO = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
+    const { data: recentForDedupe } = await supabase
+      .from('demos')
+      .select('id, storage_path, created_at, map')
+      .eq('team_id', teamId)
+      .gte('created_at', horizonISO)
+      .limit(500)
+    const dupes = []
+    for (const f of files) {
+      const hit = (recentForDedupe ?? []).find(d => d.storage_path && d.storage_path.endsWith(f.name))
+      if (hit) dupes.push({ name: f.name, when: hit.created_at })
+    }
+    if (dupes.length) {
+      const lines = dupes
+        .slice(0, 5)
+        .map(d => `  • ${d.name} (uploaded ${new Date(d.when).toLocaleDateString('en-GB', { day:'numeric', month:'short' })})`)
+        .join('\n')
+      const extra = dupes.length > 5 ? `\n  …and ${dupes.length - 5} more` : ''
+      const skip = confirm(
+        `${dupes.length} file${dupes.length === 1 ? '' : 's'} look like duplicates of demos you've already uploaded:\n\n${lines}${extra}\n\nSkip duplicates? (Cancel to upload them anyway.)`
+      )
+      if (skip) {
+        const dupeNames = new Set(dupes.map(d => d.name))
+        files = files.filter(f => !dupeNames.has(f.name))
+        if (!files.length) { toast('All selected files were duplicates — nothing to upload.'); return }
+      }
+    }
+  } catch {
+    // Dedupe is best-effort. A failed lookup must never block upload.
   }
 
   const seriesId = files.length > 1 ? crypto.randomUUID() : null
