@@ -88,8 +88,18 @@ const scoutStatus  = document.getElementById('rr-scope-status')
 const scopeSeg     = document.getElementById('rr-scope-seg')
 const scoutOverview = document.getElementById('rr-scout-overview')
 
-let scopeMode = 'own'    // 'own' | 'other'
-let scoutTeamName = ''   // current scout target
+// Persist the scope ("own" vs "other") and the last scouted team
+// across page loads so coaches don't have to re-pick their scout
+// target every time they come back to the page.
+const VODS_SCOPE_KEY  = 'vods:scope:v1'
+const VODS_SCOUT_KEY  = 'vods:scout-team:v1'
+let scopeMode = (() => {
+  try { const v = localStorage.getItem(VODS_SCOPE_KEY); return v === 'other' ? 'other' : 'own' }
+  catch { return 'own' }
+})()
+let scoutTeamName = (() => {
+  try { return localStorage.getItem(VODS_SCOUT_KEY) || '' } catch { return '' }
+})()
 
 function currentTeamCtx() {
   if (scopeMode === 'own') {
@@ -113,6 +123,7 @@ async function loadScoutIgns(name) {
 
 function setScopeMode(mode) {
   scopeMode = mode
+  try { localStorage.setItem(VODS_SCOPE_KEY, mode) } catch {}
   for (const btn of scopeSeg.querySelectorAll('button')) {
     btn.classList.toggle('active', btn.dataset.mode === mode)
   }
@@ -135,6 +146,7 @@ function showScoutPlaceholder() {
 
 async function setScoutTeam(name) {
   scoutTeamName = (name || '').trim()
+  try { localStorage.setItem(VODS_SCOUT_KEY, scoutTeamName) } catch {}
   scoutStatus.textContent = scoutTeamName ? 'Loading…' : ''
   if (!scoutTeamName) { showScoutPlaceholder(); return }
   await loadScoutIgns(scoutTeamName)
@@ -148,6 +160,18 @@ async function setScoutTeam(name) {
 
 for (const btn of scopeSeg.querySelectorAll('button')) {
   btn.addEventListener('click', () => setScopeMode(btn.dataset.mode))
+}
+
+// Restore persisted scope + scout target so the page loads in the same
+// shape the user left it. Skip the rebuild() inside setScopeMode for now
+// since state.filter isn't ready yet; the normal init path will trigger
+// the first rebuild once the filters paint.
+for (const btn of scopeSeg.querySelectorAll('button')) {
+  btn.classList.toggle('active', btn.dataset.mode === scopeMode)
+}
+scoutWrap.style.display = (scopeMode === 'other') ? '' : 'none'
+if (scopeMode === 'other' && scoutTeamName) {
+  scoutInput.value = scoutTeamName
 }
 
 let scoutTypingTimer = null
