@@ -502,11 +502,29 @@ function renderAll() {
 }
 
 // ── Realtime ──────────────────────────────────────────────────
+// On every UPDATE event we also remember demos that just transitioned to
+// 'ready'; after the page re-renders we pulse those rows so the coach
+// sees which demo just finished parsing without having to scan the list.
+const _justReadyIds = new Set()
 supabase.channel('demos-status')
   .on('postgres_changes',
       { event: 'UPDATE', schema: 'public', table: 'demos', filter: `team_id=eq.${teamId}` },
       payload => {
-        loadDemos()
+        if (payload.new?.status === 'ready' && payload.old?.status !== 'ready') {
+          _justReadyIds.add(payload.new.id)
+        }
+        loadDemos().then(() => {
+          for (const id of _justReadyIds) {
+            const row = document.getElementById(`demo-row-${id}`)
+            if (row) {
+              row.classList.remove('demo-row-just-ready')
+              // force reflow so the animation restarts even if we re-add
+              void row.offsetWidth
+              row.classList.add('demo-row-just-ready')
+            }
+          }
+          _justReadyIds.clear()
+        })
         maybeAutoOpenAssignModal(payload.new)
       })
   .subscribe()

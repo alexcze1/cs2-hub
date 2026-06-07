@@ -1,5 +1,65 @@
 import { signOut, isAdmin } from './auth.js'
 import { supabase, getTeamId } from './supabase.js'
+import { initCommandPalette } from './command-palette.js'
+
+// One-time chrome installation: PWA manifest link, service-worker
+// registration, command palette + keyboard shortcuts. Idempotent — every
+// page calls renderSidebar() which runs this once.
+function installChrome() {
+  if (window.__chromeInstalled) return
+  window.__chromeInstalled = true
+
+  // Manifest <link> — injected so individual HTML pages don't need to
+  // reference it. Same goes for theme-color.
+  if (!document.querySelector('link[rel="manifest"]')) {
+    const link = document.createElement('link')
+    link.rel = 'manifest'
+    link.href = 'manifest.json'
+    document.head.appendChild(link)
+  }
+  if (!document.querySelector('meta[name="theme-color"]')) {
+    const meta = document.createElement('meta')
+    meta.name = 'theme-color'
+    meta.content = '#8B6DFF'
+    document.head.appendChild(meta)
+  }
+
+  // Service worker. Only on https or localhost; ignore failures silently
+  // (a missing sw.js on a stale Vercel deploy must not break the page).
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {})
+    })
+  }
+
+  // Command palette + keyboard shortcuts (Cmd-K, ?, g-d, etc.)
+  initCommandPalette()
+}
+
+// Breadcrumb helper for detail pages. Pass an array of { label, href? }.
+// Last item is treated as the current page (rendered as plain text).
+//
+// Example:
+//   renderBreadcrumb([
+//     { label: 'Demos', href: 'demos.html' },
+//     { label: 'Demo vs Spirit · Inferno' },
+//   ])
+export function renderBreadcrumb(items, mountId = 'breadcrumb-slot') {
+  const slot = document.getElementById(mountId)
+  if (!slot || !items?.length) return
+  slot.innerHTML = `
+    <nav class="breadcrumb-trail" aria-label="Breadcrumb">
+      ${items.map((it, i) => {
+        const isLast = i === items.length - 1
+        const sep = i > 0 ? `<span class="breadcrumb-sep" aria-hidden="true">/</span>` : ''
+        const label = `<span class="breadcrumb-label">${esc(it.label)}</span>`
+        const inner = !isLast && it.href
+          ? `<a class="breadcrumb-link" href="${esc(it.href)}">${label}</a>`
+          : `<span class="breadcrumb-current" aria-current="page">${label}</span>`
+        return `${sep}${inner}`
+      }).join('')}
+    </nav>`
+}
 
 const ICONS = {
   dashboard: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`,
@@ -19,6 +79,7 @@ const ICONS = {
 }
 
 export async function renderSidebar(activePage) {
+  installChrome()
   const sidebar = document.getElementById('sidebar')
   if (!sidebar) return
 
