@@ -257,6 +257,111 @@ nameInput.addEventListener('input', async () => {
   updateLogoPreview(logo, n)
 })
 
+// ── #60 — Antistrat tasks ───────────────────────────────────
+// Only shown on the edit path (the row needs an opponent_id). The
+// "+ Add task" button prompts inline; rows can be ticked off, edited,
+// or deleted.
+if (isEdit) {
+  const section  = document.getElementById('antistrat-tasks-section')
+  const listEl   = document.getElementById('antistrat-tasks-list')
+  const addBtn   = document.getElementById('antistrat-task-add')
+  section.style.display = 'block'
+
+  let _roster = null
+  async function getRoster() {
+    if (_roster) return _roster
+    const { data } = await supabase
+      .from('roster')
+      .select('id, nickname, role')
+      .eq('team_id', getTeamId())
+      .order('nickname', { ascending: true })
+    _roster = data ?? []
+    return _roster
+  }
+
+  async function loadTasks() {
+    const { data, error } = await supabase
+      .from('antistrat_tasks')
+      .select('id, title, description, status, due_date, assignee_id')
+      .eq('opponent_id', id)
+      .order('status', { ascending: true })
+      .order('due_date', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: false })
+    if (error) {
+      listEl.innerHTML = `<div class="task-empty">Run supabase-collab-migration.sql to enable tasks.</div>`
+      addBtn.disabled = true
+      return
+    }
+    const roster = await getRoster()
+    const byId = new Map(roster.map(p => [p.id, p]))
+    if (!data?.length) {
+      listEl.innerHTML = `<div class="task-empty">No tasks yet. Use "+ Add task" to assign anti-strat work.</div>`
+      return
+    }
+    listEl.innerHTML = data.map(t => {
+      const assignee = t.assignee_id ? byId.get(t.assignee_id) : null
+      const due = t.due_date ? new Date(t.due_date).toLocaleDateString('en-GB', { day:'numeric', month:'short' }) : ''
+      const overdue = t.due_date && new Date(t.due_date) < new Date() && t.status === 'open'
+      return `
+        <div class="task-row task-row-${t.status} ${overdue ? 'task-row-overdue' : ''}" data-id="${t.id}">
+          <input type="checkbox" class="task-check" ${t.status === 'done' ? 'checked' : ''} data-id="${t.id}">
+          <div class="task-body">
+            <div class="task-title">${esc(t.title)}</div>
+            ${t.description ? `<div class="task-desc">${esc(t.description)}</div>` : ''}
+            <div class="task-meta">
+              ${assignee ? `<span class="task-assignee">${esc(assignee.nickname)}</span>` : '<span class="task-assignee task-assignee-none">unassigned</span>'}
+              ${due ? `<span class="task-due${overdue ? ' task-due-overdue' : ''}">${esc(due)}</span>` : ''}
+            </div>
+          </div>
+          <button class="task-delete" data-id="${t.id}" title="Delete">×</button>
+        </div>`
+    }).join('')
+    listEl.querySelectorAll('.task-check').forEach(cb => {
+      cb.addEventListener('change', async () => {
+        const newStatus = cb.checked ? 'done' : 'open'
+        await supabase.from('antistrat_tasks').update({ status: newStatus }).eq('id', cb.dataset.id)
+        loadTasks()
+      })
+    })
+    listEl.querySelectorAll('.task-delete').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete this task?')) return
+        await supabase.from('antistrat_tasks').delete().eq('id', btn.dataset.id)
+        loadTasks()
+      })
+    })
+  }
+
+  addBtn.addEventListener('click', async () => {
+    const title = prompt('Task title (e.g. "Watch their A-default on Inferno")')
+    if (!title?.trim()) return
+    const roster = await getRoster()
+    let assigneeId = null
+    if (roster.length) {
+      const list = roster.map((p, i) => `${i + 1}. ${p.nickname}`).join('\n')
+      const pick = prompt(`Assign to:\n${list}\n(leave empty for unassigned)`)
+      if (pick) {
+        const idx = Number(pick) - 1
+        assigneeId = roster[idx]?.id || null
+      }
+    }
+    const due = prompt('Due date YYYY-MM-DD (optional)') || null
+    const { data: { user } } = await supabase.auth.getUser()
+    const { error } = await supabase.from('antistrat_tasks').insert({
+      opponent_id: id,
+      team_id: getTeamId(),
+      assignee_id: assigneeId,
+      title: title.trim(),
+      due_date: due || null,
+      created_by: user?.id ?? null,
+    })
+    if (error) { toast('Could not create task — apply supabase-collab-migration.sql?', 'error'); return }
+    loadTasks()
+  })
+
+  loadTasks()
+}
+
 // ── Save ────────────────────────────────────────────────────
 document.getElementById('save-btn').addEventListener('click', async () => {
   saveActivePlan()

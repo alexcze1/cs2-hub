@@ -154,3 +154,92 @@ window.printStrat = function() {
   document.querySelector('.app-shell').style.display = ''
   printEl.style.display = 'none'
 }
+
+// ── #52 — Strat comments ─────────────────────────────────────
+// Only visible on the edit path (a saved strat); new strats hide the
+// section since there's nothing to attach the comment to yet.
+if (isEdit) {
+  const section = document.getElementById('strat-comments-section')
+  const listEl  = document.getElementById('comment-list')
+  const formEl  = document.getElementById('comment-form')
+  const inputEl = document.getElementById('comment-input')
+  const countEl = document.getElementById('comment-count')
+
+  section.style.display = 'block'
+
+  function fmtAgo(iso) {
+    const ms = Date.now() - new Date(iso).getTime()
+    const mins = Math.floor(ms / 60000)
+    if (mins < 1) return 'just now'
+    if (mins < 60) return `${mins}m ago`
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 24) return `${hrs}h ago`
+    return new Date(iso).toLocaleDateString('en-GB', { day:'numeric', month:'short' })
+  }
+
+  async function loadComments() {
+    const { data, error } = await supabase
+      .from('strat_comments')
+      .select('id, content, user_name, created_at, resolved, user_id')
+      .eq('strat_id', id)
+      .order('created_at', { ascending: true })
+    if (error) {
+      // Migration not yet applied — silent. Section keeps the empty
+      // shell, post button stays disabled.
+      listEl.innerHTML = `<div class="comment-empty">Run supabase-collab-migration.sql to enable comments.</div>`
+      formEl.style.display = 'none'
+      return
+    }
+    countEl.textContent = data?.length ? `${data.length} comment${data.length === 1 ? '' : 's'}` : ''
+    if (!data?.length) {
+      listEl.innerHTML = `<div class="comment-empty">No comments yet.</div>`
+      return
+    }
+    const { data: { user } } = await supabase.auth.getUser()
+    const myId = user?.id
+    listEl.innerHTML = data.map(c => `
+      <div class="comment-row ${c.resolved ? 'comment-resolved' : ''}">
+        <div class="comment-head">
+          <span class="comment-author">${esc(c.user_name || 'Player')}</span>
+          <span class="comment-when">${esc(fmtAgo(c.created_at))}</span>
+          ${c.user_id === myId ? `<button class="comment-delete" data-id="${c.id}" title="Delete">×</button>` : ''}
+        </div>
+        <div class="comment-body">${esc(c.content)}</div>
+      </div>`).join('')
+    listEl.querySelectorAll('.comment-delete').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete this comment?')) return
+        await supabase.from('strat_comments').delete().eq('id', btn.dataset.id)
+        loadComments()
+      })
+    })
+  }
+
+  formEl.addEventListener('submit', async e => {
+    e.preventDefault()
+    const content = inputEl.value.trim()
+    if (!content) return
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    // Resolve a display name from roster.nickname before posting.
+    const { data: me } = await supabase
+      .from('roster')
+      .select('nickname')
+      .eq('team_id', getTeamId())
+      .eq('user_id', user.id)
+      .maybeSingle()
+    const userName = me?.nickname || user.email?.split('@')[0] || 'Player'
+    const { error } = await supabase.from('strat_comments').insert({
+      strat_id: id,
+      team_id:  getTeamId(),
+      user_id:  user.id,
+      user_name: userName,
+      content,
+    })
+    if (error) { toast('Could not post comment', 'error'); return }
+    inputEl.value = ''
+    loadComments()
+  })
+
+  loadComments()
+}

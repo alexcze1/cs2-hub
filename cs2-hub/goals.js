@@ -244,6 +244,29 @@ function renderAll() {
 }
 
 // ── Modal (preserved) ─────────────────────────────────────────
+// Roster fetched once for the player dropdown (#59). Failures are
+// silent — the option just stays at "Team-wide goal".
+let _rosterForGoals = null
+async function ensureRosterForGoals() {
+  if (_rosterForGoals !== null) return _rosterForGoals
+  try {
+    const { data } = await supabase
+      .from('roster')
+      .select('id, nickname, role')
+      .eq('team_id', getTeamId())
+      .order('nickname', { ascending: true })
+    _rosterForGoals = data ?? []
+  } catch { _rosterForGoals = [] }
+  const sel = document.getElementById('f-player')
+  if (sel) {
+    sel.innerHTML = `<option value="">Team-wide goal</option>` +
+      _rosterForGoals.map(p =>
+        `<option value="${p.id}">${esc(p.nickname)}${p.role ? ` · ${esc(p.role)}` : ''}</option>`
+      ).join('')
+  }
+  return _rosterForGoals
+}
+
 function openModal(id = null) {
   editingId = id
   const g = id ? state.goals.find(x => x.id === id) : null
@@ -256,6 +279,12 @@ function openModal(id = null) {
   document.getElementById('f-due').value               = g?.due_date     ?? ''
   document.getElementById('f-description').value       = g?.description  ?? ''
   document.getElementById('f-actions').value           = g?.action_steps ?? ''
+  // Populate the roster dropdown lazily; pre-select the saved player_id
+  // if this is an edit.
+  ensureRosterForGoals().then(() => {
+    const sel = document.getElementById('f-player')
+    if (sel) sel.value = g?.player_id ?? ''
+  })
   document.getElementById('delete-btn').style.display  = id ? 'block' : 'none'
   document.getElementById('modal-error').style.display = 'none'
   document.getElementById('modal').style.display       = 'flex'
@@ -279,7 +308,10 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   const errEl        = document.getElementById('modal-error')
   if (!title) { errEl.textContent = 'Goal title is required.'; errEl.style.display = 'block'; return }
 
+  const player_id = document.getElementById('f-player')?.value || null
   const payload = { title, category, owner, horizon, status, due_date, description, action_steps, team_id: getTeamId(), updated_at: new Date().toISOString() }
+  if (player_id) payload.player_id = player_id
+  else payload.player_id = null
   let error
   if (editingId) {
     ;({ error } = await supabase.from('goals').update(payload).eq('id', editingId))
