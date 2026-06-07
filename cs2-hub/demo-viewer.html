@@ -643,6 +643,26 @@
       background: var(--danger);
       opacity: 0.85;
     }
+    /* Utility lane — one small tile per grenade detonation in the
+       current round. Sits along the bottom edge so it reads as a
+       separate row from the kill marks above. Width and height are
+       deliberately small so a heavy utility round still reads. */
+    .tl-nade-mark {
+      position: absolute;
+      bottom: -2px;
+      width: 4px;
+      height: 4px;
+      border-radius: 1px;
+      pointer-events: none;
+      transform: translateX(-50%);
+      z-index: 1;
+    }
+    .tl-nade-smoke   { background: rgba(255,255,255,0.7); }
+    .tl-nade-flash   { background: #FFE066; }
+    .tl-nade-he      { background: #FF6E40; }
+    .tl-nade-molotov { background: #FF7F50; }
+    .tl-nade-decoy   { background: var(--lavender-2); }
+
     /* Vertical divider at the round_end tick — bar extends past this point
        through the post-round restart phase (~7s). */
     .tl-round-end-mark {

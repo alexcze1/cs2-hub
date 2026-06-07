@@ -1445,7 +1445,7 @@ function updateTimelineKills() {
   const span   = pe - fe
   const track  = document.getElementById('timeline-track')
 
-  track.querySelectorAll('.tl-kill-mark, .tl-round-end-mark').forEach(el => el.remove())
+  track.querySelectorAll('.tl-kill-mark, .tl-round-end-mark, .tl-nade-mark').forEach(el => el.remove())
   if (span <= 0) return
 
   // Kill marks: CT in top half, T in bottom half
@@ -1468,6 +1468,32 @@ function updateTimelineKills() {
     const el = document.createElement('div')
     el.className = 'tl-kill-mark bomb'
     el.style.left = pct + '%'
+    track.appendChild(el)
+  }
+
+  // Utility lane: small coloured tile per grenade detonation. Sits at
+  // the bottom edge of the track so it reads as a separate row even
+  // though it shares the same track element. Coaches can see at a
+  // glance "they smoked CT spawn at 0:32, then HE'd B short at 0:45".
+  for (const g of state.match.grenades || []) {
+    const detTick = g.tick
+    if (detTick == null) continue
+    if (detTick < round.start_tick || detTick > round.end_tick) continue
+    const pct = ((detTick - fe) / span) * 100
+    if (pct < 0 || pct > 100) continue
+    // Normalise the type to a single class suffix.
+    const t = (g.type || '').toLowerCase()
+    const kind =
+      t === 'smokegrenade' || t === 'smoke' ? 'smoke' :
+      t === 'flashbang'    || t === 'flash' ? 'flash' :
+      t === 'hegrenade'    || t === 'he'    ? 'he'    :
+      t === 'molotov' || t === 'incgrenade' || t === 'inferno' ? 'molotov' :
+      t === 'decoy' ? 'decoy' : null
+    if (!kind) continue
+    const el = document.createElement('div')
+    el.className = `tl-nade-mark tl-nade-${kind}`
+    el.style.left = pct + '%'
+    el.title = `${kind} detonated`
     track.appendChild(el)
   }
 
