@@ -1,6 +1,8 @@
 import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
+import { toast } from './toast.js'
+import { STRAT_SEEDS } from './strat-seed.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : '' }
@@ -99,6 +101,7 @@ function renderHero() {
         <div class="dx-hero-actions">
           <a class="dx-upload-cta" href="stratbook-detail.html">+ New Strat</a>
           <a class="dx-ghost-cta" id="sb-match-view" href="stratbook-fullscreen.html" target="_blank">Match View</a>
+          ${total === 0 ? '<button type="button" class="dx-ghost-cta" id="sb-seed-btn">Import starter pack</button>' : ''}
         </div>
       </div>
       <div class="dx-hero-right">
@@ -106,6 +109,28 @@ function renderHero() {
       </div>
     </div>`
   syncMatchViewHref()
+
+  // #33 — Import starter pack. Only present when the stratbook is
+  // empty; pulls STRAT_SEEDS, stamps team_id, inserts.
+  const seedBtn = document.getElementById('sb-seed-btn')
+  if (seedBtn) {
+    seedBtn.addEventListener('click', async () => {
+      if (!confirm(`Add ${STRAT_SEEDS.length} starter strats to your stratbook?`)) return
+      seedBtn.disabled = true
+      seedBtn.textContent = 'Importing…'
+      const tid = getTeamId()
+      const rows = STRAT_SEEDS.map(s => ({ ...s, team_id: tid }))
+      const { error } = await supabase.from('strats').insert(rows)
+      if (error) {
+        toast(`Import failed: ${error.message}`, 'error')
+        seedBtn.disabled = false
+        seedBtn.textContent = 'Import starter pack'
+        return
+      }
+      toast(`${STRAT_SEEDS.length} strats imported.`)
+      location.reload()
+    })
+  }
 }
 
 function syncMatchViewHref() {
