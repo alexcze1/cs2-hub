@@ -7762,6 +7762,39 @@ body.public-profile {
 .cstrat-side-t  { background: rgba(var(--side-t-rgb),  0.18); color: var(--side-t); }
 .cstrat-name { color: var(--text-primary); font-weight: 600; }
 
+/* Tier badge (#110) — small pill on the dashboard header */
+.tier-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: var(--display-font);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: var(--hover-bg);
+  color: var(--muted);
+  border: 1px solid var(--border-solid);
+}
+.tier-badge-pro       { background: rgba(var(--lavender-3-rgb), 0.18); color: var(--accent-light); border-color: rgba(var(--lavender-2-rgb), 0.30); }
+.tier-badge-pro-plus  { background: var(--accent-grad); color: var(--accent-on); border: 0; }
+
+/* Player mode (#68) — body[data-mode="player"] hides chrome that a
+   player viewing the app doesn't need. Coach mode is the default and
+   shows everything. */
+body[data-mode="player"] .sidebar a.nav-item[href="opponents.html"],
+body[data-mode="player"] .sidebar a.nav-item[href="veto.html"],
+body[data-mode="player"] .sidebar a.nav-item[href="admin.html"],
+body[data-mode="player"] .sidebar a.nav-item[href="keywords.html"],
+body[data-mode="player"] #map-pool-slot,
+body[data-mode="player"] #attention-slot,
+body[data-mode="player"] #team-economy-slot,
+body[data-mode="player"] #share-public-btn,
+body[data-mode="player"] .dash-two-col .section-row {
+  display: none !important;
+}
+
 /* Round-end fanfare — when a demo finishes parsing via realtime, the
    row pulses with a brief lavender ring so the coach knows which row
    just changed. */

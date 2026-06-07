@@ -22,6 +22,10 @@ function installChrome() {
     const density = localStorage.getItem('dash:density') || 'comfortable'
     document.body.setAttribute('data-density', density)
   } catch {}
+  try {
+    const mode = localStorage.getItem('dash:mode') || 'coach'
+    document.body.setAttribute('data-mode', mode)
+  } catch {}
 
   // Manifest <link> — injected so individual HTML pages don't need to
   // reference it. Same goes for theme-color.

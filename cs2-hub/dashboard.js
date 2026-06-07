@@ -48,6 +48,25 @@ document.getElementById('theme-toggle')?.addEventListener('click', () => {
   applyTheme(next)
 })
 
+// #68 Coach / Player mode — sets body[data-mode] which CSS uses to hide
+// coach-only chrome (anti-strat nav, admin actions, etc.) when the user
+// is a player who just wants the at-a-glance view.
+const MODE_KEY = 'dash:mode'
+function getMode() {
+  try { return localStorage.getItem(MODE_KEY) || 'coach' } catch { return 'coach' }
+}
+function applyMode(value) {
+  document.body.setAttribute('data-mode', value)
+  const el = document.getElementById('mode-toggle-value')
+  if (el) el.textContent = value === 'player' ? 'Player' : 'Coach'
+}
+applyMode(getMode())
+document.getElementById('mode-toggle')?.addEventListener('click', () => {
+  const next = getMode() === 'player' ? 'coach' : 'player'
+  try { localStorage.setItem(MODE_KEY, next) } catch {}
+  applyMode(next)
+})
+
 // Public team profile share — builds the canonical /public-team.html
 // URL for the active team and either invokes the native share sheet
 // (mobile, Safari) or copies to clipboard with a short success
@@ -115,6 +134,21 @@ if (sinceEl) sinceEl.textContent = sinceLabel
 
 const { data: teamRow } = await supabase.from('teams').select('name, pracc_url').eq('id', teamId).single()
 if (teamRow?.name) document.getElementById('page-greeting').textContent = `${greeting}, ${teamRow.name}`
+
+// #110 Team tier badge. The `tier` column doesn't yet exist on the
+// teams table; defaults to Free until a paid tier ships. The badge
+// reads from teamRow.tier when present so a future migration just
+// drops in cleanly.
+{
+  const tier = teamRow?.tier || 'free'
+  const badge = document.getElementById('tier-badge')
+  if (badge) {
+    const label = tier === 'pro' ? 'PRO' : tier === 'pro-plus' ? 'PRO+' : 'FREE'
+    badge.textContent = label
+    badge.className = `tier-badge tier-badge-${tier}`
+    badge.style.display = 'inline-flex'
+  }
+}
 
 // One big parallel fetch. Everything the dashboard needs in a single round
 // of awaits so the page doesn't wait on the slowest query serially.
