@@ -12,6 +12,17 @@ function installChrome() {
   if (window.__chromeInstalled) return
   window.__chromeInstalled = true
 
+  // Theme + density applied at chrome-install time so the right palette
+  // is up before sidebar/render. Same keys as the dashboard toggles.
+  try {
+    const theme = localStorage.getItem('dash:theme') || 'dark'
+    document.body.setAttribute('data-theme', theme)
+  } catch {}
+  try {
+    const density = localStorage.getItem('dash:density') || 'comfortable'
+    document.body.setAttribute('data-density', density)
+  } catch {}
+
   // Manifest <link> — injected so individual HTML pages don't need to
   // reference it. Same goes for theme-color.
   if (!document.querySelector('link[rel="manifest"]')) {

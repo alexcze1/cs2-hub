@@ -30,6 +30,24 @@ document.getElementById('density-toggle')?.addEventListener('click', () => {
   applyDensity(next)
 })
 
+// Theme toggle — same persistence pattern as density. Default to dark
+// since that's how the app shipped; light is opt-in.
+const THEME_KEY = 'dash:theme'
+function getTheme() {
+  try { return localStorage.getItem(THEME_KEY) || 'dark' } catch { return 'dark' }
+}
+function applyTheme(value) {
+  document.body.setAttribute('data-theme', value)
+  const el = document.getElementById('theme-toggle-value')
+  if (el) el.textContent = value === 'light' ? 'Light' : 'Dark'
+}
+applyTheme(getTheme())
+document.getElementById('theme-toggle')?.addEventListener('click', () => {
+  const next = getTheme() === 'light' ? 'dark' : 'light'
+  try { localStorage.setItem(THEME_KEY, next) } catch {}
+  applyTheme(next)
+})
+
 // Public team profile share — builds the canonical /public-team.html
 // URL for the active team and either invokes the native share sheet
 // (mobile, Safari) or copies to clipboard with a short success

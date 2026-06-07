@@ -125,6 +125,87 @@
   --focus-ring: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--lavender-2);
 }
 
+/* ════════════════════════════════════════════════════════════════════
+   Light theme — opt-in via body[data-theme="light"]. Cream-dominant
+   editorial palette (matches the saved design taste). Lavender stays
+   so the brand reads identically on both themes; only the surfaces and
+   text invert. Many components use raw rgba(255,…) / rgba(0,…) values
+   that we don't override here — they'll look slightly off in light
+   mode, an acceptable trade-off for the breadth of coverage this gives.
+   ════════════════════════════════════════════════════════════════════ */
+
+body[data-theme="light"] {
+  --bg-primary:    #FBF8F2;
+  --bg-secondary:  #F4EFE6;
+  --bg-card:       #FFFFFF;
+  --bg-card-soft:  #F7F2EA;
+
+  --text-primary:   #1A1A2E;
+  --text-secondary: #4A4A60;
+  --muted:          #6E6E80;
+  --text-faint:     #B5B5C2;
+
+  --surface:        var(--bg-secondary);
+  --surface-low:    #F0E9DE;
+  --surface-high:   #FFFFFF;
+  --surface-highest:#FFFFFF;
+  --surface-void:   #ECE5D7;
+  --input-bg:       #FFFFFF;
+
+  --border:         rgba(20, 30, 60, 0.10);
+  --border-solid:   rgba(20, 30, 60, 0.14);
+  --glass-bg:       rgba(255, 255, 255, 0.78);
+  --glass-border:   rgba(20, 30, 60, 0.10);
+  --hairline:       rgba(20, 30, 60, 0.06);
+  --hover-bg:       rgba(20, 30, 60, 0.04);
+  --hover-bg-accent:rgba(var(--lavender-3-rgb), 0.06);
+
+  --shadow-glass-inset: inset 0 1px 0 rgba(255,255,255,0.6);
+  --shadow-card:        0 20px 50px rgba(20, 30, 60, 0.10);
+  --shadow-elev:        0 30px 60px -20px rgba(20, 30, 60, 0.18);
+  --shadow-hover:       0 24px 60px rgba(20, 30, 60, 0.12), 0 0 32px rgba(var(--lavender-3-rgb), 0.10);
+
+  --focus-ring: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--lavender-3);
+}
+/* Light-theme body background: warmer radial wash; the dark-theme
+   gradient stays in the dark variant. */
+body[data-theme="light"] {
+  background:
+    radial-gradient(1100px 520px at 85% -15%, rgba(var(--lavender-3-rgb), 0.08), transparent 65%),
+    radial-gradient(900px 460px at -10% 110%, rgba(var(--lavender-2-rgb), 0.05), transparent 60%),
+    var(--bg-primary) !important;
+}
+/* The lavender editorial hero cards have a hand-tuned dark gradient
+   baked into their background — override to a light variant in light
+   mode so the hero doesn't punch a dark hole in the page. */
+body[data-theme="light"] .hero-card,
+body[data-theme="light"] .public-hero-card {
+  background:
+    radial-gradient(680px 320px at -8% 50%, rgba(var(--lavender-2-rgb), 0.30), transparent 65%),
+    linear-gradient(120deg, rgba(var(--lavender-3-rgb), 0.14) 0%, rgba(255, 255, 255, 0.92) 55%, rgba(247, 242, 234, 0.94) 100%),
+    var(--bg-card) !important;
+  border-color: rgba(var(--lavender-2-rgb), 0.32);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.8),
+    0 0 48px rgba(var(--lavender-3-rgb), 0.10),
+    0 16px 40px rgba(20, 30, 60, 0.08);
+}
+body[data-theme="light"] .hero-opponent,
+body[data-theme="light"] .public-hero-title {
+  color: var(--text-primary);
+}
+body[data-theme="light"] .sidebar {
+  background: linear-gradient(180deg, rgba(247, 242, 234, 0.92) 0%, rgba(240, 233, 222, 0.92) 100%);
+}
+/* Nav-item active highlight — invert from the lavender-on-navy to
+   lavender-on-cream so the active page still reads. */
+body[data-theme="light"] .nav-item.active {
+  background: linear-gradient(90deg,
+    rgba(var(--lavender-3-rgb), 0.18) 0%,
+    rgba(var(--lavender-3-rgb), 0.06) 60%,
+    transparent 100%);
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
