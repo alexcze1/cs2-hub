@@ -5,7 +5,7 @@
 // and decorates them with per-demo opponent identification, so the player and
 // team stats panels can be scoped to THAT team rather than the user's own.
 
-import { supabase } from './supabase.js'
+import { supabase, getTeamId } from './supabase.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 function norm(s) { return (s ?? '').toString().trim().toLowerCase() }
@@ -334,7 +334,197 @@ export function renderOpponentOverview(container, data) {
         <div class="opp-card-title">Recent Matches</div>
         ${renderMatches(data)}
       </div>
+    </div>
+    <div class="opp-overview-card opp-radar-card" id="opp-radar-card-${Math.random().toString(36).slice(2,8)}">
+      <div class="opp-card-title">Stats vs Us · last 30 days</div>
+      <div class="opp-radar-loading" data-opp-radar="loading">Crunching the comparison…</div>
     </div>`)
+
+  // Radar is fired-and-forgotten so the rest of the overview paints
+  // immediately. Failure is silent (rare data, missing roster steam ids,
+  // etc.) — the loading text simply gets replaced or hidden.
+  const radarHostId = container.lastElementChild.id
+  fetchAndRenderRadar(data, radarHostId).catch(e => {
+    console.warn('[opp] radar render failed', e)
+    const slot = document.querySelector(`#${radarHostId} [data-opp-radar]`)
+    if (slot) slot.textContent = ''
+  })
+}
+
+// ── Stats vs Us radar ─────────────────────────────────────────
+// Pulls the signed-in team's last-30-day player rows (filtered by
+// roster steam_id so subs/ringers don't pollute the comparison),
+// aggregates the same 5 axes for both sides, and renders an SVG radar.
+function aggregateRadarFromByPlayer(byPlayer) {
+  let kills = 0, deaths = 0, adrSum = 0, ratSum = 0, kastSum = 0
+  let openK = 0, openD = 0, totalDemos = 0
+  for (const p of byPlayer.values()) {
+    kills += p.kills || 0
+    deaths += p.deaths || 0
+    adrSum += p.adrSum || 0
+    ratSum += p.ratSum || 0
+    kastSum += p.kastSum || 0
+    openK += p.openK || 0
+    openD += p.openD || 0
+    totalDemos += p.demos || 0
+  }
+  if (!totalDemos) return null
+  return {
+    kd: deaths > 0 ? kills / deaths : kills,
+    adr: adrSum / totalDemos,
+    rating: ratSum / totalDemos,
+    kast: kastSum / totalDemos,
+    opening_pct: (openK + openD) > 0 ? openK / (openK + openD) : 0,
+    demos: totalDemos,
+  }
+}
+
+async function fetchOurRadarStats() {
+  const teamId = getTeamId()
+  if (!teamId) return null
+
+  const ago30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+  const [demosRes, rosterRes] = await Promise.all([
+    supabase
+      .from('demos')
+      .select('id')
+      .eq('team_id', teamId)
+      .eq('status', 'ready')
+      .gte('created_at', ago30)
+      .limit(60),
+    supabase
+      .from('roster')
+      .select('steam_id')
+      .eq('team_id', teamId),
+  ])
+
+  const ourDemos = demosRes.data ?? []
+  if (!ourDemos.length) return null
+  const rosterSids = new Set((rosterRes.data ?? []).map(r => r.steam_id).filter(Boolean))
+  if (!rosterSids.size) return null
+
+  const { data: rows } = await supabase
+    .from('demo_players')
+    .select('steam_id, kills, deaths, adr, rating, kast_pct, opening_kills, opening_deaths')
+    .in('demo_id', ourDemos.map(d => d.id))
+    .eq('side', 'all')
+
+  const byPlayer = new Map()
+  for (const r of rows ?? []) {
+    if (!rosterSids.has(r.steam_id)) continue
+    const e = byPlayer.get(r.steam_id) ?? {
+      demos: 0, kills: 0, deaths: 0,
+      adrSum: 0, kastSum: 0, ratSum: 0, openK: 0, openD: 0,
+    }
+    e.demos++
+    e.kills  += r.kills  || 0
+    e.deaths += r.deaths || 0
+    if (r.adr      != null) e.adrSum  += r.adr
+    if (r.rating   != null) e.ratSum  += r.rating
+    if (r.kast_pct != null) e.kastSum += r.kast_pct
+    e.openK  += r.opening_kills  || 0
+    e.openD  += r.opening_deaths || 0
+    byPlayer.set(r.steam_id, e)
+  }
+  return aggregateRadarFromByPlayer(byPlayer)
+}
+
+async function fetchAndRenderRadar(data, hostId) {
+  const oppStats = aggregateRadarFromByPlayer(data.byPlayer)
+  const usStats  = await fetchOurRadarStats()
+  const host = document.getElementById(hostId)
+  if (!host) return
+
+  if (!oppStats || !usStats) {
+    host.innerHTML = `
+      <div class="opp-card-title">Stats vs Us · last 30 days</div>
+      <div class="opp-card-empty">
+        Need at least one of our team's parsed demos AND opponent data with
+        per-player stats. ${!usStats ? 'No recent demos for our team found.' : 'No per-player stats for the opponent yet.'}
+      </div>`
+    return
+  }
+
+  // Axis ranges — calibrated to the bands where movement is visible.
+  // Values outside the range clamp to the edge so the polygon stays
+  // inside the radar without distorting the inner detail.
+  const AXES = [
+    { key: 'rating',      label: 'Rating',  lo: 0.7, hi: 1.3, fmt: v => v.toFixed(2) },
+    { key: 'adr',         label: 'ADR',     lo: 40,  hi: 100, fmt: v => v.toFixed(0) },
+    { key: 'kd',          label: 'K/D',     lo: 0.5, hi: 1.5, fmt: v => v.toFixed(2) },
+    { key: 'kast',        label: 'KAST',    lo: 50,  hi: 85,  fmt: v => `${v.toFixed(0)}%` },
+    { key: 'opening_pct', label: 'OPN%',    lo: 0.3, hi: 0.7, fmt: v => `${(v*100).toFixed(0)}%` },
+  ]
+  const N = AXES.length
+  const SIZE = 240, CX = SIZE / 2, CY = SIZE / 2, R = 92
+
+  function norm(value, lo, hi) {
+    return Math.max(0, Math.min(1, (value - lo) / (hi - lo)))
+  }
+  function point(i, frac) {
+    const angle = -Math.PI / 2 + (i * 2 * Math.PI) / N
+    return [CX + Math.cos(angle) * R * frac, CY + Math.sin(angle) * R * frac]
+  }
+  function polygon(stats, frac0 = 1) {
+    return AXES.map((a, i) => {
+      const f = norm(stats[a.key], a.lo, a.hi) * frac0
+      const [x, y] = point(i, f)
+      return `${x.toFixed(1)},${y.toFixed(1)}`
+    }).join(' ')
+  }
+
+  const oppPoly = polygon(oppStats)
+  const usPoly  = polygon(usStats)
+
+  const gridLevels = [0.25, 0.5, 0.75, 1].map(frac => {
+    const pts = Array.from({ length: N }, (_, i) => point(i, frac)).map(([x,y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')
+    return `<polygon points="${pts}" fill="none" stroke="var(--hairline)" stroke-width="1"/>`
+  }).join('')
+
+  const spokes = AXES.map((_, i) => {
+    const [x, y] = point(i, 1)
+    return `<line x1="${CX}" y1="${CY}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--hairline)" stroke-width="1"/>`
+  }).join('')
+
+  const labels = AXES.map((a, i) => {
+    const [x, y] = point(i, 1.18)
+    return `
+      <g class="opp-radar-axis-label" transform="translate(${x.toFixed(1)},${y.toFixed(1)})">
+        <text text-anchor="middle" dy="0.32em" class="opp-radar-axis-name">${a.label}</text>
+      </g>`
+  }).join('')
+
+  const legendRows = AXES.map(a => `
+    <tr>
+      <td>${a.label}</td>
+      <td class="opp-radar-cell-opp">${a.fmt(oppStats[a.key])}</td>
+      <td class="opp-radar-cell-us">${a.fmt(usStats[a.key])}</td>
+    </tr>`).join('')
+
+  host.innerHTML = `
+    <div class="opp-card-title-row">
+      <div class="opp-card-title">Stats vs Us · last 30 days</div>
+      <div class="opp-radar-meta">${oppStats.demos} opp demos · ${usStats.demos} our demos</div>
+    </div>
+    <div class="opp-radar-grid">
+      <svg viewBox="0 0 ${SIZE} ${SIZE}" class="opp-radar-svg" aria-hidden="true">
+        ${gridLevels}
+        ${spokes}
+        <polygon points="${oppPoly}" class="opp-radar-poly opp-radar-poly-opp"/>
+        <polygon points="${usPoly}"  class="opp-radar-poly opp-radar-poly-us"/>
+        ${labels}
+      </svg>
+      <table class="opp-radar-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th class="opp-radar-cell-opp">${esc(data.teamName)}</th>
+            <th class="opp-radar-cell-us">Us</th>
+          </tr>
+        </thead>
+        <tbody>${legendRows}</tbody>
+      </table>
+    </div>`
 }
 
 function renderSummary(data) {

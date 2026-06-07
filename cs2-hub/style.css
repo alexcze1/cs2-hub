@@ -7067,6 +7067,97 @@ body.cmdk-open { overflow: hidden; }
   font-style: italic;
 }
 
+/* ════════════════════════════════════════════════════════════════════
+   Opponent vs Us radar — opponent-overview.js renders this when the
+   user scouts a team. SVG polygons overlay the opponent (red) and us
+   (lavender) on the same 5 normalised axes (Rating, ADR, K/D, KAST,
+   Opening %).
+   ════════════════════════════════════════════════════════════════════ */
+
+.opp-radar-card {
+  margin-top: 16px;
+  padding: 16px 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-solid);
+  border-radius: var(--r-lg);
+}
+.opp-radar-loading,
+.opp-card-empty {
+  color: var(--muted);
+  font-size: 12px;
+  padding: 16px 4px;
+}
+.opp-radar-meta {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.opp-radar-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  align-items: center;
+  margin-top: 6px;
+}
+@media (max-width: 720px) {
+  .opp-radar-grid { grid-template-columns: 1fr; gap: 12px; }
+}
+.opp-radar-svg {
+  width: 100%;
+  max-width: 280px;
+  height: auto;
+  display: block;
+}
+.opp-radar-poly {
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+.opp-radar-poly-opp {
+  fill: rgba(255, 77, 109, 0.18);
+  stroke: var(--danger);
+}
+.opp-radar-poly-us {
+  fill: rgba(var(--lavender-3-rgb), 0.22);
+  stroke: var(--accent);
+}
+.opp-radar-axis-name {
+  font-family: var(--display-font);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  fill: var(--muted);
+  text-transform: uppercase;
+}
+.opp-radar-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.opp-radar-table th,
+.opp-radar-table td {
+  padding: 6px 4px;
+  text-align: right;
+  border-bottom: 1px solid var(--hairline);
+}
+.opp-radar-table th:first-child,
+.opp-radar-table td:first-child {
+  text-align: left;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.opp-radar-table thead th {
+  font-family: var(--display-font);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.opp-radar-cell-opp { color: var(--danger); }
+.opp-radar-cell-us  { color: var(--accent-light); }
+
 /* Round-end fanfare — when a demo finishes parsing via realtime, the
    row pulses with a brief lavender ring so the coach knows which row
    just changed. */
