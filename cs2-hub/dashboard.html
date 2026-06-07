@@ -30,7 +30,7 @@
 
     <div id="goal-slot"></div>
 
-    <div id="hero-slot"><div class="loading">Loading…</div></div>
+    <div id="hero-slot"><div class="skeleton skeleton-hero"></div></div>
 
     <div class="dash-two-col">
       <div class="dash-col">
@@ -38,14 +38,29 @@
           <div class="section-label">Map Pool Readiness</div>
           <a href="stratbook.html" class="section-link">Stratbook</a>
         </div>
-        <div id="map-pool-slot"><div class="loading">Loading…</div></div>
+        <div id="map-pool-slot">
+          <div class="skeleton-list">
+            <div class="skeleton skeleton-row-tall"></div>
+            <div class="skeleton skeleton-row-tall"></div>
+            <div class="skeleton skeleton-row-tall"></div>
+            <div class="skeleton skeleton-row-tall"></div>
+            <div class="skeleton skeleton-row-tall"></div>
+            <div class="skeleton skeleton-row-tall"></div>
+            <div class="skeleton skeleton-row-tall"></div>
+          </div>
+        </div>
       </div>
       <div class="dash-col">
         <div class="section-row">
           <div class="section-label">What needs attention</div>
           <span class="section-link" id="attention-since"></span>
         </div>
-        <div id="attention-slot"><div class="loading">Loading…</div></div>
+        <div id="attention-slot">
+          <div class="skeleton-list">
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -53,13 +68,31 @@
       <div class="section-label">Roster Heat · last 30 days</div>
       <a href="roster.html" class="section-link">Roster</a>
     </div>
-    <div id="player-heat-slot"><div class="loading">Loading…</div></div>
+    <div id="player-heat-slot">
+      <div class="skeleton-strip">
+        <div class="skeleton skeleton-card" style="height:158px"></div>
+        <div class="skeleton skeleton-card" style="height:158px"></div>
+        <div class="skeleton skeleton-card" style="height:158px"></div>
+        <div class="skeleton skeleton-card" style="height:158px"></div>
+        <div class="skeleton skeleton-card" style="height:158px"></div>
+      </div>
+    </div>
 
     <div class="section-row">
       <div class="section-label">Next 7 Days</div>
       <a href="schedule.html" class="section-link">View schedule</a>
     </div>
-    <div id="timeline-slot"><div class="loading">Loading…</div></div>
+    <div id="timeline-slot">
+      <div class="skeleton-strip" style="grid-template-columns:repeat(7, 1fr)">
+        <div class="skeleton skeleton-card" style="height:84px"></div>
+        <div class="skeleton skeleton-card" style="height:84px"></div>
+        <div class="skeleton skeleton-card" style="height:84px"></div>
+        <div class="skeleton skeleton-card" style="height:84px"></div>
+        <div class="skeleton skeleton-card" style="height:84px"></div>
+        <div class="skeleton skeleton-card" style="height:84px"></div>
+        <div class="skeleton skeleton-card" style="height:84px"></div>
+      </div>
+    </div>
 
     <div id="insight-slot"></div>
 
@@ -85,7 +118,15 @@
       <div class="section-label">Recently Added Strats</div>
       <a href="stratbook.html" class="section-link">View all</a>
     </div>
-    <div id="recent-strats"><div class="loading">Loading…</div></div>
+    <div id="recent-strats">
+      <div class="skeleton-list">
+        <div class="skeleton skeleton-row-tall"></div>
+        <div class="skeleton skeleton-row-tall"></div>
+        <div class="skeleton skeleton-row-tall"></div>
+        <div class="skeleton skeleton-row-tall"></div>
+        <div class="skeleton skeleton-row-tall"></div>
+      </div>
+    </div>
 
     <div class="section-row">
       <div class="section-label">Activity</div>

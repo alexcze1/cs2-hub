@@ -479,7 +479,20 @@ async function renderPlayerHeatStrip() {
   const slot = document.getElementById('player-heat-slot')
   const starters = (roster ?? []).filter(p => p.role !== 'Coach' && p.role !== 'Manager' && p.role !== 'Bench' && !p.is_ghost)
   if (!starters.length) {
-    slot.innerHTML = `<div class="empty-state"><h3>No active roster</h3><p>Add players in the Roster section to see heat data here.</p></div>`
+    slot.innerHTML = `
+      <div class="empty-state-art">
+        <div class="empty-state-art-icon">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <div class="empty-state-art-title">No active roster</div>
+        <div class="empty-state-art-sub">Add five starters in the Roster section to see per-player K/D, ratings, and form trends here.</div>
+        <a href="roster.html" class="empty-state-art-cta">Open Roster →</a>
+      </div>`
     return
   }
 
@@ -711,10 +724,21 @@ const issuesCard = document.getElementById('stat-issues-card')
 issuesCard.classList.remove('stat-card-muted')
 issuesCard.classList.add(issueClass)
 
-// ── Recent strats (unchanged) ────────────────────────────────────────
+// ── Recent strats ────────────────────────────────────────────────
 const recentEl = document.getElementById('recent-strats')
 if (!recentStrats?.length) {
-  recentEl.innerHTML = `<div class="empty-state"><h3>No strats yet</h3><p>Add one in the Stratbook.</p></div>`
+  recentEl.innerHTML = `
+    <div class="empty-state-art">
+      <div class="empty-state-art-icon">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+        </svg>
+      </div>
+      <div class="empty-state-art-title">No strats saved yet</div>
+      <div class="empty-state-art-sub">Strats are the team's living tactical playbook — defaults, executes, anti-strats, pistol scripts.</div>
+      <a href="stratbook.html" class="empty-state-art-cta">Open Stratbook →</a>
+    </div>`
 } else {
   recentEl.innerHTML = recentStrats.map(s => {
     const sideColor = s.side === 't' ? 'var(--side-t)' : 'var(--side-ct)'

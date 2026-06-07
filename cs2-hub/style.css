@@ -6672,6 +6672,140 @@ body.cmdk-open { overflow: hidden; }
   .stat-card { padding: 12px 14px; }
 }
 
+/* ════════════════════════════════════════════════════════════════════
+   Skeleton placeholders — replaces the plain "Loading…" text so the
+   first-paint matches the shape of the eventual content. Reduces the
+   "wait, did anything load?" feeling on cold loads.
+   ════════════════════════════════════════════════════════════════════ */
+
+.skeleton {
+  position: relative;
+  background: var(--bg-card-soft);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  isolation: isolate;
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(var(--lavender-3-rgb), 0.10) 50%,
+    transparent 100%
+  );
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+@keyframes skeleton-shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after { animation: none; }
+}
+.skeleton-line { height: 12px; margin-bottom: 8px; }
+.skeleton-line:last-child { margin-bottom: 0; }
+.skeleton-hero {
+  height: 168px;
+  margin-bottom: 24px;
+  border-radius: var(--r-xl);
+}
+.skeleton-card {
+  height: 96px;
+  border-radius: var(--r-md);
+}
+.skeleton-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.skeleton-row-tall { height: 44px; border-radius: var(--r-sm); }
+
+/* ════════════════════════════════════════════════════════════════════
+   Empty states with art — replaces plain "No data" text on common
+   empty paths with the lavender stripe motif used elsewhere so the
+   page never looks broken.
+   ════════════════════════════════════════════════════════════════════ */
+
+.empty-state-art {
+  position: relative;
+  padding: 48px 28px 36px;
+  text-align: center;
+  background:
+    radial-gradient(360px 200px at 50% 0%, rgba(var(--lavender-3-rgb), 0.14), transparent 70%),
+    var(--bg-card);
+  border: 1px solid var(--border-solid);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  isolation: isolate;
+}
+.empty-state-art::before,
+.empty-state-art::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(var(--lavender-3-rgb), 0.08) 0 12px,
+      transparent 12px 38px
+    );
+  z-index: -1;
+}
+.empty-state-art::before { inset: 0 0 50% 0; mask: linear-gradient(180deg, rgba(0,0,0,0.55), transparent); }
+.empty-state-art::after  { inset: 50% 0 0 0; mask: linear-gradient(0deg, rgba(0,0,0,0.35), transparent); }
+.empty-state-art-icon {
+  width: 56px; height: 56px;
+  margin: 0 auto 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(var(--lavender-3-rgb), 0.14);
+  border: 1px solid rgba(var(--lavender-2-rgb), 0.30);
+  color: var(--accent-light);
+}
+.empty-state-art-title {
+  font-family: var(--display-font);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+.empty-state-art-sub {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 460px;
+  margin: 0 auto 18px;
+}
+.empty-state-art-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--accent-grad);
+  color: var(--accent-on);
+  border-radius: var(--r-sm);
+  text-decoration: none;
+  font-family: var(--display-font);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: transform var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease);
+}
+.empty-state-art-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(var(--lavender-3-rgb), 0.30);
+}
+
 /* Round-end fanfare — when a demo finishes parsing via realtime, the
    row pulses with a brief lavender ring so the coach knows which row
    just changed. */
