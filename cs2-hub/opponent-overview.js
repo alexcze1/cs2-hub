@@ -222,6 +222,15 @@ export async function fetchOpponentOverview(teamName) {
     const outcome = (ourScore == null || oppScore == null) ? null
                   : ourScore > oppScore ? 'W'
                   : oppScore > ourScore ? 'L' : 'D'
+    // The opponent's first-half side. team_a_first_side names the side
+    // that *team A* started on; whether the opponent is letter 'a' or
+    // 'b' determines whether they got that side or the opposite.
+    let oppFirstSide = null
+    if (d.team_a_first_side) {
+      const lower = String(d.team_a_first_side).toLowerCase()
+      const opposite = lower === 'ct' ? 't' : 'ct'
+      oppFirstSide = parserOurLetter === 'a' ? lower : opposite
+    }
     enrichedDemos.push({
       ...d,
       _ourName:  ourName,
@@ -229,6 +238,7 @@ export async function fetchOpponentOverview(teamName) {
       _ourScore: ourScore,
       _oppScore: oppScore,
       _outcome:  outcome,
+      _oppFirstSide: oppFirstSide,
     })
   }
 
@@ -262,18 +272,22 @@ export async function fetchOpponentOverview(teamName) {
     byPlayer.set(sid, e)
   }
 
-  // Tally W/L/D and map pool.
+  // Tally W/L/D and map pool. Also track the opponent's first-half
+  // side preference per map so veto planning can see "this team always
+  // wants to start CT on Mirage" at a glance.
   let wins = 0, losses = 0, draws = 0
-  const mapPool = new Map() // map -> { played, wins, losses }
+  const mapPool = new Map()
   for (const d of enrichedDemos) {
     if (d._outcome === 'W') wins++
     else if (d._outcome === 'L') losses++
     else if (d._outcome === 'D') draws++
     if (d.map) {
-      const e = mapPool.get(d.map) ?? { played: 0, wins: 0, losses: 0 }
+      const e = mapPool.get(d.map) ?? { played: 0, wins: 0, losses: 0, ctFirst: 0, tFirst: 0, ctFirstWins: 0, tFirstWins: 0 }
       e.played++
       if (d._outcome === 'W') e.wins++
       else if (d._outcome === 'L') e.losses++
+      if (d._oppFirstSide === 'ct') { e.ctFirst++; if (d._outcome === 'W') e.ctFirstWins++ }
+      else if (d._oppFirstSide === 't') { e.tFirst++; if (d._outcome === 'W') e.tFirstWins++ }
       mapPool.set(d.map, e)
     }
   }
@@ -342,11 +356,22 @@ function renderSummary(data) {
       <div class="opp-map-pool">
         ${mapRows.map(([map, m]) => {
           const mpct = m.played ? Math.round((m.wins / m.played) * 100) : 0
+          const totalSided = m.ctFirst + m.tFirst
+          let sideInfo = ''
+          if (totalSided >= 2) {
+            const prefersCt = m.ctFirst >= m.tFirst
+            const cnt   = prefersCt ? m.ctFirst : m.tFirst
+            const wins  = prefersCt ? m.ctFirstWins : m.tFirstWins
+            const wpct  = cnt ? Math.round((wins / cnt) * 100) : 0
+            const label = prefersCt ? 'CT' : 'T'
+            const tone  = prefersCt ? 'var(--side-ct)' : 'var(--side-t)'
+            sideInfo = `<span title="Started on ${label} side ${cnt}/${totalSided} matches · ${wpct}% W when starting ${label}" style="color:${tone};font-size:10px;margin-left:8px;letter-spacing:0.05em;text-transform:uppercase;font-weight:700">${label} ${cnt}/${totalSided}</span>`
+          }
           return `
             <div class="opp-map-row">
               <div class="opp-map-badge"><img src="${mapImg(map)}" alt="${esc(map)}" onerror="this.style.display='none'"/></div>
               <div class="opp-map-name">${esc(mapName(map))}</div>
-              <div class="opp-map-record">${m.wins}–${m.losses}</div>
+              <div class="opp-map-record">${m.wins}–${m.losses}${sideInfo}</div>
               <div class="opp-map-bar"><div style="width:${mpct}%"></div></div>
             </div>`
         }).join('')}
