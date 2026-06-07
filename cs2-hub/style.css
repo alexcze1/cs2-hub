@@ -7370,6 +7370,73 @@ body.public-profile {
 }
 .public-footer a:hover { color: var(--accent-light); }
 
+/* ════════════════════════════════════════════════════════════════════
+   Team Economy tiles (dashboard #team-economy-slot). Pistol / anti-eco
+   / half-buy / full-buy / CT / T / opening — each rendered as a
+   colour-graded tile so the coach reads strengths and weaknesses at a
+   glance.
+   ════════════════════════════════════════════════════════════════════ */
+
+.econ-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+.econ-tile {
+  position: relative;
+  padding: 14px 14px 12px;
+  border-radius: var(--r-md);
+  background: var(--bg-card);
+  border: 1px solid var(--border-solid);
+  text-align: left;
+  transition: transform var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
+}
+.econ-tile:hover {
+  transform: translateY(-1px);
+  border-color: rgba(var(--lavender-2-rgb), 0.30);
+}
+.econ-tile-label {
+  font-family: var(--display-font);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.econ-tile-value {
+  font-family: var(--display-font);
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--text-primary);
+}
+.econ-tile-unit {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-left: 2px;
+}
+.econ-tile-sub {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.econ-tile-good { border-left: 3px solid var(--success); }
+.econ-tile-good .econ-tile-value { color: var(--success); }
+.econ-tile-bad  { border-left: 3px solid var(--danger); }
+.econ-tile-bad .econ-tile-value  { color: var(--danger); }
+.econ-tile-flat { border-left: 3px solid var(--border-solid); }
+.econ-tile-empty { opacity: 0.65; }
+.econ-tile-empty .econ-tile-value { color: var(--muted); }
+
+@media (max-width: 720px) {
+  .econ-grid { grid-template-columns: repeat(2, 1fr); }
+  .econ-tile-value { font-size: 24px; }
+}
+
 /* Round-end fanfare — when a demo finishes parsing via realtime, the
    row pulses with a brief lavender ring so the coach knows which row
    just changed. */

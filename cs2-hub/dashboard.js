@@ -2,6 +2,7 @@ import { requireAuth } from './auth.js'
 import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { getPlayerImage } from './player-autocomplete.js'
+import { aggregateTeamStats } from './team-stats-aggregate.js'
 
 function esc(text) {
   const d = document.createElement('div')
@@ -854,6 +855,141 @@ function renderActivity() {
     </div>`
 }
 renderActivity()
+
+// ── Team Economy widget ──────────────────────────────────────────────
+// Promotes the eco / force / pistol / first-duel breakdown that's
+// computed by team-stats-aggregate.js (but only exposed on the analysis
+// page today) so it's visible on the home page.
+//
+// Per-demo we figure out which team letter ('a' / 'b') is "us" — either
+// from the parser-set ct_team_name / t_team_name (preferred — set by
+// the assign-teams modal) or by name-match against HLTV's team_a /
+// team_b. Demos where we can't determine the letter are skipped.
+async function renderTeamEconomy() {
+  const slot = document.getElementById('team-economy-slot')
+  if (!slot) return
+  if (!teamRow?.name) { slot.innerHTML = ''; return }
+
+  slot.innerHTML = `
+    <div class="skeleton-strip">
+      <div class="skeleton skeleton-card" style="height:78px"></div>
+      <div class="skeleton skeleton-card" style="height:78px"></div>
+      <div class="skeleton skeleton-card" style="height:78px"></div>
+      <div class="skeleton skeleton-card" style="height:78px"></div>
+      <div class="skeleton skeleton-card" style="height:78px"></div>
+      <div class="skeleton skeleton-card" style="height:78px"></div>
+    </div>`
+
+  try {
+    const ago30Iso = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
+    const { data: demosForEcon } = await supabase
+      .from('demos')
+      .select('id, ct_team_name, t_team_name, team_a_name, team_b_name, team_a_first_side')
+      .eq('team_id', teamId)
+      .eq('status', 'ready')
+      .gte('created_at', ago30Iso)
+      .limit(80)
+
+    const norm = s => (s ?? '').toString().toLowerCase().trim()
+    const ourLc = norm(teamRow.name)
+    const ourLetterByDemo = new Map()
+    for (const d of demosForEcon ?? []) {
+      let letter = null
+      if (d.ct_team_name && d.t_team_name) {
+        const ctLc = norm(d.ct_team_name)
+        const tLc  = norm(d.t_team_name)
+        if (ctLc === ourLc) letter = d.team_a_first_side === 't' ? 'b' : 'a'
+        else if (tLc === ourLc) letter = d.team_a_first_side === 't' ? 'a' : 'b'
+      } else {
+        const aLc = norm(d.team_a_name)
+        const bLc = norm(d.team_b_name)
+        if (aLc === ourLc) letter = 'a'
+        else if (bLc === ourLc) letter = 'b'
+      }
+      if (letter) ourLetterByDemo.set(d.id, letter)
+    }
+
+    if (!ourLetterByDemo.size) {
+      slot.innerHTML = `
+        <div class="empty-state-art">
+          <div class="empty-state-art-icon">·</div>
+          <div class="empty-state-art-title">No round stats yet</div>
+          <div class="empty-state-art-sub">Upload demos and assign which side is your team — round-by-round economy and opening duels will land here automatically.</div>
+          <a href="demos.html" class="empty-state-art-cta">Upload demos →</a>
+        </div>`
+      return
+    }
+
+    const { data: statRows } = await supabase
+      .from('demo_team_stats')
+      .select('*')
+      .in('demo_id', [...ourLetterByDemo.keys()])
+    const ourRows = (statRows ?? []).filter(r => ourLetterByDemo.get(r.demo_id) === r.team)
+    if (!ourRows.length) {
+      slot.innerHTML = `
+        <div class="empty-state-art">
+          <div class="empty-state-art-icon">·</div>
+          <div class="empty-state-art-title">Stats still processing</div>
+          <div class="empty-state-art-sub">demo_team_stats rows haven't been written for these demos yet — re-check in a minute.</div>
+        </div>`
+      return
+    }
+
+    const agg = aggregateTeamStats(ourRows)
+    const tiles = [
+      { key: 'pistols',    label: 'Pistol',     hint: 'pistol-round win rate' },
+      { key: 'anti_ecos',  label: 'Anti-eco',   hint: 'rounds vs opponent eco' },
+      { key: 'half_buy',   label: 'Half buy',   hint: 'partial-buy round win rate' },
+      { key: 'full_buy',   label: 'Full buy',   hint: 'full-buy round win rate' },
+      { key: 'ct',         label: 'CT side',    hint: 'rounds played on CT' },
+      { key: 't',          label: 'T side',     hint: 'rounds played on T' },
+    ]
+    const opening = agg.opening_duel
+    const openingPct = opening?.pct
+    const openingLabel = openingPct != null ? `${Math.round(openingPct * 100)}` : '—'
+
+    const tileHtml = tiles.map(t => {
+      const v = agg[t.key]
+      if (!v || !v.played) {
+        return `
+          <div class="econ-tile econ-tile-empty">
+            <div class="econ-tile-label">${t.label}</div>
+            <div class="econ-tile-value">—<span class="econ-tile-unit">%</span></div>
+            <div class="econ-tile-sub">no rounds yet</div>
+          </div>`
+      }
+      const pct = Math.round((v.pct ?? 0) * 100)
+      const tone = pct >= 55 ? 'good' : pct <= 45 ? 'bad' : 'flat'
+      return `
+        <div class="econ-tile econ-tile-${tone}" title="${t.hint}">
+          <div class="econ-tile-label">${t.label}</div>
+          <div class="econ-tile-value">${pct}<span class="econ-tile-unit">%</span></div>
+          <div class="econ-tile-sub">${v.wins}–${v.played - v.wins} of ${v.played}</div>
+        </div>`
+    }).join('')
+
+    const totalFirst = agg.first_kills + agg.first_deaths
+    const openingTone = openingPct == null ? 'flat'
+      : openingPct >= 0.55 ? 'good'
+      : openingPct <= 0.45 ? 'bad' : 'flat'
+    const openingTile = `
+      <div class="econ-tile econ-tile-${openingTone}" title="who wins the first kill of the round">
+        <div class="econ-tile-label">Opening</div>
+        <div class="econ-tile-value">${openingLabel}<span class="econ-tile-unit">%</span></div>
+        <div class="econ-tile-sub">${agg.first_kills}–${agg.first_deaths} of ${totalFirst}</div>
+      </div>`
+
+    slot.innerHTML = `
+      <div class="econ-grid">
+        ${tileHtml}
+        ${openingTile}
+      </div>`
+  } catch (e) {
+    console.warn('[dashboard] team economy failed', e)
+    slot.innerHTML = ''
+  }
+}
+renderTeamEconomy()
 
 // Stamp last-seen so the next visit shows a fresh diff. Done at the very
 // end so it can never partial-skip the inbox computation above.
