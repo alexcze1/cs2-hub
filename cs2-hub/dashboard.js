@@ -772,6 +772,7 @@ function renderActivity() {
       ts, kind: 'demo', icon: '◍',
       text: `Demo uploaded${d.map ? ` · ${d.map.charAt(0).toUpperCase() + d.map.slice(1)}` : ''}${d.opponent_name ? ` vs ${d.opponent_name}` : ''}`,
       href: `demo-viewer.html?id=${d.id}`,
+      previewAttr: `data-preview-demo="${d.id}"`,
     })
   }
   for (const v of vodData ?? []) {
@@ -781,6 +782,7 @@ function renderActivity() {
       ts, kind: 'vod', icon: '▶',
       text: `Match review created${v.opponent_name ? ` · vs ${v.opponent_name}` : ''}`,
       href: `vod-detail.html?id=${v.id}`,
+      previewAttr: `data-preview-vod="${v.id}"`,
     })
   }
   for (const s of stratMaps ?? []) {
@@ -819,7 +821,7 @@ function renderActivity() {
           : ago < 24 ? `${ago}h ago`
           : `${Math.round(ago / 24)}d ago`
         return `
-          <a class="activity-row activity-row-${e.kind}" href="${esc(e.href)}">
+          <a class="activity-row activity-row-${e.kind}" href="${esc(e.href)}" ${e.previewAttr ?? ''}>
             <span class="activity-icon">${e.icon}</span>
             <span class="activity-text">${esc(e.text)}</span>
             <span class="activity-when">${whenLabel}</span>

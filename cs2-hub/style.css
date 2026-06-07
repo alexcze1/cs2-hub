@@ -6900,6 +6900,94 @@ body.cmdk-open { overflow: hidden; }
   .vh-col-thumb { width: 22px; height: 14px; }
 }
 
+/* ════════════════════════════════════════════════════════════════════
+   Hover preview cards — populated by hover-preview.js. Any link with
+   [data-preview-demo] / [data-preview-vod] gets a floating summary.
+   ════════════════════════════════════════════════════════════════════ */
+
+.hover-preview-card {
+  position: absolute;
+  width: 280px;
+  z-index: 9400;
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border: 1px solid rgba(var(--lavender-2-rgb), 0.28);
+  border-radius: var(--r-md);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(var(--lavender-3-rgb), 0.10);
+  pointer-events: none;
+  animation: hover-preview-enter 140ms var(--ease) both;
+  font-family: var(--display-font);
+}
+@keyframes hover-preview-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hover-preview-kind {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--accent-light);
+  margin-bottom: 4px;
+}
+.hover-preview-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  margin-bottom: 8px;
+}
+.hover-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.hover-preview-team {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-secondary);
+}
+.hover-preview-team:last-child { text-align: right; }
+.hover-preview-score {
+  font-family: var(--display-font);
+  font-weight: 800;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.hover-preview-meta {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+.hover-preview-result {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.10em;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.hover-preview-win  { background: rgba(var(--success-rgb), 0.18); color: var(--success); }
+.hover-preview-loss { background: rgba(255, 77, 109, 0.18);       color: var(--danger); }
+.hover-preview-draw { background: var(--hover-bg);                color: var(--muted); }
+.hover-preview-loading,
+.hover-preview-empty {
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  /* Phone touch UX has no real hover; suppress to avoid weird tap-and-stay. */
+  .hover-preview-card { display: none !important; }
+}
+
 /* Round-end fanfare — when a demo finishes parsing via realtime, the
    row pulses with a brief lavender ring so the coach knows which row
    just changed. */

@@ -1,6 +1,7 @@
 import { signOut, isAdmin } from './auth.js'
 import { supabase, getTeamId } from './supabase.js'
 import { initCommandPalette } from './command-palette.js'
+import { initHoverPreview } from './hover-preview.js'
 
 // One-time chrome installation: PWA manifest link, service-worker
 // registration, command palette + keyboard shortcuts. Idempotent — every
@@ -34,6 +35,9 @@ function installChrome() {
 
   // Command palette + keyboard shortcuts (Cmd-K, ?, g-d, etc.)
   initCommandPalette()
+
+  // Hover preview cards for [data-preview-demo] / [data-preview-vod].
+  initHoverPreview()
 
   installMobileChrome()
 }
