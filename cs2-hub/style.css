@@ -7158,6 +7158,218 @@ body.cmdk-open { overflow: hidden; }
 .opp-radar-cell-opp { color: var(--danger); }
 .opp-radar-cell-us  { color: var(--accent-light); }
 
+/* ════════════════════════════════════════════════════════════════════
+   Public team profile (public-team.html). Standalone shareable page
+   with no app shell, no auth. Reuses the lavender editorial system
+   tokens so the brand reads consistently from the marketing site
+   through the in-app pages.
+   ════════════════════════════════════════════════════════════════════ */
+
+body.public-profile {
+  background:
+    radial-gradient(900px 380px at 10% 0%, rgba(var(--lavender-3-rgb), 0.12), transparent 70%),
+    radial-gradient(720px 340px at 90% 0%, rgba(var(--lavender-2-rgb), 0.10), transparent 70%),
+    var(--bg-primary);
+  min-height: 100vh;
+}
+.public-shell {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 36px 28px 60px;
+}
+.public-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+.public-brand img {
+  height: 22px;
+  width: auto;
+  display: block;
+  opacity: 0.9;
+}
+.public-share-btn {
+  padding: 8px 16px;
+  background: var(--accent-grad);
+  color: var(--accent-on);
+  border: none;
+  border-radius: var(--r-sm);
+  font-family: var(--display-font);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease);
+}
+.public-share-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(var(--lavender-3-rgb), 0.30);
+}
+
+.public-hero { margin-bottom: 36px; }
+.public-hero-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 28px;
+  align-items: center;
+  padding: 36px 36px;
+  background:
+    radial-gradient(680px 320px at -8% 50%, rgba(var(--lavender-2-rgb), 0.22), transparent 65%),
+    linear-gradient(120deg, rgba(var(--lavender-3-rgb), 0.18) 0%, rgba(20, 26, 42, 0.85) 55%, rgba(16, 21, 34, 0.9) 100%),
+    var(--bg-card);
+  border: 1px solid rgba(var(--lavender-2-rgb), 0.18);
+  border-radius: var(--r-xl);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    0 0 48px rgba(var(--lavender-3-rgb), 0.14),
+    0 24px 60px rgba(0,0,0,0.5);
+}
+.public-hero-tag {
+  font-family: var(--display-font);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-light);
+  margin-bottom: 8px;
+}
+.public-hero-title {
+  font-family: var(--display-font);
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -0.028em;
+  line-height: 1.05;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+}
+.public-hero-sub {
+  color: var(--text-secondary);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+.public-hero-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: right;
+}
+.public-hero-stat-label {
+  font-family: var(--display-font);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+.public-hero-stat-value {
+  font-family: var(--display-font);
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+.public-hero-stat-sep { color: var(--muted); font-weight: 400; margin: 0 6px; }
+.public-hero-stat-sub { color: var(--muted); font-size: 14px; font-weight: 500; }
+.public-hero-form {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 760px) {
+  .public-shell { padding: 24px 18px 48px; }
+  .public-hero-card { grid-template-columns: 1fr; padding: 24px 22px; }
+  .public-hero-title { font-size: 34px; }
+  .public-hero-stats { text-align: left; }
+  .public-hero-form { justify-content: flex-start; }
+}
+
+.public-section { margin-bottom: 28px; }
+
+.public-results-list {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--border-solid);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+.public-result-row {
+  display: grid;
+  grid-template-columns: 90px 1fr 1.5fr 60px;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--hairline);
+  align-items: center;
+  font-size: 13px;
+}
+.public-result-row:last-child { border-bottom: none; }
+.public-result-date { color: var(--text-secondary); font-size: 12px; }
+.public-result-opp { color: var(--text-primary); font-weight: 600; }
+.public-result-type {
+  font-family: var(--display-font);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  color: var(--muted);
+  margin-right: 8px;
+}
+.public-result-maps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+.public-result-map {
+  padding: 2px 8px;
+  background: var(--hover-bg);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.public-result-status { text-align: right; }
+.public-result-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-family: var(--display-font);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.10em;
+}
+.public-result-win  { background: rgba(var(--success-rgb), 0.18); color: var(--success); }
+.public-result-loss { background: rgba(255, 77, 109, 0.18); color: var(--danger); }
+.public-result-draw { background: var(--hover-bg); color: var(--muted); }
+.public-result-no-opp { color: var(--muted); font-weight: 400; }
+
+@media (max-width: 760px) {
+  .public-result-row {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    row-gap: 6px;
+  }
+  .public-result-date { grid-column: 1; grid-row: 1; }
+  .public-result-status { grid-column: 2; grid-row: 1; }
+  .public-result-opp { grid-column: 1 / -1; grid-row: 2; }
+  .public-result-maps { grid-column: 1 / -1; grid-row: 3; margin-top: 4px; }
+}
+
+.public-footer {
+  margin-top: 48px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+.public-footer a {
+  color: var(--muted);
+  text-decoration: none;
+  letter-spacing: 0.06em;
+}
+.public-footer a:hover { color: var(--accent-light); }
+
 /* Round-end fanfare — when a demo finishes parsing via realtime, the
    row pulses with a brief lavender ring so the coach knows which row
    just changed. */

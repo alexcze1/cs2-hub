@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <link rel="icon" type="image/png" href="images/favicon.png">
+  <link rel="apple-touch-icon" href="images/favicon.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#8B6DFF"/>
+  <title>Team Profile — MIDROUND</title>
+
+  <!-- Open Graph + Twitter so the share preview is nice. Real values get
+       injected client-side once the profile resolves; the static fallback
+       keeps unfurlers happy until then. -->
+  <meta property="og:type"        content="profile"/>
+  <meta property="og:title"       content="Team Profile · MIDROUND"/>
+  <meta property="og:description" content="Public scouting profile — recent form, map pool, and results."/>
+  <meta property="og:image"       content="/images/logo-icon.png"/>
+  <meta name="twitter:card"       content="summary"/>
+
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body class="public-profile">
+  <main class="public-shell" id="public-shell">
+    <header class="public-header">
+      <a href="/" class="public-brand">
+        <img src="images/logo-lettering.png" alt="MIDROUND"/>
+      </a>
+      <button type="button" class="public-share-btn" id="share-btn" aria-label="Share profile">Share</button>
+    </header>
+
+    <section class="public-hero" id="public-hero">
+      <div class="skeleton skeleton-hero"></div>
+    </section>
+
+    <section class="public-section">
+      <div class="section-row">
+        <div class="section-label">Map Pool</div>
+      </div>
+      <div id="public-map-pool">
+        <div class="skeleton-list">
+          <div class="skeleton skeleton-row-tall"></div>
+          <div class="skeleton skeleton-row-tall"></div>
+          <div class="skeleton skeleton-row-tall"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="public-section">
+      <div class="section-row">
+        <div class="section-label">Recent Results</div>
+      </div>
+      <div id="public-results">
+        <div class="skeleton-list">
+          <div class="skeleton skeleton-row-tall"></div>
+          <div class="skeleton skeleton-row-tall"></div>
+          <div class="skeleton skeleton-row-tall"></div>
+          <div class="skeleton skeleton-row-tall"></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="public-footer">
+      <a href="/landing.html">Powered by MIDROUND — track your team</a>
+    </footer>
+  </main>
+  <script type="module" src="public-team.js"></script>
+</body>
+</html>

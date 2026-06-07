@@ -29,6 +29,30 @@ document.getElementById('density-toggle')?.addEventListener('click', () => {
   applyDensity(next)
 })
 
+// Public team profile share — builds the canonical /public-team.html
+// URL for the active team and either invokes the native share sheet
+// (mobile, Safari) or copies to clipboard with a short success
+// confirmation.
+document.getElementById('share-public-btn')?.addEventListener('click', async () => {
+  const tid = getTeamId()
+  if (!tid) return
+  const url = `${location.origin}/public-team.html?id=${tid}`
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: 'Team Profile · MIDROUND', url })
+    } else {
+      await navigator.clipboard.writeText(url)
+      const btn = document.getElementById('share-public-btn')
+      const valEl = btn?.querySelector('.density-toggle-value')
+      if (valEl) {
+        const original = valEl.textContent
+        valEl.textContent = 'Copied!'
+        setTimeout(() => { valEl.textContent = original }, 1500)
+      }
+    }
+  } catch {}
+})
+
 await requireAuth()
 renderSidebar('dashboard')
 
