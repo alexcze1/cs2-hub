@@ -5,7 +5,6 @@ import { toast } from './toast.js'
 import { attachTeamAutocomplete, getTeamLogo, teamLogoEl } from './team-autocomplete.js'
 import { MAP_POSITIONS } from './map-positions.js'
 import { renderPositionsGrid, renderPlanSheet, ensureMapAntistrat } from './antistrat-editor.js'
-import { computeStats } from './veto-simulator.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
@@ -243,122 +242,20 @@ const initialName = nameInput.value.trim()
 if (initialName) {
   const logo = await getTeamLogo(initialName)
   updateLogoPreview(logo, initialName)
-  loadVetoHeatmap(initialName)
 } else {
   updateLogoPreview(null, '')
 }
 
 attachTeamAutocomplete(nameInput, team => {
   updateLogoPreview(team.logo, team.name)
-  loadVetoHeatmap(team.name)
 })
 
-// Debounce manual typing so we don't hit Supabase per keystroke.
-let _vetoHeatmapDebounce = null
 nameInput.addEventListener('input', async () => {
   const n = nameInput.value.trim()
-  if (!n) {
-    updateLogoPreview(null, '')
-    document.getElementById('veto-heatmap-section').style.display = 'none'
-    return
-  }
+  if (!n) { updateLogoPreview(null, ''); return }
   const logo = await getTeamLogo(n)
   updateLogoPreview(logo, n)
-  clearTimeout(_vetoHeatmapDebounce)
-  _vetoHeatmapDebounce = setTimeout(() => loadVetoHeatmap(n), 500)
 })
-
-// ── Pickban tendency heatmap ─────────────────────────────────
-// Pulls the opponent's HLTV veto history, runs it through the same
-// computeStats() the veto simulator uses, then renders the per-slot
-// per-map frequencies as a colour-graded grid so the IGL can see at a
-// glance "they always ban Dust2 first, pick Mirage second".
-async function loadVetoHeatmap(name) {
-  const section = document.getElementById('veto-heatmap-section')
-  const slot    = document.getElementById('veto-heatmap-slot')
-  const metaEl  = document.getElementById('veto-heatmap-meta')
-  if (!section || !slot) return
-  if (!name) { section.style.display = 'none'; return }
-
-  section.style.display = 'block'
-  slot.innerHTML = `<div class="skeleton skeleton-card" style="height:200px"></div>`
-
-  try {
-    const { data, error } = await supabase
-      .from('hltv_team_vetos')
-      .select('match_id, played_at, team_a_name, team_b_name, format, sequence')
-      .or(`team_a_name.ilike.${name},team_b_name.ilike.${name}`)
-      .order('played_at', { ascending: false, nullsFirst: false })
-      .limit(30)
-    if (error) throw error
-
-    const vetos = data ?? []
-    if (!vetos.length) {
-      slot.innerHTML = `
-        <div style="padding:18px;color:var(--muted);font-size:12px;background:var(--bg-card);border:1px dashed var(--border-solid);border-radius:var(--r-md)">
-          No HLTV veto data for ${esc(name)} yet — keep an eye on this panel after their next official match parses.
-        </div>`
-      metaEl.textContent = ''
-      return
-    }
-
-    const stats = computeStats(vetos, name)
-    metaEl.textContent = `${stats.rawMatches ?? vetos.length} matches`
-
-    const MAPS = ['mirage','inferno','nuke','ancient','anubis','overpass','dust2']
-    const MAP_LABELS = { ancient:'Ancient', mirage:'Mirage', nuke:'Nuke', anubis:'Anubis', inferno:'Inferno', overpass:'Overpass', dust2:'Dust2' }
-    const total = Math.max(1, stats.totalMatches || vetos.length)
-
-    function cell(map, counts, kind) {
-      const raw = counts?.get(map) || 0
-      const pct = Math.round((raw / total) * 100)
-      const intensity = Math.min(1, raw / total)
-      const rgb = kind === 'ban' ? '255, 77, 109' : '55, 214, 122'
-      const bg = `rgba(${rgb}, ${0.05 + intensity * 0.55})`
-      const txt = intensity >= 0.5 ? 'var(--text-primary)' : 'var(--text-secondary)'
-      return `
-        <div class="vh-cell" style="background:${bg};color:${txt}" title="${MAP_LABELS[map]} · ${pct}% (${raw}/${total})">
-          ${raw ? `<span class="vh-cell-pct">${pct}<small>%</small></span>` : `<span class="vh-cell-zero">—</span>`}
-        </div>`
-    }
-
-    const rows = []
-    const banSlotLabels = ['1st ban', '2nd ban', '3rd ban']
-    for (let i = 0; i < stats.banBySlot.length; i++) {
-      rows.push(`
-        <div class="vh-row">
-          <div class="vh-row-label vh-row-label-ban">${banSlotLabels[i] ?? `Ban ${i+1}`}</div>
-          ${MAPS.map(m => cell(m, stats.banBySlot[i], 'ban')).join('')}
-        </div>`)
-    }
-    const pickSlotLabels = ['1st pick', '2nd pick']
-    for (let i = 0; i < stats.pickBySlot.length; i++) {
-      rows.push(`
-        <div class="vh-row">
-          <div class="vh-row-label vh-row-label-pick">${pickSlotLabels[i] ?? `Pick ${i+1}`}</div>
-          ${MAPS.map(m => cell(m, stats.pickBySlot[i], 'pick')).join('')}
-        </div>`)
-    }
-
-    slot.innerHTML = `
-      <div class="veto-heatmap">
-        <div class="vh-row vh-head">
-          <div class="vh-row-label"></div>
-          ${MAPS.map(m => `<div class="vh-col-head"><img src="${mapImgUrl(m)}" alt="${MAP_LABELS[m]}" class="vh-col-thumb"><span>${MAP_LABELS[m].slice(0,3).toUpperCase()}</span></div>`).join('')}
-        </div>
-        ${rows.join('')}
-      </div>
-      <div class="vh-legend">
-        <span><span class="vh-legend-dot" style="background:rgba(255,77,109,0.5)"></span>Ban frequency</span>
-        <span><span class="vh-legend-dot" style="background:rgba(55,214,122,0.5)"></span>Pick frequency</span>
-        <span class="vh-legend-spacer"></span>
-        <span>More saturated cell = more frequent</span>
-      </div>`
-  } catch (e) {
-    console.warn('[veto-heatmap] load failed', e)
-    slot.innerHTML = `<div style="padding:14px;color:var(--danger);font-size:12px">Couldn't load veto patterns: ${esc(e.message || e)}</div>`
-  }
-}
 
 // ── Save ────────────────────────────────────────────────────
 document.getElementById('save-btn').addEventListener('click', async () => {

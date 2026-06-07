@@ -196,14 +196,110 @@ function cancelEditInSimulator() {
   if (vsInput?.value) runSimulation(vsInput.value, { editing: null })
 }
 
+// ── Pickban tendency heatmap ─────────────────────────────────
+// Renders the opponent's per-slot per-map ban/pick frequencies as a
+// colour-graded grid. Lives next to the simulator so the same search
+// surfaces both the predicted sequence AND the raw pattern behind it.
+async function renderPickbanHeatmap(name) {
+  const section = document.getElementById('vs-heatmap-section')
+  const slot    = document.getElementById('vs-heatmap-slot')
+  const metaEl  = document.getElementById('vs-heatmap-meta')
+  if (!section || !slot) return
+  if (!name) { section.style.display = 'none'; return }
+
+  section.style.display = 'block'
+  slot.innerHTML = `<div class="skeleton skeleton-card" style="height:200px"></div>`
+
+  try {
+    const safe = name.replace(/[(),]/g, '').trim()
+    const { data, error } = await supabase
+      .from('hltv_team_vetos')
+      .select('match_id, played_at, team_a_name, team_b_name, format, sequence')
+      .or(`team_a_name.ilike.${safe},team_b_name.ilike.${safe}`)
+      .order('played_at', { ascending: false, nullsFirst: false })
+      .limit(30)
+    if (error) throw error
+
+    const vetos = data ?? []
+    if (!vetos.length) {
+      slot.innerHTML = `
+        <div style="padding:18px;color:var(--muted);font-size:12px;background:var(--bg-card);border:1px dashed var(--border-solid);border-radius:var(--r-md)">
+          No HLTV veto data for ${esc(name)} yet — keep an eye on this panel after their next official match parses.
+        </div>`
+      metaEl.textContent = ''
+      return
+    }
+
+    const stats = computeStats(vetos, name)
+    metaEl.textContent = `${stats.rawMatches ?? vetos.length} matches`
+
+    const MAPS = ['mirage','inferno','nuke','ancient','anubis','overpass','dust2']
+    const MAP_NAMES = { ancient:'Ancient', mirage:'Mirage', nuke:'Nuke', anubis:'Anubis', inferno:'Inferno', overpass:'Overpass', dust2:'Dust2' }
+    const total = Math.max(1, stats.totalMatches || vetos.length)
+
+    function cell(map, counts, kind) {
+      const raw = counts?.get(map) || 0
+      const pct = Math.round((raw / total) * 100)
+      const intensity = Math.min(1, raw / total)
+      const rgb = kind === 'ban' ? '255, 77, 109' : '55, 214, 122'
+      const bg = `rgba(${rgb}, ${0.05 + intensity * 0.55})`
+      const txt = intensity >= 0.5 ? 'var(--text-primary)' : 'var(--text-secondary)'
+      return `
+        <div class="vh-cell" style="background:${bg};color:${txt}" title="${MAP_NAMES[map]} · ${pct}% (${raw}/${total})">
+          ${raw ? `<span class="vh-cell-pct">${pct}<small>%</small></span>` : `<span class="vh-cell-zero">—</span>`}
+        </div>`
+    }
+
+    const rows = []
+    const banSlotLabels = ['1st ban', '2nd ban', '3rd ban']
+    for (let i = 0; i < stats.banBySlot.length; i++) {
+      rows.push(`
+        <div class="vh-row">
+          <div class="vh-row-label vh-row-label-ban">${banSlotLabels[i] ?? `Ban ${i+1}`}</div>
+          ${MAPS.map(m => cell(m, stats.banBySlot[i], 'ban')).join('')}
+        </div>`)
+    }
+    const pickSlotLabels = ['1st pick', '2nd pick']
+    for (let i = 0; i < stats.pickBySlot.length; i++) {
+      rows.push(`
+        <div class="vh-row">
+          <div class="vh-row-label vh-row-label-pick">${pickSlotLabels[i] ?? `Pick ${i+1}`}</div>
+          ${MAPS.map(m => cell(m, stats.pickBySlot[i], 'pick')).join('')}
+        </div>`)
+    }
+
+    slot.innerHTML = `
+      <div class="veto-heatmap">
+        <div class="vh-row vh-head">
+          <div class="vh-row-label"></div>
+          ${MAPS.map(m => `<div class="vh-col-head"><img src="${MAP_IMAGES[m]}" alt="${MAP_NAMES[m]}" class="vh-col-thumb"><span>${MAP_NAMES[m].slice(0,3).toUpperCase()}</span></div>`).join('')}
+        </div>
+        ${rows.join('')}
+      </div>
+      <div class="vh-legend">
+        <span><span class="vh-legend-dot" style="background:rgba(255,77,109,0.5)"></span>Ban frequency</span>
+        <span><span class="vh-legend-dot" style="background:rgba(55,214,122,0.5)"></span>Pick frequency</span>
+        <span class="vh-legend-spacer"></span>
+        <span>More saturated cell = more frequent</span>
+      </div>`
+  } catch (e) {
+    console.warn('[veto-heatmap] load failed', e)
+    slot.innerHTML = `<div style="padding:14px;color:var(--danger);font-size:12px">Couldn't load veto patterns: ${esc(e.message || e)}</div>`
+  }
+}
+
 async function runSimulation(teamName, { editing = null, format = 'bo1' } = {}) {
   const myToken = ++vsToken
   const name = (teamName || '').trim()
   if (!name) {
     vsResult.innerHTML = ''
     vsStatus.textContent = ''
+    renderPickbanHeatmap('')
     return
   }
+  // Kick off the heatmap fetch in parallel with the simulator's data
+  // pipeline. Both read from hltv_team_vetos so they overlap nicely.
+  renderPickbanHeatmap(name)
   // Wait for the queue ACK from both syncs in parallel. The server returns
   // immediately with {queued: true} or {queued: false, reason: 'throttled' |
   // 'in_progress'} — the actual scraping happens in the background and
