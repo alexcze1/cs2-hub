@@ -799,6 +799,7 @@
         </div>
         <div class="viewer-timeline">
           <button class="play-btn" id="play-btn">▶</button>
+          <button class="play-btn dv-notes-btn" id="dv-notes-btn" title="Toggle notes pane">✎</button>
           <div class="tl-main">
             <div class="tl-swimlane" id="timeline-track">
               <div class="tl-lane-bg"></div>
@@ -818,6 +819,19 @@
             <button class="speed-btn sb-toggle-btn" id="sb-toggle-btn" title="Open scoreboard">Stats</button>
           </div>
         </div>
+      </div>
+
+      <!-- Notes pane (#21) — opens via the pen button in the timeline.
+           Floating panel anchored top-right; persists per-demo in
+           localStorage so coaches can capture round-by-round
+           observations without leaving the viewer. -->
+      <div class="dv-notes-panel" id="dv-notes-panel" hidden>
+        <div class="dv-notes-head">
+          <span class="dv-notes-title">Notes</span>
+          <button class="dv-notes-close" id="dv-notes-close" title="Close">×</button>
+        </div>
+        <textarea class="dv-notes-text" id="dv-notes-text" placeholder="Round-by-round observations…"></textarea>
+        <div class="dv-notes-foot" id="dv-notes-foot">Saved locally — every keystroke.</div>
       </div>
 
       <!-- Scoreboard overlay — covers canvas area; lazy-mounted on first open -->

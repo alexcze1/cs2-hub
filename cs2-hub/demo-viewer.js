@@ -1591,6 +1591,34 @@ for (const panelId of ['ct-panel', 't-panel']) {
   })
 }
 
+// ── Notes pane (#21) ──────────────────────────────────────────
+// Per-demo notes stored in localStorage. Two reasons for localStorage
+// vs. a Supabase column: (1) avoids a migration to ship, (2) per-coach
+// scratch notes shouldn't necessarily sync across the team — most
+// coaches use the in-pane notes as a personal whiteboard while the
+// VOD review form on the corresponding vod row is the shared output.
+{
+  const KEY = `viewer:notes:${demoId}`
+  const panel  = document.getElementById('dv-notes-panel')
+  const btn    = document.getElementById('dv-notes-btn')
+  const close  = document.getElementById('dv-notes-close')
+  const text   = document.getElementById('dv-notes-text')
+  const foot   = document.getElementById('dv-notes-foot')
+  try { text.value = localStorage.getItem(KEY) || '' } catch {}
+  let saveTimer = null
+  text.addEventListener('input', () => {
+    foot.textContent = 'Saving…'
+    clearTimeout(saveTimer)
+    saveTimer = setTimeout(() => {
+      try { localStorage.setItem(KEY, text.value) } catch {}
+      foot.textContent = 'Saved locally · ' + new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' })
+    }, 400)
+  })
+  function toggle() { panel.hidden = !panel.hidden; if (!panel.hidden) text.focus() }
+  btn.addEventListener('click', toggle)
+  close.addEventListener('click', () => { panel.hidden = true })
+}
+
 // ── Controls ──────────────────────────────────────────────────
 document.getElementById('play-btn').addEventListener('click', () => {
   const round = currentRound()
