@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <link rel="icon" type="image/png" href="images/favicon.png">
+  <link rel="apple-touch-icon" href="images/favicon.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Scrim Finder — MIDROUND</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <a href="schedule.html" class="breadcrumb">Schedule</a>
+        <div class="page-title">Scrim Finder</div>
+        <div class="page-sub">Find a team looking for a scrim in the same window as yours.</div>
+      </div>
+      <div class="page-header-actions">
+        <button type="button" class="btn btn-primary" id="sf-post-btn">+ Post listing</button>
+      </div>
+    </div>
+
+    <div id="sf-listing-form" class="info-panel" style="display:none;margin-bottom:24px">
+      <div class="form-row">
+        <div class="form-group" style="flex:1">
+          <label class="form-label">Date</label>
+          <input type="date" class="form-input" id="sf-date">
+        </div>
+        <div class="form-group" style="flex:1">
+          <label class="form-label">Time slot</label>
+          <input type="text" class="form-input" id="sf-time" placeholder="e.g. 19:00–22:00 CEST">
+        </div>
+        <div class="form-group" style="flex:1">
+          <label class="form-label">Maps</label>
+          <input type="text" class="form-input" id="sf-maps" placeholder="e.g. Mirage, Inferno, Nuke">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:1">
+          <label class="form-label">Rank range</label>
+          <input type="text" class="form-input" id="sf-rank" placeholder="e.g. Faceit 8-10">
+        </div>
+        <div class="form-group" style="flex:2">
+          <label class="form-label">Note</label>
+          <input type="text" class="form-input" id="sf-note" placeholder="Optional — Discord, format, vibe…">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-ghost" id="sf-cancel">Cancel</button>
+        <button type="button" class="btn btn-primary" id="sf-save">Post</button>
+      </div>
+    </div>
+
+    <div class="section-row">
+      <div class="section-label">Open listings · last 7 days</div>
+    </div>
+    <div id="sf-listings"></div>
+  </main>
+</div>
+<script type="module" src="scrim-finder.js"></script>
+</body>
+</html>
