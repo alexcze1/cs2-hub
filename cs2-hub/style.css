@@ -5840,6 +5840,408 @@ body { overflow-x: hidden; }
   cursor: pointer;
 }
 
+/* ════════════════════════════════════════════════════════════════════
+   Dashboard overhaul — added 2026-06: density toggle, today strip,
+   active goal card, form sparkline empty hero, map pool readiness grid,
+   attention inbox, player heat strip. All components are dashboard-only
+   but the density toggle applies the [data-density] attribute to <body>
+   so other pages can opt-in to the compact override.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Density toggle button in the page header */
+.density-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-sm);
+  color: var(--text-secondary);
+  font-family: var(--display-font);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+}
+.density-toggle:hover { background: var(--hover-bg-accent); color: var(--text-primary); }
+.density-toggle-value {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(var(--lavender-3-rgb), 0.18);
+  color: var(--accent-light);
+}
+
+/* Compact mode: trim outer/inner padding and gap across the main app
+   shell. Only the most reach-y values are halved; component internals
+   stay the same so density change doesn't reflow text inside cards. */
+body[data-density="compact"] .main-content { padding: 24px 32px; }
+body[data-density="compact"] .page-header { margin-bottom: 22px; }
+body[data-density="compact"] .page-title { font-size: 38px; }
+body[data-density="compact"] .page-sub { margin-top: 8px; font-size: 13px; }
+body[data-density="compact"] .section-row { margin-top: 24px; margin-bottom: 8px; }
+body[data-density="compact"] .stats-grid { gap: 12px; margin-top: 16px; }
+body[data-density="compact"] .hero-card { padding: 28px 32px; margin-bottom: 18px; }
+body[data-density="compact"] .stat-card { padding: 14px 16px; }
+body[data-density="compact"] .timeline-day { padding: 8px 10px; }
+body[data-density="compact"] .map-pool-row { padding: 8px 12px; }
+body[data-density="compact"] .player-heat-card { padding: 12px 10px 14px; }
+
+/* Today strip — micro-info row directly under the page header */
+.today-strip {
+  margin: -14px 0 22px;
+}
+.today-strip-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 18px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.today-strip-date { color: var(--text-primary); font-weight: 600; }
+.today-strip-divider {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--border-solid);
+}
+.today-strip-next { color: var(--text-secondary); }
+.today-streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(var(--success-rgb), 0.12);
+  color: var(--success);
+  font-weight: 600;
+  font-size: 12px;
+}
+.today-streak strong { font-weight: 800; }
+.today-streak-flame { font-size: 10px; }
+.today-streak-zero {
+  background: var(--hover-bg);
+  color: var(--muted);
+}
+
+/* Active goal pinned to the top — single card view above the hero so
+   the IGL sees the active commitment before anything else. */
+.goal-active-card {
+  display: block;
+  padding: 14px 18px;
+  margin-bottom: 18px;
+  background:
+    linear-gradient(90deg, rgba(var(--lavender-3-rgb), 0.18), rgba(var(--lavender-3-rgb), 0.04) 60%, transparent),
+    var(--bg-card);
+  border: 1px solid rgba(var(--lavender-2-rgb), 0.20);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-sm);
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: transform var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
+}
+.goal-active-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(var(--lavender-2-rgb), 0.35);
+}
+.goal-active-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.goal-active-tag {
+  font-family: var(--display-font);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-light);
+}
+.goal-due {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.goal-active-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Hero form-sparkline card — substitutes the empty state when there's
+   no next match. Same outer dimensions as .hero-card so the layout
+   doesn't jump. */
+.hero-form-card {
+  grid-template-columns: 1fr 1fr;
+}
+.hero-form-card-left { display: flex; flex-direction: column; justify-content: center; }
+.hero-form-card-right { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 10px; }
+.hero-sparkline {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 38px;
+  margin-top: 8px;
+}
+.sparkbar {
+  width: 8px;
+  height: 100%;
+  border-radius: 2px;
+  display: inline-block;
+}
+.sparkbar-win  { background: var(--success); }
+.sparkbar-loss { background: var(--danger); height: 65%; }
+.sparkbar-draw { background: var(--muted); height: 40%; }
+.hero-sparkline-empty {
+  color: var(--muted);
+  font-size: 12px;
+  max-width: 260px;
+  line-height: 1.4;
+  text-align: right;
+}
+.form-win  { color: var(--success); }
+.form-loss { color: var(--danger); }
+.form-draw { color: var(--muted); }
+
+/* Two-column section: Map Pool Readiness | Attention Inbox */
+.dash-two-col {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 22px;
+  margin-top: 22px;
+}
+.dash-col { min-width: 0; }
+@media (max-width: 1080px) {
+  .dash-two-col { grid-template-columns: 1fr; }
+}
+
+/* Map Pool Readiness grid — 7 rows × (img, name, win%, last, strats, dot) */
+.map-pool-grid {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--border-solid);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+.map-pool-head {
+  display: grid;
+  grid-template-columns: 34px 1.3fr 1fr 70px 60px 14px;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--bg-card-soft);
+  border-bottom: 1px solid var(--border-solid);
+  font-family: var(--display-font);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.map-pool-row {
+  display: grid;
+  grid-template-columns: 34px 1.3fr 1fr 70px 60px 14px;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--hairline);
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: background var(--dur-1) var(--ease);
+}
+.map-pool-row:last-child { border-bottom: none; }
+.map-pool-row:hover { background: var(--hover-bg-accent); }
+.map-pool-img {
+  width: 34px; height: 22px;
+  border-radius: 4px;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--bg-card-soft);
+}
+.map-pool-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+.map-pool-wp { display: inline-flex; align-items: baseline; gap: 6px; font-size: 12px; }
+.map-pool-wp strong { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.map-pool-wp-sub { color: var(--muted); font-size: 11px; }
+.map-pool-na { color: var(--muted); font-size: 11px; font-style: italic; }
+.map-pool-last { font-size: 12px; color: var(--text-secondary); }
+.map-pool-strats { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: right; }
+.map-pool-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  justify-self: end;
+}
+.map-pool-dot-hot  { background: var(--success); box-shadow: 0 0 6px rgba(var(--success-rgb), 0.5); }
+.map-pool-dot-warm { background: var(--warning); }
+.map-pool-dot-cold { background: var(--danger); }
+.map-pool-row-cold .map-pool-name { color: var(--danger); }
+.map-pool-row-warm .map-pool-name { color: var(--warning); }
+
+/* Attention inbox */
+.attention-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.attention-row {
+  display: grid;
+  grid-template-columns: 24px 1fr 18px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-solid);
+  border-radius: var(--r-sm);
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: transform var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
+}
+.attention-row:hover {
+  transform: translateY(-1px);
+  border-color: rgba(var(--lavender-2-rgb), 0.30);
+}
+.attention-icon {
+  width: 24px; height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-weight: 800;
+  font-size: 14px;
+  font-family: var(--display-font);
+}
+.attention-row-event .attention-icon  { background: rgba(var(--lavender-3-rgb), 0.18); color: var(--accent); }
+.attention-row-issue .attention-icon  { background: rgba(255, 77, 109, 0.18); color: var(--danger); }
+.attention-row-demo .attention-icon   { background: rgba(var(--success-rgb), 0.18); color: var(--success); }
+.attention-row-changed .attention-icon{ background: rgba(255, 176, 32, 0.18); color: var(--warning); }
+.attention-text {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+.attention-text strong { color: var(--text-primary); font-weight: 700; }
+.attention-chevron {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+.attention-empty {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 16px;
+  background: rgba(var(--success-rgb), 0.08);
+  border: 1px solid rgba(var(--success-rgb), 0.25);
+  border-radius: var(--r-sm);
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.attention-empty-tick {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--success);
+  color: var(--bg-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 16px;
+}
+
+/* Player heat strip — 5 (or N) mini player cards */
+.player-heat-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+.player-heat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 12px 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-solid);
+  border-radius: var(--r-md);
+  text-align: center;
+  transition: transform var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
+}
+.player-heat-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(var(--lavender-2-rgb), 0.30);
+}
+.player-heat-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border);
+  margin-bottom: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 16px;
+  font-family: var(--display-font);
+}
+.player-heat-avatar-fallback {
+  /* same dimensions, no img tag */
+}
+.player-heat-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+.player-heat-role {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.player-heat-stats {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.player-heat-kd {
+  font-family: var(--display-font);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+.player-heat-kd-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.player-heat-foot {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.player-heat-trend {
+  font-weight: 800;
+  font-size: 13px;
+}
+.player-heat-trend-up   { color: var(--success); }
+.player-heat-trend-down { color: var(--danger); }
+.player-heat-trend-flat { color: var(--muted); }
+
 /* ── Print: hide scrollbars ── */
 @media print {
   *::-webkit-scrollbar { display: none !important; }
