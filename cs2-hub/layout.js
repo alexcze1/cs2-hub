@@ -123,6 +123,24 @@ export async function renderSidebar(activePage) {
     </a>`
   }
 
+  // Recent items — populated by the command palette as the user opens
+  // pages and demos. Pinned to the bottom of the nav so it sits just
+  // above the footer chrome. Capped at 4 entries to keep the sidebar
+  // skim-able.
+  try {
+    const recents = JSON.parse(localStorage.getItem('palette:recent') || '[]').slice(0, 4)
+    if (recents.length) {
+      html += `<div class="nav-section">RECENT</div>`
+      for (const r of recents) {
+        if (!r?.href || !r?.label) continue
+        html += `<a class="nav-item nav-item-recent" href="${esc(r.href)}" title="${esc(r.label)}">
+          <span class="nav-icon nav-icon-recent">↩</span>
+          <span class="nav-item-label-truncate">${esc(r.label)}</span>
+        </a>`
+      }
+    }
+  } catch {}
+
   html += `<div style="flex:1"></div>`
   html += `<div class="sidebar-footer">
     <a class="nav-item nav-item-footer" href="team-select.html"><span class="nav-icon">${ICONS.switch}</span>Switch Team</a>

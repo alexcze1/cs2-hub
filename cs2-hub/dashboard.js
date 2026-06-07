@@ -732,6 +732,79 @@ if (!recentStrats?.length) {
   `}).join('')
 }
 
+// ── Activity ticker — last team actions across all artifacts ───────
+// Synthesized from data we already fetched: demos, vods, strats,
+// issues. No extra round-trip. Window is 14 days; we render up to 8
+// rows ordered newest-first.
+function renderActivity() {
+  const slot = document.getElementById('activity-slot')
+  if (!slot) return
+  const cutoff = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).getTime()
+  const events = []
+  for (const d of recentDemos ?? []) {
+    const ts = new Date(d.created_at).getTime()
+    if (ts < cutoff) continue
+    events.push({
+      ts, kind: 'demo', icon: '◍',
+      text: `Demo uploaded${d.map ? ` · ${d.map.charAt(0).toUpperCase() + d.map.slice(1)}` : ''}${d.opponent_name ? ` vs ${d.opponent_name}` : ''}`,
+      href: `demo-viewer.html?id=${d.id}`,
+    })
+  }
+  for (const v of vodData ?? []) {
+    const ts = new Date(v.created_at).getTime()
+    if (ts < cutoff) continue
+    events.push({
+      ts, kind: 'vod', icon: '▶',
+      text: `Match review created${v.opponent_name ? ` · vs ${v.opponent_name}` : ''}`,
+      href: `vod-detail.html?id=${v.id}`,
+    })
+  }
+  for (const s of stratMaps ?? []) {
+    const ts = new Date(s.created_at).getTime()
+    if (ts < cutoff) continue
+    events.push({
+      ts, kind: 'strat', icon: '✦',
+      text: `Strat added${s.map ? ` · ${s.map.charAt(0).toUpperCase() + s.map.slice(1)}` : ''}`,
+      href: 'stratbook.html',
+    })
+  }
+  for (const i of issuesData ?? []) {
+    const ts = new Date(i.created_at).getTime()
+    if (ts < cutoff) continue
+    events.push({
+      ts, kind: 'issue', icon: '!',
+      text: `Issue logged · ${i.title || 'untitled'}`,
+      href: 'issues.html',
+    })
+  }
+  events.sort((a, b) => b.ts - a.ts)
+  const top = events.slice(0, 8)
+  if (!top.length) {
+    slot.innerHTML = `
+      <div class="activity-empty">
+        Nothing logged in the last 14 days. Upload a demo, add a strat, or schedule a scrim to get the team rolling.
+      </div>`
+    return
+  }
+  slot.innerHTML = `
+    <div class="activity-feed">
+      ${top.map(e => {
+        const when = new Date(e.ts)
+        const ago = Math.round((now - when) / (60 * 60 * 1000))
+        const whenLabel = ago < 1 ? 'just now'
+          : ago < 24 ? `${ago}h ago`
+          : `${Math.round(ago / 24)}d ago`
+        return `
+          <a class="activity-row activity-row-${e.kind}" href="${esc(e.href)}">
+            <span class="activity-icon">${e.icon}</span>
+            <span class="activity-text">${esc(e.text)}</span>
+            <span class="activity-when">${whenLabel}</span>
+          </a>`
+      }).join('')}
+    </div>`
+}
+renderActivity()
+
 // Stamp last-seen so the next visit shows a fresh diff. Done at the very
 // end so it can never partial-skip the inbox computation above.
 try { localStorage.setItem(LAST_SEEN_KEY, now.toISOString()) } catch {}

@@ -6499,6 +6499,69 @@ body.cmdk-open { overflow: hidden; }
   .cmdk-backdrop, .shortcuts-backdrop { animation: none; }
 }
 
+/* Activity feed — bottom-of-dashboard list of recent team actions */
+.activity-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-solid);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+.activity-row {
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--hairline);
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 13px;
+  transition: background var(--dur-1) var(--ease);
+}
+.activity-row:last-child { border-bottom: none; }
+.activity-row:hover { background: var(--hover-bg-accent); }
+.activity-icon {
+  width: 24px; height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-family: var(--display-font);
+  font-weight: 800;
+  font-size: 12px;
+}
+.activity-row-demo  .activity-icon { background: rgba(var(--lavender-3-rgb), 0.18); color: var(--accent); }
+.activity-row-vod   .activity-icon { background: rgba(var(--success-rgb), 0.18);    color: var(--success); }
+.activity-row-strat .activity-icon { background: rgba(255, 176, 32, 0.18);          color: var(--warning); }
+.activity-row-issue .activity-icon { background: rgba(255, 77, 109, 0.18);          color: var(--danger); }
+.activity-text { color: var(--text-secondary); }
+.activity-when { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.activity-empty {
+  padding: 14px 18px;
+  background: var(--bg-card);
+  border: 1px dashed var(--border-solid);
+  border-radius: var(--r-md);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Sidebar recent-items section. Same visual rhythm as nav-item but with
+   a smaller label and an indented icon so it reads as a sub-list. */
+.nav-item-recent {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.nav-icon-recent { color: var(--muted); font-size: 11px; }
+.nav-item-label-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Round-end fanfare — when a demo finishes parsing via realtime, the
    row pulses with a brief lavender ring so the coach knows which row
    just changed. */
