@@ -6562,6 +6562,116 @@ body.cmdk-open { overflow: hidden; }
   text-overflow: ellipsis;
 }
 
+/* ════════════════════════════════════════════════════════════════════
+   Mobile responsive — sidebar slide-out, hamburger trigger, tightened
+   main-content padding. Desktop is unchanged above 880px.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Hamburger toggle — injected by layout.js. Fixed top-left so it
+   floats above all content; lavender-tinted glass to match the chrome
+   language. */
+.mobile-menu-toggle {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 9300;
+  width: 40px;
+  height: 40px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(var(--lavender-2-rgb), 0.20);
+  border-radius: var(--r-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  transition: background var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
+}
+.mobile-menu-toggle:hover {
+  background: rgba(var(--lavender-3-rgb), 0.10);
+  border-color: rgba(var(--lavender-2-rgb), 0.35);
+}
+.mobile-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9100;
+  background: rgba(5, 6, 13, 0.55);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-2) var(--ease);
+}
+
+@media (max-width: 880px) {
+  /* Show the hamburger; hide on desktop. */
+  .mobile-menu-toggle { display: inline-flex; }
+
+  /* Sidebar slides off-screen and overlays when opened. */
+  .sidebar {
+    transform: translateX(-100%);
+    z-index: 9200;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+    transition: transform 220ms var(--ease);
+  }
+  body[data-sidebar="open"] .sidebar { transform: translateX(0); }
+  body[data-sidebar="open"] .mobile-sidebar-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Main content reclaims the full width. */
+  .main-content {
+    margin-left: 0;
+    padding: 64px 18px 32px;
+  }
+  .page-title { font-size: 32px; }
+  .page-sub { font-size: 13px; }
+
+  /* Dashboard chrome shrinks. */
+  .hero-card { padding: 22px 18px; }
+  .hero-form-card { grid-template-columns: 1fr; }
+  .hero-form-card-right { align-items: flex-start; }
+  .stats-grid { grid-template-columns: 1fr; gap: 10px; }
+  .today-strip-row { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+  .today-strip-divider { display: none; }
+  .map-pool-head, .map-pool-row {
+    grid-template-columns: 28px 1fr auto 12px;
+    gap: 8px;
+  }
+  /* Drop the "Last" and "Strats" columns on phones — coaches can tap
+     into the stratbook for that detail. Win % + dot stays visible. */
+  .map-pool-head > div:nth-child(4),
+  .map-pool-head > div:nth-child(5),
+  .map-pool-row .map-pool-last,
+  .map-pool-row .map-pool-strats { display: none; }
+  .player-heat-strip { grid-template-columns: repeat(2, 1fr); }
+  .player-heat-card { padding: 12px 8px 14px; }
+  .player-heat-avatar { width: 48px; height: 48px; }
+  .timeline-strip { grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); }
+  .insight-grid { grid-template-columns: 1fr; }
+
+  /* Modals / palette / shortcuts shrink. */
+  .cmdk-modal, .shortcuts-modal { width: 92vw; }
+  .cmdk-backdrop { padding-top: 6vh; }
+
+  /* Tables: small font + horizontal scroll wrapper if any escape. */
+  table { font-size: 12px; }
+
+  /* Forma-style margin trim on common section dividers. */
+  .section-row { flex-direction: column; align-items: flex-start; gap: 4px; margin-top: 22px; }
+}
+
+@media (max-width: 480px) {
+  .main-content { padding: 60px 12px 24px; }
+  .page-title { font-size: 26px; }
+  .player-heat-strip { grid-template-columns: 1fr; }
+  .stat-card { padding: 12px 14px; }
+}
+
 /* Round-end fanfare — when a demo finishes parsing via realtime, the
    row pulses with a brief lavender ring so the coach knows which row
    just changed. */

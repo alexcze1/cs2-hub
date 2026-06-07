@@ -34,6 +34,58 @@ function installChrome() {
 
   // Command palette + keyboard shortcuts (Cmd-K, ?, g-d, etc.)
   initCommandPalette()
+
+  installMobileChrome()
+}
+
+// Mobile slide-out sidebar trigger + backdrop. Injected once per page;
+// the CSS in style.css hides the toggle and backdrop above 880px so
+// desktop is unaffected.
+function installMobileChrome() {
+  if (document.getElementById('mobile-menu-toggle')) return
+
+  const toggle = document.createElement('button')
+  toggle.id = 'mobile-menu-toggle'
+  toggle.className = 'mobile-menu-toggle'
+  toggle.setAttribute('aria-label', 'Toggle navigation')
+  toggle.setAttribute('aria-controls', 'sidebar')
+  toggle.innerHTML = `
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="3" y1="6"  x2="21" y2="6"/>
+      <line x1="3" y1="12" x2="21" y2="12"/>
+      <line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>`
+  document.body.appendChild(toggle)
+
+  const backdrop = document.createElement('div')
+  backdrop.className = 'mobile-sidebar-backdrop'
+  document.body.appendChild(backdrop)
+
+  function setOpen(v) {
+    document.body.setAttribute('data-sidebar', v ? 'open' : 'closed')
+    toggle.setAttribute('aria-expanded', v ? 'true' : 'false')
+  }
+  setOpen(false)
+
+  toggle.addEventListener('click', () => {
+    const isOpen = document.body.getAttribute('data-sidebar') === 'open'
+    setOpen(!isOpen)
+  })
+  backdrop.addEventListener('click', () => setOpen(false))
+  // Close on nav click — links inside the sidebar should always retreat
+  // the drawer so the user lands on the new page with chrome reset.
+  document.addEventListener('click', e => {
+    if (e.target.closest?.('.sidebar a.nav-item')) setOpen(false)
+  })
+  // Close on ESC if the palette/shortcuts aren't already eating it.
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && document.body.getAttribute('data-sidebar') === 'open') {
+      setOpen(false)
+    }
+  })
+  // Close automatically when crossing back above the breakpoint.
+  const mq = window.matchMedia('(min-width: 881px)')
+  mq.addEventListener?.('change', e => { if (e.matches) setOpen(false) })
 }
 
 // Breadcrumb helper for detail pages. Pass an array of { label, href? }.
