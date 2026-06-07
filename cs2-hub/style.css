@@ -7705,6 +7705,63 @@ body.public-profile {
 }
 .task-delete:hover { color: var(--danger); background: var(--hover-bg); }
 
+/* Counter-strat recommendations (#35) — opponent-detail.js renders
+   our team's strats grouped by the opponent's favored maps. */
+.cstrat-mapblock { margin-bottom: 14px; }
+.cstrat-mapname {
+  font-family: var(--display-font);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--accent-light);
+  margin-bottom: 6px;
+}
+.cstrat-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cstrat-row {
+  display: grid;
+  grid-template-columns: 80px 32px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-solid);
+  border-radius: var(--r-sm);
+  text-decoration: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  transition: border-color var(--dur-1) var(--ease);
+}
+.cstrat-row:hover { border-color: rgba(var(--lavender-2-rgb), 0.30); }
+.cstrat-type {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(var(--lavender-3-rgb), 0.14);
+  color: var(--accent-light);
+  font-family: var(--display-font);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+}
+.cstrat-side {
+  display: inline-block;
+  font-family: var(--display-font);
+  font-weight: 800;
+  font-size: 11px;
+  text-align: center;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.cstrat-side-ct { background: rgba(var(--side-ct-rgb), 0.18); color: var(--side-ct); }
+.cstrat-side-t  { background: rgba(var(--side-t-rgb),  0.18); color: var(--side-t); }
+.cstrat-name { color: var(--text-primary); font-weight: 600; }
+
 /* Round-end fanfare — when a demo finishes parsing via realtime, the
    row pulses with a brief lavender ring so the coach knows which row
    just changed. */

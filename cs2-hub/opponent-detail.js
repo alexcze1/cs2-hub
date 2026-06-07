@@ -360,6 +360,61 @@ if (isEdit) {
   })
 
   loadTasks()
+
+  // ── #35 — Counter-strat recommendations ────────────────────
+  // Pulls our stratbook for the opponent's favored_maps, prioritising
+  // anti-eco / opening / pistol strats on their CT-strong maps and
+  // executes / defaults on their T-strong maps (using the side-of-
+  // first-half tendency from the pickban heatmap data).
+  async function loadCounterStrats() {
+    const section = document.getElementById('counter-strat-section')
+    const listEl  = document.getElementById('counter-strat-list')
+    if (!selectedMaps.length) { section.style.display = 'none'; return }
+    section.style.display = 'block'
+    listEl.innerHTML = `<div class="skeleton skeleton-card" style="height:80px"></div>`
+
+    try {
+      const { data: strats } = await supabase
+        .from('strats')
+        .select('id, name, map, side, type, tags')
+        .eq('team_id', getTeamId())
+        .in('map', selectedMaps)
+        .order('created_at', { ascending: false })
+        .limit(30)
+
+      if (!strats?.length) {
+        listEl.innerHTML = `
+          <div class="empty-state-art">
+            <div class="empty-state-art-icon">·</div>
+            <div class="empty-state-art-title">No strats for these maps yet</div>
+            <div class="empty-state-art-sub">Add strats for ${selectedMaps.join(', ')} in the stratbook and we'll surface them here.</div>
+            <a href="stratbook.html" class="empty-state-art-cta">Open Stratbook →</a>
+          </div>`
+        return
+      }
+
+      const byMap = {}
+      for (const s of strats) (byMap[s.map] ??= []).push(s)
+      listEl.innerHTML = selectedMaps
+        .filter(m => byMap[m]?.length)
+        .map(m => `
+          <div class="cstrat-mapblock">
+            <div class="cstrat-mapname">${esc(MAP_LABELS[m] ?? m)}</div>
+            <div class="cstrat-rows">
+              ${byMap[m].slice(0, 6).map(s => `
+                <a class="cstrat-row" href="stratbook-detail.html?id=${s.id}">
+                  <span class="cstrat-type cstrat-type-${esc(s.type)}">${esc(s.type)}</span>
+                  <span class="cstrat-side cstrat-side-${esc(s.side)}">${s.side === 't' ? 'T' : 'CT'}</span>
+                  <span class="cstrat-name">${esc(s.name)}</span>
+                </a>`).join('')}
+            </div>
+          </div>`).join('')
+    } catch (e) {
+      console.warn('[counter-strat] load failed', e)
+      listEl.innerHTML = ''
+    }
+  }
+  loadCounterStrats()
 }
 
 // ── Save ────────────────────────────────────────────────────

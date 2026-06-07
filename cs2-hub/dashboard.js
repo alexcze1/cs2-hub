@@ -954,6 +954,56 @@ async function renderTeamEconomy() {
     }
 
     const agg = aggregateTeamStats(ourRows)
+
+    // #26 Utility ROI — pull per-player flash assists + utility damage
+    // for the same demo set and project them per-round.
+    let utilTiles = ''
+    try {
+      const ourDemoIds = [...ourLetterByDemo.keys()]
+      // Total rounds played from the aggregate (use CT + T to be safe).
+      const roundsPlayed = (agg.ct?.played ?? 0) + (agg.t?.played ?? 0)
+      // We need OUR roster's per-player rows on these demos. Filter by
+      // roster steam_id so subs/ringers don't pollute the ratios.
+      const { data: rosterRows } = await supabase
+        .from('roster')
+        .select('steam_id')
+        .eq('team_id', teamId)
+      const rosterSids = new Set((rosterRows ?? []).map(r => r.steam_id).filter(Boolean))
+      if (rosterSids.size && ourDemoIds.length) {
+        const { data: dpRows } = await supabase
+          .from('demo_players')
+          .select('steam_id, flash_assists, utility_dmg')
+          .in('demo_id', ourDemoIds)
+          .eq('side', 'all')
+        let totalFa = 0, totalUd = 0, n = 0
+        for (const r of dpRows ?? []) {
+          if (!rosterSids.has(r.steam_id)) continue
+          totalFa += r.flash_assists || 0
+          totalUd += r.utility_dmg   || 0
+          n++
+        }
+        if (n) {
+          const faPerRound = roundsPlayed ? (totalFa / roundsPlayed) : null
+          const udPerRound = roundsPlayed ? (totalUd / roundsPlayed) : null
+          const fmtFa = faPerRound != null ? faPerRound.toFixed(2) : '—'
+          const fmtUd = udPerRound != null ? udPerRound.toFixed(0) : '—'
+          utilTiles = `
+            <div class="econ-tile" title="team flash assists per round">
+              <div class="econ-tile-label">Flash assists / rd</div>
+              <div class="econ-tile-value">${fmtFa}</div>
+              <div class="econ-tile-sub">${totalFa} across ${roundsPlayed} rounds</div>
+            </div>
+            <div class="econ-tile" title="team utility damage per round">
+              <div class="econ-tile-label">Utility dmg / rd</div>
+              <div class="econ-tile-value">${fmtUd}</div>
+              <div class="econ-tile-sub">${totalUd} dmg total</div>
+            </div>`
+        }
+      }
+    } catch (e) {
+      console.warn('[dashboard] utility ROI failed', e)
+    }
+
     const tiles = [
       { key: 'pistols',    label: 'Pistol',     hint: 'pistol-round win rate' },
       { key: 'anti_ecos',  label: 'Anti-eco',   hint: 'rounds vs opponent eco' },
@@ -1001,6 +1051,7 @@ async function renderTeamEconomy() {
       <div class="econ-grid">
         ${tileHtml}
         ${openingTile}
+        ${utilTiles}
       </div>`
   } catch (e) {
     console.warn('[dashboard] team economy failed', e)
