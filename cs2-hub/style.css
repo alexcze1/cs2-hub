@@ -7929,6 +7929,55 @@ body[data-mode="player"] .dash-two-col .section-row {
   .sf-row { grid-template-columns: 1fr; }
 }
 
+/* Scratchpad (#54) — freehand canvas on opponent-detail */
+.scratchpad-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.scratchpad-tool {
+  width: 32px; height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-solid);
+  border-radius: var(--r-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  transition: background var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
+}
+.scratchpad-tool:hover { background: var(--hover-bg); }
+.scratchpad-tool.active {
+  background: rgba(var(--lavender-3-rgb), 0.18);
+  border-color: rgba(var(--lavender-2-rgb), 0.30);
+  color: var(--accent-light);
+}
+.scratchpad-color {
+  width: 32px; height: 32px;
+  padding: 0;
+  border: 1px solid var(--border-solid);
+  border-radius: var(--r-sm);
+  background: transparent;
+  cursor: pointer;
+}
+.scratchpad-size {
+  width: 80px;
+}
+.scratchpad-canvas {
+  display: block;
+  width: 100%;
+  max-width: 900px;
+  height: auto;
+  background:
+    linear-gradient(0deg, var(--bg-card) 0%, var(--bg-card-soft) 100%);
+  border: 1px solid var(--border-solid);
+  border-radius: var(--r-md);
+  touch-action: none;
+  cursor: crosshair;
+}
+
 /* Round-end fanfare — when a demo finishes parsing via realtime, the
    row pulses with a brief lavender ring so the coach knows which row
    just changed. */

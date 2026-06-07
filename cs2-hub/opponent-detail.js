@@ -417,6 +417,98 @@ if (isEdit) {
   loadCounterStrats()
 }
 
+// ── #54 — Shared scratchpad ─────────────────────────────────
+// Per-opponent freehand canvas. Stored as a base64 PNG inside the
+// existing opponents.antistrat JSON under `scratchpad` so no schema
+// migration is needed. Saved explicitly via the Save button so quick
+// throwaway sketches don't keep bumping the row's updated_at.
+{
+  const canvas = document.getElementById('scratchpad-canvas')
+  if (canvas) {
+    const ctx = canvas.getContext('2d')
+    ctx.fillStyle = 'rgba(0,0,0,0)'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    let tool = 'pen'
+    let drawing = false
+    let last = null
+    const colorEl = document.getElementById('scratchpad-color')
+    const sizeEl  = document.getElementById('scratchpad-size')
+
+    // Restore from antistrat.scratchpad (if present and the page is
+    // editing an existing opponent).
+    if (antistrat?.scratchpad) {
+      const img = new Image()
+      img.onload = () => ctx.drawImage(img, 0, 0)
+      img.src = antistrat.scratchpad
+    }
+
+    function pos(e) {
+      const r = canvas.getBoundingClientRect()
+      const x = ((e.clientX ?? e.touches?.[0]?.clientX) - r.left) * (canvas.width  / r.width)
+      const y = ((e.clientY ?? e.touches?.[0]?.clientY) - r.top)  * (canvas.height / r.height)
+      return { x, y }
+    }
+    function start(e) {
+      drawing = true
+      last = pos(e)
+    }
+    function move(e) {
+      if (!drawing) return
+      e.preventDefault?.()
+      const p = pos(e)
+      ctx.lineCap = 'round'
+      ctx.lineJoin = 'round'
+      ctx.lineWidth = Number(sizeEl.value)
+      if (tool === 'eraser') {
+        ctx.globalCompositeOperation = 'destination-out'
+        ctx.strokeStyle = 'rgba(0,0,0,1)'
+      } else {
+        ctx.globalCompositeOperation = 'source-over'
+        ctx.strokeStyle = colorEl.value
+      }
+      ctx.beginPath()
+      ctx.moveTo(last.x, last.y)
+      ctx.lineTo(p.x, p.y)
+      ctx.stroke()
+      last = p
+    }
+    function end() { drawing = false; last = null }
+    canvas.addEventListener('mousedown', start)
+    canvas.addEventListener('mousemove', move)
+    window.addEventListener('mouseup', end)
+    canvas.addEventListener('touchstart', start, { passive: false })
+    canvas.addEventListener('touchmove', move, { passive: false })
+    canvas.addEventListener('touchend', end)
+
+    document.querySelectorAll('.scratchpad-tool').forEach(btn => {
+      btn.addEventListener('click', () => {
+        tool = btn.dataset.tool
+        document.querySelectorAll('.scratchpad-tool').forEach(b => b.classList.toggle('active', b === btn))
+      })
+    })
+    document.querySelector('.scratchpad-tool[data-tool="pen"]')?.classList.add('active')
+
+    document.getElementById('scratchpad-clear').addEventListener('click', () => {
+      if (!confirm('Clear the canvas?')) return
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+    })
+    document.getElementById('scratchpad-save').addEventListener('click', async () => {
+      if (!isEdit) {
+        toast('Save the opponent first so the scratchpad can attach to it.', 'error')
+        return
+      }
+      saveActivePlan()
+      antistrat.scratchpad = canvas.toDataURL('image/png')
+      const { error } = await supabase
+        .from('opponents')
+        .update({ antistrat })
+        .eq('id', id)
+      if (error) toast(`Save failed: ${error.message}`, 'error')
+      else toast('Scratchpad saved.')
+    })
+  }
+}
+
 // ── Save ────────────────────────────────────────────────────
 document.getElementById('save-btn').addEventListener('click', async () => {
   saveActivePlan()

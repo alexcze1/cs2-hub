@@ -64,6 +64,21 @@
         <div id="counter-strat-list"></div>
       </div>
 
+      <div id="scratchpad-section" style="margin-top:28px">
+        <div class="section-row-meta">
+          <div class="section-label">Scratchpad</div>
+          <div class="scratchpad-tools">
+            <button type="button" class="scratchpad-tool" data-tool="pen" title="Pen">✎</button>
+            <button type="button" class="scratchpad-tool" data-tool="eraser" title="Eraser">⌫</button>
+            <input type="color" class="scratchpad-color" id="scratchpad-color" value="#8B6DFF" title="Pen colour">
+            <input type="range" class="scratchpad-size" id="scratchpad-size" min="1" max="20" value="3" title="Pen size">
+            <button type="button" class="btn btn-ghost btn-sm" id="scratchpad-clear">Clear</button>
+            <button type="button" class="btn btn-primary btn-sm" id="scratchpad-save">Save</button>
+          </div>
+        </div>
+        <canvas id="scratchpad-canvas" width="900" height="380" class="scratchpad-canvas"></canvas>
+      </div>
+
       <div id="save-error" class="error-msg" style="display:none;margin-top:16px"></div>
     </div>
   </main>
