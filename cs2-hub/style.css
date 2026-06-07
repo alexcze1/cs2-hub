@@ -6806,6 +6806,100 @@ body.cmdk-open { overflow: hidden; }
   box-shadow: 0 8px 24px rgba(var(--lavender-3-rgb), 0.30);
 }
 
+/* ════════════════════════════════════════════════════════════════════
+   Pickban tendency heatmap (opponent-detail.html). Rows = ban/pick
+   slots, columns = the 7-map active pool. Cell saturation conveys
+   frequency at a glance.
+   ════════════════════════════════════════════════════════════════════ */
+
+.veto-heatmap {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-solid);
+  border-radius: var(--r-md);
+}
+.vh-row {
+  display: grid;
+  grid-template-columns: 88px repeat(7, 1fr);
+  gap: 6px;
+  align-items: center;
+}
+.vh-head { color: var(--muted); }
+.vh-row-label {
+  font-family: var(--display-font);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.vh-row-label-ban  { color: rgba(255, 77, 109, 0.85); }
+.vh-row-label-pick { color: rgba(55, 214, 122, 0.85); }
+.vh-col-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--display-font);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.vh-col-thumb {
+  width: 28px;
+  height: 18px;
+  border-radius: 3px;
+  object-fit: cover;
+  opacity: 0.7;
+}
+.vh-cell {
+  position: relative;
+  height: 38px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--display-font);
+  font-weight: 700;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  transition: transform var(--dur-1) var(--ease);
+  cursor: default;
+}
+.vh-cell:hover { transform: scale(1.04); z-index: 1; }
+.vh-cell-pct small {
+  font-size: 9px;
+  font-weight: 600;
+  opacity: 0.7;
+  margin-left: 1px;
+}
+.vh-cell-zero { color: var(--text-faint); font-weight: 400; }
+.vh-legend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 4px 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+.vh-legend-dot {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.vh-legend-spacer { flex: 1; }
+
+@media (max-width: 720px) {
+  .vh-row { grid-template-columns: 60px repeat(7, 1fr); }
+  .vh-cell { height: 32px; font-size: 11px; }
+  .vh-col-thumb { width: 22px; height: 14px; }
+}
+
 /* Round-end fanfare — when a demo finishes parsing via realtime, the
    row pulses with a brief lavender ring so the coach knows which row
    just changed. */
