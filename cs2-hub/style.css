@@ -7437,6 +7437,54 @@ body.public-profile {
   .econ-tile-value { font-size: 24px; }
 }
 
+/* ════════════════════════════════════════════════════════════════════
+   Tooltip layer (tooltip.js) — replaces inline title= where we want
+   chrome consistent with the lavender editorial system. Triggered by
+   [data-tip="…"] on any element.
+   ════════════════════════════════════════════════════════════════════ */
+
+.tip-floating {
+  position: absolute;
+  z-index: 9500;
+  max-width: 280px;
+  padding: 8px 12px;
+  background: var(--bg-card);
+  border: 1px solid rgba(var(--lavender-2-rgb), 0.28);
+  border-radius: var(--r-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  color: var(--text-primary);
+  font-size: 12px;
+  line-height: 1.45;
+  pointer-events: none;
+  animation: tip-enter 140ms var(--ease) both;
+}
+@keyframes tip-enter {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.tip-floating[data-placement="below"] { transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .tip-floating { animation: none; }
+}
+
+/* Veto delta cell — used in the simulator's ban-rate table to flag
+   maps that favour us vs them. */
+.vs-delta {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--display-font);
+  font-weight: 800;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  cursor: help;
+}
+.vs-delta small { font-size: 9px; font-weight: 600; opacity: 0.7; margin-left: 1px; }
+.vs-delta-good { background: rgba(var(--success-rgb), 0.18); color: var(--success); }
+.vs-delta-bad  { background: rgba(255, 77, 109, 0.18);       color: var(--danger); }
+.vs-delta-flat { background: var(--hover-bg);                color: var(--muted); }
+
 /* Round-end fanfare — when a demo finishes parsing via realtime, the
    row pulses with a brief lavender ring so the coach knows which row
    just changed. */

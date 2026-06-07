@@ -3,6 +3,7 @@ import { supabase, getTeamId } from './supabase.js'
 import { initCommandPalette } from './command-palette.js'
 import { initHoverPreview } from './hover-preview.js'
 import { initPresence } from './presence.js'
+import { initTooltips } from './tooltip.js'
 
 // One-time chrome installation: PWA manifest link, service-worker
 // registration, command palette + keyboard shortcuts. Idempotent — every
@@ -39,6 +40,9 @@ function installChrome() {
 
   // Hover preview cards for [data-preview-demo] / [data-preview-vod].
   initHoverPreview()
+
+  // Custom tooltip layer for [data-tip].
+  initTooltips()
 
   installMobileChrome()
 }

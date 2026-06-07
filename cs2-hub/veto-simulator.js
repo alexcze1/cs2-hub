@@ -482,7 +482,7 @@ export function renderVetoSimulator(container, opts) {
     <div class="vs-grid">
       <div class="vs-card vs-summary">
         <div class="vs-card-title">${esc(teamName)} — ${stats.totalMatches} match${stats.totalMatches === 1 ? '' : 'es'} (last ${windowMonths}m)${ourCoverage}</div>
-        ${renderBanBreakdown(stats)}
+        ${renderBanBreakdown(stats, homeStats)}
       </div>
       <div class="vs-card vs-sim">
         <div class="vs-card-title-row">
@@ -637,7 +637,7 @@ function wireSaveRow(container, { steps, format, teamName, editing, onSave, onDe
   container.querySelector('#vs-cancel')?.addEventListener('click', () => onCancel?.())
 }
 
-function renderBanBreakdown(stats) {
+function renderBanBreakdown(stats, homeStats) {
   const total = stats.totalMatches || 1
   const rows = MAPS.map(m => {
     const all = stats.banByMapTotal.get(m) || 0
@@ -645,19 +645,34 @@ function renderBanBreakdown(stats) {
     const left = stats.leftoverByMap.get(m) || 0
     const wrRow = stats.mapWinRates?.get(m)
     const wr = wrRow?.played ? (wrRow.wins / wrRow.played) : null
-    return { map: m, all, pickN, left, pct: all / total, wr, wrPlayed: wrRow?.played ?? 0 }
+    // Our team's win rate on the same map, for the delta.
+    const ourRow = homeStats?.mapWinRates?.get(m)
+    const ourWr = ourRow?.played ? (ourRow.wins / ourRow.played) : null
+    // Delta (our - theirs). Positive ⇒ favourable for us; if they're
+    // weak on a map AND we're strong, taking it (or letting it stay
+    // unbanned) is good.
+    const delta = (wr != null && ourWr != null) ? (ourWr - wr) : null
+    return { map: m, all, pickN, left, pct: all / total, wr, wrPlayed: wrRow?.played ?? 0, ourWr, ourPlayed: ourRow?.played ?? 0, delta }
   }).sort((a, b) => b.all - a.all)
 
   return `
     <table class="vs-ban-table">
       <thead>
-        <tr><th>Map</th><th>Ban rate</th><th>Pick rate</th><th>Win rate</th><th>Left over</th></tr>
+        <tr><th>Map</th><th>Ban rate</th><th>Pick rate</th><th>Win rate</th><th>Δ vs us</th><th>Left over</th></tr>
       </thead>
       <tbody>
         ${rows.map(r => {
           const wrLabel = r.wr == null
             ? `<span class="vs-bar-label" style="opacity:0.5">—</span>`
             : `<span class="vs-bar-label">${Math.round(r.wr * 100)}% <span style="opacity:0.6">(${r.wrPlayed})</span></span>`
+          let deltaCell = '<span class="vs-bar-label" style="opacity:0.5">—</span>'
+          if (r.delta != null) {
+            const pct = Math.round(r.delta * 100)
+            const tone = pct > 5 ? 'good' : pct < -5 ? 'bad' : 'flat'
+            const sign = pct > 0 ? '+' : ''
+            const tip = `Their win rate ${Math.round(r.wr*100)}% (${r.wrPlayed}) vs our ${Math.round(r.ourWr*100)}% (${r.ourPlayed}). ${pct > 0 ? 'Map favours us — let it stay in the pool.' : pct < 0 ? 'Map favours them — ban it first.' : 'Even matchup.'}`
+            deltaCell = `<span class="vs-delta vs-delta-${tone}" data-tip="${esc(tip)}">${sign}${pct}<small>%</small></span>`
+          }
           return `
             <tr>
               <td class="vs-map-cell">
@@ -670,6 +685,7 @@ function renderBanBreakdown(stats) {
               </td>
               <td><span class="vs-bar-label">${r.pickN ? Math.round(r.pickN / total * 100) + '%' : '—'}</span></td>
               <td>${wrLabel}</td>
+              <td>${deltaCell}</td>
               <td>${r.left ? Math.round(r.left / total * 100) + '%' : '—'}</td>
             </tr>`
         }).join('')}
