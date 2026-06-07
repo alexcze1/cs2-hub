@@ -2,6 +2,7 @@ import { signOut, isAdmin } from './auth.js'
 import { supabase, getTeamId } from './supabase.js'
 import { initCommandPalette } from './command-palette.js'
 import { initHoverPreview } from './hover-preview.js'
+import { initPresence } from './presence.js'
 
 // One-time chrome installation: PWA manifest link, service-worker
 // registration, command palette + keyboard shortcuts. Idempotent — every
@@ -199,12 +200,17 @@ export async function renderSidebar(activePage) {
 
   html += `<div style="flex:1"></div>`
   html += `<div class="sidebar-footer">
+    <div class="presence-slot" id="sidebar-presence-slot"></div>
     <a class="nav-item nav-item-footer" href="team-select.html"><span class="nav-icon">${ICONS.switch}</span>Switch Team</a>
     <button class="nav-item nav-item-footer" id="signout-btn"><span class="nav-icon">${ICONS.signout}</span>Sign Out</button>
   </div>`
 
   sidebar.innerHTML = html
   document.getElementById('signout-btn').addEventListener('click', signOut)
+
+  // Realtime team presence — joins a per-team channel and renders the
+  // "online now" list into #sidebar-presence-slot above.
+  initPresence().catch(e => console.warn('[presence] init failed', e))
 }
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }

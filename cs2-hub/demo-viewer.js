@@ -1679,6 +1679,38 @@ document.addEventListener('keydown', e => {
     currentPath  = null
     return
   }
+
+  // ── Frame stepping ────────────────────────────────────────
+  // Arrow keys nudge state.tick within the active round so the user
+  // can step through grenade trajectories or pre-aim moments
+  // frame-by-frame. Tick rate is usually 64 Hz; the small step lands
+  // ~500 ms, Shift bumps it to ~5 s. Stepping always pauses playback
+  // so the user can study individual frames without the play loop
+  // dragging the tick forward again.
+  const tickRate = state.match.meta.tick_rate || 64
+  if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+    e.preventDefault()
+    state.playing = false
+    updatePlayBtn()
+    const dir = e.code === 'ArrowLeft' ? -1 : 1
+    const step = (e.shiftKey ? 5 : 0.5) * tickRate
+    const round = currentRound()
+    const lo = round.start_tick
+    const hi = playEnd(round, nextRoundOf(state.roundIdx))
+    state.tick = Math.max(lo, Math.min(hi, state.tick + dir * step))
+    return
+  }
+  // [ / ] for previous / next round
+  if (e.code === 'BracketLeft') {
+    e.preventDefault()
+    jumpToRound(state.roundIdx - 1)
+    return
+  }
+  if (e.code === 'BracketRight') {
+    e.preventDefault()
+    jumpToRound(state.roundIdx + 1)
+    return
+  }
 })
 
 // ── Drawing mouse events ──────────────────────────────────────

@@ -49,6 +49,13 @@ const SHORTCUTS = [
   { keys: ['G', 'A'],            desc: 'Go to Analysis' },
   { keys: ['G', 'O'],            desc: 'Go to Anti-Strat' },
   { keys: ['G', 'R'],            desc: 'Go to Roster' },
+  // Demo viewer (only fire on demo-viewer.html but listed here for discovery)
+  { keys: ['Space'],             desc: 'Demo viewer · play / pause' },
+  { keys: ['←', '→'],            desc: 'Demo viewer · step ~0.5 s' },
+  { keys: ['Shift', '←/→'],      desc: 'Demo viewer · step ~5 s' },
+  { keys: ['[', ']'],            desc: 'Demo viewer · prev / next round' },
+  { keys: ['F'],                 desc: 'Demo viewer · fullscreen' },
+  { keys: ['D'],                 desc: 'Demo viewer · drawing mode' },
 ]
 
 const VIM_NAV = {

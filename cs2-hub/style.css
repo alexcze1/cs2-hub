@@ -6988,6 +6988,85 @@ body.cmdk-open { overflow: hidden; }
   .hover-preview-card { display: none !important; }
 }
 
+/* ════════════════════════════════════════════════════════════════════
+   Team presence — populated by presence.js. Lives in the sidebar
+   footer; shows online count + up to 4 nicknames as small chips.
+   ════════════════════════════════════════════════════════════════════ */
+
+.presence-slot {
+  padding: 8px 14px 10px;
+  border-bottom: 1px solid var(--hairline);
+}
+.presence-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-family: var(--display-font);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--success);
+}
+.presence-row-alone { color: var(--muted); }
+.presence-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 6px rgba(var(--success-rgb), 0.7);
+  animation: presence-pulse 2s ease-in-out infinite;
+}
+.presence-dot-self {
+  background: var(--muted);
+  box-shadow: none;
+  animation: none;
+}
+@keyframes presence-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .presence-dot { animation: none; }
+}
+.presence-label { color: inherit; }
+.presence-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.presence-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.presence-avatar {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: rgba(var(--lavender-3-rgb), 0.18);
+  color: var(--accent-light);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--display-font);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0;
+  flex-shrink: 0;
+}
+.presence-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.presence-overflow {
+  color: var(--muted);
+  padding-left: 28px;
+  font-style: italic;
+}
+
 /* Round-end fanfare — when a demo finishes parsing via realtime, the
    row pulses with a brief lavender ring so the coach knows which row
    just changed. */
