@@ -1,5 +1,5 @@
 import { requireAuth } from './auth.js'
-import { renderSidebar } from './layout.js'
+import { renderSidebar, renderToolHeader } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
 import { STRAT_SEEDS } from './strat-seed.js'
@@ -87,27 +87,22 @@ function renderHero() {
   for (const [m, n] of Object.entries(mapCounts)) if (n > topMapN) { topMap = m; topMapN = n }
   const openings = all.filter(s => s.type === 'opening').length
 
-  heroEl.innerHTML = `
-    <div class="dx-hero-grid">
-      <div class="dx-hero-left">
-        <div class="dx-hero-title">STRATBOOK</div>
-        <div class="dx-hero-count">${total}<span class="dx-hero-count-unit">${total === 1 ? ' strat' : ' strats'}</span></div>
-        <div class="dx-hero-substats">
-          <div class="dx-kv"><div class="dx-kv-k">T-Side</div><div class="dx-kv-v" style="color:var(--side-t)">${tCount}</div></div>
-          <div class="dx-kv"><div class="dx-kv-k">CT-Side</div><div class="dx-kv-v" style="color:var(--side-ct)">${ctCount}</div></div>
-          <div class="dx-kv"><div class="dx-kv-k">Openings</div><div class="dx-kv-v">${openings}</div></div>
-          <div class="dx-kv"><div class="dx-kv-k">Top map</div><div class="dx-kv-v">${topMap ? esc(capitalize(topMap)) : '—'}</div></div>
-        </div>
-        <div class="dx-hero-actions">
-          <a class="dx-upload-cta" href="stratbook-detail.html">+ New Strat</a>
-          <a class="dx-ghost-cta" id="sb-match-view" href="stratbook-fullscreen.html" target="_blank">Match View</a>
-          ${total === 0 ? '<button type="button" class="dx-ghost-cta" id="sb-seed-btn">Import starter pack</button>' : ''}
-        </div>
-      </div>
-      <div class="dx-hero-right">
-        ${topMap ? `<div class="dx-hero-mapwash" style="background-image:url('${esc(mapBg(topMap))}')"></div>` : ''}
-      </div>
-    </div>`
+  renderToolHeader(heroEl, {
+    section: 'Preparation',
+    title: 'Stratbook',
+    sub: 'Your team’s playbook — executes, defaults and set pieces by map and side.',
+    kpis: [
+      { v: total, k: total === 1 ? 'strat' : 'strats' },
+      { v: tCount, k: 'T-side', tone: 't' },
+      { v: ctCount, k: 'CT-side', tone: 'ct' },
+      { v: openings, k: 'openings' },
+      { v: topMap ? capitalize(topMap) : '—', k: 'top map' },
+    ],
+    actions: `
+      <a class="dx-upload-cta" href="stratbook-detail.html">+ New Strat</a>
+      <a class="dx-ghost-cta" id="sb-match-view" href="stratbook-fullscreen.html" target="_blank">Match View</a>
+      ${total === 0 ? '<button type="button" class="dx-ghost-cta" id="sb-seed-btn">Import starter pack</button>' : ''}`,
+  })
   syncMatchViewHref()
 
   // #33 — Import starter pack. Only present when the stratbook is

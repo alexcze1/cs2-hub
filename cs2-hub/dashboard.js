@@ -10,62 +10,9 @@ function esc(text) {
   return d.innerHTML
 }
 
-// ── Density preference ───────────────────────────────────────────────
-// Persisted across pages via localStorage so the chrome stays consistent
-// regardless of where the user toggles it. Applied to <body> so every CSS
-// rule that opts in (`body[data-density="compact"] …`) takes effect.
-const DENSITY_KEY = 'dash:density'
-function getDensity() {
-  try { return localStorage.getItem(DENSITY_KEY) || 'comfortable' } catch { return 'comfortable' }
-}
-function applyDensity(value) {
-  document.body.setAttribute('data-density', value)
-  const el = document.getElementById('density-toggle-value')
-  if (el) el.textContent = value === 'compact' ? 'Compact' : 'Comfy'
-}
-applyDensity(getDensity())
-document.getElementById('density-toggle')?.addEventListener('click', () => {
-  const next = getDensity() === 'compact' ? 'comfortable' : 'compact'
-  try { localStorage.setItem(DENSITY_KEY, next) } catch {}
-  applyDensity(next)
-})
-
-// Theme toggle — same persistence pattern as density. Default to dark
-// since that's how the app shipped; light is opt-in.
-const THEME_KEY = 'dash:theme'
-function getTheme() {
-  try { return localStorage.getItem(THEME_KEY) || 'dark' } catch { return 'dark' }
-}
-function applyTheme(value) {
-  document.body.setAttribute('data-theme', value)
-  const el = document.getElementById('theme-toggle-value')
-  if (el) el.textContent = value === 'light' ? 'Light' : 'Dark'
-}
-applyTheme(getTheme())
-document.getElementById('theme-toggle')?.addEventListener('click', () => {
-  const next = getTheme() === 'light' ? 'dark' : 'light'
-  try { localStorage.setItem(THEME_KEY, next) } catch {}
-  applyTheme(next)
-})
-
-// #68 Coach / Player mode — sets body[data-mode] which CSS uses to hide
-// coach-only chrome (anti-strat nav, admin actions, etc.) when the user
-// is a player who just wants the at-a-glance view.
-const MODE_KEY = 'dash:mode'
-function getMode() {
-  try { return localStorage.getItem(MODE_KEY) || 'coach' } catch { return 'coach' }
-}
-function applyMode(value) {
-  document.body.setAttribute('data-mode', value)
-  const el = document.getElementById('mode-toggle-value')
-  if (el) el.textContent = value === 'player' ? 'Player' : 'Coach'
-}
-applyMode(getMode())
-document.getElementById('mode-toggle')?.addEventListener('click', () => {
-  const next = getMode() === 'player' ? 'coach' : 'player'
-  try { localStorage.setItem(MODE_KEY, next) } catch {}
-  applyMode(next)
-})
+// Theme / density / coach-player view live in the sidebar Preferences
+// popover (layout.js) — installChrome() applies the persisted values on
+// every page, so no per-page wiring is needed here anymore.
 
 // Public team profile share — builds the canonical /public-team.html
 // URL for the active team and either invokes the native share sheet
@@ -80,12 +27,11 @@ document.getElementById('share-public-btn')?.addEventListener('click', async () 
       await navigator.share({ title: 'Team Profile · MIDROUND', url })
     } else {
       await navigator.clipboard.writeText(url)
-      const btn = document.getElementById('share-public-btn')
-      const valEl = btn?.querySelector('.density-toggle-value')
-      if (valEl) {
-        const original = valEl.textContent
-        valEl.textContent = 'Copied!'
-        setTimeout(() => { valEl.textContent = original }, 1500)
+      const label = document.getElementById('share-public-label')
+      if (label) {
+        const original = label.textContent
+        label.textContent = 'Copied!'
+        setTimeout(() => { label.textContent = original }, 1500)
       }
     }
   } catch {}

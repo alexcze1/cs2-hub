@@ -137,6 +137,34 @@ export function renderBreadcrumb(items, mountId = 'breadcrumb-slot') {
     </nav>`
 }
 
+// Unified tool-page header. Every list/tool page renders its title block
+// through this so the title scale, kicker, subtitle, KPI chips and action
+// placement are identical app-wide. `kpis` is [{ k, v, tone? }] where tone
+// is '' | 'good' | 'warn' | 'bad'. `actions` is an HTML string (buttons keep
+// their ids so existing wiring works).
+export function renderToolHeader(el, { section = '', title = '', sub = '', kpis = [], actions = '' } = {}) {
+  if (!el) return
+  const chips = kpis
+    .filter(k => k && k.v !== undefined && k.v !== null)
+    .map(k => `
+      <div class="kpi-chip ${k.tone ? `kpi-${k.tone}` : ''}">
+        <span class="kpi-chip-v">${esc(String(k.v))}</span>
+        <span class="kpi-chip-k">${esc(k.k)}</span>
+      </div>`).join('')
+  el.innerHTML = `
+    <div class="tool-head">
+      <div class="tool-head-top">
+        <div class="tool-head-text">
+          ${section ? `<div class="tool-head-kicker">${esc(section)}</div>` : ''}
+          <h1 class="tool-head-title">${esc(title)}</h1>
+          ${sub ? `<div class="tool-head-sub">${esc(sub)}</div>` : ''}
+        </div>
+        ${actions ? `<div class="tool-head-actions">${actions}</div>` : ''}
+      </div>
+      ${chips ? `<div class="tool-head-kpis">${chips}</div>` : ''}
+    </div>`
+}
+
 const ICONS = {
   dashboard: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`,
   schedule:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>`,
@@ -152,6 +180,9 @@ const ICONS = {
   roster:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
   switch:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>`,
   signout:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`,
+  scrim:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
+  compare:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>`,
+  settings:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
 }
 
 export async function renderSidebar(activePage) {
@@ -171,18 +202,20 @@ export async function renderSidebar(activePage) {
   const { data: { user } } = await supabase.auth.getUser()
 
   const links = [
-    { id: 'dashboard',  label: 'Dashboard',        href: 'dashboard.html',  icon: ICONS.dashboard,  section: 'MAIN' },
-    { id: 'schedule',   label: 'Schedule',          href: 'schedule.html',   icon: ICONS.schedule },
-    { id: 'stratbook',  label: 'Stratbook',         href: 'stratbook.html',  icon: ICONS.stratbook,  section: 'TOOLS' },
-    { id: 'vods',       label: 'Results & Review',  href: 'vods.html',       icon: ICONS.vods },
-    { id: 'demos', label: 'Demos', href: 'demos.html', icon: ICONS.demos },
-    { id: 'analysis', label: 'Analysis', href: 'analysis.html', icon: ICONS.analysis },
-    { id: 'opponents',  label: 'Anti-Strat',        href: 'opponents.html',  icon: ICONS.opponents },
-    { id: 'veto',       label: 'Map Veto',          href: 'veto.html',       icon: ICONS.veto },
-    { id: 'keywords',   label: 'Keywords',          href: 'keywords.html',   icon: ICONS.keywords },
-    { id: 'goals',      label: 'Team Goals',        href: 'goals.html',      icon: ICONS.goals },
-    { id: 'issues',     label: 'Issues',            href: 'issues.html',     icon: ICONS.issues },
-    { id: 'roster',     label: 'Roster',            href: 'roster.html',     icon: ICONS.roster,     section: 'TEAM' },
+    { id: 'dashboard',     label: 'Dashboard',     href: 'dashboard.html',     icon: ICONS.dashboard, section: 'OVERVIEW' },
+    { id: 'schedule',      label: 'Schedule',      href: 'schedule.html',      icon: ICONS.schedule },
+    { id: 'stratbook',     label: 'Stratbook',     href: 'stratbook.html',     icon: ICONS.stratbook, section: 'PREPARATION' },
+    { id: 'opponents',     label: 'Opponents',     href: 'opponents.html',     icon: ICONS.opponents },
+    { id: 'veto',          label: 'Map Veto',      href: 'veto.html',          icon: ICONS.veto },
+    { id: 'scrim-finder',  label: 'Scrim Finder',  href: 'scrim-finder.html',  icon: ICONS.scrim },
+    { id: 'vods',          label: 'Matches',       href: 'vods.html',          icon: ICONS.vods,      section: 'REVIEW' },
+    { id: 'demos',         label: 'Demos',         href: 'demos.html',         icon: ICONS.demos },
+    { id: 'analysis',      label: '2D Replay',     href: 'analysis.html',      icon: ICONS.analysis },
+    { id: 'round-compare', label: 'Round Compare', href: 'round-compare.html', icon: ICONS.compare },
+    { id: 'roster',        label: 'Roster',        href: 'roster.html',        icon: ICONS.roster,    section: 'TEAM' },
+    { id: 'goals',         label: 'Goals',         href: 'goals.html',         icon: ICONS.goals },
+    { id: 'issues',        label: 'Issues',        href: 'issues.html',        icon: ICONS.issues },
+    { id: 'keywords',      label: 'Keywords',      href: 'keywords.html',      icon: ICONS.keywords },
     ...(isAdmin(user) ? [{ id: 'admin', label: 'Admin', href: 'admin.html', icon: adminIcon, section: 'ADMIN' }] : []),
   ]
 
@@ -221,15 +254,102 @@ export async function renderSidebar(activePage) {
   html += `<div class="sidebar-footer">
     <div class="presence-slot" id="sidebar-presence-slot"></div>
     <a class="nav-item nav-item-footer" href="team-select.html"><span class="nav-icon">${ICONS.switch}</span>Switch Team</a>
+    <button class="nav-item nav-item-footer" id="prefs-btn" aria-haspopup="true" aria-expanded="false"><span class="nav-icon">${ICONS.settings}</span>Preferences</button>
     <button class="nav-item nav-item-footer" id="signout-btn"><span class="nav-icon">${ICONS.signout}</span>Sign Out</button>
   </div>`
 
   sidebar.innerHTML = html
   document.getElementById('signout-btn').addEventListener('click', signOut)
+  installPrefsPopover()
 
   // Realtime team presence — joins a per-team channel and renders the
   // "online now" list into #sidebar-presence-slot above.
   initPresence().catch(e => console.warn('[presence] init failed', e))
+}
+
+// ── Preferences popover ──────────────────────────────────────────────
+// App-wide appearance settings (theme / density / coach-player view),
+// reachable from the sidebar footer on every page. Values persist in the
+// same localStorage keys installChrome() reads at boot, and apply live by
+// setting the matching <body> attribute.
+const PREFS = [
+  { key: 'dash:theme',   attr: 'data-theme',   label: 'Theme',   options: [['dark', 'Dark'], ['light', 'Light']] },
+  { key: 'dash:density', attr: 'data-density', label: 'Density', options: [['comfortable', 'Comfy'], ['compact', 'Compact']] },
+  { key: 'dash:mode',    attr: 'data-mode',    label: 'View',    options: [['coach', 'Coach'], ['player', 'Player']] },
+]
+
+function installPrefsPopover() {
+  const btn = document.getElementById('prefs-btn')
+  if (!btn || document.getElementById('prefs-popover')) {
+    if (btn && document.getElementById('prefs-popover')) wirePrefsToggle(btn)
+    return
+  }
+
+  const pop = document.createElement('div')
+  pop.id = 'prefs-popover'
+  pop.className = 'prefs-popover'
+  pop.setAttribute('role', 'dialog')
+  pop.setAttribute('aria-label', 'Preferences')
+  pop.hidden = true
+
+  const current = pref => {
+    try { return localStorage.getItem(pref.key) || pref.options[0][0] } catch { return pref.options[0][0] }
+  }
+
+  pop.innerHTML = `
+    <div class="prefs-popover-title">Preferences</div>
+    ${PREFS.map(p => `
+      <div class="pref-row">
+        <span class="pref-label">${p.label}</span>
+        <div class="pref-seg" data-key="${p.key}" data-attr="${p.attr}" role="group" aria-label="${p.label}">
+          ${p.options.map(([val, lab]) => `
+            <button type="button" class="pref-seg-btn ${current(p) === val ? 'is-active' : ''}" data-val="${val}">${lab}</button>
+          `).join('')}
+        </div>
+      </div>`).join('')}`
+  document.body.appendChild(pop)
+
+  pop.addEventListener('click', e => {
+    const b = e.target.closest('.pref-seg-btn')
+    if (!b) return
+    const seg = b.closest('.pref-seg')
+    try { localStorage.setItem(seg.dataset.key, b.dataset.val) } catch {}
+    document.body.setAttribute(seg.dataset.attr, b.dataset.val)
+    seg.querySelectorAll('.pref-seg-btn').forEach(x => x.classList.toggle('is-active', x === b))
+  })
+
+  wirePrefsToggle(btn)
+}
+
+function wirePrefsToggle(btn) {
+  if (btn.dataset.prefsWired) return
+  btn.dataset.prefsWired = '1'
+  const pop = () => document.getElementById('prefs-popover')
+
+  function setOpen(v) {
+    const p = pop()
+    if (!p) return
+    p.hidden = !v
+    btn.setAttribute('aria-expanded', v ? 'true' : 'false')
+    if (v) {
+      // Anchor just above the footer button, aligned to the sidebar edge.
+      const r = btn.getBoundingClientRect()
+      p.style.left = `${Math.max(8, r.left)}px`
+      p.style.bottom = `${Math.max(8, window.innerHeight - r.top + 8)}px`
+    }
+  }
+
+  btn.addEventListener('click', e => {
+    e.stopPropagation()
+    setOpen(pop()?.hidden !== false ? true : false)
+  })
+  document.addEventListener('click', e => {
+    const p = pop()
+    if (p && !p.hidden && !p.contains(e.target) && e.target !== btn) setOpen(false)
+  })
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') setOpen(false)
+  })
 }
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }

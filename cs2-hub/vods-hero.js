@@ -90,52 +90,62 @@ export function computeHeroStats(vods) {
   return { record, totalRW, totalRL, roundWR, bestMap, worstMap, sparkline }
 }
 
+// Markup matches layout.js renderToolHeader output (tool-head classes) but is
+// built inline so this module stays import-light for the unit-test page.
+function headShell({ kpis = '', filterSlotId }) {
+  return `
+    <div class="tool-head">
+      <div class="tool-head-top">
+        <div class="tool-head-text">
+          <div class="tool-head-kicker">Review</div>
+          <h1 class="tool-head-title">Matches</h1>
+          <div class="tool-head-sub">Results, reviews and team form across scrims, tournaments and pugs.</div>
+        </div>
+        <div class="tool-head-actions">
+          <a class="dx-upload-cta" href="vod-detail.html">+ Add Match</a>
+        </div>
+      </div>
+      ${kpis ? `<div class="tool-head-kpis">${kpis}</div>` : ''}
+    </div>
+    <div id="${esc(filterSlotId)}" class="rr-filter-slot"></div>`
+}
+
+function chip(v, k, tone = '') {
+  return `<div class="kpi-chip ${tone ? `kpi-${tone}` : ''}"><span class="kpi-chip-v">${v}</span><span class="kpi-chip-k">${esc(k)}</span></div>`
+}
+
 export function renderHero(root, { vods, filterSlotId, teamStatsRows }) {
   if (!vods || vods.length === 0) {
-    root.innerHTML = `
-      <div class="rr-hero-empty">
-        <div class="rr-hero-title">RESULTS &amp; REVIEW</div>
-        <h2 class="rr-hero-empty-msg">No matches in this window</h2>
-        <a class="rr-add-match" href="vod-detail.html">+ Add Match</a>
-        <div id="${esc(filterSlotId)}" class="rr-filter-slot"></div>
-      </div>`
+    root.innerHTML = headShell({
+      kpis: chip('0', 'matches in this window'),
+      filterSlotId,
+    })
     return
   }
 
   const s = computeHeroStats(vods)
   const teamAgg = teamStatsRows && teamStatsRows.length ? aggregateTeamStats(teamStatsRows) : null
   const weak = pickWeakestArea(teamAgg)
-  const weakHtml = weak
-    ? `<div class="rr-kv rr-kv-weak"><div class="rr-kv-k">Weak</div><div class="rr-kv-v">${esc(weak.label)} ${weak.wr}%</div></div>`
-    : (s.worstMap
-        ? `<div class="rr-kv"><div class="rr-kv-k">Weakest</div><div class="rr-kv-v">${esc(capitalize(s.worstMap.map))} ${s.worstMap.wr}%</div></div>`
-        : '')
+  const weakChip = weak
+    ? chip(`${esc(weak.label)} ${weak.wr}%`, 'weakest area', 'bad')
+    : (s.worstMap ? chip(`${esc(capitalize(s.worstMap.map))} ${s.worstMap.wr}%`, 'weakest map', 'bad') : '')
 
   const bars = s.sparkline.map(p =>
     `<span class="rr-spark-bar" style="height:${Math.max(p.pct, 4)}%"></span>`
   ).join('')
+  const trendChip = bars
+    ? `<div class="kpi-chip kpi-chip-spark"><span class="rr-spark">${bars}</span><span class="kpi-chip-k">last 10</span></div>`
+    : ''
 
-  root.innerHTML = `
-    <div class="rr-hero-grid">
-      <div class="rr-hero-left">
-        <div class="rr-hero-title">RESULTS &amp; REVIEW</div>
-        <div class="rr-hero-record">
-          <span class="rr-hero-w">${s.record.w}W</span>
-          <span class="rr-hero-sep">—</span>
-          <span class="rr-hero-l">${s.record.l}L</span>
-          ${s.record.d ? `<span class="rr-hero-sep">—</span><span class="rr-hero-d">${s.record.d}D</span>` : ''}
-        </div>
-        <div class="rr-hero-subgrid">
-          <div class="rr-kv"><div class="rr-kv-k">Round WR</div><div class="rr-kv-v">${s.roundWR == null ? '—' : s.roundWR + '%'}</div></div>
-          <div class="rr-kv"><div class="rr-kv-k">Best map</div><div class="rr-kv-v">${s.bestMap ? esc(capitalize(s.bestMap.map)) + ' ' + s.bestMap.wr + '%' : '—'}</div></div>
-          ${weakHtml}
-        </div>
-        <a class="rr-add-match" href="vod-detail.html">+ Add Match</a>
-      </div>
-      <div class="rr-hero-right">
-        <div class="rr-section-label">Trend · Last 10</div>
-        <div class="rr-spark">${bars || '<span class="rr-muted">No matches</span>'}</div>
-        <div id="${esc(filterSlotId)}" class="rr-filter-slot"></div>
-      </div>
-    </div>`
+  const record = `${s.record.w}W–${s.record.l}L${s.record.d ? `–${s.record.d}D` : ''}`
+  root.innerHTML = headShell({
+    kpis: [
+      chip(record, 'record', s.record.w >= s.record.l ? 'good' : 'bad'),
+      chip(s.roundWR == null ? '—' : `${s.roundWR}%`, 'round WR'),
+      s.bestMap ? chip(`${esc(capitalize(s.bestMap.map))} ${s.bestMap.wr}%`, 'best map', 'good') : '',
+      weakChip,
+      trendChip,
+    ].join(''),
+    filterSlotId,
+  })
 }

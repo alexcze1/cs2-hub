@@ -1,5 +1,5 @@
 import { requireAuth } from './auth.js'
-import { renderSidebar } from './layout.js'
+import { renderSidebar, renderToolHeader } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
 
@@ -83,42 +83,22 @@ function renderHero() {
   const resolved  = all.filter(i => i.status === 'resolved').length
   const open      = active + improving
 
-  heroEl.innerHTML = `
-    <div class="dx-hero-grid">
-      <div class="dx-hero-left">
-        <div class="dx-hero-title">TEAM ISSUES</div>
-        <div class="dx-hero-count">${open}<span class="dx-hero-count-unit">${open === 1 ? ' open' : ' open'}</span></div>
-        <div class="dx-hero-substats">
-          <div class="dx-kv"><div class="dx-kv-k">High</div><div class="dx-kv-v ${high ? 'dx-bad' : ''}">${high}</div></div>
-          <div class="dx-kv"><div class="dx-kv-k">Medium</div><div class="dx-kv-v ${medium ? 'dx-warn' : ''}">${medium}</div></div>
-          <div class="dx-kv"><div class="dx-kv-k">Low</div><div class="dx-kv-v">${low}</div></div>
-          <div class="dx-kv"><div class="dx-kv-k">Improving</div><div class="dx-kv-v" style="color:var(--warning)">${improving}</div></div>
-          <div class="dx-kv"><div class="dx-kv-k">Resolved</div><div class="dx-kv-v" style="color:var(--success)">${resolved}</div></div>
-        </div>
-        <div class="dx-hero-actions">
-          <button type="button" class="dx-upload-cta" id="iss-add-btn">+ New Issue</button>
-        </div>
-      </div>
-      <div class="dx-hero-right">
-        <div class="iss-hero-severity">
-          ${severityBar('High',   high,   total, 'var(--danger)')}
-          ${severityBar('Medium', medium, total, 'var(--warning)')}
-          ${severityBar('Low',    low,    total, 'var(--muted)')}
-        </div>
-      </div>
-    </div>`
+  renderToolHeader(heroEl, {
+    section: 'Team',
+    title: 'Issues',
+    sub: 'Problems the team is working on — tracked from spotted to resolved.',
+    kpis: [
+      { v: open, k: 'open' },
+      { v: high, k: 'high', tone: high ? 'bad' : '' },
+      { v: medium, k: 'medium', tone: medium ? 'warn' : '' },
+      { v: low, k: 'low' },
+      { v: improving, k: 'improving', tone: improving ? 'warn' : '' },
+      { v: resolved, k: 'resolved', tone: resolved ? 'good' : '' },
+    ],
+    actions: `<button type="button" class="dx-upload-cta" id="iss-add-btn">+ New Issue</button>`,
+  })
 
   document.getElementById('iss-add-btn').addEventListener('click', () => openModal())
-}
-
-function severityBar(label, value, total, color) {
-  const pct = total ? Math.round((value / total) * 100) : 0
-  return `
-    <div class="iss-sev-row">
-      <div class="iss-sev-label">${label}</div>
-      <div class="iss-sev-track"><div class="iss-sev-fill" style="width:${pct}%;background:${color}"></div></div>
-      <div class="iss-sev-val">${value}</div>
-    </div>`
 }
 
 // ── Filters ───────────────────────────────────────────────────

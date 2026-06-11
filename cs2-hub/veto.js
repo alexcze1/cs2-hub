@@ -1,5 +1,5 @@
 import { requireAuth } from './auth.js'
-import { renderSidebar } from './layout.js'
+import { renderSidebar, renderToolHeader } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
 import { attachTeamAutocomplete, getTeamLogo, teamLogoEl } from './team-autocomplete.js'
@@ -420,23 +420,18 @@ async function loadVetos() {
 // ── Hero ──────────────────────────────────────────────────────
 function renderHero() {
   const s = deriveVetoStats(state.vetos)
-  const wash = s.mostBanned ? mapBg(s.mostBanned) : ''
-  heroEl.innerHTML = `
-    <div class="dx-hero-grid">
-      <div class="dx-hero-left">
-        <div class="dx-hero-title">MAP VETO</div>
-        <div class="dx-hero-count">${s.total}<span class="dx-hero-count-unit">${s.total === 1 ? ' veto' : ' vetos'}</span></div>
-        <div class="dx-hero-substats">
-          <div class="dx-kv"><div class="dx-kv-k">BO1</div><div class="dx-kv-v">${s.bo1}</div></div>
-          <div class="dx-kv"><div class="dx-kv-k">BO3</div><div class="dx-kv-v">${s.bo3}</div></div>
-          <div class="dx-kv"><div class="dx-kv-k">Top opponent</div><div class="dx-kv-v">${s.topOpponent ? esc(s.topOpponent) : '—'}</div></div>
-          <div class="dx-kv"><div class="dx-kv-k">Most banned</div><div class="dx-kv-v">${s.mostBanned ? esc(MAP_LABELS[s.mostBanned] ?? s.mostBanned) : '—'}</div></div>
-        </div>
-      </div>
-      <div class="dx-hero-right">
-        ${wash ? `<div class="dx-hero-mapwash" style="background-image:url('${esc(wash)}')"></div>` : ''}
-      </div>
-    </div>`
+  renderToolHeader(heroEl, {
+    section: 'Preparation',
+    title: 'Map Veto',
+    sub: 'Simulate pick-bans against any opponent and keep a record of real vetos.',
+    kpis: [
+      { v: s.total, k: s.total === 1 ? 'veto' : 'vetos' },
+      { v: s.bo1, k: 'BO1' },
+      { v: s.bo3, k: 'BO3' },
+      { v: s.topOpponent || '—', k: 'top opponent' },
+      { v: s.mostBanned ? (MAP_LABELS[s.mostBanned] ?? s.mostBanned) : '—', k: 'most banned' },
+    ],
+  })
 }
 
 // ── Filters ───────────────────────────────────────────────────

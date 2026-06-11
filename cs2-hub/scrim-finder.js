@@ -16,7 +16,7 @@ import { toast } from './toast.js'
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 
 await requireAuth()
-renderSidebar('schedule')
+renderSidebar('scrim-finder')
 
 const teamId = getTeamId()
 const formEl   = document.getElementById('sf-listing-form')

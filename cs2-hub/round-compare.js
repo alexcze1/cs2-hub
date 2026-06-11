@@ -16,7 +16,7 @@ function esc(s) { const d = document.createElement('div'); d.textContent = s ?? 
 function mapFile(m) { return m === 'dust2' ? 'dust' : m }
 
 await requireAuth()
-renderSidebar('demos')
+renderSidebar('round-compare')
 
 const params = new URLSearchParams(location.search)
 const teamId = getTeamId()

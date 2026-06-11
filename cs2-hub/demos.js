@@ -1,6 +1,6 @@
 // cs2-hub/demos.js
 import { requireAuth } from './auth.js'
-import { renderSidebar } from './layout.js'
+import { renderSidebar, renderToolHeader } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { showAssignTeamsModal } from './assign-teams-modal.js'
 import { getTeamLogo, teamLogoEl } from './team-autocomplete.js'
@@ -223,24 +223,19 @@ function computeHeroStats(demos) {
 
 function renderHero() {
   const s = computeHeroStats(state.rawDemos)
-  heroEl.innerHTML = `
-    <div class="dx-hero-grid">
-      <div class="dx-hero-left">
-        <div class="dx-hero-title">DEMOS</div>
-        <div class="dx-hero-count">${s.total}<span class="dx-hero-count-unit">${s.total === 1 ? ' demo' : ' demos'}</span></div>
-        <div class="dx-hero-substats">
-          <div class="dx-kv"><div class="dx-kv-k">Pending</div><div class="dx-kv-v ${s.pending ? 'dx-warn' : ''}">${s.pending}</div></div>
-          <div class="dx-kv"><div class="dx-kv-k">Errors</div><div class="dx-kv-v ${s.errored ? 'dx-bad' : ''}">${s.errored}</div></div>
-          <div class="dx-kv"><div class="dx-kv-k">Top map</div><div class="dx-kv-v">${s.topMap ? esc(mapDisplay(s.topMap)) : '—'}</div></div>
-          <div class="dx-kv"><div class="dx-kv-k">Last upload</div><div class="dx-kv-v">${s.latest ? esc(relativeTime(s.latest.created_at)) : '—'}</div></div>
-        </div>
-        <button type="button" class="dx-upload-cta" id="dx-upload-btn">+ Upload Demo</button>
-      </div>
-      <div class="dx-hero-right">
-        ${s.topMap ? `<div class="dx-hero-mapwash" style="background-image:url('${esc(mapBg(s.topMap))}')"></div>` : ''}
-      </div>
-    </div>
-  `
+  renderToolHeader(heroEl, {
+    section: 'Review',
+    title: 'Demos',
+    sub: 'Upload .dem files — parsed into rounds, players and utility for the 2D viewer.',
+    kpis: [
+      { v: s.total, k: s.total === 1 ? 'demo' : 'demos' },
+      { v: s.pending, k: 'pending', tone: s.pending ? 'warn' : '' },
+      { v: s.errored, k: 'errors', tone: s.errored ? 'bad' : '' },
+      { v: s.topMap ? mapDisplay(s.topMap) : '—', k: 'top map' },
+      { v: s.latest ? relativeTime(s.latest.created_at) : '—', k: 'last upload' },
+    ],
+    actions: `<button type="button" class="dx-upload-cta" id="dx-upload-btn">+ Upload Demo</button>`,
+  })
   document.getElementById('dx-upload-btn').addEventListener('click', () => fileInput.click())
 }
 
@@ -1138,17 +1133,22 @@ async function runPublicScope() {
     filter: loadPubFilter(),
   }
 
-  // Hero rendered once; the count is patched in place each reload below.
+  // Hero rendered once; the counts are patched in place each reload below,
+  // so the KPI spans carry stable ids.
   heroEl.innerHTML = `
-    <div class="dx-hero-grid">
-      <div class="dx-hero-left">
-        <div class="dx-hero-title">PRO DEMOS</div>
-        <div class="dx-hero-substats">
-          <div class="dx-kv"><div class="dx-kv-k">Source</div><div class="dx-kv-v">HLTV (last 90 days)</div></div>
-          <div class="dx-kv"><div class="dx-kv-k">Total</div><div class="dx-kv-v" id="pro-total-count">…</div></div>
-          <div class="dx-kv"><div class="dx-kv-k">Showing</div><div class="dx-kv-v" id="pro-showing-count">…</div></div>
-          <div class="dx-kv"><div class="dx-kv-k">Live</div><div class="dx-kv-v" id="pro-live-status">connecting…</div></div>
+    <div class="tool-head">
+      <div class="tool-head-top">
+        <div class="tool-head-text">
+          <div class="tool-head-kicker">Review</div>
+          <h1 class="tool-head-title">Pro Demos</h1>
+          <div class="tool-head-sub">Pro matches pulled from HLTV — watch any round in the 2D viewer.</div>
         </div>
+      </div>
+      <div class="tool-head-kpis">
+        <div class="kpi-chip"><span class="kpi-chip-v">HLTV</span><span class="kpi-chip-k">source · 90 days</span></div>
+        <div class="kpi-chip"><span class="kpi-chip-v" id="pro-total-count">…</span><span class="kpi-chip-k">total</span></div>
+        <div class="kpi-chip"><span class="kpi-chip-v" id="pro-showing-count">…</span><span class="kpi-chip-k">showing</span></div>
+        <div class="kpi-chip"><span class="kpi-chip-v" id="pro-live-status">connecting…</span><span class="kpi-chip-k">live</span></div>
       </div>
     </div>`
 

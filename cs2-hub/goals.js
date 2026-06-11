@@ -1,5 +1,5 @@
 import { requireAuth } from './auth.js'
-import { renderSidebar } from './layout.js'
+import { renderSidebar, renderToolHeader } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
 
@@ -85,42 +85,20 @@ function renderHero() {
     ? `${upcoming.title} · ${new Date(upcoming.due_date).toLocaleDateString('en-GB', { day:'numeric', month:'short' })}`
     : '—'
 
-  heroEl.innerHTML = `
-    <div class="dx-hero-grid">
-      <div class="dx-hero-left">
-        <div class="dx-hero-title">TEAM GOALS</div>
-        <div class="dx-hero-count">${active}<span class="dx-hero-count-unit">${active === 1 ? ' active' : ' active'}</span></div>
-        <div class="dx-hero-substats">
-          <div class="dx-kv"><div class="dx-kv-k">Completed</div><div class="dx-kv-v" style="color:var(--success)">${completed}</div></div>
-          <div class="dx-kv"><div class="dx-kv-k">Dropped</div><div class="dx-kv-v">${dropped}</div></div>
-          <div class="dx-kv"><div class="dx-kv-k">Total</div><div class="dx-kv-v">${all.length}</div></div>
-        </div>
-        <div class="dx-hero-actions">
-          <button type="button" class="dx-upload-cta" id="gl-add-btn">+ New Goal</button>
-        </div>
-      </div>
-      <div class="dx-hero-right">
-        <div class="gl-hero-next">
-          <div class="gl-hero-next-label">Next Milestone</div>
-          <div class="gl-hero-next-title">${esc(upcomingLabel)}</div>
-          ${horizonBreakdown(all)}
-        </div>
-      </div>
-    </div>`
+  renderToolHeader(heroEl, {
+    section: 'Team',
+    title: 'Goals',
+    sub: 'Long-term, monthly and weekly targets the whole team can see.',
+    kpis: [
+      { v: active, k: 'active' },
+      { v: completed, k: 'completed', tone: completed ? 'good' : '' },
+      { v: dropped, k: 'dropped' },
+      { v: upcomingLabel, k: 'next milestone' },
+    ],
+    actions: `<button type="button" class="dx-upload-cta" id="gl-add-btn">+ New Goal</button>`,
+  })
 
   document.getElementById('gl-add-btn').addEventListener('click', () => openModal())
-}
-
-function horizonBreakdown(all) {
-  const rows = HORIZONS.map(h => {
-    const n = all.filter(g => g.horizon === h.key && g.status === 'active').length
-    return `
-      <div class="gl-hbar-row">
-        <div class="gl-hbar-label">${h.label}</div>
-        <div class="gl-hbar-val">${n}</div>
-      </div>`
-  }).join('')
-  return `<div class="gl-hbar">${rows}</div>`
 }
 
 // ── Filters ───────────────────────────────────────────────────

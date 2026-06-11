@@ -46,16 +46,17 @@ export function mountFilter(root, onChange) {
 
   function render() {
     root.innerHTML = `
-      <div class="vods-filter-row">
-        <div class="vods-filter-pills" data-group="window">
+      <div class="dx-filter-row">
+        <div class="dx-filter-group" data-group="window">
           ${WINDOW_PILLS.map(p => `
-            <button type="button" class="vods-filter-pill ${state.window === p.key ? 'is-active' : ''}"
+            <button type="button" class="dx-pill ${state.window === p.key ? 'is-active' : ''}"
                     data-window="${p.key}">${p.label}</button>
           `).join('')}
         </div>
-        <div class="vods-filter-pills" data-group="type">
+        <div class="dx-filter-divider"></div>
+        <div class="dx-filter-group" data-group="type">
           ${TYPE_PILLS.map(p => `
-            <button type="button" class="vods-filter-pill ${state.matchType === p.key ? 'is-active' : ''}"
+            <button type="button" class="dx-pill ${state.matchType === p.key ? 'is-active' : ''}"
                     data-type="${p.key}">${p.label}</button>
           `).join('')}
         </div>

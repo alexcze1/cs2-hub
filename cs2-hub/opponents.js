@@ -1,6 +1,6 @@
 // cs2-hub/opponents.js
 import { requireAuth } from './auth.js'
-import { renderSidebar } from './layout.js'
+import { renderSidebar, renderToolHeader } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { getTeamLogo, teamLogoEl } from './team-autocomplete.js'
 
@@ -146,26 +146,19 @@ async function loadAll() {
 // ── Hero ──────────────────────────────────────────────────────
 function renderHero() {
   const s = deriveOpponentStats(state.opponents, state.history)
-  const wash = s.topMap ? mapBg(s.topMap) : ''
-  heroEl.innerHTML = `
-    <div class="dx-hero-grid">
-      <div class="dx-hero-left">
-        <div class="dx-hero-title">ANTI-STRAT</div>
-        <div class="dx-hero-count">${s.total}<span class="dx-hero-count-unit">${s.total === 1 ? ' team' : ' teams'}</span></div>
-        <div class="dx-hero-substats">
-          <div class="dx-kv"><div class="dx-kv-k">With maps</div><div class="dx-kv-v">${s.withMaps}</div></div>
-          <div class="dx-kv"><div class="dx-kv-k">Threats</div><div class="dx-kv-v" style="color:var(--danger)">${s.threats}</div></div>
-          <div class="dx-kv"><div class="dx-kv-k">Favored</div><div class="dx-kv-v" style="color:var(--success)">${s.favored}</div></div>
-          <div class="dx-kv"><div class="dx-kv-k">Maps covered</div><div class="dx-kv-v">${s.mapsCovered}</div></div>
-        </div>
-        <div class="dx-hero-actions">
-          <a class="dx-upload-cta" href="opponent-detail.html">+ Add Team</a>
-        </div>
-      </div>
-      <div class="dx-hero-right">
-        ${wash ? `<div class="dx-hero-mapwash" style="background-image:url('${esc(wash)}')"></div>` : ''}
-      </div>
-    </div>`
+  renderToolHeader(heroEl, {
+    section: 'Preparation',
+    title: 'Opponents',
+    sub: 'Anti-strat book — tendencies, favored maps and threat level per team you face.',
+    kpis: [
+      { v: s.total, k: s.total === 1 ? 'team' : 'teams' },
+      { v: s.withMaps, k: 'with maps' },
+      { v: s.threats, k: 'threats', tone: s.threats ? 'bad' : '' },
+      { v: s.favored, k: 'favored', tone: s.favored ? 'good' : '' },
+      { v: s.mapsCovered, k: 'maps covered' },
+    ],
+    actions: `<a class="dx-upload-cta" href="opponent-detail.html">+ Add Team</a>`,
+  })
 }
 
 // ── Filters ───────────────────────────────────────────────────

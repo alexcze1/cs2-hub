@@ -1,5 +1,5 @@
 import { requireAuth } from './auth.js'
-import { renderSidebar } from './layout.js'
+import { renderSidebar, renderToolHeader } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
 
@@ -90,23 +90,19 @@ async function loadKeywords() {
 // ── Hero ──────────────────────────────────────────────────────
 function renderHero() {
   const s = deriveKeywordStats(state.keywords)
-  heroEl.innerHTML = `
-    <div class="dx-hero-grid">
-      <div class="dx-hero-left">
-        <div class="dx-hero-title">KEYWORDS</div>
-        <div class="dx-hero-count">${s.total}<span class="dx-hero-count-unit">${s.total === 1 ? ' term' : ' terms'}</span></div>
-        <div class="dx-hero-substats">
-          <div class="dx-kv"><div class="dx-kv-k">Categories</div><div class="dx-kv-v">${s.categoryCount}</div></div>
-          <div class="dx-kv"><div class="dx-kv-k">Uncategorized</div><div class="dx-kv-v">${s.uncategorized}</div></div>
-          <div class="dx-kv"><div class="dx-kv-k">Top category</div><div class="dx-kv-v">${s.topCategory ? esc(s.topCategory) : '—'}</div></div>
-          <div class="dx-kv"><div class="dx-kv-k">Latest</div><div class="dx-kv-v">${s.latest ? esc(s.latest) : '—'}</div></div>
-        </div>
-        <div class="dx-hero-actions">
-          <button type="button" class="dx-upload-cta" id="add-btn">+ Add Keyword</button>
-        </div>
-      </div>
-      <div class="dx-hero-right"></div>
-    </div>`
+  renderToolHeader(heroEl, {
+    section: 'Team',
+    title: 'Keywords',
+    sub: 'Shared comms vocabulary — strat calls, economy terms and callouts everyone knows.',
+    kpis: [
+      { v: s.total, k: s.total === 1 ? 'term' : 'terms' },
+      { v: s.categoryCount, k: 'categories' },
+      { v: s.uncategorized, k: 'uncategorized', tone: s.uncategorized ? 'warn' : '' },
+      { v: s.topCategory || '—', k: 'top category' },
+      { v: s.latest || '—', k: 'latest' },
+    ],
+    actions: `<button type="button" class="dx-upload-cta" id="add-btn">+ Add Keyword</button>`,
+  })
   document.getElementById('add-btn').addEventListener('click', () => openModal())
 }
 
