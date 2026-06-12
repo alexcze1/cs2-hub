@@ -4,7 +4,7 @@
    tactical green to monochromatic lavender per the master design prompt.
    Legacy names (--accent, --surface, etc.) are preserved as aliases of the
    new tokens so every dependent class migrates without a sweep. */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 :root {
   /* ── Design tokens (Teoroa × Paytech fusion, MD spec) ──────────── */
@@ -80,6 +80,8 @@
   /* Layout */
   --sidebar-w: 232px;
   --display-font: 'Inter', 'Space Grotesk', system-ui, sans-serif;
+  --mono-font: 'IBM Plex Mono', 'Cascadia Mono', ui-monospace, monospace;
+  --tick: rgba(var(--lavender-2-rgb), 0.38);
 
   /* Radii — MD spec: sm 10, md 16, lg 24, xl 36 */
   --r-sm: 10px;
@@ -8339,4 +8341,156 @@ body[data-mode="player"] #share-public-btn {
     margin-left: 0;
     padding: 20px 18px;
   }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   WOUNDER LAYER — terminal-technical chrome pass (2026-06-12)
+   Sourced from the wounder reference boards: dithered dot-matrix
+   graphics that dissolve into pixel dust, hairline frames with
+   crosshair ticks at the corners, monospace micro-labels with `/`
+   prefixes, stat numerals with a trailing cursor, blueprint grid +
+   film grain atmosphere. Lavender stays the only voice — this layer
+   changes the *texture* of the app, not its palette.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Atmosphere: blueprint grid (top of viewport) + film grain ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(var(--lavender-2-rgb), 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--lavender-2-rgb), 0.05) 1px, transparent 1px);
+  background-size: 44px 44px;
+  -webkit-mask-image: radial-gradient(1100px 720px at 62% -8%, #000 0%, transparent 78%);
+  mask-image: radial-gradient(1100px 720px at 62% -8%, #000 0%, transparent 78%);
+}
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 220px 220px;
+}
+
+/* ── Micro-label voice: everything label-scale speaks monospace ── */
+.page-kicker, .nav-section, .section-label, .stat-label,
+.panel-title, .chart-card-title, .section-link, .breadcrumb,
+.tier-badge {
+  font-family: var(--mono-font);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+}
+.nav-section { letter-spacing: 0.14em; }
+.section-link { font-size: 10px; }
+
+/* Slash prefixes — the Axiom-Zero nav idiom: `/ OVERVIEW` */
+.page-kicker::before,
+.nav-section::before {
+  content: '/ ';
+  color: rgba(var(--lavender-2-rgb), 0.5);
+}
+.panel-title { justify-content: flex-start; gap: 8px; }
+.panel-title::before { content: '/'; color: rgba(var(--lavender-2-rgb), 0.5); }
+.panel-title .section-link { margin-left: auto; }
+
+/* ── Frame chrome: squarer cards + crosshair ticks at the corners ── */
+.panel, .stat-card { border-radius: var(--r-md); }
+.panel { position: relative; }
+.panel::after, .stat-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--tick), var(--tick)), linear-gradient(var(--tick), var(--tick)),
+    linear-gradient(var(--tick), var(--tick)), linear-gradient(var(--tick), var(--tick)),
+    linear-gradient(var(--tick), var(--tick)), linear-gradient(var(--tick), var(--tick)),
+    linear-gradient(var(--tick), var(--tick)), linear-gradient(var(--tick), var(--tick));
+  background-repeat: no-repeat;
+  background-size: 9px 1px, 1px 9px,  9px 1px, 1px 9px,  9px 1px, 1px 9px,  9px 1px, 1px 9px;
+  background-position:
+    left 6px top 10px,     left 10px top 6px,
+    right 6px top 10px,    right 10px top 6px,
+    left 6px bottom 10px,  left 10px bottom 6px,
+    right 6px bottom 10px, right 10px bottom 6px;
+}
+
+/* ── Stat numerals: trailing terminal cursor (`42_`) ── */
+.stat-value::after {
+  content: '_';
+  margin-left: 3px;
+  color: var(--lavender-2);
+  font-weight: 700;
+  animation: hud-blink 1.2s steps(1) infinite;
+}
+@keyframes hud-blink { 0%, 55% { opacity: 1; } 56%, 100% { opacity: 0; } }
+
+/* ── HUD ticks: decorative barcode strip for header chrome ── */
+.hud-ticks {
+  display: inline-block;
+  width: 58px;
+  height: 20px;
+  opacity: 0.45;
+  background: repeating-linear-gradient(90deg,
+    rgba(var(--lavender-2-rgb), 0.9) 0 1px, transparent 1px 4px);
+}
+.dash-header .page-sub {
+  font-family: var(--mono-font);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ── Buttons: flat mono uppercase, wounder CTA voice ── */
+.btn {
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-size: 12px;
+}
+.btn-sm { font-size: 11px; }
+.btn-lg { font-size: 13px; }
+
+/* ── Empty states: hairline 45° hatch texture (ton:acc blocks) ── */
+.empty-state-art {
+  background:
+    repeating-linear-gradient(45deg, rgba(var(--lavender-2-rgb), 0.04) 0 1px, transparent 1px 7px),
+    radial-gradient(360px 200px at 50% 0%, rgba(var(--lavender-3-rgb), 0.14), transparent 70%),
+    var(--bg-card);
+}
+
+/* ── Hero dither: dot-matrix field dissolving across the right edge.
+   Injected by dashboard.js as a child of .hero-card; the mask lives on
+   this div so the card itself is never clipped. ── */
+.hero-card > .hero-dither {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 48%;
+  z-index: 0;
+  filter: none;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle, rgba(var(--lavender-1-rgb), 0.55) 1.2px, transparent 1.4px),
+    radial-gradient(circle, rgba(var(--lavender-2-rgb), 0.38) 1px, transparent 1.2px);
+  background-size: 7px 7px, 11px 11px;
+  background-position: 0 0, 3px 5px;
+  -webkit-mask-image: linear-gradient(100deg, transparent 4%, rgba(0,0,0,0.45) 52%, #000 88%);
+  mask-image: linear-gradient(100deg, transparent 4%, rgba(0,0,0,0.45) 52%, #000 88%);
+}
+
+/* ── Guard rails ── */
+@media (prefers-reduced-motion: reduce) {
+  .stat-value::after { animation: none; }
+}
+@media print {
+  body::before, body::after, .hud-ticks, .hero-dither,
+  .panel::after, .stat-card::after { display: none !important; }
+  .stat-value::after { content: none; }
 }

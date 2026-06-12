@@ -272,6 +272,7 @@ if (!nextMatch) {
 
   heroSlot.innerHTML = `
     <div class="hero-card hero-form-card">
+      <div class="hero-dither" aria-hidden="true"></div>
       <div class="hero-form-card-left">
         <div class="hero-tag">FORM · LAST ${vodsAsc.length || ''}</div>
         <div class="hero-opponent">${totalGames ? `${wins}–${losses}${draws ? ` (${draws}D)` : ''}` : 'No matches'}</div>
@@ -303,6 +304,7 @@ if (!nextMatch) {
 
   heroSlot.innerHTML = `
     <div class="hero-card">
+      <div class="hero-dither" aria-hidden="true"></div>
       <div>
         <div class="hero-tag">${tagLabel}</div>
         ${vsLine}
