@@ -580,6 +580,129 @@ body {
 .tool-head-actions .dx-upload-cta,
 .tool-head-actions .dx-ghost-cta { margin-top: 0; }
 
+/* ── Charts (charts.js) — radar / trend area / hbars ────────────────── */
+.chart-card {
+  position: relative;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-glass-inset);
+  overflow: hidden;
+}
+.chart-card::after {
+  /* faint top-edge lavender sheen — premium hairline accent */
+  content: '';
+  position: absolute; top: 0; left: 10%; right: 10%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(var(--lavender-2-rgb), 0.45), transparent);
+  pointer-events: none;
+}
+.chart-card-title {
+  font-family: var(--display-font);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.chart-card-title .chart-card-hint { letter-spacing: 0.04em; text-transform: none; font-weight: 400; }
+
+.chart-radar { display: block; width: 100%; height: auto; max-width: 340px; margin: 0 auto; }
+.radar-ring  { fill: none; stroke: rgba(var(--lavender-2-rgb), 0.10); stroke-width: 1; }
+.radar-spoke { stroke: rgba(var(--lavender-2-rgb), 0.08); stroke-width: 1; }
+.radar-poly {
+  stroke: var(--lavender-2);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 10px rgba(var(--lavender-3-rgb), 0.45));
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: radar-in 700ms var(--ease) both;
+}
+.radar-dot { fill: var(--lavender-1); stroke: var(--bg-primary); stroke-width: 1.5; }
+.radar-label { fill: var(--text-secondary); font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.radar-label-pct { fill: var(--text-primary); font-size: 11px; font-weight: 700; }
+.radar-label-pct.is-empty { fill: var(--text-faint); }
+body[data-theme="light"] .radar-dot { stroke: #fff; }
+@keyframes radar-in {
+  from { transform: scale(0.55); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+
+.chart-area { display: block; width: 100%; height: auto; }
+.chart-grid { stroke: rgba(var(--lavender-2-rgb), 0.07); stroke-width: 1; }
+.chart-grid-mid { stroke: rgba(var(--lavender-2-rgb), 0.16); stroke-dasharray: 4 5; }
+.chart-line {
+  fill: none;
+  stroke: var(--lavender-2);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 8px rgba(var(--lavender-3-rgb), 0.55));
+  stroke-dasharray: 1400;
+  stroke-dashoffset: 1400;
+  animation: chart-draw 1100ms var(--ease) forwards;
+}
+.chart-fill { opacity: 0; animation: chart-fade 700ms 350ms var(--ease) forwards; }
+.chart-dot { fill: var(--lavender-2); stroke: var(--bg-primary); stroke-width: 1.5; opacity: 0; animation: chart-fade 400ms 700ms forwards; }
+.chart-dot-good { fill: var(--success); }
+.chart-dot-bad  { fill: var(--danger); }
+.chart-dot-last { filter: drop-shadow(0 0 6px rgba(var(--lavender-2-rgb), 0.9)); }
+body[data-theme="light"] .chart-dot { stroke: #fff; }
+@keyframes chart-draw { to { stroke-dashoffset: 0; } }
+@keyframes chart-fade { to { opacity: 1; } }
+
+.hbars { display: flex; flex-direction: column; gap: 9px; }
+.hbar-row { display: grid; grid-template-columns: 92px 1fr auto; gap: 12px; align-items: center; }
+.hbar-label {
+  font-family: var(--display-font);
+  font-size: 11px; font-weight: 600; letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hbar-track {
+  height: 8px;
+  background: rgba(var(--lavender-2-rgb), 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.hbar-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--lavender-3), var(--lavender-2));
+  box-shadow: 0 0 10px rgba(var(--lavender-3-rgb), 0.45);
+  transition: width 800ms var(--ease);
+}
+.hbars.is-in .hbar-fill { width: var(--w); }
+.hbar-fill.hbar-good { background: linear-gradient(90deg, #1F9D5B, var(--success)); box-shadow: 0 0 10px rgba(var(--success-rgb), 0.4); }
+.hbar-fill.hbar-bad  { background: linear-gradient(90deg, #B22343, var(--danger)); box-shadow: 0 0 10px rgba(255, 77, 109, 0.35); }
+.hbar-value { font-size: 12px; font-weight: 700; color: var(--text-primary); white-space: nowrap; }
+.hbar-sub { color: var(--muted); font-weight: 400; margin-left: 6px; font-size: 11px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .radar-poly, .chart-line, .chart-fill, .chart-dot { animation: none; opacity: 1; stroke-dashoffset: 0; }
+  .hbar-fill { transition: none; }
+  .hbars .hbar-fill { width: var(--w); }
+}
+
+/* Chart + tile side-by-side layouts (dashboard economy, matches tactical) */
+.econ-layout,
+.rr-kt-layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 14px;
+  align-items: stretch;
+}
+.chart-card-radar { display: flex; flex-direction: column; }
+.chart-card-radar .chart-radar { flex: 1; min-height: 0; }
+@media (max-width: 1100px) {
+  .econ-layout, .rr-kt-layout { grid-template-columns: 1fr; }
+  .chart-card-radar .chart-radar { max-width: 300px; }
+}
+
 /* ── Preferences popover (sidebar footer) ───────────────────────────── */
 .prefs-popover {
   position: fixed;

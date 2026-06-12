@@ -114,7 +114,9 @@ function rowsForOurTeam({ pistol_wins=0, pistol_played=0, first_kills=0, first_d
   const ourTeamByDemoId = new Map([['d1', 'a']])
   renderTeamStats(root, { rowsCurrent, rowsPrior: [], ourTeamByDemoId })
   assert(root.innerHTML.includes('100%'), 'orphan demo excluded (only d1 → 2/2 = 100%)')
-  assert(!root.innerHTML.includes('101'), 'orphan demo data not summed in')
+  // '101%' (not bare '101') — the radar SVG legitimately contains "101"
+  // inside path/point coordinates; the assertion targets the rendered value.
+  assert(!root.innerHTML.includes('101%'), 'orphan demo data not summed in')
 }
 
 // ---- Wrong-team row excluded ----

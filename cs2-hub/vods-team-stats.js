@@ -9,6 +9,7 @@
 // sample sizes are too small for a meaningful rate.
 
 import { aggregateTeamStats, computeDeltas } from './team-stats-aggregate.js'
+import { radarSVG } from './charts.js'
 
 const TREND_ARROW = { up: '↑', down: '↓', flat: '▬' }
 const DELTA_THRESHOLD = 0.005
@@ -92,10 +93,26 @@ export function renderTeamStats(container, { rowsCurrent, rowsPrior, ourTeamByDe
   const view    = computeDeltas(current, prior)
   const tiles   = keyTiles(view).map(renderTile).join('')
 
+  const pc = wd => (wd?.value?.played ? Math.round((wd.value.pct ?? 0) * 100) : null)
+  const radar = radarSVG([
+    { label: 'Pistol',   pct: pc(view.pistols) },
+    { label: 'Opening',  pct: view.opening_duel?.value?.pct != null ? Math.round(view.opening_duel.value.pct * 100) : null },
+    { label: '5v4',      pct: pc(view.five_v_four) },
+    { label: 'Full buy', pct: pc(view.full_buy) },
+    { label: 'CT side',  pct: pc(view.ct) },
+    { label: 'T side',   pct: pc(view.t) },
+  ], { size: 290 })
+
   container.innerHTML = `
     <div class="rr-key-tactical">
       <div class="rr-section-label">KEY TACTICAL STATS</div>
-      <div class="rr-key-tactical-grid">${tiles}</div>
+      <div class="rr-kt-layout">
+        <div class="chart-card chart-card-radar">
+          <div class="chart-card-title">Team DNA<span class="chart-card-hint">win rate per round type</span></div>
+          ${radar}
+        </div>
+        <div class="rr-key-tactical-grid">${tiles}</div>
+      </div>
     </div>
   `
 }

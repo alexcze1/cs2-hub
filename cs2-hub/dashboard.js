@@ -3,6 +3,7 @@ import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { getPlayerImage } from './player-autocomplete.js'
 import { aggregateTeamStats } from './team-stats-aggregate.js'
+import { radarSVG, areaSVG } from './charts.js'
 
 function esc(text) {
   const d = document.createElement('div')
@@ -738,6 +739,50 @@ document.getElementById('stat-vods-form').innerHTML = recentForm.map(r =>
   `<span class="form-dot form-dot-${r === 'W' ? 'win' : r === 'L' ? 'loss' : 'draw'}">${r}</span>`
 ).join('')
 
+// ── Form trend — round win rate per match, oldest → newest ──────────
+function renderFormTrend() {
+  const slot = document.getElementById('form-trend-slot')
+  if (!slot) return
+  const matches = (vodData ?? [])
+    .filter(v => (v.maps ?? []).length)
+    .slice(0, 16)                       // vodData is newest-first
+    .reverse()
+  const points = matches.map(v => {
+    let rw = 0, rl = 0, mw = 0, ml = 0
+    for (const m of v.maps) {
+      rw += m.score_us ?? 0; rl += m.score_them ?? 0
+      if ((m.score_us ?? 0) > (m.score_them ?? 0)) mw++
+      else if ((m.score_them ?? 0) > (m.score_us ?? 0)) ml++
+    }
+    const total = rw + rl
+    const dateTxt = v.match_date
+      ? new Date(v.match_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+      : ''
+    return {
+      v: total ? Math.round((rw / total) * 100) : 0,
+      label: `${v.opponent_name ?? 'Match'}${dateTxt ? ' · ' + dateTxt : ''}`,
+      tone: mw > ml ? 'good' : ml > mw ? 'bad' : undefined,
+    }
+  })
+  if (points.length < 2) {
+    slot.innerHTML = `<div class="empty-state-art">
+      <div class="empty-state-art-icon">·</div>
+      <div class="empty-state-art-title">Not enough matches yet</div>
+      <div class="empty-state-art-sub">Log at least two matches with map scores and your round-win trend will draw itself here.</div>
+      <a href="vod-detail.html" class="empty-state-art-cta">Add a match →</a>
+    </div>`
+    return
+  }
+  slot.innerHTML = `
+    <div class="chart-card">
+      <div class="chart-card-title">Round win rate
+        <span class="chart-card-hint">last ${points.length} matches · dots colored by match result</span>
+      </div>
+      ${areaSVG(points, { width: 900, height: 190 })}
+    </div>`
+}
+renderFormTrend()
+
 const openIssues = (issuesData ?? []).filter(i => i.status !== 'resolved').length
 const issueClass = openIssues > 0 ? 'stat-card-danger' : 'stat-card-success'
 const issueColorVar = openIssues > 0 ? 'var(--danger)' : 'var(--success)'
@@ -1027,11 +1072,28 @@ async function renderTeamEconomy() {
         <div class="econ-tile-sub">${agg.first_kills}–${agg.first_deaths} of ${totalFirst}</div>
       </div>`
 
+    // Team DNA radar — the six axes a coach reads first.
+    const pc = v => (v && v.played ? Math.round((v.pct ?? 0) * 100) : null)
+    const radar = radarSVG([
+      { label: 'Pistol',   pct: pc(agg.pistols) },
+      { label: 'Opening',  pct: openingPct != null ? Math.round(openingPct * 100) : null },
+      { label: 'Anti-eco', pct: pc(agg.anti_ecos) },
+      { label: 'Full buy', pct: pc(agg.full_buy) },
+      { label: 'CT side',  pct: pc(agg.ct) },
+      { label: 'T side',   pct: pc(agg.t) },
+    ], { size: 290 })
+
     slot.innerHTML = `
-      <div class="econ-grid">
-        ${tileHtml}
-        ${openingTile}
-        ${utilTiles}
+      <div class="econ-layout">
+        <div class="chart-card chart-card-radar">
+          <div class="chart-card-title">Team DNA<span class="chart-card-hint">round-type win rates</span></div>
+          ${radar}
+        </div>
+        <div class="econ-grid">
+          ${tileHtml}
+          ${openingTile}
+          ${utilTiles}
+        </div>
       </div>`
   } catch (e) {
     console.warn('[dashboard] team economy failed', e)

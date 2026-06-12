@@ -4,6 +4,7 @@ import { initCommandPalette } from './command-palette.js'
 import { initHoverPreview } from './hover-preview.js'
 import { initPresence } from './presence.js'
 import { initTooltips } from './tooltip.js'
+import { countUp } from './charts.js'
 
 // One-time chrome installation: PWA manifest link, service-worker
 // registration, command palette + keyboard shortcuts. Idempotent — every
@@ -163,6 +164,12 @@ export function renderToolHeader(el, { section = '', title = '', sub = '', kpis 
       </div>
       ${chips ? `<div class="tool-head-kpis">${chips}</div>` : ''}
     </div>`
+  // Animated count-up on numeric KPI values — only on the first render per
+  // page load so re-renders (filter changes etc.) don't replay it.
+  if (!el.dataset.kpiAnimated) {
+    el.dataset.kpiAnimated = '1'
+    for (const v of el.querySelectorAll('.kpi-chip-v')) countUp(v)
+  }
 }
 
 const ICONS = {

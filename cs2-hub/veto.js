@@ -1,5 +1,6 @@
 import { requireAuth } from './auth.js'
 import { renderSidebar, renderToolHeader } from './layout.js'
+import { hbarsHTML, armHbars } from './charts.js'
 import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
 import { attachTeamAutocomplete, getTeamLogo, teamLogoEl } from './team-autocomplete.js'
@@ -547,6 +548,41 @@ function vetoCard(v, logo) {
   </div>`
 }
 
-function renderAll() { renderHero(); renderFilters(); renderList() }
+// ── Ban tendencies chart — how often each map gets banned (by either
+// side) across all saved vetos. Hidden until there are 2+ vetos so a
+// single data point doesn't masquerade as a pattern.
+function renderBanBars() {
+  const slot = document.getElementById('veto-bans-slot')
+  if (!slot) return
+  const vetos = state.vetos
+  if (vetos.length < 2) { slot.innerHTML = ''; return }
+
+  const bans = new Map()
+  for (const v of vetos) {
+    for (const step of v.steps ?? []) {
+      if (step.type !== 'ban' || !step.map) continue
+      bans.set(step.map, (bans.get(step.map) ?? 0) + 1)
+    }
+  }
+  if (!bans.size) { slot.innerHTML = ''; return }
+
+  const items = [...bans.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([map, n]) => ({
+      label: MAP_LABELS[map] ?? map,
+      pct: Math.round((n / vetos.length) * 100),
+      valueText: `${Math.round((n / vetos.length) * 100)}%`,
+      sub: `${n}×`,
+    }))
+
+  slot.innerHTML = `
+    <div class="chart-card" style="margin-bottom:18px">
+      <div class="chart-card-title">Ban rate by map<span class="chart-card-hint">share of saved vetos where the map was banned</span></div>
+      ${hbarsHTML(items)}
+    </div>`
+  armHbars(slot)
+}
+
+function renderAll() { renderHero(); renderBanBars(); renderFilters(); renderList() }
 
 loadVetos()
