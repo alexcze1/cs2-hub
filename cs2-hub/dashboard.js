@@ -739,6 +739,17 @@ document.getElementById('stat-vods-form').innerHTML = recentForm.map(r =>
   `<span class="form-dot form-dot-${r === 'W' ? 'win' : r === 'L' ? 'loss' : 'draw'}">${r}</span>`
 ).join('')
 
+// ── Round win rate KPI — total rounds across all logged map scores ──
+{
+  let rw = 0, rl = 0
+  for (const a of Object.values(mapAgg)) { rw += a.rw; rl += a.rl }
+  const totalRounds = rw + rl
+  document.getElementById('stat-roundwr').textContent =
+    totalRounds ? `${Math.round((rw / totalRounds) * 100)}%` : '—'
+  document.getElementById('stat-roundwr-sub').textContent =
+    totalRounds ? `${rw}W — ${rl}L over ${totalRounds} rounds` : 'No map scores yet'
+}
+
 // ── Form trend — round win rate per match, oldest → newest ──────────
 function renderFormTrend() {
   const slot = document.getElementById('form-trend-slot')
@@ -773,13 +784,10 @@ function renderFormTrend() {
     </div>`
     return
   }
+  // Panel chrome already provides the title — render hint + chart only.
   slot.innerHTML = `
-    <div class="chart-card">
-      <div class="chart-card-title">Round win rate
-        <span class="chart-card-hint">last ${points.length} matches · dots colored by match result</span>
-      </div>
-      ${areaSVG(points, { width: 900, height: 190 })}
-    </div>`
+    <div class="chart-card-title"><span class="chart-card-hint">last ${points.length} matches · dots colored by match result</span></div>
+    ${areaSVG(points, { width: 900, height: 190 })}`
 }
 renderFormTrend()
 
@@ -910,8 +918,23 @@ renderActivity()
 // team_b. Demos where we can't determine the letter are skipped.
 async function renderTeamEconomy() {
   const slot = document.getElementById('team-economy-slot')
+  const dnaSlot = document.getElementById('team-dna-slot')
+  // Zone-3 DNA panel and zone-5 economy panel share one data fetch, so
+  // both are driven from here; empty states land in both slots.
+  const dnaEmpty = (title, sub) => {
+    if (dnaSlot) dnaSlot.innerHTML = `
+      <div class="empty-state-art">
+        <div class="empty-state-art-icon">·</div>
+        <div class="empty-state-art-title">${title}</div>
+        <div class="empty-state-art-sub">${sub}</div>
+      </div>`
+  }
   if (!slot) return
-  if (!teamRow?.name) { slot.innerHTML = ''; return }
+  if (!teamRow?.name) {
+    slot.innerHTML = ''
+    if (dnaSlot) dnaSlot.innerHTML = ''
+    return
+  }
 
   slot.innerHTML = `
     <div class="skeleton-strip">
@@ -922,6 +945,7 @@ async function renderTeamEconomy() {
       <div class="skeleton skeleton-card" style="height:78px"></div>
       <div class="skeleton skeleton-card" style="height:78px"></div>
     </div>`
+  if (dnaSlot) dnaSlot.innerHTML = `<div class="skeleton skeleton-card" style="height:290px"></div>`
 
   try {
     const ago30Iso = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
@@ -960,6 +984,7 @@ async function renderTeamEconomy() {
           <div class="empty-state-art-sub">Upload demos and assign which side is your team — round-by-round economy and opening duels will land here automatically.</div>
           <a href="demos.html" class="empty-state-art-cta">Upload demos →</a>
         </div>`
+      dnaEmpty('No round data yet', 'The DNA radar draws itself from the same demos as the economy tiles.')
       return
     }
 
@@ -975,6 +1000,7 @@ async function renderTeamEconomy() {
           <div class="empty-state-art-title">Stats still processing</div>
           <div class="empty-state-art-sub">demo_team_stats rows haven't been written for these demos yet — re-check in a minute.</div>
         </div>`
+      dnaEmpty('Stats still processing', 'Re-check in a minute.')
       return
     }
 
@@ -1072,7 +1098,8 @@ async function renderTeamEconomy() {
         <div class="econ-tile-sub">${agg.first_kills}–${agg.first_deaths} of ${totalFirst}</div>
       </div>`
 
-    // Team DNA radar — the six axes a coach reads first.
+    // Team DNA radar — the six axes a coach reads first. Lives in its
+    // own zone-3 panel; the panel chrome provides the title.
     const pc = v => (v && v.played ? Math.round((v.pct ?? 0) * 100) : null)
     const radar = radarSVG([
       { label: 'Pistol',   pct: pc(agg.pistols) },
@@ -1083,21 +1110,20 @@ async function renderTeamEconomy() {
       { label: 'T side',   pct: pc(agg.t) },
     ], { size: 290 })
 
+    if (dnaSlot) dnaSlot.innerHTML = `
+      <div class="dna-radar-wrap">${radar}</div>
+      <div class="chart-card-title"><span class="chart-card-hint">round-type win rates</span></div>`
+
     slot.innerHTML = `
-      <div class="econ-layout">
-        <div class="chart-card chart-card-radar">
-          <div class="chart-card-title">Team DNA<span class="chart-card-hint">round-type win rates</span></div>
-          ${radar}
-        </div>
-        <div class="econ-grid">
-          ${tileHtml}
-          ${openingTile}
-          ${utilTiles}
-        </div>
+      <div class="econ-grid">
+        ${tileHtml}
+        ${openingTile}
+        ${utilTiles}
       </div>`
   } catch (e) {
     console.warn('[dashboard] team economy failed', e)
     slot.innerHTML = ''
+    if (dnaSlot) dnaSlot.innerHTML = ''
   }
 }
 renderTeamEconomy()

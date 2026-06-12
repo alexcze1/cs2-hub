@@ -6276,16 +6276,86 @@ body[data-density="compact"] .player-heat-card { padding: 12px 10px 14px; }
 .form-loss { color: var(--danger); }
 .form-draw { color: var(--muted); }
 
-/* Two-column section: Map Pool Readiness | Attention Inbox */
-.dash-two-col {
+/* ── Dashboard zoned layout ──────────────────────────────────────────
+   Zone 1: next-match hero + agenda rail · Zone 2: KPI band
+   Zone 3+: two-up chart/panel grids and full-width panels. */
+.dash-hero-grid {
   display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 22px;
-  margin-top: 22px;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: stretch;
+  margin-bottom: 20px;
 }
-.dash-col { min-width: 0; }
+.dash-hero-cell { min-width: 0; display: flex; flex-direction: column; }
+.dash-hero-cell > .hero-card { flex: 1; }
+.dash-rail { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.dash-rail .panel-rail { flex: 1; }
+
+.kpi-band {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.dash-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  padding: 22px 24px;
+  box-shadow: var(--shadow-card);
+  min-width: 0;
+}
+.main-content > .panel { margin-bottom: 20px; }
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--lavender-2);
+  font-family: var(--display-font);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+.panel-title .section-link { letter-spacing: 0.08em; }
+
+/* Team DNA radar gets the whole panel — centered, capped width */
+.dna-radar-wrap { display: flex; justify-content: center; }
+.dna-radar-wrap .chart-radar { max-width: 320px; }
+
+/* Staggerless fade-up on the dashboard zones. CSS-only so content is
+   never stranded invisible if a script throws before observing. */
+.dash-reveal { animation: dash-reveal-up 0.55s var(--ease) both; }
+@keyframes dash-reveal-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dash-reveal { animation: none; }
+}
+
+@media (max-width: 1200px) {
+  .dash-hero-grid { grid-template-columns: 1fr; }
+}
 @media (max-width: 1080px) {
-  .dash-two-col { grid-template-columns: 1fr; }
+  .kpi-band { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dash-grid-2 { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .kpi-band { grid-template-columns: 1fr; }
 }
 
 /* Map Pool Readiness grid — 7 rows × (img, name, win%, last, strats, dot) */
@@ -7950,11 +8020,11 @@ body[data-mode="player"] .sidebar a.nav-item[href="opponents.html"],
 body[data-mode="player"] .sidebar a.nav-item[href="veto.html"],
 body[data-mode="player"] .sidebar a.nav-item[href="admin.html"],
 body[data-mode="player"] .sidebar a.nav-item[href="keywords.html"],
-body[data-mode="player"] #map-pool-slot,
-body[data-mode="player"] #attention-slot,
-body[data-mode="player"] #team-economy-slot,
-body[data-mode="player"] #share-public-btn,
-body[data-mode="player"] .dash-two-col .section-row {
+body[data-mode="player"] #map-pool-panel,
+body[data-mode="player"] #brief-panel,
+body[data-mode="player"] #economy-panel,
+body[data-mode="player"] #dna-panel,
+body[data-mode="player"] #share-public-btn {
   display: none !important;
 }
 

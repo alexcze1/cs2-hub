@@ -29,16 +29,58 @@
 
     <div class="today-strip" id="today-strip"></div>
 
-    <div id="goal-slot"></div>
-
-    <div id="hero-slot"><div class="skeleton skeleton-hero"></div></div>
-
-    <div class="dash-two-col">
-      <div class="dash-col">
-        <div class="section-row">
-          <div class="section-label">Map Pool Readiness</div>
-          <a href="stratbook.html" class="section-link">Stratbook</a>
+    <!-- Zone 1 · next match hero + agenda rail -->
+    <div class="dash-hero-grid dash-reveal">
+      <div id="hero-slot" class="dash-hero-cell"><div class="skeleton skeleton-hero"></div></div>
+      <aside class="dash-rail">
+        <div id="goal-slot"></div>
+        <div class="panel panel-rail">
+          <div class="panel-title">Next 7 days<a href="schedule.html" class="section-link">Schedule</a></div>
+          <div id="timeline-slot"></div>
         </div>
+      </aside>
+    </div>
+
+    <!-- Zone 2 · KPI band -->
+    <div class="kpi-band dash-reveal">
+      <div class="stat-card">
+        <div class="stat-label">Strats Saved</div>
+        <div class="stat-value" id="stat-strats">—</div>
+        <div class="stat-sub" id="stat-strats-sub">Loading…</div>
+      </div>
+      <div class="stat-card stat-card-success">
+        <div class="stat-label">Match Record</div>
+        <div class="stat-value stat-value-sm" id="stat-vods">—</div>
+        <div class="form-dots" id="stat-vods-form"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Round Win Rate</div>
+        <div class="stat-value" id="stat-roundwr">—</div>
+        <div class="stat-sub" id="stat-roundwr-sub">Loading…</div>
+      </div>
+      <div class="stat-card stat-card-muted" id="stat-issues-card">
+        <div class="stat-label">Open Issues</div>
+        <div class="stat-value" id="stat-issues">—</div>
+        <div class="stat-sub" id="stat-issues-sub">Loading…</div>
+      </div>
+    </div>
+
+    <!-- Zone 3 · charts row -->
+    <div class="dash-grid-2 dash-reveal">
+      <div class="panel" id="form-trend-panel">
+        <div class="panel-title">Form · Round Win Rate<a href="vods.html" class="section-link">Matches</a></div>
+        <div id="form-trend-slot"></div>
+      </div>
+      <div class="panel" id="dna-panel">
+        <div class="panel-title">Team DNA · last 30 days<a href="analysis.html" class="section-link">2D Replay</a></div>
+        <div id="team-dna-slot"></div>
+      </div>
+    </div>
+
+    <!-- Zone 4 · map pool + coach's brief -->
+    <div class="dash-grid-2 dash-reveal">
+      <div class="panel" id="map-pool-panel">
+        <div class="panel-title">Map Pool Readiness<a href="stratbook.html" class="section-link">Stratbook</a></div>
         <div id="map-pool-slot">
           <div class="skeleton-list">
             <div class="skeleton skeleton-row-tall"></div>
@@ -51,101 +93,55 @@
           </div>
         </div>
       </div>
-      <div class="dash-col">
-        <div class="section-row">
-          <div class="section-label">What needs attention</div>
-          <span class="section-link" id="attention-since"></span>
-        </div>
+      <div class="panel" id="brief-panel">
+        <div class="panel-title">Coach's Brief<span class="section-link" id="attention-since"></span></div>
         <div id="attention-slot">
           <div class="skeleton-list">
             <div class="skeleton skeleton-card"></div>
             <div class="skeleton skeleton-card"></div>
           </div>
         </div>
+        <div id="insight-slot"></div>
       </div>
     </div>
 
-    <div class="section-row">
-      <div class="section-label">Roster Heat · last 30 days</div>
-      <a href="roster.html" class="section-link">Roster</a>
+    <!-- Zone 5 · round economy -->
+    <div class="panel dash-reveal" id="economy-panel">
+      <div class="panel-title">Round Economy · last 30 days<a href="analysis.html" class="section-link">Analysis</a></div>
+      <div id="team-economy-slot"></div>
     </div>
-    <div id="player-heat-slot">
-      <div class="skeleton-strip">
-        <div class="skeleton skeleton-card" style="height:158px"></div>
-        <div class="skeleton skeleton-card" style="height:158px"></div>
-        <div class="skeleton skeleton-card" style="height:158px"></div>
-        <div class="skeleton skeleton-card" style="height:158px"></div>
-        <div class="skeleton skeleton-card" style="height:158px"></div>
+
+    <!-- Zone 6 · roster heat -->
+    <div class="panel dash-reveal" id="roster-heat-panel">
+      <div class="panel-title">Roster Heat · last 30 days<a href="roster.html" class="section-link">Roster</a></div>
+      <div id="player-heat-slot">
+        <div class="skeleton-strip">
+          <div class="skeleton skeleton-card" style="height:158px"></div>
+          <div class="skeleton skeleton-card" style="height:158px"></div>
+          <div class="skeleton skeleton-card" style="height:158px"></div>
+          <div class="skeleton skeleton-card" style="height:158px"></div>
+          <div class="skeleton skeleton-card" style="height:158px"></div>
+        </div>
       </div>
     </div>
 
-    <div class="section-row">
-      <div class="section-label">Next 7 Days</div>
-      <a href="schedule.html" class="section-link">View schedule</a>
-    </div>
-    <div id="timeline-slot">
-      <div class="skeleton-strip" style="grid-template-columns:repeat(7, 1fr)">
-        <div class="skeleton skeleton-card" style="height:84px"></div>
-        <div class="skeleton skeleton-card" style="height:84px"></div>
-        <div class="skeleton skeleton-card" style="height:84px"></div>
-        <div class="skeleton skeleton-card" style="height:84px"></div>
-        <div class="skeleton skeleton-card" style="height:84px"></div>
-        <div class="skeleton skeleton-card" style="height:84px"></div>
-        <div class="skeleton skeleton-card" style="height:84px"></div>
+    <!-- Zone 7 · recent strats + activity -->
+    <div class="dash-grid-2 dash-reveal">
+      <div class="panel">
+        <div class="panel-title">Recently Added Strats<a href="stratbook.html" class="section-link">View all</a></div>
+        <div id="recent-strats">
+          <div class="skeleton-list">
+            <div class="skeleton skeleton-row-tall"></div>
+            <div class="skeleton skeleton-row-tall"></div>
+            <div class="skeleton skeleton-row-tall"></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Activity<span class="section-link" id="activity-since">last 14 days</span></div>
+        <div id="activity-slot"></div>
       </div>
     </div>
-
-    <div id="insight-slot"></div>
-
-    <div class="stats-grid">
-      <div class="stat-card stat-card-special">
-        <div class="stat-label">Strats Saved</div>
-        <div class="stat-value" id="stat-strats">—</div>
-        <div class="stat-sub" id="stat-strats-sub">Loading…</div>
-      </div>
-      <div class="stat-card stat-card-success">
-        <div class="stat-label">Match Record</div>
-        <div class="stat-value stat-value-sm" id="stat-vods">—</div>
-        <div class="form-dots" id="stat-vods-form"></div>
-      </div>
-      <div class="stat-card stat-card-muted" id="stat-issues-card">
-        <div class="stat-label">Open Issues</div>
-        <div class="stat-value" id="stat-issues">—</div>
-        <div class="stat-sub" id="stat-issues-sub">Loading…</div>
-      </div>
-    </div>
-
-    <div class="section-row">
-      <div class="section-label">Form · Round Win Rate per Match</div>
-      <a href="vods.html" class="section-link">Matches</a>
-    </div>
-    <div id="form-trend-slot"></div>
-
-    <div class="section-row">
-      <div class="section-label">Team Economy · last 30 days</div>
-      <a href="analysis.html" class="section-link">Analysis</a>
-    </div>
-    <div id="team-economy-slot"></div>
-
-    <div class="section-row">
-      <div class="section-label">Recently Added Strats</div>
-      <a href="stratbook.html" class="section-link">View all</a>
-    </div>
-    <div id="recent-strats">
-      <div class="skeleton-list">
-        <div class="skeleton skeleton-row-tall"></div>
-        <div class="skeleton skeleton-row-tall"></div>
-        <div class="skeleton skeleton-row-tall"></div>
-        <div class="skeleton skeleton-row-tall"></div>
-        <div class="skeleton skeleton-row-tall"></div>
-      </div>
-    </div>
-
-    <div class="section-row">
-      <div class="section-label">Activity</div>
-      <span class="section-link" id="activity-since">last 14 days</span>
-    </div>
-    <div id="activity-slot"></div>
   </main>
 </div>
 <script type="module" src="dashboard.js"></script>
