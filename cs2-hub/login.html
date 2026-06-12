@@ -33,6 +33,14 @@
       pointer-events: none;
     }
 
+    /* Generative pixel-marble frame around the card (pixel-field.js) —
+       masked so the pattern lives at the edges, never under the card. */
+    .login-page > .pixel-canvas {
+      opacity: 0.6;
+      -webkit-mask-image: radial-gradient(640px 460px at 50% 50%, transparent 42%, #000 78%);
+      mask-image: radial-gradient(640px 460px at 50% 50%, transparent 42%, #000 78%);
+    }
+
     .login-card {
       width: 100%;
       max-width: 420px;
@@ -183,6 +191,9 @@
 </div>
 <script type="module">
   import { supabase } from './supabase.js'
+  import { attachPixelField } from './pixel-field.js'
+
+  attachPixelField(document.querySelector('.login-page'), { cell: 14 })
 
   const { data: { session } } = await supabase.auth.getSession()
   if (session) {

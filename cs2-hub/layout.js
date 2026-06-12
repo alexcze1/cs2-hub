@@ -5,6 +5,7 @@ import { initHoverPreview } from './hover-preview.js'
 import { initPresence } from './presence.js'
 import { initTooltips } from './tooltip.js'
 import { countUp } from './charts.js'
+import { initPixelFields } from './pixel-field.js'
 
 // One-time chrome installation: PWA manifest link, service-worker
 // registration, command palette + keyboard shortcuts. Idempotent — every
@@ -53,6 +54,9 @@ function installChrome() {
 
   // Command palette + keyboard shortcuts (Cmd-K, ?, g-d, etc.)
   initCommandPalette()
+
+  // Generative pixel-marble fields on hero cards + empty states.
+  initPixelFields()
 
   // Hover preview cards for [data-preview-demo] / [data-preview-vod].
   initHoverPreview()

@@ -8466,23 +8466,31 @@ body::after {
     var(--bg-card);
 }
 
-/* ── Hero dither: dot-matrix field dissolving across the right edge.
-   Injected by dashboard.js as a child of .hero-card; the mask lives on
-   this div so the card itself is never clipped. ── */
-.hero-card > .hero-dither {
+/* ── Generative pixel-marble fields (pixel-field.js) ── chunky square-
+   cell noise quantized into lavender blocks + halftone cells — the
+   wounder generative-graphics idiom. The canvas is injected as the
+   first child of its host; masks live here so hosts are never clipped. */
+.pixel-canvas {
   position: absolute;
-  top: 0; right: 0; bottom: 0;
-  width: 48%;
+  inset: 0;
+  /* canvas is a replaced element — inset alone never stretches it */
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.hero-card > .pixel-canvas {
+  left: auto;
+  width: 54%;
   z-index: 0;
   filter: none;
-  pointer-events: none;
-  background-image:
-    radial-gradient(circle, rgba(var(--lavender-1-rgb), 0.55) 1.2px, transparent 1.4px),
-    radial-gradient(circle, rgba(var(--lavender-2-rgb), 0.38) 1px, transparent 1.2px);
-  background-size: 7px 7px, 11px 11px;
-  background-position: 0 0, 3px 5px;
-  -webkit-mask-image: linear-gradient(100deg, transparent 4%, rgba(0,0,0,0.45) 52%, #000 88%);
-  mask-image: linear-gradient(100deg, transparent 4%, rgba(0,0,0,0.45) 52%, #000 88%);
+  -webkit-mask-image: linear-gradient(97deg, transparent 2%, rgba(0,0,0,0.55) 45%, #000 85%);
+  mask-image: linear-gradient(97deg, transparent 2%, rgba(0,0,0,0.55) 45%, #000 85%);
+}
+.empty-state-art > .pixel-canvas {
+  z-index: -1;
+  opacity: 0.55;
+  -webkit-mask-image: radial-gradient(closest-side at 50% 42%, transparent 30%, #000 96%);
+  mask-image: radial-gradient(closest-side at 50% 42%, transparent 30%, #000 96%);
 }
 
 /* ── Guard rails ── */
@@ -8490,7 +8498,7 @@ body::after {
   .stat-value::after { animation: none; }
 }
 @media print {
-  body::before, body::after, .hud-ticks, .hero-dither,
+  body::before, body::after, .hud-ticks, .pixel-canvas,
   .panel::after, .stat-card::after { display: none !important; }
   .stat-value::after { content: none; }
 }
