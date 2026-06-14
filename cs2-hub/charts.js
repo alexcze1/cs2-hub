@@ -67,6 +67,32 @@ export function radarSVG(axes, { size = 280 } = {}) {
     </svg>`
 }
 
+// ── Donut / gauge ────────────────────────────────────────────────────
+// A single-value ring with the percentage in the middle. tone colors the
+// arc (good/bad/accent). Used for headline rates (round WR, etc.).
+export function donutSVG(pct, { size = 120, thickness = 11, sublabel = '', tone = '' } = {}) {
+  const r = (size - thickness) / 2
+  const c = size / 2
+  const circ = 2 * Math.PI * r
+  const p = pct == null ? 0 : Math.max(0, Math.min(100, pct))
+  const dash = (p / 100) * circ
+  const color = tone === 'good' ? 'var(--success)'
+    : tone === 'bad' ? 'var(--danger)'
+    : tone === 'warn' ? 'var(--warning)'
+    : 'var(--lavender-2)'
+  const big = pct == null ? '—' : `${Math.round(pct)}%`
+  return `
+    <svg class="chart-donut" viewBox="0 0 ${size} ${size}" role="img" aria-label="${escText(sublabel)} ${big}">
+      <circle class="donut-track" cx="${c}" cy="${c}" r="${r.toFixed(1)}" stroke-width="${thickness}" fill="none"/>
+      <circle class="donut-arc" cx="${c}" cy="${c}" r="${r.toFixed(1)}" stroke-width="${thickness}" fill="none"
+              stroke="${color}" stroke-linecap="round"
+              stroke-dasharray="${dash.toFixed(2)} ${(circ - dash).toFixed(2)}"
+              transform="rotate(-90 ${c} ${c})"/>
+      <text class="donut-value" x="${c}" y="${c}" text-anchor="middle" dominant-baseline="central">${big}</text>
+      ${sublabel ? `<text class="donut-sub" x="${c}" y="${(c + size * 0.2).toFixed(1)}" text-anchor="middle">${escText(sublabel)}</text>` : ''}
+    </svg>`
+}
+
 // ── Smooth trend area chart ──────────────────────────────────────────
 // points: [{ v (0–100), label, tone? ('good'|'bad') }] — tone colors the dot
 // (e.g. win/loss). Renders a 50% reference line, gradient fill and a glow

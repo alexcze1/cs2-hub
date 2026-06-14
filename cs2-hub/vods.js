@@ -9,10 +9,7 @@ import { renderSidebar } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { mountFilter } from './vods-filter.js'
 import { renderHero } from './vods-hero.js'
-import { renderPlayerImpact } from './vods-player-impact.js'
-import { renderMapPool } from './vods-map-pool.js'
-import { renderTeamStats } from './vods-team-stats.js'
-import { renderAdvancedTeamStats } from './vods-team-stats-advanced.js'
+import { renderStatsCockpit } from './vods-stats-cockpit.js'
 import { renderMatchReports } from './vods-match-reports.js'
 import { splitVodsByWindow } from './vods-trend.js'
 import { mountPlayerPanel } from './vods-player-panel.js'
@@ -30,14 +27,14 @@ const teamId = getTeamId()
 const panel = mountPlayerPanel(document.getElementById('rr-player-panel-slot'))
 
 function clearActivePlayerCard() {
-  for (const el of document.querySelectorAll('.rr-player-card.is-active')) {
+  for (const el of document.querySelectorAll('.sc-player.is-active')) {
     el.classList.remove('is-active')
   }
 }
 
 function markActivePlayerCard(playerId) {
   clearActivePlayerCard()
-  const el = document.querySelector(`.rr-player-card[data-id="${CSS.escape(playerId)}"]`)
+  const el = document.querySelector(`.sc-player[data-id="${CSS.escape(playerId)}"]`)
   if (el) el.classList.add('is-active')
 }
 
@@ -76,8 +73,6 @@ const HERO_FILTER_SLOT = 'rr-filter-slot'
 renderHero(document.getElementById('rr-hero'), { vods: allVods, filterSlotId: HERO_FILTER_SLOT })
 
 if (allVods.length === 0) {
-  document.getElementById('rr-player-impact').innerHTML = ''
-  document.getElementById('rr-map-pool').innerHTML = ''
   document.getElementById('rr-match-reports').innerHTML = ''
 }
 
@@ -139,7 +134,7 @@ function setScopeMode(mode) {
 function showScoutPlaceholder() {
   scoutOverview.innerHTML = ''
   document.getElementById('rr-hero').innerHTML = `<div class="empty-state" style="padding:32px;text-align:center"><h3>Pick a team to scout</h3><p>Type a name in the input above to load their matches and stats.</p></div>`
-  for (const id of ['rr-team-stats','rr-player-impact','rr-map-pool','rr-team-stats-advanced','rr-match-reports']) {
+  for (const id of ['rr-stats-cockpit','rr-match-reports']) {
     document.getElementById(id).innerHTML = ''
   }
 }
@@ -752,35 +747,33 @@ async function rebuild(filter) {
     rowsCurrent, rowsPrior,
   }
 
-  renderTeamStats(document.getElementById('rr-team-stats'), {
-    rowsCurrent: teamStatsCurrent,
-    rowsPrior:   teamStatsPrior,
-    ourTeamByDemoId: data.ourTeamByDemoId,
-  })
   // Use synthesized roster for scout mode (no `roster` table entries for
   // an arbitrary team). Falls back to own-team roster.
   const rosterForRender = isScout ? (data.syntheticRoster || []) : roster
-  renderPlayerImpact(document.getElementById('rr-player-impact'), {
-    roster: rosterForRender, rowsCurrent, rowsPrior, onPick: openPlayerPanel,
-  })
   const { current: unlinkedDemosCurrent, prior: unlinkedDemosPrior } = partitionUnlinkedDemos({
     demos: data.demos,
     demoToVod: data.demoToVod,
     filter,
   })
-  renderMapPool(document.getElementById('rr-map-pool'), {
+
+  // One consolidated cockpit — radar, tactical matrix (tabbed), map pool,
+  // form, player strip — replaces the four old stacked stat sections.
+  renderStatsCockpit(document.getElementById('rr-stats-cockpit'), {
+    teamStatsCurrent, teamStatsPrior,
+    ourTeamByDemoId: data.ourTeamByDemoId,
+    playerRowsCurrent: rowsCurrent,
+    playerRowsPrior:   rowsPrior,
     vodsCurrent: currentFiltered,
-    vodsPrior: priorFiltered,
-    activeMap: state.mapFilter,
+    vodsPrior:   priorFiltered,
     unlinkedDemosCurrent,
     unlinkedDemosPrior,
     ourTeamName: ctx.teamName,
+    activeMap: state.mapFilter,
+    roster: rosterForRender,
+    onPick: openPlayerPanel,
+    activePlayerId: state.openPlayerId,
   })
-  renderAdvancedTeamStats(document.getElementById('rr-team-stats-advanced'), {
-    teamStatsRows: teamStatsCurrent,
-    playerRowsAll: rowsCurrent,
-    ourTeamByDemoId: data.ourTeamByDemoId,
-  })
+
   // our-team-filtered team_stats keyed by demo_id (for "dominant side" highlight)
   const teamStatsByDemoId = new Map()
   for (const r of teamStatsCurrent) {
