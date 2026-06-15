@@ -11,10 +11,6 @@ function esc(text) {
   return d.innerHTML
 }
 
-// Theme / density / coach-player view live in the sidebar Preferences
-// popover (layout.js) — installChrome() applies the persisted values on
-// every page, so no per-page wiring is needed here anymore.
-
 // Public team profile share — builds the canonical /public-team.html
 // URL for the active team and either invokes the native share sheet
 // (mobile, Safari) or copies to clipboard with a short success
