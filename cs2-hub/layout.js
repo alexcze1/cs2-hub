@@ -232,7 +232,7 @@ export async function renderSidebar(activePage) {
 
   let html = `
     <div class="sidebar-brand">
-      <img src="images/logo-lettering.png" alt="MIDROUND" class="sidebar-logo-img"/>
+      <div class="sidebar-logo-img" aria-label="MIDROUND">MIDROUND</div>
       <div class="team-name">${esc(teamName)}</div>
     </div>`
 

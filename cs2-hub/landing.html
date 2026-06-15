@@ -88,7 +88,10 @@
       border-color: rgba(255,255,255,0.07);
     }
     .nav-logo {
-      width: 130px;
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      color: #fff;
       opacity: 0.9;
       display: block;
     }
@@ -136,10 +139,17 @@
     }
     .hero-content { position: relative; z-index: 1; }
     .hero-logo {
-      width: 200px;
-      opacity: 0.9;
       display: block;
       margin: 0 auto 32px;
+      font-size: clamp(40px, 9vw, 68px);
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      line-height: 1;
+      background: linear-gradient(180deg, #FFFFFF 0%, #C9BCFF 80%, #A995FF 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
     }
     .hero-headline {
       font-family: 'Inter', sans-serif;
@@ -593,7 +603,7 @@
       flex-wrap: wrap;
       gap: 12px;
     }
-    .footer-logo { width: 110px; opacity: 0.5; display: block; }
+    .footer-logo { font-size: 16px; font-weight: 800; letter-spacing: 0.18em; color: #fff; opacity: 0.5; display: block; }
     .footer-copy { color: var(--muted); font-size: 12px; letter-spacing: 0.5px; }
 
     /* ── Reveal animations ── */
@@ -912,7 +922,7 @@
   <div class="grain"></div>
 
   <nav class="site-nav" id="site-nav">
-    <img src="images/logo-lettering.png" alt="MIDROUND" class="nav-logo"/>
+    <span class="nav-logo">MIDROUND</span>
     <a href="#waitlist" class="nav-cta">Request Access</a>
   </nav>
 
@@ -920,7 +930,7 @@
     <div class="hero-glow"></div>
     <div class="hero-grid"></div>
     <div class="hero-content reveal">
-      <img src="images/logo-lettering.png" alt="MIDROUND" class="hero-logo"/>
+      <div class="hero-logo">MIDROUND</div>
       <h1 class="hero-headline">THE PLATFORM SERIOUS<br>CS2 TEAMS USE.</h1>
       <p class="hero-sub">Stratbook &nbsp;·&nbsp; Anti-strat &nbsp;·&nbsp; Results & Review &nbsp;·&nbsp; Schedule</p>
       <a href="#waitlist" class="hero-cta">Request Access →</a>
@@ -1439,7 +1449,7 @@
   </section>
 
   <footer class="site-footer reveal">
-    <img src="images/logo-lettering.png" alt="MIDROUND" class="footer-logo"/>
+    <span class="footer-logo">MIDROUND</span>
     <span class="footer-copy">© MIDROUND 2026</span>
   </footer>
 

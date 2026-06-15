@@ -339,12 +339,13 @@ body {
   margin-bottom: 12px;
 }
 .sidebar-logo-img {
-  width: 100%;
-  max-width: 132px;
-  height: auto;
-  object-fit: contain;
-  margin-bottom: 12px;
   display: block;
+  margin-bottom: 12px;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: var(--accent);
+  line-height: 1;
 }
 .team-name {
   color: var(--text-secondary);
@@ -7499,9 +7500,11 @@ body.public-profile {
   justify-content: space-between;
   margin-bottom: 28px;
 }
-.public-brand img {
-  height: 22px;
-  width: auto;
+.public-brand .public-wordmark {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: var(--text, #fff);
   display: block;
   opacity: 0.9;
 }
