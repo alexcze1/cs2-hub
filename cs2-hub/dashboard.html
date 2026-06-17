@@ -7,144 +7,254 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dashboard — MIDROUND</title>
   <link rel="stylesheet" href="style.css"/>
+  <style>
+    /* ===================================================================
+       DASHBOARD COCKPIT — premium 3-column analytics layout.
+       Scoped to .dash-cockpit so the rest of the app is untouched. Reuses
+       the existing component classes (hero-card, map-pool, radar, area,
+       attention, player-heat, timeline, stat-card) and only restructures
+       the page into main + right-rail with refined chrome.
+       =================================================================== */
+    :root { --rail-w: 320px; }
+    body { background:
+      radial-gradient(1200px 560px at 74% -10%, rgba(var(--lavender-3-rgb), 0.09), transparent 60%),
+      var(--bg-primary); }
+
+    .dash-cockpit { padding: 26px 32px 44px; }
+
+    /* ── Header ── */
+    .ck-header { display:flex; align-items:flex-start; justify-content:space-between; gap:24px; margin-bottom:18px; flex-wrap:wrap; }
+    .ck-kicker { font-family:var(--mono-font); font-size:10.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+    .ck-greet { font-family:var(--display-font); font-size:27px; font-weight:700; letter-spacing:-0.022em; line-height:1.1; color:var(--text-primary); }
+    .ck-sub { color:var(--muted); font-size:13.5px; margin-top:6px; letter-spacing:.01em; }
+    .ck-actions { display:flex; align-items:center; gap:9px; flex-shrink:0; padding-top:2px; }
+    .icon-btn { width:38px; height:38px; display:grid; place-items:center; border-radius:11px;
+      border:1px solid var(--glass-border); background:var(--glass-bg); color:var(--text-secondary); cursor:pointer; position:relative;
+      transition: color var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease), background var(--dur-2) var(--ease); }
+    .icon-btn:hover { color:var(--text-primary); border-color:rgba(var(--lavender-2-rgb),0.3); background:var(--surface-high); }
+    .icon-btn svg { width:18px; height:18px; }
+    .icon-btn .ping { position:absolute; top:8px; right:9px; width:7px; height:7px; border-radius:50%;
+      background:var(--accent); box-shadow:0 0 0 2px var(--glass-bg), 0 0 8px rgba(var(--lavender-3-rgb),.8); }
+    .btn-add { display:inline-flex; align-items:center; gap:7px; }
+    .btn-add svg { width:16px; height:16px; }
+
+    /* ── Two-column grid ── */
+    .ck-grid { display:grid; grid-template-columns: minmax(0,1fr) var(--rail-w); gap:22px; align-items:start; }
+    .ck-main { display:flex; flex-direction:column; gap:20px; min-width:0; }
+    .ck-rail { display:flex; flex-direction:column; gap:18px; position:sticky; top:20px; }
+    .ck-row2 { display:grid; grid-template-columns: 1.5fr 1fr; gap:20px; }
+    .ck-row2.even { grid-template-columns: 1fr 1fr; }
+
+    /* ── KPI band restyle (4-up, tighter than the 56px hero stat) ── */
+    .dash-cockpit .kpi-band { display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; }
+    .dash-cockpit .kpi-band .stat-card { padding:16px 18px 15px; border-radius:16px; }
+    .dash-cockpit .stat-card .stat-ic { position:absolute; top:16px; right:16px; width:32px; height:32px; border-radius:9px;
+      display:grid; place-items:center; background:rgba(var(--lavender-3-rgb),0.1); color:var(--lavender-2);
+      border:1px solid rgba(var(--lavender-3-rgb),0.16); }
+    .dash-cockpit .stat-card .stat-ic svg { width:16px; height:16px; }
+    .dash-cockpit .stat-card-success .stat-ic { background:rgba(var(--success-rgb),0.1); color:var(--success); border-color:rgba(var(--success-rgb),0.18); }
+    .dash-cockpit .stat-card-muted .stat-ic { background:rgba(255,176,32,0.08); color:var(--warning); border-color:rgba(255,176,32,0.16); }
+    .dash-cockpit .stat-card .stat-label { font-size:10px; letter-spacing:.13em; margin-bottom:12px; color:var(--muted); }
+    .dash-cockpit .stat-card-success .stat-label { color:var(--success); }
+    .dash-cockpit .stat-card-muted .stat-label { color:var(--warning); }
+    .dash-cockpit .stat-card .stat-value { font-size:32px; }
+    .dash-cockpit .stat-card .stat-value-sm { font-size:26px; }
+    .dash-cockpit .stat-card .stat-sub { font-size:11.5px; margin-top:8px; }
+
+    /* ── Panels: tighter heads inside the cockpit ── */
+    .dash-cockpit .panel { padding:18px 20px; border-radius:var(--r-lg); }
+    .dash-cockpit .main-content > .panel { margin-bottom:0; }
+    .dash-cockpit .panel-title { font-size:13.5px; }
+    .dash-cockpit .panel-rail .panel-title { margin-bottom:12px; }
+
+    /* ── Compact next-match hero for the cockpit ── */
+    .dash-cockpit .hero-card { padding:20px 22px; border-radius:var(--r-lg); }
+
+    /* ── Today strip slimmer ── */
+    .dash-cockpit .today-strip { margin-bottom:16px; }
+
+    /* ── Rail cards reuse .panel; give the schedule/goal a touch more rhythm ── */
+    .ck-rail .panel { padding:16px 18px; }
+
+    @media (max-width: 1280px) {
+      .ck-grid { grid-template-columns: 1fr; }
+      .ck-rail { position:static; display:grid; grid-template-columns: repeat(2,1fr); }
+    }
+    @media (max-width: 1080px) {
+      .dash-cockpit .kpi-band { grid-template-columns: repeat(2,1fr); }
+      .ck-row2, .ck-row2.even { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .dash-cockpit { padding:18px 16px 32px; }
+      .dash-cockpit .kpi-band { grid-template-columns:1fr; }
+      .ck-rail { grid-template-columns:1fr; }
+      .ck-header { flex-direction:column; }
+    }
+  </style>
 </head>
 <body>
 <div class="app-shell">
   <nav class="sidebar" id="sidebar"></nav>
-  <main class="main-content">
-    <div class="page-header dash-header">
+  <main class="main-content dash-cockpit">
+
+    <!-- ── Header ── -->
+    <header class="ck-header">
       <div>
-        <div class="page-kicker">Overview</div>
-        <div class="page-title" id="page-greeting">Dashboard</div>
-        <div class="page-sub" id="date-sub"></div>
+        <div class="ck-kicker" id="date-sub">Overview</div>
+        <h1 class="ck-greet" id="page-greeting">Dashboard</h1>
+        <div class="ck-sub">Focus. Review. Improve.</div>
       </div>
-      <div class="page-header-actions">
-        <span class="hud-ticks" aria-hidden="true"></span>
+      <div class="ck-actions">
         <span class="tier-badge" id="tier-badge" title="Team tier" style="display:none"></span>
+        <button type="button" class="icon-btn" id="dash-search" aria-label="Search" title="Search (⌘K)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+        <button type="button" class="icon-btn" aria-label="Notifications" title="Notifications">
+          <span class="ping"></span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </button>
         <button type="button" class="btn btn-ghost btn-sm" id="share-public-btn"
                 aria-label="Share public team profile" title="Copy public profile link">
           <span id="share-public-label">Share Profile</span>
         </button>
+        <a class="btn btn-primary btn-add" href="vods.html" title="Add a match review">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Match
+        </a>
       </div>
-    </div>
+    </header>
 
     <div class="today-strip" id="today-strip"></div>
 
-    <!-- Zone 1 · next match hero + agenda rail -->
-    <div class="dash-hero-grid dash-reveal">
-      <div id="hero-slot" class="dash-hero-cell"><div class="skeleton skeleton-hero"></div></div>
-      <aside class="dash-rail">
+    <!-- ── Cockpit grid ── -->
+    <div class="ck-grid dash-reveal">
+
+      <!-- MAIN COLUMN -->
+      <div class="ck-main">
+
+        <!-- Next match hero -->
+        <div id="hero-slot" class="dash-hero-cell"><div class="skeleton skeleton-hero"></div></div>
+
+        <!-- KPI band -->
+        <div class="kpi-band">
+          <div class="stat-card">
+            <span class="stat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
+            <div class="stat-label">Strats Saved</div>
+            <div class="stat-value" id="stat-strats">—</div>
+            <div class="stat-sub" id="stat-strats-sub">Loading…</div>
+          </div>
+          <div class="stat-card stat-card-success">
+            <span class="stat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></span>
+            <div class="stat-label">Match Record</div>
+            <div class="stat-value stat-value-sm" id="stat-vods">—</div>
+            <div class="form-dots" id="stat-vods-form"></div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+            <div class="stat-label">Round Win Rate</div>
+            <div class="stat-value" id="stat-roundwr">—</div>
+            <div class="stat-sub" id="stat-roundwr-sub">Loading…</div>
+          </div>
+          <div class="stat-card stat-card-muted" id="stat-issues-card">
+            <span class="stat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+            <div class="stat-label">Open Issues</div>
+            <div class="stat-value" id="stat-issues">—</div>
+            <div class="stat-sub" id="stat-issues-sub">Loading…</div>
+          </div>
+        </div>
+
+        <!-- Form trend + Map pool -->
+        <div class="ck-row2">
+          <div class="panel" id="form-trend-panel">
+            <div class="panel-title">Form · Round Win Rate<a href="vods.html" class="section-link">Matches</a></div>
+            <div id="form-trend-slot"></div>
+          </div>
+          <div class="panel" id="map-pool-panel">
+            <div class="panel-title">Map Pool Readiness<a href="stratbook.html" class="section-link">Stratbook</a></div>
+            <div id="map-pool-slot">
+              <div class="skeleton-list">
+                <div class="skeleton skeleton-row-tall"></div>
+                <div class="skeleton skeleton-row-tall"></div>
+                <div class="skeleton skeleton-row-tall"></div>
+                <div class="skeleton skeleton-row-tall"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Team DNA radar + Coach's brief -->
+        <div class="ck-row2 even">
+          <div class="panel" id="dna-panel">
+            <div class="panel-title">Team Strengths · last 30 days<a href="analysis.html" class="section-link">2D Replay</a></div>
+            <div id="team-dna-slot"></div>
+          </div>
+          <div class="panel" id="brief-panel">
+            <div class="panel-title">Coach's Brief<span class="section-link" id="attention-since"></span></div>
+            <div id="attention-slot">
+              <div class="skeleton-list">
+                <div class="skeleton skeleton-card"></div>
+                <div class="skeleton skeleton-card"></div>
+              </div>
+            </div>
+            <div id="insight-slot"></div>
+          </div>
+        </div>
+
+        <!-- Round economy -->
+        <div class="panel" id="economy-panel">
+          <div class="panel-title">Round Economy · last 30 days<a href="analysis.html" class="section-link">Analysis</a></div>
+          <div id="team-economy-slot"></div>
+        </div>
+
+        <!-- Roster heat -->
+        <div class="panel" id="roster-heat-panel">
+          <div class="panel-title">Roster Heat · last 30 days<a href="roster.html" class="section-link">Roster</a></div>
+          <div id="player-heat-slot">
+            <div class="skeleton-strip">
+              <div class="skeleton skeleton-card" style="height:158px"></div>
+              <div class="skeleton skeleton-card" style="height:158px"></div>
+              <div class="skeleton skeleton-card" style="height:158px"></div>
+              <div class="skeleton skeleton-card" style="height:158px"></div>
+              <div class="skeleton skeleton-card" style="height:158px"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recently added strats -->
+        <div class="panel">
+          <div class="panel-title">Recently Added Strats<a href="stratbook.html" class="section-link">View all</a></div>
+          <div id="recent-strats">
+            <div class="skeleton-list">
+              <div class="skeleton skeleton-row-tall"></div>
+              <div class="skeleton skeleton-row-tall"></div>
+              <div class="skeleton skeleton-row-tall"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT RAIL -->
+      <aside class="ck-rail">
         <div id="goal-slot"></div>
         <div class="panel panel-rail">
           <div class="panel-title">Next 7 days<a href="schedule.html" class="section-link">Schedule</a></div>
           <div id="timeline-slot"></div>
         </div>
+        <div class="panel panel-rail">
+          <div class="panel-title">Activity<span class="section-link" id="activity-since">last 14 days</span></div>
+          <div id="activity-slot"></div>
+        </div>
       </aside>
-    </div>
-
-    <!-- Zone 2 · KPI band -->
-    <div class="kpi-band dash-reveal">
-      <div class="stat-card">
-        <div class="stat-label">Strats Saved</div>
-        <div class="stat-value" id="stat-strats">—</div>
-        <div class="stat-sub" id="stat-strats-sub">Loading…</div>
-      </div>
-      <div class="stat-card stat-card-success">
-        <div class="stat-label">Match Record</div>
-        <div class="stat-value stat-value-sm" id="stat-vods">—</div>
-        <div class="form-dots" id="stat-vods-form"></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Round Win Rate</div>
-        <div class="stat-value" id="stat-roundwr">—</div>
-        <div class="stat-sub" id="stat-roundwr-sub">Loading…</div>
-      </div>
-      <div class="stat-card stat-card-muted" id="stat-issues-card">
-        <div class="stat-label">Open Issues</div>
-        <div class="stat-value" id="stat-issues">—</div>
-        <div class="stat-sub" id="stat-issues-sub">Loading…</div>
-      </div>
-    </div>
-
-    <!-- Zone 3 · charts row -->
-    <div class="dash-grid-2 dash-reveal">
-      <div class="panel" id="form-trend-panel">
-        <div class="panel-title">Form · Round Win Rate<a href="vods.html" class="section-link">Matches</a></div>
-        <div id="form-trend-slot"></div>
-      </div>
-      <div class="panel" id="dna-panel">
-        <div class="panel-title">Team DNA · last 30 days<a href="analysis.html" class="section-link">2D Replay</a></div>
-        <div id="team-dna-slot"></div>
-      </div>
-    </div>
-
-    <!-- Zone 4 · map pool + coach's brief -->
-    <div class="dash-grid-2 dash-reveal">
-      <div class="panel" id="map-pool-panel">
-        <div class="panel-title">Map Pool Readiness<a href="stratbook.html" class="section-link">Stratbook</a></div>
-        <div id="map-pool-slot">
-          <div class="skeleton-list">
-            <div class="skeleton skeleton-row-tall"></div>
-            <div class="skeleton skeleton-row-tall"></div>
-            <div class="skeleton skeleton-row-tall"></div>
-            <div class="skeleton skeleton-row-tall"></div>
-            <div class="skeleton skeleton-row-tall"></div>
-            <div class="skeleton skeleton-row-tall"></div>
-            <div class="skeleton skeleton-row-tall"></div>
-          </div>
-        </div>
-      </div>
-      <div class="panel" id="brief-panel">
-        <div class="panel-title">Coach's Brief<span class="section-link" id="attention-since"></span></div>
-        <div id="attention-slot">
-          <div class="skeleton-list">
-            <div class="skeleton skeleton-card"></div>
-            <div class="skeleton skeleton-card"></div>
-          </div>
-        </div>
-        <div id="insight-slot"></div>
-      </div>
-    </div>
-
-    <!-- Zone 5 · round economy -->
-    <div class="panel dash-reveal" id="economy-panel">
-      <div class="panel-title">Round Economy · last 30 days<a href="analysis.html" class="section-link">Analysis</a></div>
-      <div id="team-economy-slot"></div>
-    </div>
-
-    <!-- Zone 6 · roster heat -->
-    <div class="panel dash-reveal" id="roster-heat-panel">
-      <div class="panel-title">Roster Heat · last 30 days<a href="roster.html" class="section-link">Roster</a></div>
-      <div id="player-heat-slot">
-        <div class="skeleton-strip">
-          <div class="skeleton skeleton-card" style="height:158px"></div>
-          <div class="skeleton skeleton-card" style="height:158px"></div>
-          <div class="skeleton skeleton-card" style="height:158px"></div>
-          <div class="skeleton skeleton-card" style="height:158px"></div>
-          <div class="skeleton skeleton-card" style="height:158px"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Zone 7 · recent strats + activity -->
-    <div class="dash-grid-2 dash-reveal">
-      <div class="panel">
-        <div class="panel-title">Recently Added Strats<a href="stratbook.html" class="section-link">View all</a></div>
-        <div id="recent-strats">
-          <div class="skeleton-list">
-            <div class="skeleton skeleton-row-tall"></div>
-            <div class="skeleton skeleton-row-tall"></div>
-            <div class="skeleton skeleton-row-tall"></div>
-          </div>
-        </div>
-      </div>
-      <div class="panel">
-        <div class="panel-title">Activity<span class="section-link" id="activity-since">last 14 days</span></div>
-        <div id="activity-slot"></div>
-      </div>
     </div>
   </main>
 </div>
 <script type="module" src="dashboard.js"></script>
+<script>
+  // Header search button → open the command palette (Cmd/Ctrl-K).
+  document.getElementById('dash-search')?.addEventListener('click', () => {
+    const ev = new KeyboardEvent('keydown', { key: 'k', metaKey: true, ctrlKey: true, bubbles: true })
+    document.dispatchEvent(ev)
+  })
+</script>
 </body>
 </html>
