@@ -9,27 +9,24 @@
   <link rel="stylesheet" href="style.css"/>
   <style>
     /* ===================================================================
-       DASHBOARD COCKPIT — premium 3-column analytics layout.
-       Scoped to .dash-cockpit so the rest of the app is untouched. Reuses
-       the existing component classes (hero-card, map-pool, radar, area,
-       attention, player-heat, timeline, stat-card) and only restructures
-       the page into main + right-rail with refined chrome.
+       DASHBOARD — premium 3-column analytics cockpit. Reuses MIDROUND
+       tokens from style.css; all data wired live in dashboard.js.
        =================================================================== */
-    :root { --rail-w: 320px; }
+    :root { --rail-w: 322px; }
     body { background:
       radial-gradient(1200px 560px at 74% -10%, rgba(var(--lavender-3-rgb), 0.09), transparent 60%),
       var(--bg-primary); }
+    .dash-cockpit { padding: 26px 30px 44px; }
 
-    .dash-cockpit { padding: 26px 32px 44px; }
-
-    /* ── Header ── */
-    .ck-header { display:flex; align-items:flex-start; justify-content:space-between; gap:24px; margin-bottom:18px; flex-wrap:wrap; }
-    .ck-kicker { font-family:var(--mono-font); font-size:10.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+    /* Header */
+    .ck-header { display:flex; align-items:flex-start; justify-content:space-between; gap:24px; margin-bottom:22px; flex-wrap:wrap; }
+    .ck-kicker { font-family:var(--mono-font); font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
     .ck-greet { font-family:var(--display-font); font-size:27px; font-weight:700; letter-spacing:-0.022em; line-height:1.1; color:var(--text-primary); }
-    .ck-sub { color:var(--muted); font-size:13.5px; margin-top:6px; letter-spacing:.01em; }
+    .ck-greet .accent { color:var(--lavender-1); }
+    .ck-sub { color:var(--muted); font-size:13.5px; margin-top:6px; }
     .ck-actions { display:flex; align-items:center; gap:9px; flex-shrink:0; padding-top:2px; }
-    .icon-btn { width:38px; height:38px; display:grid; place-items:center; border-radius:11px;
-      border:1px solid var(--glass-border); background:var(--glass-bg); color:var(--text-secondary); cursor:pointer; position:relative;
+    .icon-btn { width:38px; height:38px; display:grid; place-items:center; border-radius:11px; border:1px solid var(--glass-border);
+      background:var(--glass-bg); color:var(--text-secondary); cursor:pointer; position:relative;
       transition: color var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease), background var(--dur-2) var(--ease); }
     .icon-btn:hover { color:var(--text-primary); border-color:rgba(var(--lavender-2-rgb),0.3); background:var(--surface-high); }
     .icon-btn svg { width:18px; height:18px; }
@@ -38,56 +35,165 @@
     .btn-add { display:inline-flex; align-items:center; gap:7px; }
     .btn-add svg { width:16px; height:16px; }
 
-    /* ── Two-column grid ── */
+    /* Grid */
     .ck-grid { display:grid; grid-template-columns: minmax(0,1fr) var(--rail-w); gap:22px; align-items:start; }
     .ck-main { display:flex; flex-direction:column; gap:20px; min-width:0; }
-    .ck-rail { display:flex; flex-direction:column; gap:18px; position:sticky; top:20px; }
-    .ck-row2 { display:grid; grid-template-columns: 1.5fr 1fr; gap:20px; }
-    .ck-row2.even { grid-template-columns: 1fr 1fr; }
+    .ck-rail { display:flex; flex-direction:column; gap:18px; }
 
-    /* ── KPI band restyle (4-up, tighter than the 56px hero stat) ── */
-    .dash-cockpit .kpi-band { display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; }
-    .dash-cockpit .kpi-band .stat-card { padding:16px 18px 15px; border-radius:16px; }
-    .dash-cockpit .stat-card .stat-ic { position:absolute; top:16px; right:16px; width:32px; height:32px; border-radius:9px;
-      display:grid; place-items:center; background:rgba(var(--lavender-3-rgb),0.1); color:var(--lavender-2);
-      border:1px solid rgba(var(--lavender-3-rgb),0.16); }
-    .dash-cockpit .stat-card .stat-ic svg { width:16px; height:16px; }
-    .dash-cockpit .stat-card-success .stat-ic { background:rgba(var(--success-rgb),0.1); color:var(--success); border-color:rgba(var(--success-rgb),0.18); }
-    .dash-cockpit .stat-card-muted .stat-ic { background:rgba(255,176,32,0.08); color:var(--warning); border-color:rgba(255,176,32,0.16); }
-    .dash-cockpit .stat-card .stat-label { font-size:10px; letter-spacing:.13em; margin-bottom:12px; color:var(--muted); }
-    .dash-cockpit .stat-card-success .stat-label { color:var(--success); }
-    .dash-cockpit .stat-card-muted .stat-label { color:var(--warning); }
-    .dash-cockpit .stat-card .stat-value { font-size:32px; }
-    .dash-cockpit .stat-card .stat-value-sm { font-size:26px; }
-    .dash-cockpit .stat-card .stat-sub { font-size:11.5px; margin-top:8px; }
+    /* KPI band */
+    .kpi-row { display:grid; grid-template-columns: repeat(5, 1fr); gap:14px; }
+    .kpi { position:relative; padding:16px 16px 15px; border-radius:16px; overflow:hidden; border:1px solid var(--glass-border);
+      background: linear-gradient(162deg, rgba(var(--lavender-2-rgb),0.06) 0%, transparent 58%), var(--glass-bg); box-shadow: var(--shadow-card);
+      transition: transform var(--dur-3) var(--ease), border-color var(--dur-3) var(--ease), box-shadow var(--dur-3) var(--ease); }
+    .kpi:hover { transform:translateY(-2px); border-color:rgba(var(--lavender-2-rgb),0.26); box-shadow:var(--shadow-hover); }
+    .kpi-ic { width:32px; height:32px; border-radius:9px; display:grid; place-items:center;
+      background:rgba(var(--lavender-3-rgb),0.1); color:var(--lavender-2); border:1px solid rgba(var(--lavender-3-rgb),0.16); }
+    .kpi-ic svg { width:16px; height:16px; }
+    .kpi-label { margin-top:15px; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+    .kpi-val { font-family:var(--display-font); font-size:29px; font-weight:800; letter-spacing:-0.03em; line-height:1; margin-top:7px; color:var(--text-primary); }
+    .trend { display:inline-flex; align-items:center; gap:3px; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px; margin-top:11px; font-family:var(--display-font); }
+    .trend svg { width:12px; height:12px; }
+    .trend.up { color:var(--success); background:rgba(var(--success-rgb),0.1); }
+    .trend.down { color:var(--danger); background:rgba(255,77,109,0.1); }
+    .trend.flat { color:var(--muted); background:rgba(var(--lavender-2-rgb),0.07); }
+    .trend .since { color:var(--muted); font-weight:500; margin-left:2px; }
 
-    /* ── Panels: tighter heads inside the cockpit ── */
-    .dash-cockpit .panel { padding:18px 20px; border-radius:var(--r-lg); }
-    .dash-cockpit .main-content > .panel { margin-bottom:0; }
-    .dash-cockpit .panel-title { font-size:13.5px; }
-    .dash-cockpit .panel-rail .panel-title { margin-bottom:12px; }
+    /* Card */
+    .card { background:var(--glass-bg); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); border:1px solid var(--glass-border);
+      border-radius:var(--r-lg); padding:18px 20px; box-shadow:var(--shadow-card); min-width:0; }
+    .card-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
+    .card-title { font-family:var(--display-font); font-size:13.5px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:9px; }
+    .card-title .tdot { width:7px; height:7px; border-radius:50%; background:var(--accent); box-shadow:0 0 8px rgba(var(--lavender-3-rgb),.7); }
+    .card-sub { font-size:11px; color:var(--muted); font-weight:500; }
+    .clink { font-size:11.5px; font-weight:600; color:var(--lavender-2); text-decoration:none; display:inline-flex; align-items:center; gap:4px;
+      transition: color var(--dur-2) var(--ease), transform var(--dur-2) var(--ease); }
+    .clink:hover { color:var(--lavender-1); transform:translateX(2px); }
+    .clink svg { width:13px; height:13px; }
 
-    /* ── Compact next-match hero for the cockpit ── */
-    .dash-cockpit .hero-card { padding:20px 22px; border-radius:var(--r-lg); }
+    .seg { display:inline-flex; padding:3px; gap:2px; border-radius:10px; border:1px solid var(--glass-border); background:var(--surface-void); }
+    .seg button { font-family:var(--display-font); font-size:11.5px; font-weight:600; color:var(--muted); background:none; border:none; padding:5px 11px; border-radius:7px; cursor:pointer;
+      transition: color var(--dur-2) var(--ease), background var(--dur-2) var(--ease); }
+    .seg button:hover { color:var(--text-secondary); }
+    .seg button.on { color:var(--text-primary); background:rgba(var(--lavender-3-rgb),0.16); box-shadow:inset 0 0 0 1px rgba(var(--lavender-3-rgb),0.24); }
 
-    /* ── Today strip slimmer ── */
-    .dash-cockpit .today-strip { margin-bottom:16px; }
+    /* Performance + map pool */
+    .perf-grid { display:grid; grid-template-columns: 1.55fr 1fr; gap:20px; }
+    .legend { display:flex; align-items:center; gap:16px; margin-bottom:6px; }
+    .lg { display:inline-flex; align-items:center; gap:7px; font-size:11px; color:var(--text-secondary); font-weight:500; }
+    .lg .swatch { width:18px; height:0; border-top:3px solid var(--accent); border-radius:2px; }
+    .lg .swatch.dash { border-top:2px dashed var(--muted); }
+    .chart-wrap { position:relative; }
+    .chart-wrap svg.perf { width:100%; height:auto; display:block; overflow:visible; }
+    .perf-grid-line { stroke:rgba(var(--lavender-2-rgb),0.08); stroke-width:1; }
+    .perf-grid-line.base { stroke:rgba(var(--lavender-2-rgb),0.16); }
+    .perf-axis { fill:var(--text-faint); font-family:var(--mono-font); font-size:9.5px; }
+    .perf-line-wr { fill:none; stroke:var(--accent); stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; filter: drop-shadow(0 3px 8px rgba(var(--lavender-3-rgb),0.45)); }
+    .perf-line-rw { fill:none; stroke:var(--muted); stroke-width:2; stroke-dasharray:5 5; stroke-linecap:round; }
+    .perf-fill { fill:url(#perfFill); }
+    .perf-dot { fill:var(--bg-card); stroke:var(--accent); stroke-width:2; }
+    .perf-cursor { stroke:rgba(var(--lavender-2-rgb),0.4); stroke-width:1; stroke-dasharray:3 3; opacity:0; transition:opacity .12s; }
+    .perf-hot { fill:transparent; }
+    .perf-tip { position:absolute; pointer-events:none; opacity:0; transform:translate(-50%,-100%); transition:opacity .12s;
+      background:var(--surface-highest); border:1px solid var(--glass-border); border-radius:11px; padding:9px 11px; box-shadow:0 14px 36px rgba(0,0,0,.5); min-width:158px; z-index:5; }
+    .perf-tip .tdate { font-family:var(--mono-font); font-size:10px; color:var(--muted); margin-bottom:6px; }
+    .perf-tip .trow { display:flex; align-items:center; justify-content:space-between; gap:14px; font-size:11.5px; }
+    .perf-tip .trow + .trow { margin-top:3px; }
+    .perf-tip .tk { display:inline-flex; align-items:center; gap:6px; color:var(--text-secondary); white-space:nowrap; }
+    .perf-tip .tk i { width:9px; height:9px; border-radius:2px; display:inline-block; }
+    .perf-tip .tv { font-family:var(--display-font); font-weight:800; color:var(--text-primary); }
 
-    /* ── Rail cards reuse .panel; give the schedule/goal a touch more rhythm ── */
-    .ck-rail .panel { padding:16px 18px; }
+    /* Map pool */
+    .map-list { display:flex; flex-direction:column; gap:11px; }
+    .map-row { display:grid; grid-template-columns: 30px 1fr auto; gap:11px; align-items:center; text-decoration:none; }
+    .map-thumb { width:30px; height:30px; border-radius:8px; background-size:cover; background-position:center; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); display:grid; place-items:center;
+      font-family:var(--display-font); font-weight:800; font-size:11px; color:#fff; }
+    .map-mid { min-width:0; }
+    .map-nm { font-size:12.5px; font-weight:600; color:var(--text-primary); display:flex; align-items:center; justify-content:space-between; }
+    .map-nm .pct { font-family:var(--display-font); font-weight:800; }
+    .map-bar { height:5px; border-radius:3px; background:rgba(var(--lavender-2-rgb),0.1); margin-top:6px; overflow:hidden; }
+    .map-bar i { display:block; height:100%; border-radius:3px; background:var(--accent-grad); width:0; transition:width .9s var(--ease); }
+    .map-wl { font-family:var(--mono-font); font-size:10.5px; color:var(--muted); white-space:nowrap; text-align:right; }
+    .map-wl b { color:var(--text-secondary); font-weight:600; }
 
-    @media (max-width: 1280px) {
+    /* Recent matches + radar */
+    .lower-grid { display:grid; grid-template-columns: 1.3fr 1fr; gap:20px; }
+    .mtable { display:flex; flex-direction:column; }
+    .mrow { display:grid; grid-template-columns: 26px 1fr auto auto 22px; gap:12px; align-items:center; padding:11px 8px; border-radius:10px; text-decoration:none;
+      transition: background var(--dur-2) var(--ease); }
+    .mrow + .mrow { border-top:1px solid var(--hairline); }
+    .mrow:hover { background:var(--hover-bg); }
+    .mrow:hover .mchev { color:var(--lavender-2); transform:translateX(2px); }
+    .mcrest { width:26px; height:26px; border-radius:7px; display:grid; place-items:center; font-family:var(--display-font); font-weight:700; font-size:10.5px; color:var(--text-primary);
+      background:radial-gradient(120% 120% at 30% 20%, #2A2740, #14172A); border:1px solid var(--glass-border); }
+    .mopp { min-width:0; }
+    .mopp .nm { font-size:13px; font-weight:600; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .mopp .mp { font-size:11px; color:var(--muted); margin-top:1px; }
+    .mres { font-family:var(--display-font); font-weight:800; font-size:11px; letter-spacing:.06em; padding:3px 9px; border-radius:7px; }
+    .mres.win { color:var(--success); background:rgba(var(--success-rgb),0.12); }
+    .mres.loss { color:var(--danger); background:rgba(255,77,109,0.12); }
+    .mres.draw { color:var(--muted); background:rgba(var(--lavender-2-rgb),0.08); }
+    .mscore { font-family:var(--mono-font); font-size:13px; font-weight:600; text-align:right; min-width:46px; }
+    .mscore .w { color:var(--success); } .mscore .l { color:var(--danger); } .mscore .sep { color:var(--text-faint); }
+    .mchev { color:var(--text-faint); display:grid; place-items:center; transition: color var(--dur-2) var(--ease), transform var(--dur-2) var(--ease); }
+    .mchev svg { width:16px; height:16px; }
+    .radar-card { display:flex; flex-direction:column; }
+    .radar-card .chart-radar { width:100%; height:auto; max-height:282px; margin-top:-4px; }
+
+    /* Right rail */
+    .sched-row { display:grid; grid-template-columns: 36px 1fr auto; gap:11px; align-items:center; padding:9px 0; text-decoration:none; }
+    .sched-row + .sched-row { border-top:1px solid var(--hairline); }
+    .sched-crest { width:36px; height:36px; border-radius:9px; display:grid; place-items:center; font-family:var(--display-font); font-weight:800; font-size:12px; color:var(--text-primary);
+      background:radial-gradient(120% 120% at 30% 20%, #2A2740, #14172A); border:1px solid var(--glass-border); }
+    .sched-mid { min-width:0; }
+    .sched-mid .nm { font-size:13px; font-weight:600; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sched-mid .ev { font-size:11px; color:var(--muted); margin-top:1px; }
+    .sched-when { text-align:right; }
+    .sched-when .d { font-family:var(--display-font); font-size:12px; font-weight:700; color:var(--lavender-1); }
+    .sched-when .t { font-family:var(--mono-font); font-size:10.5px; color:var(--muted); margin-top:1px; }
+
+    .focus-row { padding:11px 0; text-decoration:none; display:block; }
+    .focus-row + .focus-row { border-top:1px solid var(--hairline); }
+    .focus-top { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .focus-nm { font-size:12.5px; font-weight:500; color:var(--text-secondary); line-height:1.3; }
+    .focus-tag { font-family:var(--mono-font); font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--lavender-2); flex-shrink:0; }
+    .focus-bar { height:6px; border-radius:3px; background:rgba(var(--lavender-2-rgb),0.1); margin-top:9px; overflow:hidden; }
+    .focus-bar i { display:block; height:100%; border-radius:3px; width:0; transition:width 1s var(--ease); background:var(--accent-grad); }
+
+    .vod-row { display:grid; grid-template-columns: 58px 1fr auto; gap:11px; align-items:center; padding:9px 0; text-decoration:none; }
+    .vod-row + .vod-row { border-top:1px solid var(--hairline); }
+    .vod-thumb { position:relative; width:58px; height:36px; border-radius:8px; overflow:hidden; background:linear-gradient(135deg,#1A1D2E,#0C0E1A); border:1px solid var(--glass-border); display:grid; place-items:center; }
+    .vod-thumb::after { content:''; position:absolute; inset:0; background:radial-gradient(60% 80% at 30% 20%, rgba(var(--lavender-3-rgb),0.22), transparent 70%); }
+    .vod-play { position:relative; z-index:1; width:22px; height:22px; border-radius:50%; background:rgba(10,8,20,.55); display:grid; place-items:center; color:#fff; border:1px solid rgba(255,255,255,.2); }
+    .vod-play svg { width:11px; height:11px; margin-left:1px; }
+    .vod-mid { min-width:0; }
+    .vod-mid .nm { font-size:12.5px; font-weight:600; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .vod-mid .mp { font-size:11px; color:var(--muted); margin-top:1px; }
+    .vod-date { font-family:var(--mono-font); font-size:10px; color:var(--muted); white-space:nowrap; }
+    .vod-row:hover .vod-mid .nm { color:var(--lavender-1); }
+
+    .comm { display:flex; align-items:center; gap:12px; text-decoration:none; }
+    .comm-ic { width:38px; height:38px; border-radius:10px; display:grid; place-items:center; flex-shrink:0; background:rgba(var(--lavender-3-rgb),0.1); color:var(--lavender-2);
+      border:1px solid rgba(var(--lavender-3-rgb),0.16); font-family:var(--display-font); font-weight:800; }
+    .comm-mid { flex:1; min-width:0; }
+    .comm-nm { font-size:13px; font-weight:600; color:var(--text-primary); }
+    .comm-st { font-size:11px; color:var(--muted); display:flex; align-items:center; gap:6px; margin-top:2px; }
+    .comm-st .dot { width:7px; height:7px; border-radius:50%; background:var(--success); box-shadow:0 0 8px rgba(var(--success-rgb),.7); }
+
+    .card-empty { color:var(--muted); font-size:12.5px; padding:10px 2px; line-height:1.5; }
+
+    @media (max-width: 1320px) {
       .ck-grid { grid-template-columns: 1fr; }
-      .ck-rail { position:static; display:grid; grid-template-columns: repeat(2,1fr); }
+      .ck-rail { display:grid; grid-template-columns: repeat(2,1fr); align-items:start; }
+      .ck-rail .card-comm { grid-column: 1 / -1; }
     }
     @media (max-width: 1080px) {
-      .dash-cockpit .kpi-band { grid-template-columns: repeat(2,1fr); }
-      .ck-row2, .ck-row2.even { grid-template-columns: 1fr; }
+      .kpi-row { grid-template-columns: repeat(2,1fr); }
+      .perf-grid, .lower-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 640px) {
       .dash-cockpit { padding:18px 16px 32px; }
-      .dash-cockpit .kpi-band { grid-template-columns:1fr; }
       .ck-rail { grid-template-columns:1fr; }
+      .kpi-row { grid-template-columns: 1fr; }
       .ck-header { flex-direction:column; }
     }
   </style>
@@ -97,7 +203,6 @@
   <nav class="sidebar" id="sidebar"></nav>
   <main class="main-content dash-cockpit">
 
-    <!-- ── Header ── -->
     <header class="ck-header">
       <div>
         <div class="ck-kicker" id="date-sub">Overview</div>
@@ -113,8 +218,7 @@
           <span class="ping"></span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         </button>
-        <button type="button" class="btn btn-ghost btn-sm" id="share-public-btn"
-                aria-label="Share public team profile" title="Copy public profile link">
+        <button type="button" class="btn btn-ghost btn-sm" id="share-public-btn" aria-label="Share public team profile" title="Copy public profile link">
           <span id="share-public-label">Share Profile</span>
         </button>
         <a class="btn btn-primary btn-add" href="vods.html" title="Add a match review">
@@ -126,123 +230,94 @@
 
     <div class="today-strip" id="today-strip"></div>
 
-    <!-- ── Cockpit grid ── -->
     <div class="ck-grid dash-reveal">
 
-      <!-- MAIN COLUMN -->
+      <!-- MAIN -->
       <div class="ck-main">
 
-        <!-- Next match hero -->
-        <div id="hero-slot" class="dash-hero-cell"><div class="skeleton skeleton-hero"></div></div>
+        <section class="kpi-row" id="kpi-row">
+          <div class="kpi"><div class="skeleton skeleton-card" style="height:96px"></div></div>
+          <div class="kpi"><div class="skeleton skeleton-card" style="height:96px"></div></div>
+          <div class="kpi"><div class="skeleton skeleton-card" style="height:96px"></div></div>
+          <div class="kpi"><div class="skeleton skeleton-card" style="height:96px"></div></div>
+          <div class="kpi"><div class="skeleton skeleton-card" style="height:96px"></div></div>
+        </section>
 
-        <!-- KPI band -->
-        <div class="kpi-band">
-          <div class="stat-card">
-            <span class="stat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
-            <div class="stat-label">Strats Saved</div>
-            <div class="stat-value" id="stat-strats">—</div>
-            <div class="stat-sub" id="stat-strats-sub">Loading…</div>
-          </div>
-          <div class="stat-card stat-card-success">
-            <span class="stat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></span>
-            <div class="stat-label">Match Record</div>
-            <div class="stat-value stat-value-sm" id="stat-vods">—</div>
-            <div class="form-dots" id="stat-vods-form"></div>
-          </div>
-          <div class="stat-card">
-            <span class="stat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
-            <div class="stat-label">Round Win Rate</div>
-            <div class="stat-value" id="stat-roundwr">—</div>
-            <div class="stat-sub" id="stat-roundwr-sub">Loading…</div>
-          </div>
-          <div class="stat-card stat-card-muted" id="stat-issues-card">
-            <span class="stat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
-            <div class="stat-label">Open Issues</div>
-            <div class="stat-value" id="stat-issues">—</div>
-            <div class="stat-sub" id="stat-issues-sub">Loading…</div>
-          </div>
-        </div>
-
-        <!-- Form trend + Map pool -->
-        <div class="ck-row2">
-          <div class="panel" id="form-trend-panel">
-            <div class="panel-title">Form · Round Win Rate<a href="vods.html" class="section-link">Matches</a></div>
-            <div id="form-trend-slot"></div>
-          </div>
-          <div class="panel" id="map-pool-panel">
-            <div class="panel-title">Map Pool Readiness<a href="stratbook.html" class="section-link">Stratbook</a></div>
-            <div id="map-pool-slot">
-              <div class="skeleton-list">
-                <div class="skeleton skeleton-row-tall"></div>
-                <div class="skeleton skeleton-row-tall"></div>
-                <div class="skeleton skeleton-row-tall"></div>
-                <div class="skeleton skeleton-row-tall"></div>
+        <section class="perf-grid">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <div class="card-title"><span class="tdot"></span>Performance Overview</div>
+                <div class="card-sub" style="margin-top:6px">Win Rate vs Round Win % · per match</div>
+              </div>
+              <div class="seg" id="perf-seg">
+                <button class="on" data-range="recent">Last 10</button>
+                <button data-range="all">All Matches</button>
               </div>
             </div>
-          </div>
-        </div>
-
-        <!-- Team DNA radar + Coach's brief -->
-        <div class="ck-row2 even">
-          <div class="panel" id="dna-panel">
-            <div class="panel-title">Team Strengths · last 30 days<a href="analysis.html" class="section-link">2D Replay</a></div>
-            <div id="team-dna-slot"></div>
-          </div>
-          <div class="panel" id="brief-panel">
-            <div class="panel-title">Coach's Brief<span class="section-link" id="attention-since"></span></div>
-            <div id="attention-slot">
-              <div class="skeleton-list">
-                <div class="skeleton skeleton-card"></div>
-                <div class="skeleton skeleton-card"></div>
-              </div>
+            <div class="legend">
+              <span class="lg"><span class="swatch"></span>Win Rate</span>
+              <span class="lg"><span class="swatch dash"></span>Round Win %</span>
             </div>
-            <div id="insight-slot"></div>
+            <div class="chart-wrap" id="perf-wrap"></div>
           </div>
-        </div>
 
-        <!-- Round economy -->
-        <div class="panel" id="economy-panel">
-          <div class="panel-title">Round Economy · last 30 days<a href="analysis.html" class="section-link">Analysis</a></div>
-          <div id="team-economy-slot"></div>
-        </div>
-
-        <!-- Roster heat -->
-        <div class="panel" id="roster-heat-panel">
-          <div class="panel-title">Roster Heat · last 30 days<a href="roster.html" class="section-link">Roster</a></div>
-          <div id="player-heat-slot">
-            <div class="skeleton-strip">
-              <div class="skeleton skeleton-card" style="height:158px"></div>
-              <div class="skeleton skeleton-card" style="height:158px"></div>
-              <div class="skeleton skeleton-card" style="height:158px"></div>
-              <div class="skeleton skeleton-card" style="height:158px"></div>
-              <div class="skeleton skeleton-card" style="height:158px"></div>
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title"><span class="tdot"></span>Map Pool Performance</div>
+              <a class="clink" href="stratbook.html">View All Maps <span data-ic="arrow"></span></a>
             </div>
+            <div class="map-list" id="map-list"></div>
           </div>
-        </div>
+        </section>
 
-        <!-- Recently added strats -->
-        <div class="panel">
-          <div class="panel-title">Recently Added Strats<a href="stratbook.html" class="section-link">View all</a></div>
-          <div id="recent-strats">
-            <div class="skeleton-list">
-              <div class="skeleton skeleton-row-tall"></div>
-              <div class="skeleton skeleton-row-tall"></div>
-              <div class="skeleton skeleton-row-tall"></div>
+        <section class="lower-grid">
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title"><span class="tdot"></span>Recent Matches</div>
+              <a class="clink" href="vods.html">View All Matches <span data-ic="arrow"></span></a>
             </div>
+            <div class="mtable" id="match-table"></div>
           </div>
-        </div>
+          <div class="card radar-card">
+            <div class="card-head">
+              <div class="card-title"><span class="tdot"></span>Team Strengths</div>
+              <span class="card-sub">last 30 days</span>
+            </div>
+            <div id="radar-slot"></div>
+          </div>
+        </section>
       </div>
 
       <!-- RIGHT RAIL -->
       <aside class="ck-rail">
-        <div id="goal-slot"></div>
-        <div class="panel panel-rail">
-          <div class="panel-title">Next 7 days<a href="schedule.html" class="section-link">Schedule</a></div>
-          <div id="timeline-slot"></div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title"><span class="tdot"></span>Upcoming Schedule</div>
+            <a class="clink" href="schedule.html">View Calendar <span data-ic="arrow"></span></a>
+          </div>
+          <div id="schedule-list"></div>
         </div>
-        <div class="panel panel-rail">
-          <div class="panel-title">Activity<span class="section-link" id="activity-since">last 14 days</span></div>
-          <div id="activity-slot"></div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title"><span class="tdot"></span>Focus Areas</div>
+            <a class="clink" href="goals.html">Edit Goals <span data-ic="arrow"></span></a>
+          </div>
+          <div id="focus-list"></div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title"><span class="tdot"></span>Recent VOD Reviews</div>
+            <a class="clink" href="vods.html">View All <span data-ic="arrow"></span></a>
+          </div>
+          <div id="vod-list"></div>
+        </div>
+        <div class="card card-comm">
+          <div class="card-head">
+            <div class="card-title"><span class="tdot"></span>Coach's Brief</div>
+            <span class="card-sub" id="attention-since"></span>
+          </div>
+          <div id="attention-slot"></div>
         </div>
       </aside>
     </div>
@@ -250,10 +325,8 @@
 </div>
 <script type="module" src="dashboard.js"></script>
 <script>
-  // Header search button → open the command palette (Cmd/Ctrl-K).
   document.getElementById('dash-search')?.addEventListener('click', () => {
-    const ev = new KeyboardEvent('keydown', { key: 'k', metaKey: true, ctrlKey: true, bubbles: true })
-    document.dispatchEvent(ev)
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, ctrlKey: true, bubbles: true }))
   })
 </script>
 </body>
