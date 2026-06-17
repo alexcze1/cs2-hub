@@ -185,11 +185,14 @@ export async function renderSidebar(activePage) {
   if (!sidebar) return
 
   let teamName = 'MIDROUND'
+  let teamDisplay = 'My Team'
   const teamId = getTeamId()
   if (teamId) {
-    const { data: team } = await supabase.from('teams').select('name').eq('id', teamId).single()
-    if (team) teamName = team.name.toUpperCase()
+    const { data: team } = await supabase.from('teams').select('name, tier').eq('id', teamId).single()
+    if (team) { teamName = team.name.toUpperCase(); teamDisplay = team.name }
+    var teamTier = team?.tier
   }
+  const teamInitials = teamDisplay.replace(/[^a-zA-Z0-9 ]/g, '').trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'MR'
 
   const adminIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`
 
@@ -242,11 +245,30 @@ export async function renderSidebar(activePage) {
     }
   } catch {}
 
+  const userName = (user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Member')
+  const userInitials = userName.replace(/[^a-zA-Z0-9 ]/g, ' ').trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'U'
+  const roleLabel = isAdmin(user) ? 'Admin' : 'Member'
+  const tierLabel = teamTier === 'pro' ? 'Pro' : teamTier === 'pro-plus' ? 'Pro+' : 'Free'
+
   html += `<div style="flex:1"></div>`
   html += `<div class="sidebar-footer">
     <div class="presence-slot" id="sidebar-presence-slot"></div>
-    <a class="nav-item nav-item-footer" href="team-select.html"><span class="nav-icon">${ICONS.switch}</span>Switch Team</a>
-    <button class="nav-item nav-item-footer" id="signout-btn"><span class="nav-icon">${ICONS.signout}</span>Sign Out</button>
+    <a class="sb-card sb-team" href="team-select.html" title="Switch team">
+      <div class="sb-team-crest">${esc(teamInitials)}</div>
+      <div class="sb-team-meta">
+        <div class="sb-team-name">${esc(teamDisplay)}</div>
+        <div class="sb-team-sub">${esc(tierLabel)} · Switch team</div>
+      </div>
+      <span class="sb-team-switch">${ICONS.switch}</span>
+    </a>
+    <div class="sb-card sb-profile">
+      <div class="sb-ava">${esc(userInitials)}</div>
+      <div class="sb-ava-meta">
+        <div class="sb-ava-name">${esc(userName)}</div>
+        <div class="sb-ava-role">${esc(roleLabel)}</div>
+      </div>
+      <button class="sb-signout" id="signout-btn" title="Sign out" aria-label="Sign out">${ICONS.signout}</button>
+    </div>
   </div>`
 
   sidebar.innerHTML = html

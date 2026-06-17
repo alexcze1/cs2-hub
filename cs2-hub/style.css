@@ -8503,3 +8503,44 @@ body::after {
   padding: 18px 8px; text-align: center;
 }
 .sc-cockpit-empty { margin-top: 8px; }
+
+/* ════════════════════════════════════════════════════════════════════
+   SIDEBAR FOOTER CARDS — premium team-switcher + profile chrome.
+   Shown app-wide via layout.js renderSidebar().
+   ════════════════════════════════════════════════════════════════════ */
+.sidebar-footer { padding: 10px 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.sb-card {
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid var(--glass-border); border-radius: 12px; padding: 9px 10px;
+  background: linear-gradient(160deg, rgba(var(--lavender-2-rgb), 0.05), transparent 70%), var(--glass-bg);
+  text-decoration: none;
+  transition: border-color var(--dur-2) var(--ease), background var(--dur-2) var(--ease);
+}
+.sb-card.sb-team { cursor: pointer; }
+.sb-card.sb-team:hover { border-color: rgba(var(--lavender-2-rgb), 0.26); }
+.sb-team-crest {
+  width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0; display: grid; place-items: center;
+  font-family: var(--display-font); font-weight: 800; font-size: 12px; color: #0A0814;
+  background: var(--accent-grad); box-shadow: inset 0 1px 0 rgba(255,255,255,.35);
+}
+.sb-team-meta, .sb-ava-meta { min-width: 0; flex: 1; }
+.sb-team-name, .sb-ava-name {
+  font-size: 12.5px; font-weight: 700; letter-spacing: -0.01em; color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sb-team-sub, .sb-ava-role { font-size: 10px; color: var(--muted); letter-spacing: .03em; margin-top: 1px; }
+.sb-team-switch { color: var(--muted); flex-shrink: 0; display: grid; place-items: center; }
+.sb-team-switch svg { width: 15px; height: 15px; }
+.sb-card.sb-team:hover .sb-team-switch { color: var(--lavender-2); }
+.sb-ava {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center;
+  font-family: var(--display-font); font-weight: 700; font-size: 12px; color: var(--text-primary);
+  background: radial-gradient(120% 120% at 30% 20%, #2B2740, #15182A); border: 1px solid var(--glass-border);
+}
+.sb-signout {
+  flex-shrink: 0; width: 30px; height: 30px; display: grid; place-items: center; cursor: pointer;
+  background: none; border: 1px solid transparent; border-radius: 9px; color: var(--muted);
+  transition: color var(--dur-2) var(--ease), background var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease);
+}
+.sb-signout svg { width: 16px; height: 16px; }
+.sb-signout:hover { color: var(--danger); background: rgba(255,77,109,0.08); border-color: rgba(255,77,109,0.2); }
