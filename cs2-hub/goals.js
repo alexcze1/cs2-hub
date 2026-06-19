@@ -29,6 +29,24 @@ const CATEGORIES = {
   other:         { label: 'Other',         color: '#64748b' },
 }
 
+// Honest, derived goal state: completed/dropped from status; for active goals
+// a "deadline" progress = elapsed fraction of the created→due window (NOT a
+// fabricated completion %), and on-track / overdue from the due date.
+function deriveGoalState(g, now = Date.now()) {
+  if (g.status === 'completed') return { label: 'Completed', color: 'var(--success)', progress: 100, note: 'Done' }
+  if (g.status === 'dropped')   return { label: 'Dropped', color: 'var(--muted)', progress: null, note: '' }
+  const due   = g.due_date   ? new Date(g.due_date).getTime()   : null
+  const start = g.created_at ? new Date(g.created_at).getTime() : null
+  let progress = null, daysLeft = null
+  if (due != null) {
+    daysLeft = Math.ceil((due - now) / 86_400_000)
+    if (start != null && due > start) progress = Math.max(0, Math.min(100, Math.round(((now - start) / (due - start)) * 100)))
+  }
+  if (daysLeft != null && daysLeft < 0)
+    return { label: 'Overdue', color: 'var(--danger)', progress: 100, note: `${Math.abs(daysLeft)}d overdue`, atRisk: true }
+  return { label: 'On track', color: 'var(--success)', progress, daysLeft, note: daysLeft != null ? `${daysLeft}d left` : 'No deadline' }
+}
+
 const FILTER_LS_KEY = 'goals:filter:v1'
 const DEFAULT_FILTER = { horizon: 'all', status: 'active', category: 'all', q: '' }
 function loadSavedFilter() {
@@ -74,9 +92,11 @@ function getFiltered() {
 // ── Hero ──────────────────────────────────────────────────────
 function renderHero() {
   const all = state.goals
+  const total     = all.length
   const active    = all.filter(g => g.status === 'active').length
   const completed = all.filter(g => g.status === 'completed').length
-  const dropped   = all.filter(g => g.status === 'dropped').length
+  const completionPct = total ? Math.round((completed / total) * 100) : 0
+  const overdue = all.filter(g => g.status === 'active' && g.due_date && new Date(g.due_date).getTime() < Date.now()).length
 
   const upcoming = all
     .filter(g => g.status === 'active' && g.due_date)
@@ -91,8 +111,9 @@ function renderHero() {
     sub: 'Long-term, monthly and weekly targets the whole team can see.',
     kpis: [
       { v: active, k: 'active' },
+      { v: `${completionPct}%`, k: 'completion', tone: completionPct >= 50 ? 'good' : '' },
       { v: completed, k: 'completed', tone: completed ? 'good' : '' },
-      { v: dropped, k: 'dropped' },
+      { v: overdue, k: 'overdue', tone: overdue ? 'bad' : '' },
       { v: upcomingLabel, k: 'next milestone' },
     ],
     actions: `<button type="button" class="dx-upload-cta" id="gl-add-btn">+ New Goal</button>`,
@@ -184,16 +205,26 @@ function renderList() {
 }
 
 function goalCard(g) {
-  const status = STATUS_META[g.status] ?? { label: g.status, color: 'var(--muted)' }
-  const cat    = CATEGORIES[g.category] ?? CATEGORIES.other
-  const actionLines = (g.action_steps ?? '').split('\n').map(l => l.trim()).filter(Boolean)
+  const st  = deriveGoalState(g)
+  const cat = CATEGORIES[g.category] ?? CATEGORIES.other
+  const actionLines = (g.action_steps ?? g.actions ?? '').split('\n')
+    .map(l => l.trim().replace(/^[•·\-›]\s*/, '')).filter(Boolean)
+  const nextAction = actionLines[0]
+  const rest = actionLines.slice(1)
   const dropped   = g.status === 'dropped'
   const completed = g.status === 'completed'
+
+  const bar = (st.progress != null && !dropped) ? `
+    <div class="gl-deadline">
+      <div class="gl-deadline-track"><div class="gl-deadline-fill" style="width:${st.progress}%;background:${st.color}"></div></div>
+      <span class="gl-deadline-note" style="color:${st.color}">${esc(st.note)}</span>
+    </div>` : ''
+
   return `
     <div class="gl-card${dropped ? ' gl-card-dropped' : ''}${completed ? ' gl-card-completed' : ''}" style="border-left-color:${cat.color}" data-edit="${esc(g.id)}">
       <div class="gl-card-head">
         <span class="gl-badge" style="color:${cat.color};background:${cat.color}1f">${esc(cat.label)}</span>
-        <span class="gl-badge" style="color:${status.color};background:${status.color}1f">${esc(status.label)}</span>
+        <span class="gl-badge" style="color:${st.color};background:${st.color}1f">${esc(st.label)}</span>
         <span class="gl-edit-hint">Edit ›</span>
       </div>
       <div class="gl-card-title">${completed ? '✓ ' : ''}${esc(g.title)}</div>
@@ -202,14 +233,19 @@ function goalCard(g) {
           ${g.owner    ? `<span class="gl-card-meta-item">${esc(g.owner)}</span>` : ''}
           ${g.due_date ? `<span class="gl-card-meta-item">Due ${new Date(g.due_date).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'})}</span>` : ''}
         </div>` : ''}
-      ${g.description ? `<div class="gl-card-desc">${esc(g.description)}</div>` : ''}
-      ${actionLines.length ? `
+      ${bar}
+      ${g.description ? `<div class="gl-card-why"><span class="gl-card-why-label">Why it matters</span>${esc(g.description)}</div>` : ''}
+      ${nextAction ? `
+        <div class="gl-next">
+          <span class="gl-next-label" style="color:${cat.color}">Next action</span>
+          <span class="gl-next-text">${esc(nextAction)}</span>
+        </div>` : ''}
+      ${rest.length ? `
         <div class="gl-card-actions">
-          <div class="gl-card-actions-label" style="color:${cat.color}">Action Steps</div>
-          ${actionLines.map(l => `
+          ${rest.map(l => `
             <div class="gl-card-action">
               <span class="gl-card-action-arrow" style="color:${cat.color}">›</span>
-              <span>${esc(l.replace(/^[•·\-›]\s*/, ''))}</span>
+              <span>${esc(l)}</span>
             </div>`).join('')}
         </div>` : ''}
     </div>`

@@ -66,6 +66,7 @@ function saveFilter(f) { try { localStorage.setItem(FILTER_LS_KEY, JSON.stringif
 const state = {
   filter: loadSavedFilter(),
   keywords: [],
+  usage: new Map(),   // keyword id -> { total, strats, issues, where: [labels] }
 }
 let editingId = null
 
@@ -73,23 +74,61 @@ const heroEl    = document.getElementById('kw-hero')
 const filtersEl = document.getElementById('kw-filters')
 const listEl    = document.getElementById('keywords-list')
 
+// Count real references to each keyword across the team's strats and issues.
+// A keyword is "used" wherever its name appears (case-insensitive) in a strat's
+// name/notes/tags or an issue's title/description/actions. No fabricated data —
+// 0 references reads as 0.
+export function computeUsage(keywords, strats, issues) {
+  const stratText = (strats || []).map(s => ({
+    label: s.name || 'Strat',
+    text: [s.name, s.notes, ...(Array.isArray(s.tags) ? s.tags : [])].join(' \n ').toLowerCase(),
+  }))
+  const issueText = (issues || []).map(i => ({
+    label: i.title || 'Issue',
+    text: [i.title, i.description, i.actions].join(' \n ').toLowerCase(),
+  }))
+  const map = new Map()
+  for (const k of keywords) {
+    const n = (k.name || '').toLowerCase().trim()
+    if (!n) { map.set(k.id, { total: 0, strats: 0, issues: 0, where: [] }); continue }
+    const sHits = stratText.filter(s => s.text.includes(n))
+    const iHits = issueText.filter(i => i.text.includes(n))
+    map.set(k.id, {
+      total: sHits.length + iHits.length,
+      strats: sHits.length,
+      issues: iHits.length,
+      where: [...sHits, ...iHits].slice(0, 3).map(x => x.label),
+    })
+  }
+  return map
+}
+
 async function loadKeywords() {
-  const { data, error } = await supabase
-    .from('keywords').select('*')
-    .eq('team_id', getTeamId())
-    .order('name', { ascending: true })
+  const teamId = getTeamId()
+  const [{ data, error }, { data: strats }, { data: issues }] = await Promise.all([
+    supabase.from('keywords').select('*').eq('team_id', teamId).order('name', { ascending: true }),
+    supabase.from('strats').select('name, notes, tags').eq('team_id', teamId),
+    supabase.from('issues').select('title, description, actions').eq('team_id', teamId),
+  ])
   if (error) {
     heroEl.innerHTML = ''
     listEl.innerHTML = `<div class="dx-empty"><h3 style="margin:0 0 6px;font-weight:700">Failed to load</h3>${esc(error.message)}</div>`
     return
   }
   state.keywords = data ?? []
+  state.usage = computeUsage(state.keywords, strats ?? [], issues ?? [])
   renderAll()
 }
 
 // ── Hero ──────────────────────────────────────────────────────
 function renderHero() {
   const s = deriveKeywordStats(state.keywords)
+  let refs = 0, unused = 0
+  for (const k of state.keywords) {
+    const u = state.usage.get(k.id)?.total || 0
+    refs += u
+    if (u === 0) unused++
+  }
   renderToolHeader(heroEl, {
     section: 'Team',
     title: 'Keywords',
@@ -97,9 +136,9 @@ function renderHero() {
     kpis: [
       { v: s.total, k: s.total === 1 ? 'term' : 'terms' },
       { v: s.categoryCount, k: 'categories' },
-      { v: s.uncategorized, k: 'uncategorized', tone: s.uncategorized ? 'warn' : '' },
+      { v: refs, k: 'references' },
+      { v: unused, k: 'unused', tone: unused ? 'warn' : '' },
       { v: s.topCategory || '—', k: 'top category' },
-      { v: s.latest || '—', k: 'latest' },
     ],
     actions: `<button type="button" class="dx-upload-cta" id="add-btn">+ Add Keyword</button>`,
   })
@@ -160,21 +199,40 @@ function renderList() {
     listEl.innerHTML = `<div class="dx-empty">No keywords match the current filters.</div>`
     return
   }
-  listEl.innerHTML = `<div class="kw-grid">${filtered.map(keywordCard).join('')}</div>`
+  // Sort by usage (most-referenced first), then name — surfaces the live
+  // vocabulary and pushes orphaned terms to the bottom.
+  const sorted = [...filtered].sort((a, b) => {
+    const ua = state.usage.get(a.id)?.total || 0
+    const ub = state.usage.get(b.id)?.total || 0
+    if (ub !== ua) return ub - ua
+    return String(a.name).localeCompare(String(b.name))
+  })
+  listEl.innerHTML = `<div class="kw-grid">${sorted.map(keywordCard).join('')}</div>`
   for (const btn of listEl.querySelectorAll('[data-edit]')) {
     btn.addEventListener('click', e => { e.stopPropagation(); openModal(btn.dataset.edit) })
   }
 }
 
 function keywordCard(k) {
+  const u = state.usage.get(k.id) || { total: 0, strats: 0, issues: 0, where: [] }
+  const parts = []
+  if (u.strats) parts.push(`${u.strats} strat${u.strats === 1 ? '' : 's'}`)
+  if (u.issues) parts.push(`${u.issues} issue${u.issues === 1 ? '' : 's'}`)
+  const usageChip = u.total
+    ? `<span class="kw-usage" title="${esc(u.where.join(', '))}"><b>${u.total}×</b> used</span>`
+    : `<span class="kw-usage kw-usage-0">Unused</span>`
   return `
-    <div class="kw-card">
+    <div class="kw-card${u.total ? '' : ' kw-card-unused'}">
       <div class="kw-card-head">
         <div class="kw-card-name">${esc(k.name)}</div>
         <button type="button" class="btn btn-ghost btn-sm" data-edit="${esc(k.id)}">Edit</button>
       </div>
-      ${k.category ? `<div class="kw-card-cat">${esc(k.category)}</div>` : ''}
+      <div class="kw-card-tags">
+        ${k.category ? `<span class="kw-card-cat">${esc(k.category)}</span>` : ''}
+        ${usageChip}
+      </div>
       <div class="kw-card-desc">${esc(k.description)}</div>
+      ${parts.length ? `<div class="kw-card-where">Referenced in ${parts.join(' · ')}${u.where.length ? ` — ${esc(u.where.join(', '))}` : ''}</div>` : ''}
     </div>`
 }
 

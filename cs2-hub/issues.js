@@ -5,6 +5,14 @@ import { toast } from './toast.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : '' }
+function relTime(iso) {
+  if (!iso) return ''
+  const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)
+  if (d < 1) return 'today'
+  if (d < 30) return `${d}d ago`
+  if (d < 365) return `${Math.floor(d / 30)}mo ago`
+  return `${Math.floor(d / 365)}y ago`
+}
 
 await requireAuth()
 renderSidebar('issues')
@@ -171,19 +179,25 @@ function issueCard(i) {
   const status = STATUS_META[i.status]     ?? { label: i.status,   color: 'var(--muted)' }
   const cat    = CAT_META[i.category]      ?? { label: i.category, color: 'var(--muted)' }
   const resolved = i.status === 'resolved'
+  const age = relTime(i.created_at)
   return `
     <div class="iss-card iss-card-${i.priority}${resolved ? ' iss-card-resolved' : ''}" data-edit="${esc(i.id)}">
       <div class="iss-card-head">
         <span class="iss-badge" style="color:${prio.color};background:${prio.color}1f">${esc(prio.label)}</span>
         <span class="iss-badge" style="color:${status.color};background:${status.color}1f">${esc(status.label)}</span>
         <span class="iss-badge" style="color:${cat.color};background:${cat.color}1f">${esc(cat.label)}</span>
+        ${age ? `<span class="iss-age">Spotted ${esc(age)}</span>` : ''}
         <span class="iss-edit-hint">Edit ›</span>
       </div>
       <div class="iss-card-title">${esc(i.title)}</div>
-      ${i.description ? `<div class="iss-card-desc">${esc(i.description)}</div>` : ''}
+      ${i.description ? `
+        <div class="iss-block">
+          <span class="iss-block-label">Why it matters</span>
+          <div class="iss-block-body">${esc(i.description)}</div>
+        </div>` : ''}
       ${i.actions ? `
         <div class="iss-card-actions">
-          <div class="iss-card-actions-label">Current Actions</div>
+          <div class="iss-card-actions-label">Suggested fix</div>
           <div class="iss-card-actions-body">${esc(i.actions)}</div>
         </div>` : ''}
     </div>`

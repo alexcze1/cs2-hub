@@ -4949,6 +4949,30 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
   line-height: 1.5;
   white-space: pre-wrap;
 }
+.iss-age {
+  margin-left: auto;
+  font-family: var(--mono-font);
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.iss-card-head .iss-edit-hint { margin-left: 0; }
+.iss-block { }
+.iss-block-label {
+  display: block;
+  font-family: var(--display-font);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+  font-weight: 700;
+}
+.iss-block-body {
+  font-size: 13px;
+  color: var(--text-variant);
+  line-height: 1.5;
+}
 
 /* ── Goals (gl-*) ────────────────────────────────────────────── */
 .gl-hero-next {
@@ -5118,6 +5142,15 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
   margin-bottom: 4px;
 }
 .gl-card-action-arrow { font-weight: 700; flex-shrink: 0; }
+.gl-deadline { display: flex; align-items: center; gap: 10px; padding-top: 2px; }
+.gl-deadline-track { flex: 1; height: 5px; border-radius: 3px; background: rgba(var(--lavender-2-rgb), 0.1); overflow: hidden; }
+.gl-deadline-fill { height: 100%; border-radius: 3px; transition: width 0.9s var(--ease); }
+.gl-deadline-note { font-family: var(--mono-font); font-size: 10px; white-space: nowrap; font-weight: 600; }
+.gl-card-why { font-size: 13px; color: var(--text-variant); line-height: 1.5; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); }
+.gl-card-why-label { display: block; font-family: var(--display-font); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); font-weight: 700; margin-bottom: 5px; }
+.gl-next { display: flex; flex-direction: column; gap: 3px; padding: 9px 11px; border-radius: var(--r-sm); background: rgba(var(--lavender-3-rgb), 0.06); border: 1px solid var(--hairline); }
+.gl-next-label { font-family: var(--display-font); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 700; }
+.gl-next-text { font-size: 13px; color: var(--text-primary); line-height: 1.45; font-weight: 500; }
 
 /* ── Keywords (tactical) ─────────────────────────────────────── */
 .kw-grid {
@@ -5168,6 +5201,20 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
   font-size: 13px;
   line-height: 1.5;
 }
+.kw-card-tags { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
+.kw-usage {
+  font-family: var(--mono-font); font-size: 10px; letter-spacing: 0.04em;
+  color: var(--lavender-1); background: rgba(var(--lavender-3-rgb), 0.12);
+  border: 1px solid rgba(var(--lavender-3-rgb), 0.2);
+  padding: 2px 8px; border-radius: var(--r-pill);
+}
+.kw-usage b { font-weight: 700; }
+.kw-usage-0 { color: var(--muted); background: rgba(var(--lavender-2-rgb), 0.05); border-color: var(--hairline); }
+.kw-card-where {
+  font-size: 11px; color: var(--text-faint); line-height: 1.45;
+  padding-top: 8px; border-top: 1px solid var(--hairline);
+}
+.kw-card-unused { opacity: 0.82; }
 
 /* ── Map Veto (tactical hero/filters) ────────────────────────── */
 .veto-grid {
