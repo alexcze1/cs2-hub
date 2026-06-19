@@ -8,90 +8,87 @@
   <title>Admin — MIDROUND</title>
   <link rel="stylesheet" href="style.css"/>
   <style>
+    .admin-toolbar { display: flex; align-items: center; gap: 10px; margin: 10px 0 18px; }
+    .admin-toolbar .dx-search-input { min-width: 280px; }
+
     .admin-team-card {
       background: var(--glass-bg);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
       border: 1px solid var(--glass-border);
       border-radius: var(--r-md);
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       overflow: hidden;
       transition: border-color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
     }
-    .admin-team-card:hover {
-      border-color: rgba(139,109,255,0.20);
-      box-shadow: 0 6px 18px rgba(0,0,0,0.30);
-    }
-    .admin-team-header {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 14px 18px;
-      cursor: pointer;
-    }
+    .admin-team-card:hover { border-color: rgba(139,109,255,0.20); box-shadow: var(--shadow-card); }
+    .admin-team-header { display: flex; align-items: center; gap: 14px; padding: 14px 18px; cursor: pointer; }
     .admin-team-header:hover { background: var(--hover-bg-accent); }
+    .admin-team-crest {
+      width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
+      display: grid; place-items: center;
+      font-family: var(--display-font); font-weight: 800; font-size: 14px; color: var(--text-primary);
+      background: radial-gradient(120% 120% at 30% 20%, #2A2740, #14172A);
+      border: 1px solid var(--glass-border);
+    }
+    .admin-team-id { flex: 1; min-width: 0; }
     .admin-team-name {
-      font-family: var(--display-font);
-      font-size: 15px;
-      font-weight: 700;
-      letter-spacing: -0.005em;
-      flex: 1;
+      font-family: var(--display-font); font-size: 15.5px; font-weight: 700; letter-spacing: -0.01em;
+      display: flex; align-items: center; gap: 9px;
     }
-    .admin-team-meta {
-      font-family: var(--display-font);
-      font-size: 11px;
-      letter-spacing: 0.06em;
-      color: var(--muted);
+    .admin-team-meta { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+    .admin-tier {
+      font-family: var(--mono-font); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 2px 7px; border-radius: var(--r-pill); font-weight: 600;
     }
+    .admin-tier-pro  { color: var(--lavender-1); background: rgba(var(--lavender-3-rgb),0.16); border: 1px solid rgba(var(--lavender-3-rgb),0.24); }
+    .admin-tier-free { color: var(--muted); background: rgba(var(--lavender-2-rgb),0.06); border: 1px solid var(--hairline); }
+
+    .admin-code-wrap { text-align: right; flex-shrink: 0; }
+    .admin-code-label { display: block; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
     .admin-team-code {
-      font-family: monospace;
-      font-size: 11px;
-      font-weight: 700;
-      background: var(--input-bg);
-      border: 1px solid var(--border-solid);
-      border-radius: var(--r-sm);
-      padding: 3px 9px;
-      color: var(--accent);
-      letter-spacing: 2px;
+      font-family: var(--mono-font); font-size: 12px; font-weight: 700; letter-spacing: 2px;
+      background: var(--input-bg); border: 1px solid var(--border-solid); border-radius: var(--r-sm);
+      padding: 4px 10px; color: var(--accent-light); cursor: pointer;
+      transition: border-color var(--dur-2) var(--ease), color var(--dur-2) var(--ease);
     }
-    .admin-members {
-      border-top: 1px solid var(--glass-border);
-      padding: 10px 18px 14px;
-      display: none;
-      background: rgba(0,0,0,0.15);
-    }
-    .admin-members.open { display: block; }
-    .admin-member-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 0;
-      border-bottom: 1px solid var(--hairline);
-    }
+    .admin-team-code:hover { border-color: rgba(var(--lavender-3-rgb),0.4); color: var(--lavender-1); }
+    .admin-chev { color: var(--muted); font-size: 12px; transition: transform var(--dur-2) var(--ease); }
+    .admin-team-card.open .admin-chev { transform: rotate(180deg); }
+
+    .admin-members { border-top: 1px solid var(--glass-border); padding: 6px 18px 12px; display: none; background: rgba(0,0,0,0.18); }
+    .admin-team-card.open .admin-members { display: block; }
+    .admin-member-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--hairline); }
     .admin-member-row:last-child { border-bottom: none; }
-    .admin-member-name { font-size: 13px; font-weight: 600; flex: 1; }
-    .admin-member-meta {
-      font-family: var(--display-font);
-      font-size: 10px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--muted);
+    .admin-member-ava {
+      width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center;
+      background: rgba(var(--lavender-3-rgb),0.14); color: var(--accent-light);
+      font-family: var(--display-font); font-weight: 700; font-size: 11px;
     }
-    .admin-danger { color: var(--danger); border-color: var(--danger); }
-    .admin-danger:hover { background: rgba(255,77,77,0.10); color: var(--danger); }
+    .admin-member-id { flex: 1; min-width: 0; }
+    .admin-member-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+    .admin-member-meta { font-size: 11px; color: var(--muted); margin-top: 1px; font-family: var(--mono-font); }
+    .admin-perm {
+      font-family: var(--mono-font); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 2px 8px; border-radius: var(--r-pill); font-weight: 600; flex-shrink: 0;
+    }
+    .admin-perm-owner  { color: var(--warning); background: rgba(255,176,32,0.12); }
+    .admin-perm-member { color: var(--text-secondary); background: rgba(var(--lavender-2-rgb),0.08); }
+    .admin-role-tag { font-size: 11px; color: var(--text-secondary); flex-shrink: 0; }
+    .admin-danger { color: var(--danger) !important; border-color: rgba(255,77,109,0.3) !important; }
+    .admin-danger:hover { background: rgba(255,77,109,0.10) !important; }
+    .admin-empty-members { color: var(--muted); font-size: 12.5px; padding: 8px 0; }
   </style>
 </head>
 <body>
 <div class="app-shell">
   <nav class="sidebar" id="sidebar"></nav>
   <main class="main-content">
-    <div class="page-header">
-      <div>
-        <div class="page-kicker">Admin</div>
-        <div class="page-title">Teams &amp; Members</div>
-        <div class="page-subtitle">Manage all teams and members</div>
-      </div>
-      <button class="btn btn-primary" id="create-team-btn">+ New Team</button>
+    <section id="admin-hero" class="dx-hero"><div class="dx-hero-loading">Loading console…</div></section>
+
+    <div class="admin-toolbar">
+      <input type="text" id="admin-search" class="dx-search-input" placeholder="Search teams, members or join codes…"/>
+      <div class="sched-spacer"></div>
+      <button class="btn btn-primary btn-sm" id="create-team-btn">+ New Team</button>
     </div>
 
     <div class="modal-backdrop" id="modal" style="display:none">
