@@ -12,48 +12,47 @@
 <div class="app-shell">
   <nav class="sidebar" id="sidebar"></nav>
   <main class="main-content">
-    <div class="page-header">
-      <div>
-        <div class="page-kicker">Team</div>
-        <div class="page-title">Roster</div>
-        <div class="page-subtitle" id="roster-sub">Team players and staff</div>
-      </div>
-      <button class="btn btn-primary" id="add-ghost-btn" style="display:none">+ Add ghost player</button>
-    </div>
 
-    <!-- Inline ghost form (owner-only, hidden by default) -->
-    <div id="ghost-form" class="inline-card" style="display:none">
-      <div class="inline-card-title">Add ghost player</div>
-      <div class="form-group">
-        <label class="form-label">Nickname</label>
-        <input class="form-input" id="g-nickname" placeholder="e.g. fl0m"/>
+    <section id="roster-hero" class="dx-hero"><div class="dx-hero-loading">Loading roster…</div></section>
+
+    <!-- Inline add-player form (owner-only, hidden by default) -->
+    <div id="ghost-form" class="rstr-addform" style="display:none">
+      <div class="rstr-addform-head">
+        <div class="rstr-addform-title">Add player</div>
+        <div class="rstr-addform-sub">Create a stat-tracked roster slot. Steam ID links their demo performance.</div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Steam ID (Steam64)</label>
-        <input class="form-input" id="g-steam-id" placeholder="76561198…" autocomplete="off"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Role</label>
-        <select class="form-select" id="g-role">
-          <option value="Unassigned">Unassigned</option>
-          <option value="IGL">IGL</option>
-          <option value="AWPer">AWPer</option>
-          <option value="Entry">Entry</option>
-          <option value="Support">Support</option>
-          <option value="Lurker">Lurker</option>
-          <option value="Coach">Coach</option>
-          <option value="Manager">Manager</option>
-          <option value="Bench">Bench</option>
-        </select>
+      <div class="rstr-addform-grid">
+        <div class="form-group">
+          <label class="form-label">Nickname</label>
+          <input class="form-input" id="g-nickname" placeholder="e.g. fl0m" autocomplete="off"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Steam64 ID</label>
+          <input class="form-input" id="g-steam-id" placeholder="76561198…" autocomplete="off"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Role</label>
+          <select class="form-select" id="g-role">
+            <option value="Unassigned">Unassigned</option>
+            <option value="IGL">IGL</option>
+            <option value="AWPer">AWPer</option>
+            <option value="Entry">Entry</option>
+            <option value="Support">Support</option>
+            <option value="Lurker">Lurker</option>
+            <option value="Coach">Coach</option>
+            <option value="Manager">Manager</option>
+            <option value="Bench">Bench</option>
+          </select>
+        </div>
       </div>
       <div class="error-msg" id="ghost-error" style="display:none"></div>
-      <div class="inline-card-actions">
+      <div class="rstr-addform-actions">
         <button class="btn btn-ghost" id="ghost-cancel-btn">Cancel</button>
-        <button class="btn btn-primary" id="ghost-save-btn">Add</button>
+        <button class="btn btn-primary" id="ghost-save-btn">Add player</button>
       </div>
     </div>
 
-    <div class="roster-grid" id="roster-grid"></div>
+    <div class="rstr-grid" id="roster-grid"></div>
   </main>
 </div>
 <script type="module" src="roster.js"></script>
