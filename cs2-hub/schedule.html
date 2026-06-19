@@ -12,30 +12,42 @@
 <div class="app-shell">
   <nav class="sidebar" id="sidebar"></nav>
   <main class="main-content">
-    <div class="page-header">
-      <div>
-        <div class="page-kicker">Overview</div>
-        <div class="page-title">Schedule</div>
-        <div class="page-sub">Scrims, tournaments, meetings &amp; VOD sessions</div>
+    <section id="schedule-hero" class="dx-hero"><div class="dx-hero-loading">Loading schedule…</div></section>
+
+    <div class="sched-toolbar">
+      <div class="seg sched-views" id="sched-views">
+        <button type="button" class="on" data-view="calendar">Calendar</button>
+        <button type="button" data-view="list">List</button>
       </div>
-      <div class="page-header-actions">
-        <div class="cal-nav">
-          <button class="btn btn-ghost btn-sm cal-nav-btn" id="cal-prev" aria-label="Previous month">&#8249;</button>
-          <div class="cal-month-label" id="cal-header"></div>
-          <button class="btn btn-ghost btn-sm cal-nav-btn" id="cal-next" aria-label="Next month">&#8250;</button>
+      <div id="sched-filters" class="sched-filters"></div>
+      <div class="sched-spacer"></div>
+      <div class="cal-nav" id="cal-nav-wrap">
+        <button class="btn btn-ghost btn-sm cal-nav-btn" id="cal-prev" aria-label="Previous month">&#8249;</button>
+        <div class="cal-month-label" id="cal-header"></div>
+        <button class="btn btn-ghost btn-sm cal-nav-btn" id="cal-next" aria-label="Next month">&#8250;</button>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="gcal-btn">Google Cal</button>
+      <button class="btn btn-ghost btn-sm" id="pracc-settings-btn">Pracc</button>
+      <button class="btn btn-primary btn-sm" id="add-btn">+ Add Event</button>
+    </div>
+
+    <div class="sched-layout">
+      <div class="sched-main">
+        <div id="sched-calendar">
+          <div class="cal-weekdays">
+            <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div>
+          </div>
+          <div class="cal-grid" id="cal-grid"></div>
         </div>
-        <button class="btn btn-ghost btn-sm" id="gcal-btn">Google Calendar</button>
-        <button class="btn btn-ghost btn-sm" id="pracc-settings-btn">Pracc Calendar</button>
-        <button class="btn btn-primary" id="add-btn">+ Add Event</button>
+        <div id="sched-list" class="sched-list" style="display:none"></div>
       </div>
-    </div>
 
-    <div id="schedule-hero-slot"></div>
-
-    <div class="cal-weekdays">
-      <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div>
+      <aside class="sched-rail">
+        <div class="sched-card" id="sched-upnext"></div>
+        <div class="sched-card" id="sched-today"></div>
+        <div class="sched-card" id="sched-week"></div>
+      </aside>
     </div>
-    <div class="cal-grid" id="cal-grid"></div>
   </main>
 </div>
 

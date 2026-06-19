@@ -1,5 +1,5 @@
 import { requireAuth } from './auth.js'
-import { renderSidebar } from './layout.js'
+import { renderSidebar, renderToolHeader } from './layout.js'
 import { supabase, getTeamId } from './supabase.js'
 import { toast } from './toast.js'
 import { attachTeamAutocomplete, getTeamLogo, teamLogoEl } from './team-autocomplete.js'
@@ -35,42 +35,285 @@ function formatCountdown(ms) {
   return { value: String(days), unit: days === 1 ? 'day' : 'days' }
 }
 
-function renderHeroNextMatch() {
-  const slot = document.getElementById('schedule-hero-slot')
-  if (!slot) return
+const TYPE_META = {
+  tournament: { label: 'Tournament', cls: 'tournament' },
+  scrim:      { label: 'Scrim',      cls: 'scrim' },
+  vod_review: { label: 'VOD Review', cls: 'vod_review' },
+  meeting:    { label: 'Meeting',    cls: 'meeting' },
+}
+const MATCH_TYPES = new Set(['tournament', 'scrim'])
+
+function norm(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '') }
+function looseHas(set, name) {
+  const n = norm(name); if (!n) return false
+  if (set.has(n)) return true
+  for (const v of set) if (v.includes(n) || n.includes(v)) return true
+  return false
+}
+function startOfToday() { const d = new Date(); d.setHours(0, 0, 0, 0); return d }
+function filteredEvents() { return typeFilter === 'all' ? allEvents : allEvents.filter(e => e.type === typeFilter) }
+
+// Real prep signals from team data: opponent profile + veto plan + notes.
+function prepFor(ev) {
+  const hasProfile = looseHas(prep.profiles, ev.opponent)
+  const hasVeto = looseHas(prep.vetos, ev.opponent)
+  const hasNotes = !!(ev.notes && String(ev.notes).trim())
+  const done = (hasProfile ? 1 : 0) + (hasVeto ? 1 : 0) + (hasNotes ? 1 : 0)
+  const status = done >= 3 ? 'ready' : done >= 1 ? 'partial' : 'todo'
+  return { hasProfile, hasVeto, hasNotes, done, status }
+}
+
+function cardHead(title, sub) {
+  return `<div class="sched-card-head"><div class="sched-card-title">${esc(title)}</div>${sub ? `<div class="sched-card-sub">${esc(sub)}</div>` : ''}</div>`
+}
+
+// ── Header (unified tool header + KPIs) ─────────────────────────────────
+function renderHeader() {
   const now = Date.now()
+  const weekEnd = now + 7 * DAY_MS
   const upcoming = allEvents.filter(e => new Date(e.date).getTime() > now)
-  const matchTypes = ['tournament', 'scrim']
-  const next = upcoming.find(e => matchTypes.includes(e.type)) ?? null
+  const thisWeek = upcoming.filter(e => new Date(e.date).getTime() <= weekEnd)
+  const scrims = thisWeek.filter(e => e.type === 'scrim').length
+  const matches = upcoming.filter(e => MATCH_TYPES.has(e.type))
+  const next = matches[0]
+  const prepTodo = matches.filter(e => prepFor(e).status !== 'ready').length
+
+  let nextChip = { v: '—', k: 'next match' }
+  if (next) {
+    const cd = formatCountdown(new Date(next.date).getTime() - now)
+    nextChip = { v: cd.unit ? `${cd.value} ${cd.unit}` : cd.value, k: `vs ${next.opponent || next.title}` }
+  }
+  renderToolHeader(document.getElementById('schedule-hero'), {
+    section: 'Overview',
+    title: 'Schedule',
+    sub: 'Matches, scrims, reviews and meetings — with prep status for what comes next.',
+    kpis: [
+      nextChip,
+      { v: thisWeek.length, k: 'next 7 days' },
+      { v: scrims, k: 'scrims booked' },
+      { v: prepTodo, k: 'need prep', tone: prepTodo ? 'bad' : 'good' },
+    ],
+  })
+}
+
+function renderInsights() { renderUpNext(); renderToday(); renderWeek() }
+
+// ── Up Next — compact next-match card with prep checklist ───────────────
+function renderUpNext() {
+  const el = document.getElementById('sched-upnext')
+  if (!el) return
+  const now = Date.now()
+  const next = allEvents
+    .filter(e => new Date(e.date).getTime() > now && MATCH_TYPES.has(e.type))
+    .sort((a, b) => new Date(a.date) - new Date(b.date))[0]
   if (!next) {
-    slot.innerHTML = ''
+    el.innerHTML = cardHead('Up Next', '') +
+      `<div class="sched-empty">No upcoming matches. <a href="#" data-add>Schedule one →</a></div>`
+    el.querySelector('[data-add]')?.addEventListener('click', e => { e.preventDefault(); openModal() })
     return
   }
   const start = new Date(next.date)
   const cd = formatCountdown(start.getTime() - now)
-  const opp = next.opponent || next.title
-  const sourceLabel = next.source === 'pracc' ? ' · PRACC' : next.source === 'gcal' ? ' · GCAL' : ''
-  const dateLabel = start.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase()
-  slot.innerHTML = `
-    <div class="hero-card">
-      <div>
-        <div class="hero-tag">Next ${TYPE_LABELS[next.type] ?? 'MATCH'}${sourceLabel}</div>
-        <div class="hero-vs">vs</div>
-        <div class="hero-opponent">${esc(opp)}</div>
-        <div class="hero-meta">
-          <span>${dateLabel}</span>
-          <span class="hero-meta-divider"></span>
-          <span>${formatTime(next.date)}${next.end_date ? ' – ' + formatTime(next.end_date) : ''}</span>
+  const p = prepFor(next)
+  const meta = TYPE_META[next.type] || { label: 'Match' }
+  const dateLabel = start.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })
+  const statusLabel = p.status === 'ready' ? 'Ready' : p.status === 'partial' ? 'In progress' : 'Not started'
+  el.innerHTML = `
+    ${cardHead('Up Next', meta.label)}
+    <div class="upnext">
+      <div class="upnext-top">
+        <div class="upnext-vs-wrap">
+          <div class="upnext-vs">vs ${esc(next.opponent || next.title)}</div>
+          <div class="upnext-when">${dateLabel} · ${formatTime(next.date)}</div>
+        </div>
+        <div class="upnext-cd">
+          <div class="upnext-cd-v">${cd.value}</div>
+          <div class="upnext-cd-u">${esc(cd.unit || 'now')}</div>
         </div>
       </div>
-      <div class="hero-right">
-        <div>
-          <div class="hero-countdown-label">Starts in</div>
-          <div class="hero-countdown">${cd.value}<span class="hero-countdown-unit">${cd.unit}</span></div>
+      <div class="upnext-prep">
+        <div class="upnext-prep-head">
+          <span>Prep status</span>
+          <span class="prep-badge prep-${p.status}">${statusLabel}</span>
+        </div>
+        <div class="prep-checks">
+          ${prepCheck('Opponent profile', p.hasProfile, 'opponents.html')}
+          ${prepCheck('Veto plan', p.hasVeto, 'veto.html')}
+          ${prepCheck('Match notes', p.hasNotes, null, next.id)}
         </div>
       </div>
-    </div>
-  `
+    </div>`
+  el.querySelector('[data-edit-notes]')?.addEventListener('click', e => { e.preventDefault(); openModal(next.id) })
+}
+
+function prepCheck(label, done, href, editId) {
+  const ic = `<span class="prep-check-ic prep-check-${done ? 'on' : 'off'}">${done ? '✓' : '○'}</span><span>${esc(label)}</span>`
+  if (done) return `<div class="prep-check is-done">${ic}</div>`
+  if (editId) return `<a class="prep-check" href="#" data-edit-notes>${ic}<span class="prep-go">Add →</span></a>`
+  return `<a class="prep-check" href="${href}">${ic}<span class="prep-go">Open →</span></a>`
+}
+
+// ── Today's agenda ──────────────────────────────────────────────────────
+function renderToday() {
+  const el = document.getElementById('sched-today')
+  if (!el) return
+  const today = startOfToday().getTime()
+  const tmrw = today + DAY_MS
+  const items = allEvents
+    .filter(e => { const t = new Date(e.date).getTime(); return t >= today && t < tmrw })
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+  const sub = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })
+  const body = items.length
+    ? `<div class="agenda">${items.map(agendaRow).join('')}</div>`
+    : `<div class="sched-empty">Nothing scheduled today — a good day to review demos.</div>`
+  el.innerHTML = cardHead('Today', sub) + body
+  wireAgenda(el)
+}
+
+function agendaRow(e) {
+  const meta = TYPE_META[e.type] || { label: e.type, cls: '' }
+  return `<a class="agenda-row" data-id="${esc(e.id)}">
+    <span class="agenda-time">${formatTime(e.date)}</span>
+    <span class="agenda-rail agenda-rail-${meta.cls}"></span>
+    <span class="agenda-mid">
+      <span class="agenda-title">${esc(e.title)}</span>
+      <span class="agenda-type">${esc(meta.label)}${e.opponent ? ' · ' + esc(e.opponent) : ''}</span>
+    </span>
+  </a>`
+}
+
+// ── Next 7 days ─────────────────────────────────────────────────────────
+function renderWeek() {
+  const el = document.getElementById('sched-week')
+  if (!el) return
+  const now = Date.now()
+  const end = now + 7 * DAY_MS
+  const items = allEvents
+    .filter(e => { const t = new Date(e.date).getTime(); return t > now && t <= end })
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+  const counts = {}
+  for (const e of items) counts[e.type] = (counts[e.type] || 0) + 1
+  const chips = Object.entries(TYPE_META).map(([k, m]) =>
+    `<div class="week-chip"><span class="week-chip-v">${counts[k] || 0}</span><span class="week-chip-k">${esc(m.label)}s</span></div>`
+  ).join('')
+  const rows = items.slice(0, 6).map(weekRow).join('')
+  el.innerHTML = cardHead('Next 7 Days', `${items.length} event${items.length === 1 ? '' : 's'}`)
+    + `<div class="week-chips">${chips}</div>`
+    + (rows ? `<div class="week-list">${rows}</div>` : `<div class="sched-empty">No events in the next week.</div>`)
+  wireAgenda(el)
+}
+
+function weekRow(e) {
+  const meta = TYPE_META[e.type] || { label: e.type, cls: '' }
+  const day = new Date(e.date).toLocaleDateString('en-GB', { weekday: 'short' })
+  const prepDot = MATCH_TYPES.has(e.type)
+    ? `<span class="prep-dot prep-${prepFor(e).status}" title="Prep ${prepFor(e).status}"></span>` : ''
+  return `<a class="week-row" data-id="${esc(e.id)}">
+    <span class="week-day"><b>${esc(day)}</b><span>${formatTime(e.date)}</span></span>
+    <span class="agenda-rail agenda-rail-${meta.cls}"></span>
+    <span class="week-mid"><span class="agenda-title">${esc(e.title)}</span><span class="agenda-type">${esc(meta.label)}</span></span>
+    ${prepDot}
+  </a>`
+}
+
+// ── List view ───────────────────────────────────────────────────────────
+function renderList() {
+  const el = document.getElementById('sched-list')
+  if (!el) return
+  const evs = [...filteredEvents()].sort((a, b) => new Date(a.date) - new Date(b.date))
+  const upcoming = evs.filter(e => new Date(e.date).getTime() >= startOfToday().getTime())
+  if (!upcoming.length) {
+    el.innerHTML = `<div class="sched-empty sched-empty-lg">No upcoming ${typeFilter === 'all' ? '' : typeFilter + ' '}events. <a href="#" data-add>Add one →</a></div>`
+    el.querySelector('[data-add]')?.addEventListener('click', e => { e.preventDefault(); openModal() })
+    return
+  }
+  const groups = new Map()
+  for (const e of upcoming) {
+    const key = localDateStr(new Date(e.date))
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key).push(e)
+  }
+  const todayKey = localDateStr(new Date())
+  el.innerHTML = [...groups.entries()].map(([key, items]) => {
+    const d = new Date(key + 'T00:00:00')
+    const isToday = key === todayKey
+    const dLabel = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+    return `<div class="list-group">
+      <div class="list-date ${isToday ? 'is-today' : ''}">${dLabel}${isToday ? ' · Today' : ''}</div>
+      <div class="list-rows">${items.map(listRow).join('')}</div>
+    </div>`
+  }).join('')
+  wireAgenda(el)
+}
+
+function listRow(e) {
+  const meta = TYPE_META[e.type] || { label: e.type, cls: '' }
+  const src = e.source === 'pracc' ? `<span class="pracc-badge">PRACC</span>` : e.source === 'gcal' ? `<span class="gcal-badge">GCAL</span>` : ''
+  let prepBadge = ''
+  if (MATCH_TYPES.has(e.type)) {
+    const p = prepFor(e)
+    prepBadge = `<span class="prep-badge prep-${p.status}">${p.status === 'ready' ? 'Prep ready' : p.status === 'partial' ? `Prep ${p.done}/3` : 'Prep needed'}</span>`
+  }
+  return `<a class="list-row" data-id="${esc(e.id)}">
+    <span class="list-time">${formatTime(e.date)}${e.end_date ? `<span>${formatTime(e.end_date)}</span>` : ''}</span>
+    <span class="agenda-rail agenda-rail-${meta.cls}"></span>
+    <span class="list-mid">
+      <span class="list-title">${esc(e.title)} ${src}</span>
+      <span class="list-sub"><span class="list-type list-type-${meta.cls}">${esc(meta.label)}</span>${e.opponent ? ' · ' + esc(e.opponent) : ''}</span>
+    </span>
+    ${prepBadge}
+  </a>`
+}
+
+// Shared click wiring for agenda / week / list rows.
+function wireAgenda(scope) {
+  scope.querySelectorAll('[data-id]').forEach(el => {
+    el.addEventListener('click', ev => {
+      ev.preventDefault()
+      const event = allEvents.find(e => e.id === el.dataset.id)
+      if (!event) return
+      if (event.source === 'pracc') openPraccModal(event)
+      else if (event.source === 'gcal') openGcalEventModal(event)
+      else openModal(event.id)
+    })
+  })
+}
+
+// ── Filters + view toggle ───────────────────────────────────────────────
+function renderFilters() {
+  const el = document.getElementById('sched-filters')
+  if (!el) return
+  const pills = [['all', 'All'], ['tournament', 'Tournaments'], ['scrim', 'Scrims'], ['vod_review', 'Reviews'], ['meeting', 'Meetings']]
+  el.innerHTML = pills.map(([v, l]) =>
+    `<button type="button" class="dx-pill ${typeFilter === v ? 'is-active' : ''}" data-type="${v}">${l}</button>`
+  ).join('')
+  el.querySelectorAll('[data-type]').forEach(b => b.addEventListener('click', () => {
+    typeFilter = b.dataset.type
+    renderFilters(); renderView()
+  }))
+}
+
+function renderView() {
+  const cal = document.getElementById('sched-calendar')
+  const list = document.getElementById('sched-list')
+  const calNav = document.getElementById('cal-nav-wrap')
+  if (viewMode === 'calendar') {
+    cal.style.display = ''; list.style.display = 'none'; if (calNav) calNav.style.display = ''
+    renderCalendar()
+  } else {
+    cal.style.display = 'none'; list.style.display = ''; if (calNav) calNav.style.display = 'none'
+    renderList()
+  }
+}
+
+async function loadPrep() {
+  const teamId = getTeamId()
+  const [{ data: opps }, { data: vetos }] = await Promise.all([
+    supabase.from('opponents').select('name').eq('team_id', teamId),
+    supabase.from('veto_predictions').select('opponent').eq('team_id', teamId),
+  ])
+  prep.profiles = new Set((opps || []).map(o => norm(o.name)).filter(Boolean))
+  prep.vetos = new Set((vetos || []).map(v => norm(v.opponent)).filter(Boolean))
 }
 
 let allEvents = []
@@ -78,6 +321,18 @@ let editingId = null
 let currentMonth = new Date()
 currentMonth.setDate(1)
 currentMonth.setHours(0,0,0,0)
+let viewMode = 'calendar'
+let typeFilter = 'all'
+const prep = { profiles: new Set(), vetos: new Set() }
+
+// View toggle (Calendar / List) — static buttons, bound once at load.
+document.getElementById('sched-views').addEventListener('click', e => {
+  const btn = e.target.closest('[data-view]')
+  if (!btn) return
+  viewMode = btn.dataset.view
+  for (const b of document.querySelectorAll('#sched-views button')) b.classList.toggle('on', b === btn)
+  renderView()
+})
 
 // ── Load ───────────────────────────────────────────────────
 async function loadEvents() {
@@ -112,8 +367,11 @@ async function loadEvents() {
     })
   })
   allEvents = [...filtered, ...externalEvents].sort((a, b) => new Date(a.date) - new Date(b.date))
-  renderHeroNextMatch()
-  renderCalendar()
+  await loadPrep()
+  renderHeader()
+  renderFilters()
+  renderInsights()
+  renderView()
 
   // Sync: ensure each pracc event has a corresponding vod entry, and backfill
   // map info on older auto-created vods that were inserted before map parsing.
@@ -213,12 +471,13 @@ function renderCalendar() {
     if (cells.length >= 42) break
   }
 
+  const evs = filteredEvents()
   const grid = document.getElementById('cal-grid')
   grid.innerHTML = cells.map(d => {
     const isCurrentMonth = d.getMonth() === month
     const isToday = d.getTime() === today.getTime()
     const dateStr = localDateStr(d)
-    const dayEvents = allEvents.filter(e => localDateStr(new Date(e.date)) === dateStr)
+    const dayEvents = evs.filter(e => localDateStr(new Date(e.date)) === dateStr)
 
     return `
       <div class="cal-cell ${!isCurrentMonth ? 'cal-other' : ''} ${isToday ? 'cal-today' : ''}" data-date="${dateStr}">
