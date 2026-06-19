@@ -286,6 +286,57 @@ const FAKE = {
   playlists: [],
 }
 
+// ── Roster + demo_players (design preview only) ────────────────────────
+// Mirror team_members into the `roster` table shape the Roster page reads,
+// then synthesize per-player / per-demo / per-side stat rows so every
+// performance surface renders with realistic, internally-consistent data.
+FAKE.roster = FAKE.team_members.map(m => ({
+  id: 'r' + m.id, team_id: TEAM_ID, user_id: m.user_id,
+  nickname: m.nickname, steam_id: m.steam_id,
+  role: m.display_role, is_ghost: false,
+}))
+
+const PLAYER_PROFILES = {
+  // steam_id            rating adr  kast  hs   impact kpr  dpr  opk  opd  clutch m3 m4 util ctBias
+  '76561198000000001': { rating: 1.04, adr: 78, kast: 0.74, hs: 0.46, impact: 1.02, kpr: 0.68, dpr: 0.66, opk: 0.10, opd: 0.11, clutch: 4, m3: 3, m4: 1, util: 7.2, ctBias: 0.06 }, // fl0m  IGL
+  '76561198000000002': { rating: 1.34, adr: 92, kast: 0.76, hs: 0.38, impact: 1.42, kpr: 0.86, dpr: 0.58, opk: 0.18, opd: 0.10, clutch: 8, m3: 6, m4: 3, util: 3.1, ctBias: 0.10 }, // s1mple AWP
+  '76561198000000003': { rating: 1.16, adr: 88, kast: 0.71, hs: 0.55, impact: 1.30, kpr: 0.82, dpr: 0.70, opk: 0.22, opd: 0.18, clutch: 3, m3: 5, m4: 2, util: 6.4, ctBias: -0.05 }, // electronic Entry
+  '76561198000000004': { rating: 1.11, adr: 80, kast: 0.75, hs: 0.50, impact: 1.08, kpr: 0.74, dpr: 0.62, opk: 0.12, opd: 0.12, clutch: 6, m3: 4, m4: 1, util: 5.0, ctBias: 0.02 }, // b1t  Lurker
+  '76561198000000005': { rating: 0.94, adr: 68, kast: 0.72, hs: 0.44, impact: 0.82, kpr: 0.60, dpr: 0.66, opk: 0.07, opd: 0.10, clutch: 2, m3: 2, m4: 0, util: 9.6, ctBias: 0.04 }, // Perfecto Support
+}
+const DEMO_ROUNDS = { d1: 27, d2: 29, d3: 25 }
+const jitter = (base, amp, seed) => base + (((Math.sin(seed) * 9973) % 1) * 2 - 1) * amp
+
+FAKE.demo_players = []
+let _seed = 1
+for (const m of FAKE.team_members) {
+  const prof = PLAYER_PROFILES[m.steam_id]
+  if (!prof) continue
+  for (const [demoId, rounds] of Object.entries(DEMO_ROUNDS)) {
+    const ctR = Math.round(rounds * 0.55)
+    const tR = rounds - ctR
+    const rAll = +jitter(prof.rating, 0.09, _seed++).toFixed(2)
+    const mk = (side, rd, rating) => ({
+      demo_id: demoId, team: 'a', side, steam_id: m.steam_id, name: m.ign,
+      rounds_played: rd,
+      kills: Math.round(prof.kpr * rd), deaths: Math.round(prof.dpr * rd), assists: Math.round(0.12 * rd),
+      adr: +jitter(prof.adr, 6, _seed++).toFixed(1),
+      kast_pct: Math.min(0.95, +jitter(prof.kast, 0.04, _seed++).toFixed(3)),
+      hs_pct: +prof.hs.toFixed(3), rating,
+      impact_rating: +jitter(prof.impact, 0.08, _seed++).toFixed(2),
+      utility_dmg: Math.round(prof.util * rd),
+      opening_kills: Math.round(prof.opk * rd), opening_deaths: Math.round(prof.opd * rd),
+      clutches_won: side === 'all' ? prof.clutch : 0, clutches_lost: side === 'all' ? Math.round(prof.clutch * 0.7) : 0,
+      multi_2k: Math.round(0.2 * rd), multi_3k: side === 'all' ? prof.m3 : 0,
+      multi_4k: side === 'all' ? prof.m4 : 0, multi_5k: 0,
+      flash_assists: Math.round(0.06 * rd), traded_deaths: Math.round(0.18 * rd),
+    })
+    FAKE.demo_players.push(mk('all', rounds, rAll))
+    FAKE.demo_players.push(mk('ct', ctR, +(rAll + prof.ctBias).toFixed(2)))
+    FAKE.demo_players.push(mk('t', tR, +(rAll - prof.ctBias).toFixed(2)))
+  }
+}
+
 // ── Build a chainable thenable PostgrestBuilder mock ──
 function builder(table) {
   let rows = (FAKE[table] || []).slice()
@@ -374,6 +425,38 @@ const mockSupabase = {
     unsubscribe: () => {},
   }),
   removeChannel: () => {},
+}
+
+// ── /api/admin shim (design preview only) ───────────────────────────────
+// The Admin console talks to a server endpoint, not Supabase. Shim fetch so
+// the redesign renders realistic platform data without a live backend.
+const ADMIN_TEAMS = [
+  { id: TEAM_ID, name: TEAM_NAME, join_code: 'PH-4827', tier: 'pro', created_at: subDays(214),
+    members: FAKE.team_members.map(m => ({
+      user_id: m.user_id, email: `${m.nickname.toLowerCase()}@phantom5.gg`,
+      role: m.role === 'owner' ? 'owner' : 'member', steam_id: m.steam_id, display_role: m.display_role,
+    })) },
+  { id: '00000000-0000-0000-0000-0000000000aa', name: 'Nordic Talents', join_code: 'NT-1193', tier: 'free', created_at: subDays(38),
+    members: [
+      { user_id: 'x1', email: 'coach@nordic.gg', role: 'owner', steam_id: '76561198000000010', display_role: 'Coach' },
+      { user_id: 'x2', email: 'kygar@nordic.gg', role: 'member', steam_id: '76561198000000011', display_role: 'AWPer' },
+      { user_id: 'x3', email: 'lue@nordic.gg', role: 'member', steam_id: null, display_role: 'Entry' },
+    ] },
+  { id: '00000000-0000-0000-0000-0000000000bb', name: 'Academy Roster', join_code: 'AC-7740', tier: 'free', created_at: subDays(6),
+    members: [
+      { user_id: 'y1', email: 'manager@academy.gg', role: 'owner', steam_id: null, display_role: 'Manager' },
+    ] },
+]
+const _jsonResp = (obj) => Promise.resolve({ ok: true, status: 200, json: async () => obj, text: async () => JSON.stringify(obj) })
+const _origFetch = window.fetch?.bind(window)
+window.fetch = (url, opts) => {
+  const u = String(url)
+  if (u.includes('/api/admin')) {
+    const method = (opts?.method || 'GET').toUpperCase()
+    return method === 'GET' ? _jsonResp(ADMIN_TEAMS) : _jsonResp({ ok: true })
+  }
+  if (u.includes('/api/')) return _jsonResp([])
+  return _origFetch ? _origFetch(url, opts) : _jsonResp({})
 }
 
 // Override the module loader — when supabase.js is imported, return our mock.
