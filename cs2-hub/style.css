@@ -4823,6 +4823,22 @@ body.antistrat-drawer-open .main-content { margin-left: 0; margin-right: 480px; 
   font-family: var(--display-font);
   letter-spacing: 0.04em;
 }
+.sb-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 10px;
+}
+.sb-card-foot .sb-card-tags { margin-top: 0; }
+.sb-card-updated {
+  font-family: var(--mono-font);
+  font-size: 9.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 
 /* ── Issues (iss-*) ──────────────────────────────────────────── */
 .iss-hero-severity {

@@ -6,6 +6,14 @@ import { STRAT_SEEDS } from './strat-seed.js'
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML }
 function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : '' }
+function relTime(iso) {
+  if (!iso) return ''
+  const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)
+  if (d < 1) return 'today'
+  if (d < 30) return `${d}d ago`
+  if (d < 365) return `${Math.floor(d / 30)}mo ago`
+  return `${Math.floor(d / 365)}y ago`
+}
 
 const MAP_IMG = { dust2: 'dust' }
 function mapFile(map) { return MAP_IMG[map] ?? map }
@@ -204,6 +212,7 @@ function stratCard(s) {
   const firstNote = s.notes?.split('\n')[0]?.trim() ?? ''
   const t = TYPE_META[s.type] ?? { label: s.type, color: '#64748b' }
   const sideCls = s.side === 't' ? 'sb-card-t' : s.side === 'ct' ? 'sb-card-ct' : ''
+  const updated = relTime(s.updated_at || s.created_at)
   return `
     <a class="sb-card ${sideCls}" href="stratbook-detail.html?id=${esc(s.id)}">
       <div class="sb-card-mapwash" style="${mapBg(s.map) ? `background-image:url('${esc(mapBg(s.map))}')` : ''}"></div>
@@ -224,10 +233,12 @@ function stratCard(s) {
               <span class="sb-card-role-name">${esc(r.role)}</span>
             </div>`).join('')}
         </div>` : ''}
-      ${(s.tags ?? []).length ? `
-        <div class="sb-card-tags">
-          ${s.tags.map(tag => `<span class="sb-card-tag">#${esc(tag)}</span>`).join('')}
-        </div>` : ''}
+      <div class="sb-card-foot">
+        ${(s.tags ?? []).length
+          ? `<div class="sb-card-tags">${s.tags.slice(0, 3).map(tag => `<span class="sb-card-tag">#${esc(tag)}</span>`).join('')}</div>`
+          : '<span></span>'}
+        ${updated ? `<span class="sb-card-updated">Updated ${esc(updated)}</span>` : ''}
+      </div>
     </a>`
 }
 
